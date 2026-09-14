@@ -18,6 +18,8 @@ from contacts.serializer import ContactSerializer
 
 
 class AccountSerializer(serializers.ModelSerializer):
+    stage_label = serializers.CharField(source="get_stage_display", read_only=True)
+    source_label = serializers.CharField(source="get_source_display", read_only=True)
     """Serializer for reading Account data"""
 
     created_by = UserSerializer()
@@ -84,6 +86,12 @@ class AccountSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "website",
+            "source",
+            "stage",
+            "source_label",
+            "stage_label",
+            "stage_entered_at",
+            "pages",
             # Business Information
             "industry",
             "number_of_employees",
@@ -91,6 +99,8 @@ class AccountSerializer(serializers.ModelSerializer):
             "currency",
             # Address
             "address_line",
+            "appointment_at",
+            "language",
             "city",
             "state",
             "postcode",
@@ -113,6 +123,7 @@ class AccountSerializer(serializers.ModelSerializer):
             # System
             "created_by",
             "created_at",
+            "updated_at",
             "is_active",
             "org",
             # Per-org custom fields (validated via common.custom_fields)
@@ -182,10 +193,15 @@ class AccountWriteSerializer(serializers.ModelSerializer):
             "phone",
             "email",
             "website",
+            "source",
+            "stage",
+            "pages",
             "industry",
             "number_of_employees",
             "annual_revenue",
             "address_line",
+            "appointment_at",
+            "language",
             "city",
             "state",
             "postcode",
@@ -203,6 +219,58 @@ class AccountCreateSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         if request_obj:
             self.org = request_obj.profile.org
+
+    def validate_pages(self, value):
+        if not isinstance(value, list) or len(value) > 50:
+            raise serializers.ValidationError("Provide up to 50 pages.")
+        cleaned = []
+        from django.core.exceptions import ValidationError
+        from django.core.validators import URLValidator
+
+        validator = URLValidator(schemes=["http", "https"])
+        for page in value:
+            if not isinstance(page, dict):
+                raise serializers.ValidationError("Each page needs a name and link.")
+            name, url = (
+                str(page.get("name", "")).strip(),
+                str(page.get("url", "")).strip(),
+            )
+            if not name or len(name) > 100 or len(url) > 2000:
+                raise serializers.ValidationError(
+                    "Each page needs a name (up to 100 characters) and link."
+                )
+            try:
+                validator(url)
+            except ValidationError:
+                raise serializers.ValidationError(
+                    "Page links must be valid HTTP or HTTPS URLs."
+                )
+            cleaned.append({"name": name, "url": url})
+        return cleaned
+
+    def validate(self, attrs):
+        from common.validators import payload_id_list
+        from contacts.models import Contact
+
+        if "contacts" in self.initial_data:
+            ids = payload_id_list(self.initial_data.get("contacts") or [], "contacts")
+            if Contact.objects.filter(org=self.org, pk__in=ids).count() != len(
+                set(map(str, ids))
+            ):
+                raise serializers.ValidationError(
+                    {"contacts": "Choose contacts from this organization."}
+                )
+        if "tag_ids" in self.initial_data:
+            from common.models import Tags
+
+            ids = payload_id_list(self.initial_data.get("tag_ids") or [], "tag_ids")
+            if Tags.objects.filter(org=self.org, pk__in=ids).count() != len(
+                set(map(str, ids))
+            ):
+                raise serializers.ValidationError(
+                    {"tag_ids": "Choose tags from this organization."}
+                )
+        return super().validate(attrs)
 
     def validate_name(self, name):
         if self.instance:
@@ -239,6 +307,9 @@ class AccountCreateSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "website",
+            "source",
+            "stage",
+            "pages",
             # Business Information
             "industry",
             "number_of_employees",
@@ -246,6 +317,8 @@ class AccountCreateSerializer(serializers.ModelSerializer):
             "currency",
             # Address
             "address_line",
+            "appointment_at",
+            "language",
             "city",
             "state",
             "postcode",

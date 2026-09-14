@@ -22,8 +22,8 @@
 
 export const STAGES = [
   'PROSPECTING',
-  'QUALIFICATION',
   'PROPOSAL',
+  'QUALIFICATION',
   'NEGOTIATION',
   'CLOSED_WON',
   'CLOSED_LOST'
@@ -34,11 +34,11 @@ export const OPEN_STAGES = STAGES.slice(0, 4);
 
 export const STAGE_LABEL = {
   PROSPECTING: 'Prospecting',
-  QUALIFICATION: 'Qualification',
+  QUALIFICATION: 'Follow Up',
   PROPOSAL: 'Proposal',
-  NEGOTIATION: 'Negotiation',
-  CLOSED_WON: 'Closed Won',
-  CLOSED_LOST: 'Closed Lost'
+  NEGOTIATION: 'Stan By',
+  CLOSED_WON: 'Close Won',
+  CLOSED_LOST: 'Close Lost'
 };
 
 export const STAGE_TONE = {

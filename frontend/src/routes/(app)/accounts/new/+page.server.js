@@ -12,21 +12,22 @@ export const actions = {
   create: async ({ cookies, request }) => {
     const form = await request.formData();
 
-    /** @type {Record<string, string>} */
+    /** @type {Record<string, any>} */
     const values = {};
+    if (form.has('contacts_present')) {
+      const ids = form.getAll('contacts').map(String).sort();
+      if (JSON.stringify(ids) !== form.get('contacts_original')) values.contacts = ids;
+    }
+
     for (const field of EDITABLE_FIELDS) {
       if (form.has(field)) values[field] = form.get(field)?.toString().trim() ?? '';
     }
-    // On create there is nothing to preserve, so the owner is always sent,
-    // including empty, which is how an account is deliberately left unowned.
-    values.assigned_to = form.get('assigned_to')?.toString().trim() ?? '';
-
     /** @type {any} */
     let created;
     try {
       created = await createAccount({ cookies }, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, error: readableError(err, 'Could not create this account.') });
+      return fail(400, { values, error: readableError(err, 'Could not create this company.') });
     }
 
     // The API returns the new id. Landing on the account is the point of

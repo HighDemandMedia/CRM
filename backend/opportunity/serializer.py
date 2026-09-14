@@ -19,7 +19,6 @@ from opportunity.models import (
     SalesGoal,
     StageAgingConfig,
 )
-from opportunity.workflow import AMOUNT_REQUIRED_STAGES, CLOSED_STAGES
 
 # A deal type multiplier above this is a data-entry slip, not a quota policy.
 # The ceiling exists so one typo cannot make a goal unreachable or trivially
@@ -57,6 +56,7 @@ class OpportunityLineItemSerializer(serializers.ModelSerializer):
             "formatted_unit_price",
             "formatted_total",
             "created_at",
+            "updated_at",
             "updated_at",
         )
         read_only_fields = (
@@ -130,6 +130,10 @@ class OpportunityLineItemCreateSerializer(serializers.ModelSerializer):
 class OpportunitySerializer(serializers.ModelSerializer):
     """Serializer for reading Opportunity data"""
 
+    lead_source_label = serializers.CharField(
+        source="get_lead_source_display", read_only=True
+    )
+    country_label = serializers.CharField(source="get_country_display", read_only=True)
     account = AccountSerializer()
     closed_by = ProfileSerializer()
     created_by = UserSerializer()
@@ -179,6 +183,15 @@ class OpportunitySerializer(serializers.ModelSerializer):
             "closed_on",
             # Source & Context
             "lead_source",
+            "lead_source_label",
+            "country_label",
+            "priority",
+            "address_line",
+            "language",
+            "city",
+            "state",
+            "postcode",
+            "country",
             # Relationships
             "contacts",
             # Line Items / Products
@@ -251,28 +264,52 @@ class OpportunityCreateSerializer(serializers.ModelSerializer):
         return getattr(self.instance, field, None)
 
     def validate(self, data):
-        """Enforce the two rules `Opportunity.clean()` declares.
-
-        `clean()` is a model method and DRF never calls it; `ModelSerializer`
-        does not run `full_clean()`, so both rules existed only as unit tests
-        against the model. Through the API a deal could be marked Closed Won
-        with no amount and no close date, and it silently landed in
-        `SalesGoal.compute_progress()` (which sums `amount` over won deals)
-        as a win worth nothing.
-
-        Kept as a serializer rule rather than wired into `save()` so the client
-        gets a 400 naming the field instead of a 500 out of the database, per
-        the API Validation rules in CLAUDE.md.
-        """
-        stage = self._resolved(data, "stage")
+        """Validate required deal properties and tenant-scoped associations."""
         errors = {}
 
-        if stage in CLOSED_STAGES and not self._resolved(data, "closed_on"):
-            errors["closed_on"] = (
-                "A deal cannot be closed without the date it closed on."
+        from common.models import Profile
+        from common.validators import payload_id_list
+        from contacts.models import Contact
+
+        creating = self.instance is None
+        for field in ("stage", "priority", "lead_source"):
+            if (creating or field in self.initial_data) and not self._resolved(
+                data, field
+            ):
+                errors[field] = "This field is required."
+        if creating or "assigned_to" in self.initial_data:
+            ids = payload_id_list(
+                self.initial_data.get("assigned_to") or [], "assigned_to"
             )
-        if stage in AMOUNT_REQUIRED_STAGES and not self._resolved(data, "amount"):
-            errors["amount"] = "A won deal has to record what it was worth."
+            if not ids or Profile.objects.filter(
+                org=self.org, is_active=True, pk__in=ids
+            ).count() != len(set(ids)):
+                errors["assigned_to"] = "Choose a deal owner from this organization."
+        if "contacts" in self.initial_data:
+            ids = payload_id_list(self.initial_data.get("contacts") or [], "contacts")
+            if Contact.objects.filter(org=self.org, pk__in=ids).count() != len(
+                set(ids)
+            ):
+                errors["contacts"] = "Choose contacts from this organization."
+        else:
+            ids = (
+                list(self.instance.contacts.values_list("pk", flat=True))
+                if self.instance
+                else []
+            )
+        account = self._resolved(data, "account")
+        if account and account.org_id != self.org.pk:
+            errors["account"] = "Choose a company from this organization."
+        if (
+            (
+                creating
+                or "account" in self.initial_data
+                or "contacts" in self.initial_data
+            )
+            and not account
+            and not ids
+        ):
+            errors["contacts"] = "Associate at least one contact or company."
 
         # `amount` stops being the client's field once the deal has line items.
         # `OpportunityLineItem.save()` calls `recalculate_amount()`, which sets
@@ -315,6 +352,13 @@ class OpportunityCreateSerializer(serializers.ModelSerializer):
             "closed_on",
             # Source & Context
             "lead_source",
+            "priority",
+            "address_line",
+            "language",
+            "city",
+            "state",
+            "postcode",
+            "country",
             # Notes
             "description",
             # Status
@@ -431,6 +475,13 @@ class OpportunityCreateSwaggerSerializer(serializers.ModelSerializer):
             "probability",
             "closed_on",
             "lead_source",
+            "priority",
+            "address_line",
+            "language",
+            "city",
+            "state",
+            "postcode",
+            "country",
             "description",
             "assigned_to",
             "contacts",

@@ -38,6 +38,7 @@
  * encoder as numbers, the model fields as strings, and the pages add them
  * together, so everything numeric is coerced here, at the boundary.
  */
+import { attachmentHref } from './files.js';
 import { error } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
 
@@ -133,11 +134,31 @@ function toRow(account) {
     industry: industryLabel(account.industry),
     industry_value: account.industry ?? '',
     website: account.website ?? '',
+    stage: account.stage,
+    stage_label: account.stage_label,
+    stage_entered_at: account.stage_entered_at,
+    source: account.source ?? '',
+    source_label: account.source_label ?? account.source ?? '',
+    pages: account.pages ?? [],
+    address_line: account.address_line ?? '',
+    state: account.state ?? '',
+    postcode: account.postcode ?? '',
+    contacts: account.contacts ?? [],
+    owner:
+      [...(account.assigned_to ?? [])]
+        .map((p) => p.user_details?.email ?? '')
+        .filter(Boolean)
+        .sort()[0] ?? '',
+    owner_count: (account.assigned_to ?? []).length,
+    tags: account.tags ?? [],
+    updated_at: account.updated_at ?? null,
     email: account.email ?? '',
     phone: account.phone ?? '',
     number_of_employees: account.number_of_employees ?? null,
     annual_revenue: num(account.annual_revenue),
     currency: account.currency || 'USD',
+    appointment_at: account.appointment_at ?? null,
+    language: account.language ?? '',
     city: account.city ?? '',
     country: account.country ?? '',
     country_display: account.country_display ?? '',
@@ -191,11 +212,17 @@ export async function listAccounts({ cookies }, params) {
   const response = await apiRequest(`/accounts/?${query}`, {}, { cookies });
   const active = response.active_accounts ?? {};
   const rows = (active.open_accounts ?? []).map(toRow);
-  rows.sort((a, b) => (b.won_amount ?? 0) - (a.won_amount ?? 0));
+  if (!query.has('sort')) rows.sort((a, b) => (b.won_amount ?? 0) - (a.won_amount ?? 0));
 
   const inactive = response.closed_accounts ?? {};
 
   return {
+    contacts: (response.contacts ?? []).map((c) => ({
+      id: c.id,
+      name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unnamed contact'
+    })),
+    industries: response.industries ?? [],
+    countries: response.countries ?? [],
     results: rows,
     totals: {
       count: active.open_accounts_count ?? rows.length,
@@ -249,6 +276,11 @@ export async function getAccount({ cookies }, id) {
 
   return {
     account,
+    attachments: (response.attachments ?? []).map((file) => ({
+      id: file.id,
+      name: file.file_name ?? 'Attachment',
+      href: attachmentHref(file.id)
+    })),
     owners: (response.account_obj.assigned_to ?? []).map(profileName),
     tags: (response.account_obj.tags ?? []).map((/** @type {any} */ tag) => tag.name),
     deals: (response.opportunity_list ?? []).map((/** @type {any} */ deal) => ({
@@ -291,6 +323,12 @@ export async function getAccount({ cookies }, id) {
       due_date: invoice.due_date ?? null,
       past_due: isPastDue(invoice)
     })),
+    eventHistory: (response.history ?? []).map((entry) => ({
+      id: entry.id,
+      at: entry.created_at,
+      by: entry.actor,
+      body: entry.description
+    })),
     activity: (response.comments ?? []).map((/** @type {any} */ comment) => ({
       id: comment.id,
       at: comment.commented_on,
@@ -312,11 +350,17 @@ export const EDITABLE_FIELDS = [
   'name',
   'industry',
   'website',
+  'source',
+  'stage',
+  'pages',
+  'currency',
   'email',
   'phone',
   'number_of_employees',
   'annual_revenue',
   'address_line',
+  'appointment_at',
+  'language',
   'city',
   'state',
   'postcode',
@@ -336,9 +380,13 @@ export const EDITABLE_FIELDS = [
 async function listChoices(cookies) {
   const response = await apiRequest('/accounts/?limit=1', {}, { cookies });
   return {
+    contacts: (response.contacts ?? []).map((c) => ({
+      ...c,
+      name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unnamed contact'
+    })),
     industries: (response.industries ?? []).map((/** @type {any} */ pair) => ({
       value: pair[0],
-      label: industryLabel(pair[0])
+      label: pair[1]
     })),
     countries: (response.countries ?? []).map((/** @type {any} */ pair) => ({
       value: pair[0],
@@ -374,6 +422,12 @@ export async function getAccountForEdit({ cookies }, id) {
   const [response, choices] = await Promise.all([fetchDetail(cookies, id), listChoices(cookies)]);
   const raw = response.account_obj;
   const account = toRow(raw);
+  if (
+    account.industry_value &&
+    !choices.industries.some((option) => option.value === account.industry_value)
+  ) {
+    choices.industries.push({ value: account.industry_value, label: account.industry });
+  }
 
   return {
     account,
@@ -382,11 +436,19 @@ export async function getAccountForEdit({ cookies }, id) {
       name: account.name,
       industry: account.industry_value,
       website: account.website,
+      source: account.source,
+      stage: account.stage,
+      pages: account.pages,
+      currency: account.currency,
+      contacts: (raw.contacts ?? []).map((c) => c.id),
+      tags: (raw.tags ?? []).map((t) => t.id ?? t),
       email: account.email,
       phone: account.phone,
       number_of_employees: account.number_of_employees ?? '',
       annual_revenue: account.annual_revenue ?? '',
       address_line: raw.address_line ?? '',
+      appointment_at: account.appointment_at ?? null,
+      language: account.language ?? '',
       city: account.city,
       state: raw.state ?? '',
       postcode: raw.postcode ?? '',
@@ -423,6 +485,11 @@ function toBody(values) {
     const value = values[field];
     body[field] = value === '' ? null : value;
   }
+  if ('contacts' in values) body.contacts = values.contacts;
+  if ('tags' in values) body.tag_ids = values.tags;
+  if (body.website && !/^https?:\/\//i.test(String(body.website)))
+    body.website = 'https://' + body.website;
+  if (typeof body.pages === 'string') body.pages = JSON.parse(body.pages || '[]');
   if ('number_of_employees' in body && body.number_of_employees !== null) {
     body.number_of_employees = Number(body.number_of_employees);
   }
@@ -500,4 +567,11 @@ async function fetchDetail(cookies, id) {
     }
     throw err;
   }
+}
+
+/** @param {{cookies: import('@sveltejs/kit').Cookies}} event @param {string} id @param {File} file */
+export async function addCompanyAttachment({ cookies }, id, file) {
+  const body = new FormData();
+  body.set('account_attachment', file);
+  return await apiRequest(`/accounts/${id}/`, { method: 'POST', body }, { cookies });
 }

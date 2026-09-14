@@ -13,6 +13,8 @@ from contacts.models import Contact
 
 
 def record(contact, action, description, changes=None, actor=None, resource=None):
+    if action not in ("UPDATE", "ASSIGN") or not changes or (resource and resource.get("type") in ("Note", "Attachment")):
+        return
     request = get_current_request()
     profile = getattr(request, "profile", None)
     if profile is not None and profile.org_id != contact.org_id:

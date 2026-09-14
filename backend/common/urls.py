@@ -1,3 +1,4 @@
+from common.views.sales_appointment_views import SalesAppointmentView, AppointmentAttendeesView, SalesAppointmentManageView, AppointmentAvailabilityView
 from django.urls import path
 
 from common.views.attachment_views import AttachmentDownloadView
@@ -62,6 +63,10 @@ app_name = "api_common"
 
 
 urlpatterns = [
+    path("sales-appointments/availability/", AppointmentAvailabilityView.as_view(), name="appointment_availability"),
+    path("sales-appointments/<uid:pk>/", SalesAppointmentManageView.as_view(), name="manage_sales_appointment"),
+    path("sales-appointments/attendees/", AppointmentAttendeesView.as_view(), name="appointment_attendees"),
+    path("sales-appointments/", SalesAppointmentView.as_view(), name="sales_appointments"),
     path("dashboard/", ApiHomeView.as_view()),
     path("dashboard/today/", ApiTodayView.as_view()),
     # JWT Authentication endpoints for SvelteKit integration

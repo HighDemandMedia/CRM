@@ -1,21 +1,22 @@
 <script>
+  import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
+  import { Pencil } from '@lucide/svelte';
+  let editingProperties = $state(false);
+  import Attachments from '$lib/v2/components/Attachments.svelte';
+  import DealNotes from '$lib/components/deals/DealNotes.svelte';
+  import DealForm from '$lib/components/deals/DealForm.svelte';
+  import { invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import Timeline from '$lib/v2/components/Timeline.svelte';
   import Pill from '$lib/v2/components/Pill.svelte';
   import Avatar from '$lib/v2/components/Avatar.svelte';
   import { money, longDate } from '$lib/v2/format.js';
-  import {
-    OPEN_STAGES,
-    STAGE_LABEL,
-    AGING_TONE,
-    AGING_LABEL,
-    OPPORTUNITY_TYPE_LABEL
-  } from '$lib/v2/enums.js';
+  import { OPEN_STAGES, STAGE_LABEL, AGING_TONE, AGING_LABEL } from '$lib/v2/enums.js';
   import { Check, ChevronRight } from '@lucide/svelte';
 
-  /** @type {{ data: any }} */
-  let { data } = $props();
+  /** @type {{ data: any, form?:any }} */
+  let { data, form } = $props();
 
   let { deal, activity, lineItems, contacts } = $derived(data);
   let stageIndex = $derived(OPEN_STAGES.indexOf(deal.stage));
@@ -34,19 +35,14 @@
 
 <PageHeader title={deal.name} record>
   {#snippet crumb()}
-    <a href={resolve('/pipeline')}>Pipeline</a>
+    <a href={resolve('/pipeline')}>Deals</a>
     <ChevronRight size={12} />
-    <a href={resolve(`/accounts/${deal.account.id}`)}>{deal.account.name}</a>
-  {/snippet}
-  {#snippet actions()}
-    <!-- "Move stage" was a second button that did nothing. Stage is edited on
-         the form below, where the page can show what moving it costs, the
-         aging clock resets, instead of moving it in one anonymous click. -->
-    <a class="v2-btn" href={resolve(`/pipeline/${deal.id}/edit`)}>Edit</a>
+    {#if deal.account.id}<a href={resolve(`/accounts/${deal.account.id}`)}>{deal.account.name}</a
+      >{/if}
   {/snippet}
 </PageHeader>
 
-<div style="display:flex;flex:1;min-height:0;overflow:hidden">
+<div class="deal-layout">
   <div class="v2-main">
     <!-- Stage stepper. Closed stages are not on the path; they end it. -->
     <div
@@ -80,6 +76,14 @@
           nothing to render. A suggestion the system invented is worse than no
           suggestion, because people act on it.
         -->
+        <section aria-label="Deal notes" style="margin-bottom:20px">
+          <h2 class="v2-label" style="margin-bottom:10px">Notes</h2>
+          {#key deal.id}<DealNotes notes={data.notes} />{/key}
+        </section>
+        <section class="v2-card deal-attachments">
+          <h2>Attachments</h2>
+          <Attachments attachments={data.attachments} />
+        </section>
         <div class="v2-label" style="margin-bottom:12px">Activity</div>
         <Timeline events={activity} />
 
@@ -131,34 +135,60 @@
     </div>
   </div>
 
-  <aside class="v2-rail">
-    <div class="v2-label v2-rail-head">Deal</div>
+  <aside class="v2-rail deal-properties" aria-label="Deal properties">
+    <div class="properties-heading">
+      <h2>Properties</h2>
+      <button
+        class="v2-btn"
+        type="button"
+        disabled={editingProperties}
+        onclick={() => (editingProperties = true)}><Pencil size={13} />Edit</button
+      >
+    </div>
+    {#if editingProperties}
+      <DealForm
+        data={data.editor}
+        result={form}
+        editing
+        inline
+        showNotes={false}
+        onCancel={() => (editingProperties = false)}
+        onSaved={async () => {
+          await invalidateAll();
+          editingProperties = false;
+        }}
+      />
+    {:else}
+      <PropertySummary
+        entries={[
+          ['Name', deal.name],
+          ['Amount', deal.amount != null ? money(deal.amount, deal.currency) : '—'],
+          ['Language', deal.language || '—'],
+          ['Stage', STAGE_LABEL[deal.stage] || '—'],
+          ['Close date', deal.closed_on ? longDate(deal.closed_on) : '—'],
+          ['Deal owner', deal.owner || '—'],
+          ['Priority', deal.priority_label || '—'],
+          ['Source', deal.lead_source_label || '—'],
+          ['Company', deal.account?.id ? deal.account.name : '—'],
+          [
+            'Contacts',
+            contacts.map((c) => [c.first_name, c.last_name].filter(Boolean).join(' ')).join(', ') ||
+              '—'
+          ],
+          ['Address', deal.address_line || '—'],
+          ['City', deal.city || '—'],
+          ['State', deal.state || '—'],
+          ['Zip Code', deal.postcode || '—'],
+          ['Country', deal.country_label || deal.country || '—']
+        ]}
+      />
+    {/if}
     <dl class="v2-kv">
-      <dt>Stage</dt>
-      <dd>{STAGE_LABEL[deal.stage]}</dd>
-      <dt>Value</dt>
-      <dd class="v2-num">{money(deal.amount, deal.currency)}</dd>
-      <dt>Probability</dt>
-      <dd class="v2-num">{deal.probability}%</dd>
-      <dt>Expected close</dt>
-      <dd>{longDate(deal.closed_on)}</dd>
-      <dt>Type</dt>
-      <dd>{OPPORTUNITY_TYPE_LABEL[deal.opportunity_type]}</dd>
-      <dt>Source</dt>
-      <dd style="text-transform:lowercase">{deal.lead_source || '—'}</dd>
-      <dt>Owner</dt>
-      <dd>{deal.assigned_to || 'Unassigned'}</dd>
-      <!--
-        "Last activity" used to be here, reading a `last_activity_at` the model
-        does not have. Aging is measured from the last stage change, a
-        narrower claim, and the one the board is actually coloured by, so that
-        is what this row says now.
-      -->
       <dt>Stage since</dt>
       <dd>{longDate(deal.stage_changed_at)}</dd>
     </dl>
 
-    <div class="v2-label v2-rail-head">People</div>
+    <div class="v2-label v2-rail-head">Contact</div>
     {#each contacts as c (c.id)}
       <!-- A link now that `/contacts/<uuid>` resolves. These names were
            plain text because the contacts module was still fixtures. -->
@@ -191,3 +221,42 @@
     -->
   </aside>
 </div>
+
+<style>
+  .properties-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .properties-heading h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .deal-attachments {
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .deal-attachments h2 {
+    font-size: 14px;
+    margin: 0 0 12px;
+  }
+  .deal-layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+  .deal-layout > .v2-main {
+    min-width: 300px;
+  }
+  .deal-properties {
+    display: block !important;
+    width: 300px;
+    min-height: 0;
+    overflow-y: auto;
+  }
+</style>

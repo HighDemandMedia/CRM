@@ -16,10 +16,9 @@ export function exactTime(iso) {
 
 /** @param {string|null|undefined} iso @param {number} now */
 export function stageDuration(iso, now) {
-  if (!iso || !Number.isFinite(new Date(iso).getTime())) return 'Time in stage not recorded';
-  const minutes = Math.floor(Math.max(0, now - new Date(iso).getTime()) / 60000);
-  if (minutes < 1) return 'Less than 1 min in stage';
-  if (minutes < 60) return `${minutes} min in stage`;
-  if (minutes < 1440) return `${Math.floor(minutes / 60)}h ${minutes % 60}m in stage`;
-  return `${Math.floor(minutes / 1440)}d ${Math.floor((minutes % 1440) / 60)}h in stage`;
+  const entered = iso ? Date.parse(iso) : NaN;
+  if (!Number.isFinite(entered)) return '';
+  const days = Math.floor(Math.max(0, now - entered) / 86400000);
+  if (days === 0) return '';
+  return `${days} ${days === 1 ? 'day' : 'days'}`;
 }

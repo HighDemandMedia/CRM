@@ -31,7 +31,7 @@ from common.serializer import (
     CustomFieldDefinitionSerializer,
     ProfileSerializer,
 )
-from common.utils import CURRENCY_CODES, SOURCES, STAGES, create_attachment
+from common.utils import CURRENCY_CODES, STAGES, create_attachment
 from common.validators import (
     date_param,
     decimal_param,
@@ -39,9 +39,11 @@ from common.validators import (
     uuid_list_param,
     uuid_param,
 )
+from contacts.choices import CONTACT_SOURCES
 from contacts.models import Contact
 from contacts.serializer import ContactSerializer
 from opportunity import access, swagger_params
+from opportunity.list_properties import filter_and_sort, search_properties
 from opportunity.models import Opportunity, StageAgingConfig
 from opportunity.serializer import (
     OpportunityCreateSerializer,
@@ -169,7 +171,7 @@ class OpportunityListView(APIView, LimitOffsetPagination):
             if assigned_to:
                 queryset = queryset.filter(assigned_to__id__in=assigned_to).distinct()
             if params.get("search"):
-                queryset = queryset.filter(name__icontains=params.get("search"))
+                queryset = search_properties(queryset, params.get("search"))
             created_at_gte = date_param(params, "created_at__gte")
             if created_at_gte:
                 queryset = queryset.filter(created_at__date__gte=created_at_gte)
@@ -183,10 +185,10 @@ class OpportunityListView(APIView, LimitOffsetPagination):
             if closed_on_lte:
                 queryset = queryset.filter(closed_on__lte=closed_on_lte)
             amount_gte = decimal_param(params, "amount__gte")
-            if amount_gte:
+            if amount_gte is not None:
                 queryset = queryset.filter(amount__gte=amount_gte)
             amount_lte = decimal_param(params, "amount__lte")
-            if amount_lte:
+            if amount_lte is not None:
                 queryset = queryset.filter(amount__lte=amount_lte)
             # Custom-field filters: ?cf_<key>=<value> -> custom_fields contains pair.
             for raw_key, raw_value in params.items():
@@ -212,6 +214,7 @@ class OpportunityListView(APIView, LimitOffsetPagination):
                 )
                 queryset = queryset.filter(stalled_filter(self.request.profile.org))
 
+        queryset = filter_and_sort(queryset, params)
         context = {}
         context["totals"] = self.get_totals(queryset)
         # Prefetch aging configs for serializer context (avoids N+1)
@@ -245,7 +248,7 @@ class OpportunityListView(APIView, LimitOffsetPagination):
             Tags.objects.filter(org=self.request.profile.org, is_active=True), many=True
         ).data
         context["stage"] = STAGES
-        context["lead_source"] = SOURCES
+        context["lead_source"] = CONTACT_SOURCES
         context["currency"] = CURRENCY_CODES
 
         return context
@@ -665,7 +668,7 @@ class OpportunityDetailView(APIView):
                     many=True,
                 ).data,
                 "stage": STAGES,
-                "lead_source": SOURCES,
+                "lead_source": CONTACT_SOURCES,
                 "currency": CURRENCY_CODES,
                 "comment_permission": comment_permission,
                 "users_mention": users_mention,

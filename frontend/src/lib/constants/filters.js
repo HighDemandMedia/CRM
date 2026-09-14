@@ -64,11 +64,11 @@ export const PRIORITIES = [
 export const OPPORTUNITY_STAGES = [
   { value: 'ALL', label: 'All Stages' },
   { value: 'PROSPECTING', label: 'Prospecting' },
-  { value: 'QUALIFICATION', label: 'Qualification' },
   { value: 'PROPOSAL', label: 'Proposal' },
-  { value: 'NEGOTIATION', label: 'Negotiation' },
-  { value: 'CLOSED_WON', label: 'Closed Won' },
-  { value: 'CLOSED_LOST', label: 'Closed Lost' }
+  { value: 'QUALIFICATION', label: 'Follow Up' },
+  { value: 'NEGOTIATION', label: 'Stan By' },
+  { value: 'CLOSED_WON', label: 'Close Won' },
+  { value: 'CLOSED_LOST', label: 'Close Lost' }
 ];
 
 /** @type {{ value: string, label: string }[]} */

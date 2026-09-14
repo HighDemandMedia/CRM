@@ -39,6 +39,7 @@
  * contact this person, the other is whether they still work there. Both are
  * real fields and both are still marked separately.
  */
+import { getTags } from './tags.js';
 import { error } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
 import { attachmentHref } from '$lib/server/v2/files.js';
@@ -94,6 +95,7 @@ function toRow(contact) {
     last_name: contact.last_name ?? '',
     name: contact.name ?? [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim(),
     source: contact.source ?? '',
+    appointment_at: contact.appointment_at ?? null,
     stage: contact.stage ?? '',
     preferred_communication_channel: contact.preferred_communication_channel ?? '',
     source_label: contact.source_label ?? '',
@@ -109,6 +111,7 @@ function toRow(contact) {
     phone: contact.phone ?? '',
     do_not_call: Boolean(contact.do_not_call),
     linkedin_url: contact.linkedin_url ?? '',
+    language: contact.language ?? '',
     city: contact.city ?? '',
     state: contact.state ?? '',
     country: contact.country ?? '',
@@ -118,10 +121,12 @@ function toRow(contact) {
     is_active: contact.is_active !== false,
     owner: owners.length ? profileName(owners[0]) : null,
     owner_count: owners.length,
+    tags: contact.tag_details ?? [],
     deal_values: contact.deal_values ?? [],
     created_at: contact.created_at,
     created_by_email: contact.created_by_email ?? null,
     stage_entered_at: contact.stage_entered_at ?? null,
+    last_activity_at: contact.last_activity_at ?? null,
     updated_at: contact.updated_at ?? null
   };
 }
@@ -179,7 +184,7 @@ export async function listContacts({ cookies }, params) {
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
  * @param {string} id
  */
-export async function getContact({ cookies }, id) {
+export async function getContact({ cookies }, id, withEditor = false) {
   const response = await fetchDetail(cookies, id);
   const contact = toRow(response.contact_obj);
 
@@ -216,6 +221,19 @@ export async function getContact({ cookies }, id) {
       name: [person.first_name, person.last_name].filter(Boolean).join(' ').trim(),
       title: person.title ?? ''
     })),
+    notes: (response.comments ?? []).map((note) => ({
+      id: note.id,
+      body: note.comment,
+      at: note.commented_on,
+      by: note.commented_by?.user_details?.email ?? null
+    })),
+    attachments: (response.attachments ?? []).map((file) => ({
+      id: file.id,
+      name: file.file_name ?? file.attachment ?? 'Attachment',
+      href: attachmentHref(file.id),
+      at: file.created_at
+    })),
+    editor: withEditor ? await getContactForEdit({ cookies }, id, response) : null,
     activity: buildContactActivity(response)
   };
 }
@@ -227,43 +245,15 @@ export async function getContact({ cookies }, id) {
  */
 function buildContactActivity(response) {
   /** @type {Array<{id:string,type:'note'|'file'|'status',at:string,by:string|null,body:string,href?:string|null}>} */
-  const events = (response.comments ?? [])
-    .filter(
-      (/** @type {any} */ note) =>
-        !(response.history ?? []).some(
-          (/** @type {any} */ entry) =>
-            entry.resource?.type === 'Note' && entry.resource.id === note.id
-        )
-    )
-    .map((/** @type {any} */ c) => ({
-      id: `note-${c.id}`,
-      type: 'note',
-      at: c.commented_on,
-      by: c.commented_by?.user_details?.email || null,
-      body: c.comment
-    }));
-
-  for (const a of response.attachments ?? []) {
-    if (
-      (response.history ?? []).some(
-        (/** @type {any} */ entry) =>
-          entry.resource?.type === 'Attachment' &&
-          entry.resource.id === a.id &&
-          entry.description === 'Attachment added'
-      )
-    )
-      continue;
-    events.push({
-      id: `file-${a.id}`,
-      type: 'file',
-      at: a.created_at,
-      by: null,
-      body: a.file_name || 'Attachment',
-      href: attachmentHref(a.id)
-    });
-  }
+  const events = [];
 
   for (const entry of response.history ?? []) {
+    if (
+      !['UPDATE', 'ASSIGN'].includes(entry.action) ||
+      !Object.keys(entry.changes ?? {}).length ||
+      ['Note', 'Attachment'].includes(entry.resource?.type)
+    )
+      continue;
     const changes = Object.entries(entry.changes ?? {}).map(([field, change]) => {
       const detail = /** @type {any} */ (change);
       const show = (/** @type {any} */ value) => {
@@ -288,20 +278,6 @@ function buildContactActivity(response) {
       body: [entry.description || entry.action, ...changes].join('\n')
     });
   }
-  const contact = response.contact_obj;
-  if (
-    contact?.created_at &&
-    !(response.history ?? []).some((/** @type {any} */ entry) => entry.action === 'CREATE')
-  ) {
-    events.push({
-      id: `created-${contact.id}`,
-      type: 'status',
-      at: contact.created_at,
-      by: contact.created_by_email || 'Creator unavailable',
-      body: 'Contact created (historical record)'
-    });
-  }
-
   return events.sort(
     (/** @type {any} */ a, /** @type {any} */ b) =>
       new Date(b.at).getTime() - new Date(a.at).getTime()
@@ -344,6 +320,7 @@ export const EDITABLE_FIELDS = [
   'name',
   'source',
   'stage',
+  'appointment_at',
   'preferred_communication_channel',
   'first_name',
   'last_name',
@@ -355,6 +332,7 @@ export const EDITABLE_FIELDS = [
   'linkedin_url',
   'do_not_call',
   'address_line',
+  'language',
   'city',
   'state',
   'postcode',
@@ -378,9 +356,10 @@ export const EDITABLE_FIELDS = [
  * @param {import('@sveltejs/kit').Cookies} cookies
  */
 async function listChoices(cookies) {
-  const [contactsResponse, accountsResponse] = await Promise.all([
+  const [contactsResponse, accountsResponse, tagOptions] = await Promise.all([
     apiRequest('/contacts/?limit=1', {}, { cookies }),
-    apiRequest('/accounts/?limit=200', {}, { cookies })
+    apiRequest('/accounts/?limit=200', {}, { cookies }),
+    getTags({ cookies })
   ]);
   const active = accountsResponse.active_accounts ?? {};
   const accounts = (active.open_accounts ?? []).map((/** @type {any} */ account) => ({
@@ -390,6 +369,8 @@ async function listChoices(cookies) {
   accounts.sort((/** @type {any} */ a, /** @type {any} */ b) => a.name.localeCompare(b.name));
 
   return {
+    tagOptions: tagOptions.tags,
+    canCreateTags: tagOptions.can_edit,
     sources: (contactsResponse.sources ?? []).map((pair) => ({ value: pair[0], label: pair[1] })),
     stages: (contactsResponse.stages ?? []).map((pair) => ({ value: pair[0], label: pair[1] })),
     communication_channels: (contactsResponse.communication_channels ?? []).map((pair) => ({
@@ -430,8 +411,15 @@ export async function getContactFormOptions({ cookies }, accountId = null) {
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
  * @param {string} id
  */
-export async function getContactForEdit({ cookies }, id) {
-  const [response, choices] = await Promise.all([fetchDetail(cookies, id), listChoices(cookies)]);
+export async function getContactForEdit(
+  { cookies },
+  id,
+  existingResponse = /** @type {any} */ (null)
+) {
+  const [response, choices] = await Promise.all([
+    existingResponse ?? fetchDetail(cookies, id),
+    listChoices(cookies)
+  ]);
   const raw = response.contact_obj;
   const contact = toRow(raw);
 
@@ -439,9 +427,11 @@ export async function getContactForEdit({ cookies }, id) {
     contact,
     ...choices,
     form: {
+      tags: raw.tags ?? [],
       name: contact.name,
       source: contact.source,
       stage: contact.stage,
+      appointment_at: contact.appointment_at,
       preferred_communication_channel: contact.preferred_communication_channel,
       first_name: contact.first_name,
       last_name: contact.last_name,
@@ -453,6 +443,7 @@ export async function getContactForEdit({ cookies }, id) {
       linkedin_url: contact.linkedin_url,
       do_not_call: contact.do_not_call,
       address_line: contact.address_line,
+      language: contact.language ?? '',
       city: contact.city,
       state: contact.state,
       postcode: contact.postcode,
@@ -493,6 +484,7 @@ function toBody(values) {
     const value = values[field];
     body[field] = value === '' ? null : value;
   }
+  if ('tags' in values) body.tags = values.tags;
   if ('do_not_call' in body) body.do_not_call = Boolean(values.do_not_call);
   if ('is_active' in body) body.is_active = Boolean(values.is_active);
   // Single-select owner, so the list is empty or one long. Only present when

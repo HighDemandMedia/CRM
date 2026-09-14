@@ -1,15 +1,17 @@
 import { expect, it } from 'vitest';
 import { stageDuration, exactTime } from './contact-time.js';
 
-it('does not invent a stage age for legacy contacts', () => {
-  expect(stageDuration(null, Date.now())).toBe('Time in stage not recorded');
+it('hides unknown stage age without inventing a date', () => {
+  expect(stageDuration(null, Date.now())).toBe('');
+  expect(stageDuration('invalid', Date.now())).toBe('');
   expect(exactTime(null)).toBe('Not recorded');
 });
-it('measures stage elapsed time across minutes, hours and days', () => {
+it('hides day zero and shows only completed days', () => {
   const start = '2026-09-09T12:00:00Z';
   const now = Date.parse(start);
-  expect(stageDuration(start, now)).toBe('Less than 1 min in stage');
-  expect(stageDuration(start, now + 61 * 60000)).toBe('1h 1m in stage');
-  expect(stageDuration(start, now + 25 * 3600000)).toBe('1d 1h in stage');
-  expect(stageDuration(start, now - 1000)).toBe('Less than 1 min in stage');
+  expect(stageDuration(start, now)).toBe('');
+  expect(stageDuration(start, now + 86400000 - 1)).toBe('');
+  expect(stageDuration(start, now + 86400000)).toBe('1 day');
+  expect(stageDuration(start, now + 2 * 86400000)).toBe('2 days');
+  expect(stageDuration(start, now - 1000)).toBe('');
 });

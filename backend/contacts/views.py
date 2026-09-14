@@ -1,9 +1,11 @@
+from common.calendar_filters import filter_calendar
 import json
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import OuterRef, Q, Subquery
+from django.db.models.functions import Coalesce
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import (
@@ -65,6 +67,19 @@ class ContactsListView(APIView, LimitOffsetPagination):
             .select_related("account", "created_by")
             .prefetch_related("account_contacts", "assigned_to__user", "teams", "tags")
         )
+        latest_activity = (
+            Activity.objects.filter(
+                org=self.request.profile.org,
+                entity_type="Contact",
+                entity_id=OuterRef("pk"),
+                action__in=["UPDATE", "ASSIGN"],
+            )
+            .order_by("-created_at")
+            .values("created_at")[:1]
+        )
+        queryset = queryset.annotate(
+            last_activity_at=Coalesce(Subquery(latest_activity), "created_at")
+        )
         if not is_org_admin(self.request.profile):
             queryset = queryset.filter(
                 Q(assigned_to__in=[self.request.profile])
@@ -106,18 +121,91 @@ class ContactsListView(APIView, LimitOffsetPagination):
                 queryset = queryset.filter(tags__id__in=tags).distinct()
             if params.get("search"):
                 search = params.get("search")
-                queryset = queryset.filter(
-                    Q(first_name__icontains=search)
-                    | Q(last_name__icontains=search)
-                    | Q(email__icontains=search)
-                    | Q(phone__icontains=search)
+                text_fields = [
+                    "language",
+                    "first_name",
+                    "last_name",
+                    "email",
+                    "phone",
+                    "address_line",
+                    "city",
+                    "state",
+                    "postcode",
+                    "country",
+                    "organization",
+                    "title",
+                    "department",
+                    "description",
+                    "linkedin_url",
+                    "custom_fields",
+                    "created_at",
+                    "updated_at",
+                    "appointment_at",
+                    "last_activity_at",
+                ]
+                search_query = Q()
+                for field in text_fields:
+                    search_query |= Q(**{f"{field}__icontains": search})
+                search_query |= Q(
+                    tags__name__icontains=search, tags__org=self.request.profile.org
                 )
+                search_query |= Q(
+                    assigned_to__user__email__icontains=search,
+                    assigned_to__org=self.request.profile.org,
+                )
+                search_query |= Q(
+                    account_contacts__name__icontains=search,
+                    account_contacts__org=self.request.profile.org,
+                )
+                for field in ("stage", "source", "preferred_communication_channel"):
+                    matches = [
+                        value
+                        for value, label in Contact._meta.get_field(field).choices
+                        if search.lower() in str(label).lower()
+                        or search.lower() in value.lower()
+                    ]
+                    search_query |= Q(**{f"{field}__in": matches})
+                queryset = queryset.filter(search_query).distinct()
+            for field in (
+                "language",
+                "address_line",
+                "state",
+                "postcode",
+                "country",
+                "organization",
+                "title",
+                "department",
+                "description",
+            ):
+                if params.get(field):
+                    queryset = queryset.filter(**{f"{field}__icontains": params[field]})
+            if params.get("preferred_communication_channel"):
+                queryset = queryset.filter(
+                    preferred_communication_channel=params[
+                        "preferred_communication_channel"
+                    ]
+                )
+            if params.get("do_not_call") in ("true", "false"):
+                queryset = queryset.filter(do_not_call=params["do_not_call"] == "true")
+            for field in ("appointment_at", "updated_at"):
+                for suffix in ("gte", "lte"):
+                    value = date_param(params, f"{field}__{suffix}")
+                    if value:
+                        queryset = queryset.filter(
+                            **{f"{field}__date__{suffix}": value}
+                        )
             created_at_gte = date_param(params, "created_at__gte")
             if created_at_gte:
                 queryset = queryset.filter(created_at__date__gte=created_at_gte)
             created_at_lte = date_param(params, "created_at__lte")
             if created_at_lte:
                 queryset = queryset.filter(created_at__date__lte=created_at_lte)
+            for suffix in ("gte", "lte"):
+                activity_date = date_param(params, f"last_activity_at__{suffix}")
+                if activity_date:
+                    queryset = queryset.filter(
+                        **{f"last_activity_at__date__{suffix}": activity_date}
+                    )
             # Custom-field filters: ?cf_<key>=<value> -> custom_fields contains pair.
             for raw_key, raw_value in params.items():
                 if raw_key.startswith("cf_") and raw_value:
@@ -138,6 +226,7 @@ class ContactsListView(APIView, LimitOffsetPagination):
         if params.get("is_active") in ("true", "false"):
             queryset = queryset.filter(is_active=params.get("is_active") == "true")
 
+        queryset = filter_calendar(queryset, params)
         queryset = order_contacts(
             queryset, params.get("sort"), params.get("direction") == "desc"
         )
@@ -521,13 +610,10 @@ class ContactDetailView(APIView):
         context = {}
         contact_obj = self.get_object(pk)
         self.assert_contact_access(contact_obj)
-        from contacts.signals import record
-
-        record(contact_obj, "VIEW", "Contact opened")
         context["contact_obj"] = ContactSerializer(contact_obj).data
         history = (
             Activity.objects.filter(
-                org=contact_obj.org, entity_type="Contact", entity_id=contact_obj.id
+                org=contact_obj.org, entity_type="Contact", entity_id=contact_obj.id, action__in=["UPDATE", "ASSIGN"]
             )
             .select_related("user__user")
             .order_by("-created_at", "-id")

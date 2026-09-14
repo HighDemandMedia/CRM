@@ -1,0 +1,486 @@
+<script>
+  import AppointmentInput from '$lib/v2/components/AppointmentInput.svelte';
+  import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
+  import { companyStages } from '$lib/v2/company-stages.js';
+  import { enhance, deserialize } from '$app/forms';
+  import { resolve } from '$app/paths';
+  import { untrack, onMount, onDestroy } from 'svelte';
+  /** @type {{data:any, result?:any, editing?:boolean, autoSave?:boolean, inline?:boolean, onCancel?:()=>void, onSaved?:()=>Promise<void>}} */
+  let {
+    data,
+    result = null,
+    editing = false,
+    autoSave = false,
+    inline = false,
+    onCancel = () => {},
+    onSaved = async () => {}
+  } = $props();
+  let values = $state(
+    untrack(() => ({
+      name: '',
+      website: '',
+      assigned_to: '',
+      industry: '',
+      number_of_employees: '',
+      annual_revenue: '',
+      currency: data.org?.currency ?? 'USD',
+      address_line: '',
+      appointment_at: '',
+      language: '',
+      city: '',
+      state: '',
+      postcode: '',
+      country: '',
+      source: '',
+      stage: 'LEAD',
+      ...(data.form ?? {}),
+      ...(result?.values ?? {})
+    }))
+  );
+  let pages = $state(
+    /** @type {{name:string,url:string}[]} */ (
+      untrack(() =>
+        typeof values.pages === 'string'
+          ? JSON.parse(values.pages || '[]')
+          : [...(values.pages ?? [])]
+      )
+    )
+  );
+  let contacts = $state(/** @type {string[]} */ (untrack(() => [...(values.contacts ?? [])])));
+  let contactSearch = $state('');
+  let saving = $state(false);
+  const sources = [
+    ['META', 'Meta'],
+    ['GOOGLE', 'Google'],
+    ['TIKTOK', 'TikTok'],
+    ['ORGANIC', 'Organic'],
+    ['CALL', 'Call'],
+    ['CUSTOMER_REFERAL', 'Customer Referal'],
+    ['EMPLOYER_REFERAL', 'Employer Referal'],
+    ['WALK_IN', 'Walk In']
+  ];
+  const addresses = [
+    ['address_line', 'Address'],
+    ['city', 'City'],
+    ['state', 'State'],
+    ['postcode', 'Zip Code']
+  ];
+  let autoReady = $state(false);
+  let autoStatus = $state('');
+  let autoError = $state('');
+  let autoBusy = false;
+  /** @type {Record<string, any>} */
+  let baseline = {};
+  /** @type {Record<string, any> | null} */
+  let queued = null;
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  let autoTimer;
+  async function flushAutoSave() {
+    clearTimeout(autoTimer);
+    if (autoBusy || !queued) return;
+    const snapshot = queued;
+    queued = null;
+    const changes = Object.fromEntries(
+      Object.entries(snapshot).filter(
+        ([key, value]) => JSON.stringify(baseline[key] ?? '') !== JSON.stringify(value ?? '')
+      )
+    );
+    if (!Object.keys(changes).length) return;
+    autoBusy = true;
+    autoStatus = 'Saving…';
+    autoError = '';
+    let saved = false;
+    try {
+      const body = new FormData();
+      body.set('changes', JSON.stringify(changes));
+      const response = await fetch('?/saveFields', {
+        method: 'POST',
+        body,
+        headers: { 'x-sveltekit-action': 'true' }
+      });
+      const result = deserialize(await response.text());
+      if (result.type !== 'success') {
+        autoError =
+          result.type === 'failure'
+            ? String(result.data?.error ?? 'Could not save changes.')
+            : 'Could not save changes. Check your session.';
+        autoStatus = '';
+        return;
+      }
+      baseline = snapshot;
+      saved = true;
+      autoStatus = 'Saved';
+      await onSaved();
+    } catch {
+      autoError = saved
+        ? 'Saved, but the profile could not refresh.'
+        : 'Could not confirm the save. Your changes remain here.';
+      autoStatus = '';
+    } finally {
+      autoBusy = false;
+      if (queued) void flushAutoSave();
+    }
+  }
+  $effect(() => {
+    if (!autoSave || !autoReady) return;
+    const snapshot = snapshotValues();
+    untrack(() => {
+      queued = snapshot;
+      clearTimeout(autoTimer);
+      autoTimer = setTimeout(flushAutoSave, 700);
+    });
+  });
+  onDestroy(() => clearTimeout(autoTimer));
+
+  function snapshotValues() {
+    return JSON.parse(
+      JSON.stringify({
+        name: values.name,
+        website: values.website,
+        industry: values.industry,
+        stage: values.stage,
+        source: values.source,
+        number_of_employees: values.number_of_employees ?? '',
+        annual_revenue: values.annual_revenue ?? '',
+        currency: values.currency,
+        address_line: values.address_line,
+        appointment_at: values.appointment_at,
+        language: values.language,
+        city: values.city,
+        state: values.state,
+        postcode: values.postcode,
+        country: values.country,
+        pages,
+        contacts: [...contacts].sort()
+      })
+    );
+  }
+  onMount(() => {
+    baseline = snapshotValues();
+    autoReady = true;
+  });
+</script>
+
+<form
+  class="v2-form"
+  class:auto-save={autoSave}
+  class:inline-edit={inline}
+  onfocusout={() => {
+    if (autoSave && autoReady) setTimeout(flushAutoSave, 0);
+  }}
+  method="POST"
+  action={editing ? '?/save' : '?/create'}
+  use:enhance={({ cancel }) => {
+    if (autoSave) {
+      cancel();
+      queued = snapshotValues();
+      void flushAutoSave();
+      return;
+    }
+    saving = true;
+    return async ({ result: actionResult, update }) => {
+      try {
+        await update({ reset: false });
+        if (inline && actionResult.type === 'success') await onSaved();
+      } finally {
+        saving = false;
+      }
+    };
+  }}
+>
+  {#if result?.error}<p class="v2-error" role="alert">{result.error}</p>{/if}
+  {#if autoSave}<div role="status">{autoStatus}</div>
+    {#if autoError}<div class="v2-error" role="alert">
+        {autoError}<button
+          type="button"
+          class="v2-btn"
+          onclick={() => {
+            queued = snapshotValues();
+            void flushAutoSave();
+          }}>Retry</button
+        >
+      </div>{/if}{/if}
+  <div class="fields">
+    <LanguageSelect bind:value={values.language} />
+    <AppointmentInput bind:value={values.appointment_at} />
+
+    <label
+      >Domain<input
+        class="v2-input"
+        name="website"
+        placeholder="example.com"
+        bind:value={values.website}
+      /></label
+    >
+    <label
+      >Name *<input
+        class="v2-input"
+        name="name"
+        required
+        maxlength="255"
+        bind:value={values.name}
+      /></label
+    >
+    <div class="contacts-field">
+      <span id="company-contacts-label">Contacts</span>
+      <details class="contacts-dropdown">
+        <summary
+          class="v2-input"
+          aria-labelledby="company-contacts-label company-contacts-selected"
+        >
+          <span id="company-contacts-selected"
+            >{contacts.length
+              ? contacts
+                  .map(
+                    (id) =>
+                      (data.contacts ?? []).find((c) => String(c.id) === id)?.name ??
+                      'Selected contact'
+                  )
+                  .join(', ')
+              : 'Select contacts'}</span
+          ><span aria-hidden="true">▾</span>
+        </summary>
+        <div class="contacts-menu">
+          <input type="hidden" name="contacts_present" value="1" />
+          <input
+            type="hidden"
+            name="contacts_original"
+            value={JSON.stringify([...(data.form?.contacts ?? [])].sort())}
+          />
+          {#each contacts as id}<input type="hidden" name="contacts" value={id} />{/each}
+          <input
+            class="v2-input"
+            type="search"
+            aria-label="Search contacts"
+            placeholder="Search contacts"
+            bind:value={contactSearch}
+          />
+          <div class="contact-options">
+            {#each (data.contacts ?? []).filter((c) => (c.name ?? c.first_name ?? '')
+                .toLowerCase()
+                .includes(contactSearch.toLowerCase())) as c}
+              <label class="choice"
+                ><input
+                  type="checkbox"
+                  checked={contacts.includes(String(c.id))}
+                  onchange={(event) =>
+                    (contacts = event.currentTarget.checked
+                      ? [...new Set([...contacts, String(c.id)])]
+                      : contacts.filter((id) => id !== String(c.id)))}
+                />{c.name ?? c.first_name}</label
+              >
+            {:else}<span class="v2-sub">No matching contacts.</span>{/each}
+          </div>
+        </div>
+      </details>
+    </div>
+    <label
+      >Industry<select class="v2-input" name="industry" bind:value={values.industry}
+        ><option value="">Select industry</option>{#each data.industries ?? [] as option}<option
+            value={option.value}>{option.label}</option
+          >{/each}</select
+      ></label
+    >
+    <label
+      >Number of Employees<input
+        class="v2-input"
+        name="number_of_employees"
+        type="number"
+        min="0"
+        step="1"
+        bind:value={values.number_of_employees}
+      /></label
+    >
+    <label
+      >Annual revenue<input
+        class="v2-input"
+        name="annual_revenue"
+        type="number"
+        min="0"
+        step="0.01"
+        bind:value={values.annual_revenue}
+      /></label
+    >
+    <label
+      >Currency<input
+        class="v2-input"
+        name="currency"
+        maxlength="3"
+        bind:value={values.currency}
+      /></label
+    >
+    <label
+      >Stage *<select class="v2-input" name="stage" required bind:value={values.stage}
+        >{#each companyStages as stage}<option value={stage.value}>{stage.label}</option
+          >{/each}</select
+      ></label
+    >
+    <label
+      >Source<select class="v2-input" name="source" bind:value={values.source}
+        ><option value="">Select source</option>{#each sources as [value, label]}<option {value}
+            >{label}</option
+          >{/each}</select
+      ></label
+    >
+    {#each addresses as [key, label]}<label
+        >{label}<input class="v2-input" name={key} bind:value={values[key]} /></label
+      >{/each}
+    <label
+      >Country<select class="v2-input" name="country" bind:value={values.country}
+        ><option value="">Select country</option>{#each data.countries ?? [] as option}<option
+            value={option.value}>{option.label}</option
+          >{/each}</select
+      ></label
+    >
+  </div>
+  <fieldset>
+    <legend>Pages</legend>
+    {#each pages as page, index}<div class="page-row">
+        <input
+          class="v2-input"
+          aria-label={`Page ${index + 1} name`}
+          placeholder="Page name"
+          required
+          maxlength="100"
+          bind:value={page.name}
+        /><input
+          class="v2-input"
+          aria-label={`Page ${index + 1} link`}
+          placeholder="https://…"
+          type="url"
+          required
+          bind:value={page.url}
+        /><button
+          class="v2-btn"
+          type="button"
+          aria-label={`Remove page ${index + 1}`}
+          onclick={() => (pages = pages.filter((_, i) => i !== index))}>×</button
+        >
+      </div>{/each}
+    <input type="hidden" name="pages" value={JSON.stringify(pages)} />
+    <button
+      class="v2-btn"
+      type="button"
+      disabled={pages.length >= 50}
+      onclick={() => (pages = [...pages, { name: '', url: '' }])}>Add page</button
+    >
+  </fieldset>
+
+  {#if !autoSave}<div class="actions">
+      <button class="v2-btn v2-btn-primary" type="submit" disabled={saving}
+        >{saving ? 'Saving…' : editing ? 'Save company' : 'Create company'}</button
+      >{#if inline}<button class="v2-btn" type="button" disabled={saving} onclick={onCancel}
+          >Cancel</button
+        >{:else}<a
+          class="v2-btn"
+          href={resolve(editing ? `/accounts/${data.account.id}` : '/accounts')}>Cancel</a
+        >{/if}
+    </div>
+  {/if}
+</form>
+
+<style>
+  :is(.auto-save, .inline-edit) .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :is(.auto-save, .inline-edit) .page-row {
+    flex-wrap: wrap;
+  }
+  :is(.auto-save, .inline-edit) .contacts-menu {
+    position: static;
+    margin-top: 4px;
+  }
+
+  .contacts-field {
+    min-width: 0;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .contacts-dropdown {
+    position: relative;
+  }
+  .contacts-dropdown summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    list-style: none;
+    cursor: pointer;
+  }
+  .contacts-dropdown summary::-webkit-details-marker {
+    display: none;
+  }
+  #company-contacts-selected {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .contacts-menu {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    padding: 12px;
+    background: var(--v2-surface, white);
+    border: 1px solid var(--v2-line);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px #0002;
+  }
+
+  .fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    min-width: 0;
+  }
+  fieldset {
+    border: 1px solid var(--v2-line);
+    border-radius: 8px;
+    margin: 20px 0;
+    padding: 16px;
+  }
+  legend {
+    font-size: 14px;
+  }
+  .page-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .page-row input {
+    min-width: 0;
+  }
+  .contact-options {
+    display: grid;
+    gap: 8px;
+    max-height: 240px;
+    overflow: auto;
+    padding-top: 10px;
+  }
+  .choice {
+    flex-direction: row;
+    align-items: center;
+  }
+  .actions {
+    display: flex;
+    gap: 8px;
+    padding-bottom: 24px;
+  }
+  @media (max-width: 700px) {
+    .fields {
+      grid-template-columns: 1fr;
+    }
+    .page-row {
+      flex-wrap: wrap;
+    }
+  }
+</style>

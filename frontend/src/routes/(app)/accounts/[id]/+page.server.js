@@ -1,6 +1,87 @@
-import { getAccount } from '$lib/server/v2/accounts.js';
+import { fail } from '@sveltejs/kit';
+import { readableError } from '$lib/server/v2/form-errors.js';
+import {
+  getAccount,
+  getAccountForEdit,
+  updateAccount,
+  EDITABLE_FIELDS,
+  addCompanyAttachment
+} from '$lib/server/v2/accounts.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies, params }) {
-  return await getAccount({ cookies }, params.id);
+  const [account, editor] = await Promise.all([
+    getAccount({ cookies }, params.id),
+    getAccountForEdit({ cookies }, params.id)
+  ]);
+  return { ...account, editor };
 }
+
+/** @type {import('./$types').Actions} */
+export const actions = {
+  save: async ({ cookies, params, request }) => {
+    const form = await request.formData();
+
+    /** @type {Record<string, any>} */
+    const values = {};
+    if (form.has('contacts_present')) {
+      const ids = form.getAll('contacts').map(String).sort();
+      if (JSON.stringify(ids) !== form.get('contacts_original')) values.contacts = ids;
+    }
+
+    for (const field of EDITABLE_FIELDS) {
+      // Only fields the form actually submitted. A control that is absent or
+      // disabled sends nothing, and "nothing" is how PATCH is told to leave a
+      // field alone. See `updateAccount`.
+      if (form.has(field)) values[field] = form.get(field)?.toString().trim() ?? '';
+    }
+
+    /*
+     * The owner is only sent when somebody actually changed it.
+     *
+     * `assigned_to` is many-to-many and this form offers a single select, so
+     * sending it unconditionally rewrites the whole list from one value, an
+     * account with two people on it silently loses one every time anybody
+     * edits the phone number. The hidden `assigned_to_original` is what makes
+     * "nobody touched this" distinguishable from "somebody chose this".
+     */
+    const owner = form.get('assigned_to')?.toString().trim() ?? '';
+    const ownerWas = form.get('assigned_to_original')?.toString().trim() ?? '';
+    if (form.has('assigned_to') && owner !== ownerWas) values.assigned_to = owner;
+
+    try {
+      await updateAccount({ cookies }, params.id, values);
+    } catch (/** @type {any} */ err) {
+      return fail(400, { values, error: readableError(err, 'Could not save this company.') });
+    }
+
+    return { saved: true };
+  },
+  saveFields: async ({ cookies, params, request }) => {
+    try {
+      const form = await request.formData();
+      const changes = JSON.parse(String(form.get('changes') ?? '{}'));
+      if (!changes || Array.isArray(changes) || typeof changes !== 'object')
+        return fail(400, { error: 'Invalid changes.' });
+      const allowed = new Set([...EDITABLE_FIELDS, 'contacts']);
+      if (Object.keys(changes).some((key) => !allowed.has(key)))
+        return fail(400, { error: 'Invalid property.' });
+      if (Object.keys(changes).length) await updateAccount({ cookies }, params.id, changes);
+      return { saved: true };
+    } catch (/** @type {any} */ err) {
+      return fail(400, { error: readableError(err, 'Could not save changes.') });
+    }
+  },
+  attach: async ({ cookies, params, request }) => {
+    const form = await request.formData();
+    const file = form.get('attachment');
+    if (!file || typeof file === 'string' || !file.size)
+      return fail(400, { message: 'Choose a file to attach.' });
+    try {
+      await addCompanyAttachment({ cookies }, params.id, file);
+    } catch (/** @type {any} */ err) {
+      return fail(400, { message: readableError(err, 'Could not attach file.') });
+    }
+    return { attached: true };
+  }
+};

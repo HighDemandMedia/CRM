@@ -17,6 +17,10 @@ export const actions = {
 
     /** @type {Record<string, any>} */
     const values = {};
+    if (form.has('contacts_present')) {
+      const ids = form.getAll('contacts').map(String).sort();
+      if (JSON.stringify(ids) !== form.get('contacts_original')) values.contacts = ids;
+    }
     for (const field of [...EDITABLE_FIELDS, 'assigned_to']) {
       if (form.has(field)) values[field] = form.get(field)?.toString().trim() ?? '';
     }

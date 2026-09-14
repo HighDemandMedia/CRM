@@ -1,3 +1,4 @@
+import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { EDITABLE_FIELDS, createContact, getContactFormOptions } from '$lib/server/v2/contacts.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
@@ -16,11 +17,13 @@ export async function load({ cookies, url }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  createTag: createContactTag,
   create: async ({ cookies, request }) => {
     const form = await request.formData();
 
     /** @type {Record<string, any>} */
     const values = {};
+    readContactTags(form, values);
     for (const field of EDITABLE_FIELDS) {
       if (field === 'do_not_call' || field === 'is_active') continue;
       if (form.has(field)) values[field] = form.get(field)?.toString().trim() ?? '';

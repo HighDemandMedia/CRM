@@ -1,13 +1,17 @@
+from common.languages import LANGUAGES
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.functions import Lower
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from accounts.choices import ACCOUNT_INDUSTRIES
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
 from common.models import Org, Profile, Tags, Teams
-from common.utils import COUNTRIES, CURRENCY_CODES, INDCHOICES
+from common.utils import COUNTRIES, CURRENCY_CODES
 from common.validators import flexible_phone_validator
+from contacts.choices import CONTACT_SOURCES, CONTACT_STAGES
 from contacts.models import Contact
 
 # Cleanup notes:
@@ -33,9 +37,16 @@ class Account(AssignableMixin, BaseModel):
     )
     website = models.URLField(_("Website"), blank=True, null=True)
 
+    source = models.CharField(
+        max_length=32, choices=CONTACT_SOURCES, blank=True, null=True
+    )
+    stage = models.CharField(max_length=32, choices=CONTACT_STAGES, default="LEAD")
+    stage_entered_at = models.DateTimeField(default=timezone.now, editable=False)
+    pages = models.JSONField(default=list, blank=True)
+
     # Business Information
     industry = models.CharField(
-        _("Industry"), max_length=255, choices=INDCHOICES, blank=True, null=True
+        _("Industry"), max_length=255, choices=ACCOUNT_INDUSTRIES, blank=True, null=True
     )
     number_of_employees = models.PositiveIntegerField(
         _("Number of Employees"), blank=True, null=True
@@ -49,6 +60,8 @@ class Account(AssignableMixin, BaseModel):
 
     # Address (flat fields like Lead and Contact models)
     address_line = models.CharField(_("Address"), max_length=255, blank=True, null=True)
+    appointment_at = models.DateTimeField("Appointment", null=True, blank=True, db_index=True)
+    language = models.CharField("Language", max_length=100, choices=LANGUAGES, blank=True, default="")
     city = models.CharField(_("City"), max_length=255, blank=True, null=True)
     state = models.CharField(_("State"), max_length=255, blank=True, null=True)
     postcode = models.CharField(_("Postal Code"), max_length=64, blank=True, null=True)
@@ -107,6 +120,23 @@ class Account(AssignableMixin, BaseModel):
                 name="account_revenue_non_negative",
             ),
         ]
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            fields = kwargs.get("update_fields")
+            if not self._state.adding and (fields is None or "stage" in fields):
+                previous = (
+                    type(self)
+                    .objects.select_for_update()
+                    .filter(pk=self.pk)
+                    .values("stage")
+                    .first()
+                )
+                if previous and previous["stage"] != self.stage:
+                    self.stage_entered_at = timezone.now()
+                    if fields is not None:
+                        kwargs["update_fields"] = set(fields) | {"stage_entered_at"}
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name}"

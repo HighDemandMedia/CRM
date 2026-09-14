@@ -4,6 +4,7 @@
   import { page } from '$app/state';
   import {
     Sun,
+    CalendarDays,
     Columns3,
     Target,
     Building2,
@@ -29,8 +30,7 @@
   /**
    * One flat tree, grouped by what the person is doing rather than by which
    * Django app owns the model. Every label matches the route it lands on and
-   * the page title it lands on; "Pipeline" goes to /v2/pipeline, which is
-   * titled "Pipeline".
+   * the page title it lands on; "Deals" opens the /pipeline route.
    *
    * v1 had /leads listed twice, as "Pipeline" and as "Leads", and a "Deals"
    * entry pointing at /opportunities while /deals 404'd.
@@ -70,14 +70,14 @@
         { href: '/', label: 'Today', icon: Sun, exact: true },
         {
           href: '/pipeline',
-          label: 'Pipeline',
+          label: 'Deals',
           icon: Columns3,
-          count: 'pipeline',
           termKey: 'opportunity.plural'
         },
         { href: '/leads', label: 'Leads', icon: Target, count: 'leads', termKey: 'lead.plural' },
-        { href: '/accounts', label: 'Accounts', icon: Building2, termKey: 'account.plural' },
+        { href: '/accounts', label: 'Companies', icon: Building2, termKey: 'account.plural' },
         { href: '/contacts', label: 'Contacts', icon: Users, termKey: 'contact.plural' },
+        { href: '/calendar', label: 'Calendar', icon: CalendarDays },
         { href: '/goals', label: 'Goals', icon: Trophy }
       ]
     },
@@ -159,6 +159,9 @@
       >
         <item.icon />
         {item.label}
+        {#if !['/contacts', '/accounts', '/pipeline', '/calendar'].includes(item.href)}
+          <span class="review-badge" title="Pending review">Review</span>
+        {/if}
         {#if item.count && counts[item.count]}
           <span class="v2-count">{counts[item.count]}</span>
         {/if}
@@ -170,6 +173,7 @@
     <button class="v2-link v2-nav-search" type="button" onclick={onsearch}>
       <Search />
       Search
+      <span class="review-badge" title="Pending review">Review</span>
       <span class="v2-count">⌘K</span>
     </button>
     <!-- Personal, not work: your own feed sits with your own profile rather
@@ -181,6 +185,7 @@
     >
       <Bell />
       Notifications
+      <span class="review-badge" title="Pending review">Review</span>
       {#if counts.notifications}
         <span class="v2-count">{counts.notifications}</span>
       {/if}
@@ -188,10 +193,12 @@
     <a class="v2-link" href={resolve('/profile')}>
       <CircleUser />
       Your profile
+      <span class="review-badge" title="Pending review">Review</span>
     </a>
     <a class="v2-link" href={resolve('/help')}>
       <CircleHelp />
       Help
+      <span class="review-badge" title="Pending review">Review</span>
     </a>
     <!-- The phone app for people on the hosted service. No pulsing dot. A
          download link is not something that needs you right now, and v2 keeps
@@ -204,6 +211,7 @@
     >
       <Smartphone />
       Download app
+      <span class="review-badge" title="Pending review">Review</span>
     </a>
     <!-- Leaving the app. Last in the list, and a plain link. /logout is a
          server load that clears the auth cookies and redirects to /login, so a
@@ -211,11 +219,24 @@
     <a class="v2-link" href={resolve('/logout')} data-sveltekit-reload>
       <LogOut />
       Sign out
+      <span class="review-badge" title="Pending review">Review</span>
     </a>
   </div>
 </nav>
 
 <style>
+  .review-badge {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 9px;
+    line-height: 1.3;
+    font-weight: 500;
+    padding: 2px 4px;
+    color: #805b19;
+    background: #fff3d6;
+    border-radius: 4px;
+  }
+
   /* Search opens an overlay rather than navigating, so it is a button. It
      borrows .v2-link for everything else. A control that sits in a list of
      links should not look like the odd one out. */

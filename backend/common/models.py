@@ -1124,3 +1124,25 @@ class PackApplication(BaseOrgModel):
 
     def __str__(self):
         return f"{self.pack_id} v{self.pack_version} → {self.org.name}"
+
+
+class SalesAppointment(models.Model):
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancelled_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='cancelled_sales_appointments')
+    change_history = models.JSONField(default=list, blank=True)
+    contact = models.ForeignKey('contacts.Contact', null=True, blank=True, on_delete=models.SET_NULL)
+    company = models.ForeignKey('accounts.Account', null=True, blank=True, on_delete=models.SET_NULL)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    org = models.ForeignKey(Org, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    host = models.ForeignKey(Profile, on_delete=models.PROTECT, related_name='hosted_sales_appointments')
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField()
+    internal_notes = models.TextField(blank=True, default='', max_length=10000)
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'sales_appointment'
+        indexes = [models.Index(fields=['org', 'starts_at'], name='sales_appt_org_start')]
+        constraints = [models.CheckConstraint(condition=models.Q(ends_at__gt=models.F('starts_at')), name='sales_appt_end_after_start')]

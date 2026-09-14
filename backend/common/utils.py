@@ -85,11 +85,11 @@ CASE_TYPE = (("Question", "Question"), ("Incident", "Incident"), ("Problem", "Pr
 
 STAGES = (
     ("PROSPECTING", "Prospecting"),
-    ("QUALIFICATION", "Qualification"),
     ("PROPOSAL", "Proposal"),
-    ("NEGOTIATION", "Negotiation"),
-    ("CLOSED_WON", "Closed Won"),
-    ("CLOSED_LOST", "Closed Lost"),
+    ("QUALIFICATION", "Follow Up"),
+    ("NEGOTIATION", "Stan By"),
+    ("CLOSED_WON", "Close Won"),
+    ("CLOSED_LOST", "Close Lost"),
 )
 
 OPPORTUNITY_TYPES = (

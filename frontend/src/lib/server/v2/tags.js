@@ -53,7 +53,7 @@ export async function getTags({ cookies }) {
 /**
  * Create a tag.
  *
- * Only `name` is sent. `org` comes from the JWT on the backend, and `usage`
+ * Only `name` and an optional `color` are sent. `org` comes from the JWT on the backend, and `usage`
  * and `totals` are computed, never submitted. The empty-name guard is a fast
  * fail for an obvious mistake, not a security control: `TagsListView.post`
  * (`backend/common/views/tags_views.py`) runs its own `if not name:` check
@@ -77,7 +77,7 @@ export async function getTags({ cookies }) {
  * @param {{ name?: string, [key: string]: any }} values callers may pass extra
  *   keys (a hostile `org`, say); the index signature lets TypeScript accept
  *   the object literal without widening what this function actually reads,
- *   which stays just `name`.
+ *   which stays `name` and optional `color`.
  * @returns {Promise<any>} the created (or reactivated) tag record: `{ id, name,
  *   slug, color, description, is_active, created_at }`.
  */
@@ -85,7 +85,8 @@ export async function createTag({ cookies }, values) {
   const name = (values.name ?? '').trim();
   if (!name) throw new Error('A tag needs a name.');
 
-  const resp = await apiRequest('/tags/', { method: 'POST', body: { name } }, { cookies });
+  const body = values.color ? { name, color: values.color } : { name };
+  const resp = await apiRequest('/tags/', { method: 'POST', body }, { cookies });
   return resp.tag ?? resp;
 }
 

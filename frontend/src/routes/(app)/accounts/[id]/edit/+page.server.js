@@ -12,8 +12,13 @@ export const actions = {
   save: async ({ cookies, params, request }) => {
     const form = await request.formData();
 
-    /** @type {Record<string, string>} */
+    /** @type {Record<string, any>} */
     const values = {};
+    if (form.has('contacts_present')) {
+      const ids = form.getAll('contacts').map(String).sort();
+      if (JSON.stringify(ids) !== form.get('contacts_original')) values.contacts = ids;
+    }
+
     for (const field of EDITABLE_FIELDS) {
       // Only fields the form actually submitted. A control that is absent or
       // disabled sends nothing, and "nothing" is how PATCH is told to leave a
@@ -32,12 +37,12 @@ export const actions = {
      */
     const owner = form.get('assigned_to')?.toString().trim() ?? '';
     const ownerWas = form.get('assigned_to_original')?.toString().trim() ?? '';
-    if (owner !== ownerWas) values.assigned_to = owner;
+    if (form.has('assigned_to') && owner !== ownerWas) values.assigned_to = owner;
 
     try {
       await updateAccount({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, error: readableError(err, 'Could not save this account.') });
+      return fail(400, { values, error: readableError(err, 'Could not save this company.') });
     }
 
     redirect(303, `/accounts/${params.id}`);

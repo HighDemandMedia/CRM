@@ -1,4 +1,5 @@
 <script>
+  import StageProgress from '$lib/v2/components/StageProgress.svelte';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import { goto, invalidateAll } from '$app/navigation';
@@ -8,13 +9,15 @@
   /** @type {HTMLCanvasElement | null} */
   let dragPreview = null;
   let suppressSort = false;
-  import { onMount } from 'svelte';
-  import { stageDuration, exactTime } from '$lib/v2/contact-time.js';
+  import { onMount, untrack } from 'svelte';
+  import { stageDuration } from '$lib/v2/contact-time.js';
   let clock = $state(Date.now());
+  import TagBadge from '$lib/v2/components/TagBadge.svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import FilterBar from '$lib/v2/components/FilterBar.svelte';
+  import { advancedContactFilters } from '$lib/v2/contact-filter-fields.js';
+  import { contactColumns as fields } from '$lib/v2/contact-columns.js';
   import { count, relativeDays, money } from '$lib/v2/format.js';
-  import { Plus } from '@lucide/svelte';
+  import { Plus, List, Columns3 } from '@lucide/svelte';
 
   /** @type {{ data: any }} */
   let { data } = $props();
@@ -91,6 +94,7 @@
       }
       saved = true;
       await invalidateAll();
+      clock = Date.now();
       moveStatus = `Contact moved to ${data.board.find((item) => item.value === stage)?.label ?? stage}.`;
     } catch {
       moveStatus = '';
@@ -101,25 +105,83 @@
       movingContact = '';
     }
   }
-  const fields = [
-    ['name', 'Name'],
-    ['phone', 'Phone'],
-    ['email', 'Email'],
-    ['source_label', 'Source'],
-    ['stage_label', 'Stage'],
-    ['owner', 'Contact Owner'],
-    ['address_line', 'Address'],
-    ['city', 'City'],
-    ['postcode', 'Zip Code'],
-    ['state', 'State'],
-    ['preferred_communication_channel_label', 'Preferred Communication Channel'],
-    ['description', 'Notes'],
-    ['account', 'Account'],
-    ['is_active', 'Active'],
-    ['do_not_call', 'Do not call'],
-    ['created_at', 'Created'],
-    ['updated_at', 'Updated']
-  ];
+  let filterValues = $state(/** @type {Record<string,string>} */ ({}));
+  let filtersUpdating = false;
+  let filterVersion = 0;
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  let filterTimer;
+  let filterError = $state('');
+  /** @param {number} [delay] */
+  function updateFilters(delay = 0) {
+    clearTimeout(filterTimer);
+    const version = ++filterVersion;
+    filtersUpdating = true;
+    filterTimer = setTimeout(async () => {
+      const url = new URL(page.url);
+      url.search = '';
+      for (const key of ['view', 'sort', 'direction', 'inactive']) {
+        const value = page.url.searchParams.get(key);
+        if (value) url.searchParams.set(key, value);
+      }
+      for (const [key, value] of Object.entries(filterValues)) {
+        if (value.trim()) url.searchParams.set(key, value.trim());
+      }
+      filterError = '';
+      try {
+        await goto(resolve('/contacts') + url.search, {
+          replaceState: true,
+          keepFocus: true,
+          noScroll: true
+        });
+      } catch {
+        filterError = 'Could not update filters. Please try again.';
+      } finally {
+        if (version === filterVersion) filtersUpdating = false;
+      }
+    }, delay);
+  }
+  /** @param {Event} event */
+  function filterInput(event) {
+    const input = /** @type {HTMLInputElement | HTMLSelectElement} */ (event.target);
+    if (!input.name) return;
+    filterValues[input.name] = input.value;
+    updateFilters(
+      input instanceof HTMLSelectElement || input.type === 'date' || !input.value ? 0 : 350
+    );
+  }
+  /** @param {string} key */
+  function removeFilter(key) {
+    advancedKeys = advancedKeys.filter((item) => item !== key);
+    delete filterValues[key];
+    delete filterValues[`${key}__gte`];
+    delete filterValues[`${key}__lte`];
+    updateFilters();
+  }
+  let advancedKeys = $state(/** @type {string[]} */ ([]));
+  $effect(() => {
+    const url = page.url;
+    if (untrack(() => filtersUpdating)) return;
+    const supported = [
+      'search',
+      'assigned_to',
+      'stage',
+      'tags',
+      ...advancedContactFilters.flatMap((field) =>
+        field.type === 'range' ? [`${field.key}__gte`, `${field.key}__lte`] : [field.key]
+      )
+    ];
+    filterValues = Object.fromEntries(
+      supported.map((key) => [key, url.searchParams.get(key) ?? ''])
+    );
+    advancedKeys = advancedContactFilters
+      .filter((field) =>
+        field.type === 'range'
+          ? page.url.searchParams.get(`${field.key}__gte`) ||
+            page.url.searchParams.get(`${field.key}__lte`)
+          : page.url.searchParams.get(field.key)
+      )
+      .map((field) => field.key);
+  });
   const defaults = ['name', 'phone', 'email', 'source_label', 'stage_label', 'owner'];
   let selected = $state([...defaults]);
   let configuring = $state(false);
@@ -139,9 +201,12 @@
   const widthKey = 'crm.contacts.widths.v1';
   const storageKey = 'crm.contacts.columns.v1';
   onMount(() => {
-    const timer = setInterval(() => {
-      clock = Date.now();
-    }, 60000);
+    const timer = setInterval(
+      () => {
+        if (data.view === 'pipeline' && !document.hidden) clock = Date.now();
+      },
+      24 * 60 * 60000
+    );
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
       if (Array.isArray(saved)) {
@@ -167,6 +232,7 @@
     ready = true;
     return () => {
       clearInterval(timer);
+      clearTimeout(filterTimer);
       dragPreview?.remove();
     };
   });
@@ -390,7 +456,7 @@
 </script>
 
 <PageHeader title="Contacts">
-  {#snippet sub()}<span class="v2-num">{count(data.totals.count)}</span> people{/snippet}
+  {#snippet sub()}<span class="v2-num">{count(data.totals.count)}</span> contacts{/snippet}
   {#snippet actions()}
     <a class="v2-btn" href={link({ inactive: data.includeInactive ? null : '1', offset: null })}
       >{data.includeInactive ? 'Hide inactive' : 'Show inactive'}</a
@@ -399,30 +465,173 @@
   {/snippet}
 </PageHeader>
 
-<div class="view-toolbar">
-  <nav aria-label="Contact views">
-    <a
-      class="v2-btn"
-      class:v2-btn-primary={data.view === 'list'}
-      aria-current={data.view === 'list' ? 'page' : undefined}
-      href={link({ view: 'list' })}>List</a
+<form
+  class="contact-filters"
+  method="GET"
+  action={resolve('/contacts')}
+  oninput={filterInput}
+  onsubmit={(event) => {
+    event.preventDefault();
+    updateFilters();
+  }}
+>
+  <input type="hidden" name="view" value={data.view} />
+  {#each ['sort', 'direction', 'inactive'] as key}
+    {#if page.url.searchParams.get(key)}<input
+        type="hidden"
+        name={key}
+        value={page.url.searchParams.get(key)}
+      />{/if}
+  {/each}
+  <label
+    >Search<input
+      class="v2-input"
+      type="search"
+      name="search"
+      placeholder="Search contact information"
+      value={filterValues.search ?? ''}
+    /></label
+  >
+  <label
+    >Contact Owner<select
+      class="v2-input"
+      name="assigned_to"
+      value={filterValues.assigned_to ?? ''}
     >
-    <a
-      class="v2-btn"
-      class:v2-btn-primary={data.view === 'pipeline'}
-      aria-current={data.view === 'pipeline' ? 'page' : undefined}
-      href={link({ view: 'pipeline' })}>Pipeline</a
+      <option value="">All owners</option>
+      {#each data.people as person}<option value={person.id}>{person.name}</option>{/each}
+    </select></label
+  >
+  <label
+    >Stage<select class="v2-input" name="stage" value={filterValues.stage ?? ''}>
+      <option value="">All stages</option>
+      {#each data.stages as stage}<option value={stage.value}>{stage.label}</option>{/each}
+      {#if data.view === 'list'}<option value="UNASSIGNED">No stage</option>{/if}
+    </select></label
+  >
+  <label
+    >Tags<select class="v2-input" name="tags" value={filterValues.tags ?? ''}>
+      <option value="">All tags</option>
+      {#each data.tags as tag}<option value={tag.id}>{tag.name}</option>{/each}
+    </select></label
+  >
+  <details class="advanced-filters">
+    <summary class="v2-btn">Filters{advancedKeys.length ? ` (${advancedKeys.length})` : ''}</summary
     >
-  </nav>
+    <div class="advanced-panel">
+      <label
+        >Add filter<select
+          class="v2-input"
+          aria-label="Add filter"
+          value=""
+          onchange={(event) => {
+            if (event.currentTarget.value)
+              advancedKeys = [...advancedKeys, event.currentTarget.value];
+            event.currentTarget.value = '';
+          }}
+        >
+          <option value="">Choose a property</option>
+          {#each advancedContactFilters.filter((field) => !advancedKeys.includes(field.key)) as field}
+            <option value={field.key}>{field.label}</option>
+          {/each}
+        </select></label
+      >
+      {#each advancedKeys as key (key)}
+        {@const field = advancedContactFilters.find((item) => item.key === key)}
+        {#if field}
+          <div class="advanced-row">
+            {#if field.type === 'range'}
+              <fieldset>
+                <legend>{field.label}</legend>
+                <label
+                  >From<input
+                    class="v2-input"
+                    type="date"
+                    name={`${key}__gte`}
+                    aria-label={`${field.label} from`}
+                    value={filterValues[`${key}__gte`] ?? ''}
+                  /></label
+                >
+                <label
+                  >To<input
+                    class="v2-input"
+                    type="date"
+                    name={`${key}__lte`}
+                    aria-label={`${field.label} to`}
+                    value={filterValues[`${key}__lte`] ?? ''}
+                  /></label
+                >
+              </fieldset>
+            {:else if field.options}
+              <label
+                >{field.label}<select class="v2-input" name={key} value={filterValues[key] ?? ''}>
+                  <option value="">Any</option>
+                  {#each field.options as [value, label]}<option {value}>{label}</option>{/each}
+                </select></label
+              >
+            {:else}
+              <label
+                >{field.label}<input
+                  class="v2-input"
+                  name={key}
+                  value={filterValues[key] ?? ''}
+                /></label
+              >
+            {/if}
+            <button
+              class="v2-btn"
+              type="button"
+              aria-label={`Remove ${field.label} filter`}
+              onclick={() => removeFilter(key)}>×</button
+            >
+          </div>
+        {/if}
+      {/each}
+    </div>
+  </details>
   {#if data.view === 'list'}
-    <button
+    <a
       class="v2-btn"
-      aria-expanded={configuring}
-      aria-controls="contact-columns"
-      onclick={() => (configuring = !configuring)}>Edit columns</button
+      data-sveltekit-reload
+      href={resolve('/contacts/export') +
+        '?' +
+        new URLSearchParams(
+          [...page.url.searchParams.entries()]
+            .filter(([key]) => key !== 'columns')
+            .concat([['columns', selected.join(',')]])
+        ).toString()}>Export CSV</a
     >
   {/if}
-</div>
+  <div class="view-actions">
+    <nav class="view-toggle" aria-label="Contact views">
+      <a
+        class="v2-btn view-icon"
+        class:v2-btn-primary={data.view === 'list'}
+        aria-label="List view"
+        title="List view"
+        aria-current={data.view === 'list' ? 'page' : undefined}
+        href={link({ view: 'list' })}><List size={18} /></a
+      >
+      <a
+        class="v2-btn view-icon"
+        class:v2-btn-primary={data.view === 'pipeline'}
+        aria-label="Pipeline view"
+        title="Pipeline view"
+        aria-current={data.view === 'pipeline' ? 'page' : undefined}
+        href={link({ view: 'pipeline' })}><Columns3 size={18} /></a
+      >
+    </nav>
+    {#if data.view === 'list'}
+      <button
+        class="v2-btn"
+        type="button"
+        aria-expanded={configuring}
+        aria-controls="contact-columns"
+        onclick={() => (configuring = !configuring)}>Edit columns</button
+      >
+    {/if}
+  </div>
+</form>
 {#if configuring && data.view === 'list'}
   <fieldset id="contact-columns" class="columns-picker">
     <legend>Fields shown in the list</legend>
@@ -450,20 +659,11 @@
     <button class="v2-btn" onclick={() => (configuring = false)}>Done</button>
   </fieldset>
 {/if}
-<FilterBar
-  page="contacts"
-  url={page.url}
-  people={data.people}
-  tags={data.tags}
-  meId={data.meId}
-  meta={data.view === 'list' && page.url.searchParams.get('sort')
-    ? `Sorted by ${fields.find(([key]) => key === page.url.searchParams.get('sort'))?.[1] ?? 'column'} · ${page.url.searchParams.get('direction') === 'desc' ? 'descending' : 'ascending'}`
-    : 'Most recently added first'}
-/>
+
+{#if filterError}<p role="alert">{filterError}</p>{/if}
 
 <div class="v2-scroll">
   {#if data.view === 'pipeline'}
-    <p class="table-hint v2-sub">Drag a contact to another stage to update it.</p>
     {#if moveError}<p class="table-hint" role="alert">{moveError}</p>{/if}
     <p class="table-hint v2-sub" role="status">{moveStatus}</p>
     <div class="contact-board" aria-label="Contacts by stage">
@@ -484,6 +684,7 @@
             <span class="v2-num">{count(stage.count)}</span>
           </header>
           {#each stage.contacts as contact (contact.id)}
+            {@const stageAge = stageDuration(contact.stage_entered_at, clock)}
             <article
               class="contact-card"
               class:card-dragging={draggedContact === contact.id}
@@ -522,15 +723,20 @@
                   </dd>
                 {/if}
               </dl>
-              <div class="card-dates">
-                <span
-                  class="stage-time"
-                  title={contact.stage_entered_at
-                    ? `Stage entered: ${exactTime(contact.stage_entered_at)}`
-                    : 'Stage entry time was not recorded for this older contact'}
-                  >{stageDuration(contact.stage_entered_at, clock)}</span
-                >
-              </div>
+              {#if contact.tags?.length || stageAge}
+                <div class="card-bottom">
+                  {#if contact.tags?.length}
+                    <div class="contact-tags" aria-label="Tags">
+                      {#each contact.tags as tag (tag.id)}<TagBadge {tag} />{/each}
+                    </div>
+                  {/if}
+                  {#if stageAge}
+                    <div class="card-dates">
+                      <span class="stage-time" title="Days in this stage">{stageAge}</span>
+                    </div>
+                  {/if}
+                </div>
+              {/if}
             </article>
           {:else}<p class="v2-sub">No contacts on this page.</p>{/each}
           <footer>
@@ -552,9 +758,6 @@
       {/each}
     </div>
   {:else}
-    <p class="v2-sub table-hint">
-      Click a header to sort; drag its name to reorder. Drag the right edge to resize.
-    </p>
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this overflow region to scroll the table.) -->
     <div
       class="contact-table-scroll"
@@ -646,6 +849,11 @@
                       class="v2-row-link v2-table-primary"
                       href={resolve(`/contacts/${contact.id}`)}>{contact.name}</a
                     >
+                  {:else if key === 'stage_label'}<StageProgress
+                      stage={contact.stage}
+                      label={contact.stage_label}
+                      stages={data.stages}
+                    />
                   {:else if key === 'email' && contact.email}<a href={`mailto:${contact.email}`}
                       >{contact.email}</a
                     >
@@ -662,11 +870,6 @@
       </table>
     </div>
     <div class="pagination">
-      <span class="v2-sub"
-        >Showing {data.contacts.length ? data.offset + 1 : 0}–{data.contacts.length
-          ? data.offset + data.contacts.length
-          : 0} of {count(data.totals.count)}</span
-      >
       {#if data.offset > 0}<a
           class="v2-btn"
           href={link({ offset: String(Math.max(0, data.offset - data.pageSize)) })}>Previous</a
@@ -680,6 +883,96 @@
 </div>
 
 <style>
+  .advanced-filters {
+    position: relative;
+  }
+  .advanced-filters summary {
+    cursor: pointer;
+    list-style: none;
+  }
+  .advanced-filters summary::-webkit-details-marker {
+    display: none;
+  }
+  .advanced-panel {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 8px);
+    right: 0;
+    padding: 16px;
+    width: min(430px, calc(100vw - 48px));
+    max-height: 65vh;
+    overflow-y: auto;
+    background: var(--v2-card, white);
+    border: 1px solid var(--v2-line);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px #0002;
+    display: grid;
+    gap: 12px;
+  }
+  .advanced-row {
+    display: flex;
+    gap: 8px;
+    align-items: end;
+  }
+  .advanced-row > label,
+  .advanced-row > fieldset {
+    flex: 1;
+    min-width: 0;
+  }
+  .advanced-row input {
+    min-width: 0;
+  }
+  @media (max-width: 720px) {
+    .advanced-panel {
+      position: fixed;
+      left: 24px;
+      right: 24px;
+      top: 20vh;
+    }
+  }
+
+  .contact-filters {
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 24px;
+  }
+  .contact-filters label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+  }
+  .contact-filters fieldset {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid var(--v2-line);
+    border-radius: 6px;
+  }
+  .contact-filters legend {
+    font-size: 12px;
+  }
+  .contact-filters .v2-input {
+    width: auto;
+    max-width: 100%;
+  }
+
+  .card-bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .contact-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-width: 0;
+    justify-content: flex-start;
+  }
   .stage-column.drop-target {
     outline: 2px solid #2563eb;
     outline-offset: -2px;
@@ -802,7 +1095,8 @@
     flex-direction: column;
     align-items: flex-end;
     gap: 5px;
-    margin-top: 16px;
+    margin-left: auto;
+    flex-shrink: 0;
     text-align: right;
     font-size: 11px;
     color: #666;
@@ -815,17 +1109,27 @@
     font-weight: 600;
   }
 
-  .view-toolbar,
-  .view-toolbar nav,
   .pagination {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
   }
-  .view-toolbar {
-    justify-content: space-between;
-    padding: 12px 24px;
+  .view-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+  .view-toggle {
+    display: inline-flex;
+    gap: 2px;
+  }
+  .view-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
   }
   .columns-picker {
     margin: 0 24px 16px;

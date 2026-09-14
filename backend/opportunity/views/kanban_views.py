@@ -25,7 +25,6 @@ from opportunity.serializer import (
     OpportunityMoveSerializer,
 )
 from opportunity.workflow import (
-    AMOUNT_REQUIRED_STAGES,
     CLOSED_STAGES,
     STAGE_PROBABILITIES,
 )
@@ -40,13 +39,13 @@ STAGE_CONFIG = {
         "label": "Prospecting",
     },
     "QUALIFICATION": {
-        "order": 2,
+        "order": 3,
         "color": "#8B5CF6",
         "type": "open",
-        "label": "Qualification",
+        "label": "Follow Up",
     },
     "PROPOSAL": {
-        "order": 3,
+        "order": 2,
         "color": "#F59E0B",
         "type": "in_progress",
         "label": "Proposal",
@@ -55,14 +54,19 @@ STAGE_CONFIG = {
         "order": 4,
         "color": "#EF4444",
         "type": "in_progress",
-        "label": "Negotiation",
+        "label": "Stan By",
     },
-    "CLOSED_WON": {"order": 5, "color": "#22C55E", "type": "completed", "label": "Won"},
+    "CLOSED_WON": {
+        "order": 5,
+        "color": "#22C55E",
+        "type": "completed",
+        "label": "Close Won",
+    },
     "CLOSED_LOST": {
         "order": 6,
         "color": "#6B7280",
         "type": "completed",
-        "label": "Lost",
+        "label": "Close Lost",
     },
 }
 
@@ -210,19 +214,6 @@ class OpportunityMoveView(APIView):
         entering_closed = (
             new_stage in CLOSED_STAGES and opportunity.stage not in CLOSED_STAGES
         )
-
-        # A won deal has to record what it was worth, the same rule
-        # OpportunityCreateSerializer.validate() applies to the edit form. The
-        # board cannot ask for a figure mid-drag, so it refuses and the client
-        # opens the deal instead of silently booking a nil win.
-        if new_stage in AMOUNT_REQUIRED_STAGES and not opportunity.amount:
-            return Response(
-                {
-                    "error": True,
-                    "errors": {"amount": "A won deal has to record what it was worth."},
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         if entering_closed:
             opportunity.closed_by = request.profile

@@ -33,7 +33,7 @@
       kind: 'Actions',
       id: 'act-deal',
       title: 'New deal',
-      meta: 'Pipeline',
+      meta: 'Deals',
       href: '/pipeline/new',
       icon: Plus
     },

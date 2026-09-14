@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { readableError } from '$lib/server/v2/form-errors.js';
-import { listContacts, updateContact, FILTER_FIELDS } from '$lib/server/v2/contacts.js';
-import { readFilters, buildFilterQuery } from '$lib/server/v2/filter-params.js';
+import { listContacts, updateContact } from '$lib/server/v2/contacts.js';
+import { contactQuery } from '$lib/server/v2/contact-query.js';
 import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 import { getTags } from '$lib/server/v2/tags.js';
 
@@ -22,14 +22,8 @@ import { getTags } from '$lib/server/v2/tags.js';
  * @type {import('./$types').PageServerLoad}
  */
 export async function load({ cookies, url, locals }) {
-  const params = buildFilterQuery(FILTER_FIELDS, readFilters(url, 'contacts'));
-  for (const key of ['search', 'name', 'email', 'phone']) {
-    const value = url.searchParams.get(key);
-    if (value) params.set(key, value);
-  }
-
+  const params = contactQuery(url);
   const includeInactive = url.searchParams.get('inactive') === '1';
-  if (!includeInactive) params.set('is_active', 'true');
 
   const view = url.searchParams.get('view') === 'pipeline' ? 'pipeline' : 'list';
   if (view === 'list') {
@@ -54,33 +48,36 @@ export async function load({ cookies, url, locals }) {
   const board =
     view === 'pipeline'
       ? await Promise.all(
-          [...stages, { value: 'UNASSIGNED', label: 'No stage' }].map(async (stage) => {
-            const stageOffset = Math.max(
-              0,
-              Math.min(
-                10000000,
-                Number.parseInt(url.searchParams.get(`${stage.value}_offset`) ?? '0') || 0
-              )
-            );
-            const query = new URLSearchParams(params);
-            query.set('stage', stage.value);
-            query.set('include_deal_values', 'true');
-            query.set('limit', String(pageSize));
-            query.set('offset', String(stageOffset));
-            const response = await listContacts({ cookies }, query);
-            return {
-              ...stage,
-              contacts: response.results,
-              count: response.totals.count,
-              offset: stageOffset
-            };
-          })
+          stages
+            .filter((stage) => !params.get('stage') || params.get('stage') === stage.value)
+            .map(async (stage) => {
+              const stageOffset = Math.max(
+                0,
+                Math.min(
+                  10000000,
+                  Number.parseInt(url.searchParams.get(`${stage.value}_offset`) ?? '0') || 0
+                )
+              );
+              const query = new URLSearchParams(params);
+              query.set('stage', stage.value);
+              query.set('include_deal_values', 'true');
+              query.set('limit', String(pageSize));
+              query.set('offset', String(stageOffset));
+              const response = await listContacts({ cookies }, query);
+              return {
+                ...stage,
+                contacts: response.results,
+                count: response.totals.count,
+                offset: stageOffset
+              };
+            })
         )
       : [];
 
   return {
     view,
     board,
+    stages,
     offset,
     pageSize,
     contacts: results,

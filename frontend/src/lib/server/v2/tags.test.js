@@ -48,6 +48,12 @@ describe('createTag', () => {
     expect(apiRequest).not.toHaveBeenCalled();
   });
 
+  it('forwards the selected tag color', async () => {
+    apiRequest.mockResolvedValue({ tag: { id: 't1', color: 'purple' } });
+    await createTag(event, { name: 'VIP', color: 'purple' });
+    expect(apiRequest.mock.calls[0][1].body).toEqual({ name: 'VIP', color: 'purple' });
+  });
+
   it('never forwards a client-supplied org', async () => {
     apiRequest.mockResolvedValue({ tag: { id: 't1' } });
     await createTag(event, { name: 'urgent', org: 'attacker-org' });

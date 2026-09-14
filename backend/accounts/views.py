@@ -1,32 +1,42 @@
+from common.models import Activity
+from common.calendar_filters import filter_calendar
 import json
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import (
+    Case as SortCase,
+)
+from django.db.models import (
+    CharField,
     Count,
     DateField,
     DecimalField,
+    F,
     IntegerField,
     Min,
     OuterRef,
     Q,
     Subquery,
     Sum,
+    Value,
+    When,
 )
 from django.db.models.deletion import ProtectedError
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Cast, Coalesce, Lower
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts import access, swagger_params
+from accounts.choices import COMPANY_INDUSTRIES
 from accounts.models import Account
 from accounts.serializer import (
     AccountCommentEditSwaggerSerializer,
@@ -64,21 +74,23 @@ from common.utils import (
     CASE_TYPE,
     COUNTRIES,
     CURRENCY_CODES,
-    INDCHOICES,
     PRIORITY_CHOICE,
+    SOURCES,
+    STAGES,
     STATUS_CHOICE,
     create_attachment,
     get_or_create_tags,
     handle_m2m_assignment,
 )
 from common.validators import date_param, payload_id_list, uuid_list_param
+from contacts.choices import CONTACT_SOURCES, CONTACT_STAGES
 from contacts.models import Contact
 from contacts.serializer import ContactSerializer
 from invoices.models import UNPAID_STATUSES, Invoice
 from invoices.serializer import InvoiceListSerializer
 from leads.models import Lead
 from leads.serializer import LeadSerializer
-from opportunity.models import SOURCES, STAGES, Opportunity
+from opportunity.models import Opportunity
 from opportunity.serializer import OpportunitySerializer
 from opportunity.workflow import CLOSED_STAGES
 from tasks.serializer import TaskSerializer
@@ -192,9 +204,11 @@ class AccountsListView(APIView, LimitOffsetPagination):
 
     def get_context_data(self, **kwargs):
         params = self.request.query_params
-        queryset = annotate_rollups(
-            self.model.objects.filter(org=self.request.profile.org)
-        ).order_by("-id")
+        queryset = (
+            annotate_rollups(self.model.objects.filter(org=self.request.profile.org))
+            .order_by("-created_at", "pk")
+            .prefetch_related("assigned_to__user", "contacts", "tags")
+        )
         if not is_org_admin(self.request.profile):
             queryset = queryset.filter(
                 Q(created_by=self.request.profile.user)
@@ -211,11 +225,47 @@ class AccountsListView(APIView, LimitOffsetPagination):
             tags = uuid_list_param(params, "tags")
             if tags:
                 queryset = queryset.filter(tags__id__in=tags).distinct()
+            contact_ids = uuid_list_param(params, "contacts")
+            if contact_ids:
+                queryset = queryset.filter(contacts__id__in=contact_ids).distinct()
             assigned_to = uuid_list_param(params, "assigned_to")
             if assigned_to:
                 queryset = queryset.filter(assigned_to__id__in=assigned_to).distinct()
             if params.get("search"):
-                queryset = queryset.filter(name__icontains=params.get("search"))
+                search = params.get("search")
+                query = Q()
+                for field in (
+                    "name",
+                    "website",
+                    "email",
+                    "phone",
+                    "industry",
+                    "address_line",
+                    "city",
+                    "state",
+                    "postcode",
+                    "country",
+                    "description",
+                    "pages",
+                    "source",
+                    "number_of_employees",
+                    "annual_revenue",
+                ):
+                    query |= Q(**{f"{field}__icontains": search})
+                query |= (
+                    Q(contacts__first_name__icontains=search)
+                    | Q(contacts__last_name__icontains=search)
+                    | Q(assigned_to__user__email__icontains=search)
+                    | Q(tags__name__icontains=search)
+                )
+                query |= Q(
+                    source__in=[
+                        value
+                        for value, label in CONTACT_SOURCES
+                        if search.casefold() in label.casefold()
+                    ]
+                )
+                queryset = queryset.filter(query).distinct()
             created_at_gte = date_param(params, "created_at__gte")
             if created_at_gte:
                 queryset = queryset.filter(created_at__date__gte=created_at_gte)
@@ -231,6 +281,111 @@ class AccountsListView(APIView, LimitOffsetPagination):
                             custom_fields__contains={cf_key: raw_value}
                         )
 
+        for field in (
+            "website",
+            "address_line",
+            "state",
+            "postcode",
+            "country",
+            "pages",
+            "currency",
+        ):
+            if params.get(field):
+                queryset = queryset.filter(**{f"{field}__icontains": params[field]})
+        if params.get("stage"):
+            queryset = queryset.filter(stage=params["stage"])
+        if params.get("source"):
+            queryset = (
+                queryset.filter(source=params["source"])
+                if params["source"] != "UNASSIGNED"
+                else queryset.filter(Q(source__isnull=True) | Q(source=""))
+            )
+        for field in ("number_of_employees", "annual_revenue"):
+            for suffix in ("gte", "lte"):
+                value = params.get(f"{field}__{suffix}")
+                if value:
+                    try:
+                        number = Decimal(value)
+                    except InvalidOperation:
+                        raise serializers.ValidationError({field: "Enter a number."})
+                    if not number.is_finite():
+                        raise serializers.ValidationError(
+                            {field: "Enter a finite number."}
+                        )
+                    queryset = queryset.filter(**{f"{field}__{suffix}": number})
+        for suffix in ("gte", "lte"):
+            value = date_param(params, f"updated_at__{suffix}")
+            if value:
+                queryset = queryset.filter(**{f"updated_at__date__{suffix}": value})
+        sort = params.get("sort", "")
+        expression = None
+        if sort in {
+            "name",
+            "website",
+            "industry",
+            "city",
+            "state",
+            "postcode",
+            "country",
+            "address_line",
+            "source",
+            "number_of_employees",
+            "annual_revenue",
+            "created_at",
+            "updated_at",
+        }:
+            expression = (
+                F(sort)
+                if sort
+                in {"number_of_employees", "annual_revenue", "created_at", "updated_at"}
+                else Lower(sort)
+            )
+        elif sort == "owner":
+            queryset = queryset.annotate(
+                company_owner=Subquery(
+                    Profile.objects.filter(account_assigned_users=OuterRef("pk"))
+                    .order_by(Lower("user__email"), "pk")
+                    .values("user__email")[:1]
+                )
+            )
+            expression = Lower("company_owner")
+        elif sort == "contacts":
+            queryset = queryset.annotate(
+                company_contact=Subquery(
+                    Contact.objects.filter(account_contacts=OuterRef("pk"))
+                    .order_by(Lower("first_name"), Lower("last_name"), "pk")
+                    .values("first_name")[:1]
+                )
+            )
+            expression = Lower("company_contact")
+        elif sort == "pages":
+            expression = Lower(Cast("pages", CharField()))
+        elif sort in {"source_label", "country_display", "stage_label"}:
+            field, choices = (
+                ("source", CONTACT_SOURCES)
+                if sort == "source_label"
+                else ("country", COUNTRIES)
+            )
+            if sort == "stage_label":
+                field, choices = "stage", CONTACT_STAGES
+            expression = Lower(
+                SortCase(
+                    *[
+                        When(**{field: value}, then=Value(str(label)))
+                        for value, label in choices
+                    ],
+                    default=Value(""),
+                    output_field=CharField(),
+                )
+            )
+        queryset = filter_calendar(queryset, params)
+        if expression is not None:
+            queryset = queryset.order_by(
+                expression.desc(nulls_last=True)
+                if params.get("direction") == "desc"
+                else expression.asc(nulls_last=True),
+                "pk",
+            )
         context = {}
 
         # Account model no longer has status field, return all accounts
@@ -288,7 +443,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
         contact_qs = Contact.objects.filter(org=self.request.profile.org)
         if narrow_to_member:
             contact_qs = contact_qs.filter(member_scope).distinct()
-        contacts = contact_qs.values("id", "first_name")
+        contacts = contact_qs.values("id", "first_name", "last_name", "email")
         context["contacts"] = contacts
         context["closed_accounts"] = {
             "offset": offset,
@@ -299,7 +454,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
             Teams.objects.filter(org=self.request.profile.org), many=True
         ).data
         context["countries"] = COUNTRIES
-        context["industries"] = INDCHOICES
+        context["industries"] = COMPANY_INDUSTRIES
 
         tags = Tags.objects.filter(org=self.request.profile.org, is_active=True)
         tags = TagsSerializer(tags, many=True).data
@@ -366,7 +521,11 @@ class AccountsListView(APIView, LimitOffsetPagination):
                 Contact,
                 request.profile.org,
             )
-            tags = get_or_create_tags(data.get("tags"), request.profile.org)
+            tags = (
+                Tags.objects.filter(org=request.profile.org, pk__in=data["tag_ids"])
+                if "tag_ids" in data
+                else get_or_create_tags(data.get("tags"), request.profile.org)
+            )
             if tags:
                 account_object.tags.add(*tags)
             handle_m2m_assignment(
@@ -639,6 +798,10 @@ class AccountDetailView(APIView):
             object_id=self.account.id,
             org=self.request.profile.org,
         ).order_by("-id")
+        context["history"] = [
+            {"id":str(entry.pk),"created_at":entry.created_at,"actor":entry.metadata.get("actor"),"description":entry.description}
+            for entry in Activity.objects.filter(org=self.request.profile.org, entity_type="Account", entity_id=self.account.id, action__in=["UPDATE", "ASSIGN"]).order_by("-created_at","-id")
+        ]
         context.update(
             {
                 "attachments": AttachmentsSerializer(attachments, many=True).data,
@@ -811,7 +974,11 @@ class AccountDetailView(APIView):
                     )
                     account_object.contacts.add(*contacts)
 
-            if "tags" in data:
+            if "tag_ids" in data:
+                account_object.tags.set(
+                    Tags.objects.filter(org=request.profile.org, pk__in=data["tag_ids"])
+                )
+            elif "tags" in data:
                 account_object.tags.clear()
                 tags = data.get("tags")
                 if tags:

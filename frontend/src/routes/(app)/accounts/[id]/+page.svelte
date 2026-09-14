@@ -1,4 +1,11 @@
 <script>
+  import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
+  import { Pencil } from '@lucide/svelte';
+  let editingProperties = $state(false);
+  import { exactTime } from '$lib/v2/contact-time.js';
+  import Attachments from '$lib/v2/components/Attachments.svelte';
+  import CompanyForm from '$lib/components/companies/CompanyForm.svelte';
+  import { invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
   /**
    * The account is a workspace, not a form.
@@ -23,10 +30,10 @@
     INVOICE_STATUS_TONE,
     invoiceStatusLabel
   } from '$lib/v2/enums.js';
-  import { ChevronRight, Mail, Phone } from '@lucide/svelte';
+  import { ChevronRight, Mail } from '@lucide/svelte';
 
-  /** @type {{ data: any }} */
-  let { data } = $props();
+  /** @type {{ data: any, form?:any }} */
+  let { data, form } = $props();
 
   let { account, deals, contacts, tickets, invoices, owners } = $derived(data);
 
@@ -52,7 +59,7 @@
 
 <PageHeader title={account.name} record>
   {#snippet crumb()}
-    <a href={resolve('/accounts')}>Accounts</a>
+    <a href={resolve('/accounts')}>Companies</a>
     <ChevronRight size={12} />
     <span>{account.industry || 'No industry'}</span>
   {/snippet}
@@ -70,13 +77,69 @@
       .filter(Boolean)
       .join(' · ')}
   {/snippet}
-  {#snippet actions()}
-    <a class="v2-btn" href={resolve(`/accounts/${account.id}/edit`)}>Edit</a>
-  {/snippet}
 </PageHeader>
 
-<div class="v2-scroll">
-  <div class="v2-pad" style="padding-bottom:32px">
+<div class="v2-scroll company-layout">
+  <aside class="company-properties" aria-label="Company properties">
+    <div class="properties-heading">
+      <h2>Properties</h2>
+      <button
+        class="v2-btn"
+        type="button"
+        disabled={editingProperties}
+        onclick={() => (editingProperties = true)}><Pencil size={13} />Edit</button
+      >
+    </div>
+    {#if editingProperties}
+      <CompanyForm
+        data={{...data.editor,org:data.org}}
+        result={form}
+        editing
+        inline
+        onCancel={() => (editingProperties = false)}
+        onSaved={async () => {
+          await invalidateAll();
+          editingProperties = false;
+        }}
+      />
+    {:else}
+      <PropertySummary
+        entries={[
+          ['Name', account.name],
+          ['Domain', account.website || '—'],
+          ['Language', account.language || '—'],
+          [
+            'Contacts',
+            contacts
+              .map((c) => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.name)
+              .join(', ') || '—'
+          ],
+          ['Industry', account.industry || '—'],
+          ['Number of employees', account.number_of_employees],
+          [
+            'Annual revenue',
+            account.annual_revenue != null ? money(account.annual_revenue, account.currency) : '—'
+          ],
+          ['Source', account.source_label || '—'],
+          ['Stage', account.stage_label || '—'],
+          ['Appointment', account.appointment_at ? exactTime(account.appointment_at) : '—'],
+          ['Address', data.editor.form.address_line || '—'],
+          ['City', account.city || '—'],
+          ['State', data.editor.form.state || '—'],
+          ['Zip Code', data.editor.form.postcode || '—'],
+          ['Country', account.country_display || '—']
+        ]}
+      />
+      {#if account.pages?.length}<div class="property-pages">
+          <span>Pages</span>{#each account.pages as page}<a
+              href={page.url}
+              target="_blank"
+              rel="noopener noreferrer">{page.name || page.url}</a
+            >{/each}
+        </div>{/if}
+    {/if}
+  </aside>
+  <div class="v2-pad company-content" style="padding-bottom:32px">
     <div class="v2-stats" style="margin-bottom:16px">
       <StatCard
         label="Revenue won"
@@ -140,6 +203,54 @@
       style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start"
       class="v2-account-grid"
     >
+      <!-- Contacts -->
+      <section class="v2-card" style="overflow:hidden">
+        <div class="v2-card-head">
+          <span class="v2-label">Contacts</span>
+          <a href={resolve('/contacts')}>View all</a>
+        </div>
+        {#each contacts as c (c.id)}
+          <div
+            style="display:flex;gap:11px;align-items:center;padding:10px 15px;border-bottom:1px solid var(--v2-line-soft)"
+          >
+            <Avatar name="{c.first_name} {c.last_name}" size={29} />
+            <!-- A link now. This was deliberately dead text while
+                 `/contacts/<uuid>` answered 404, which is the reason
+                 contacts was the module to wire next. -->
+            <a
+              href={resolve(`/contacts/${c.id}`)}
+              style="flex:1;min-width:0;color:inherit;text-decoration:none"
+            >
+              <div style="font-weight:550;font-size:13px">{c.first_name} {c.last_name}</div>
+              <!-- title and department. The mock showed a "relationship"
+                   (Champion / Blocker); Contact has no such field. -->
+              <div class="v2-sub" style="font-size:11.5px">
+                {[c.title, c.department].filter(Boolean).join(' · ') || 'No title recorded'}
+              </div>
+            </a>
+            {#if c.email}
+              <a class="v2-btn v2-btn-sm" href="mailto:{c.email}" aria-label="Email {c.first_name}">
+                <Mail size={13} />
+              </a>
+            {:else}
+              <button
+                type="button"
+                class="v2-btn v2-btn-sm"
+                disabled
+                title="Add an email to this contact"
+                aria-label="Email unavailable: no email address"><Mail size={13} /></button
+              >
+            {/if}
+          </div>
+        {:else}
+          <p class="v2-sub" style="padding:14px 15px;font-size:12.5px">
+            Nobody here yet. <a href={resolve(`/contacts/new?account=${account.id}`)}
+              >Add the person</a
+            > you actually talk to.
+          </p>
+        {/each}
+      </section>
+
       <!-- Deals -->
       <section class="v2-card" style="overflow:hidden">
         <div class="v2-card-head">
@@ -178,55 +289,28 @@
         {/each}
       </section>
 
-      <!-- People -->
-      <section class="v2-card" style="overflow:hidden">
-        <div class="v2-card-head">
-          <span class="v2-label">People</span>
-          <a href={resolve('/contacts')}>View all</a>
-        </div>
-        {#each contacts as c (c.id)}
-          <div
-            style="display:flex;gap:11px;align-items:center;padding:10px 15px;border-bottom:1px solid var(--v2-line-soft)"
-          >
-            <Avatar name="{c.first_name} {c.last_name}" size={29} />
-            <!-- A link now. This was deliberately dead text while
-                 `/contacts/<uuid>` answered 404, which is the reason
-                 contacts was the module to wire next. -->
-            <a
-              href={resolve(`/contacts/${c.id}`)}
-              style="flex:1;min-width:0;color:inherit;text-decoration:none"
+      {#if data.eventHistory?.length}<section class="v2-card company-attachments">
+          <h2>Activity</h2>
+          {#each data.eventHistory as entry (entry.id)}<div
+              style="padding:10px 0;border-bottom:1px solid var(--v2-line)"
             >
-              <div style="font-weight:550;font-size:13px">{c.first_name} {c.last_name}</div>
-              <!-- title and department. The mock showed a "relationship"
-                   (Champion / Blocker); Contact has no such field. -->
-              <div class="v2-sub" style="font-size:11.5px">
-                {[c.title, c.department].filter(Boolean).join(' · ') || 'No title recorded'}
-              </div>
-            </a>
-            {#if c.email}
-              <a class="v2-btn v2-btn-sm" href="mailto:{c.email}" aria-label="Email {c.first_name}">
-                <Mail size={13} />
-              </a>
-            {/if}
-            {#if c.phone && !c.do_not_call}
-              <a class="v2-btn v2-btn-sm" href="tel:{c.phone}" aria-label="Call {c.first_name}">
-                <Phone size={13} />
-              </a>
-            {/if}
-          </div>
-        {:else}
-          <p class="v2-sub" style="padding:14px 15px;font-size:12.5px">
-            Nobody here yet. <a href={resolve(`/contacts/new?account=${account.id}`)}
-              >Add the person</a
-            > you actually talk to.
-          </p>
-        {/each}
+              <div>{entry.body}</div>
+              <p class="v2-sub">{entry.by} · {exactTime(entry.at)}</p>
+            </div>{/each}
+        </section>{/if}
+      <section class="v2-card company-attachments">
+        <h2>Attachments</h2>
+        <Attachments attachments={data.attachments} />
       </section>
 
       <!-- Tickets -->
       <section class="v2-card" style="overflow:hidden">
         <div class="v2-card-head">
-          <span class="v2-label">Tickets</span>
+          <span class="section-title"
+            ><span class="v2-label">Tickets</span><span class="review-badge" title="Pending review"
+              >Review</span
+            ></span
+          >
           <a href={resolve('/tickets')}>View all</a>
         </div>
         {#each tickets as t (t.id)}
@@ -251,7 +335,11 @@
       <!-- Invoices -->
       <section class="v2-card" style="overflow:hidden">
         <div class="v2-card-head">
-          <span class="v2-label">Invoices</span>
+          <span class="section-title"
+            ><span class="v2-label">Invoices</span><span class="review-badge" title="Pending review"
+              >Review</span
+            ></span
+          >
           <a href={resolve('/invoices')}>View all</a>
         </div>
         {#each invoices as inv (inv.id)}
@@ -278,6 +366,74 @@
 </div>
 
 <style>
+  .properties-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .properties-heading h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .property-pages {
+    display: grid;
+    gap: 8px;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .property-pages > span {
+    font-size: 11px;
+    color: var(--v2-slate);
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .review-badge {
+    font-size: 9px;
+    line-height: 1.3;
+    font-weight: 500;
+    padding: 2px 4px;
+    color: #805b19;
+    background: #fff3d6;
+    border-radius: 4px;
+  }
+
+  .company-layout {
+    display: grid;
+    grid-template-columns: 260px minmax(340px, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+  }
+  .company-properties {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px;
+    border-right: 1px solid var(--v2-line);
+  }
+  .company-properties h2 {
+    font-size: 15px;
+    margin: 0 0 20px;
+  }
+  .company-content {
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .company-attachments {
+    padding: 16px;
+  }
+  .company-attachments h2 {
+    font-size: 14px;
+    margin: 0 0 14px;
+  }
+
   @media (max-width: 1080px) {
     .v2-account-grid {
       grid-template-columns: 1fr !important;

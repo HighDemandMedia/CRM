@@ -1,3 +1,4 @@
+from common.languages import LANGUAGES
 from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.functions import Lower
@@ -35,7 +36,10 @@ class Contact(AssignableMixin, BaseModel):
     stage = models.CharField(
         max_length=32, choices=CONTACT_STAGES, blank=True, null=True
     )
+    appointment_at = models.DateTimeField("Appointment", null=True, blank=True)
     stage_entered_at = models.DateTimeField(null=True, blank=True, editable=False)
+
+    language = models.CharField("Language", max_length=100, choices=LANGUAGES, blank=True, default="")
 
     preferred_communication_channel = models.CharField(
         max_length=16, choices=COMMUNICATION_CHANNELS, blank=True, null=True

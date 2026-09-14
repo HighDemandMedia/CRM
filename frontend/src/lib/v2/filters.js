@@ -161,7 +161,7 @@ export const FILTERS = {
   accounts: {
     presets: [
       { key: 'mine', label: 'Mine', params: { assigned_to: '@me' } },
-      { key: 'all', label: 'All accounts', params: {} }
+      { key: 'all', label: 'All companies', params: {} }
     ],
     fields: [
       { key: 'assigned_to', label: 'Owner', type: 'person' },

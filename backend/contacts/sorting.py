@@ -10,6 +10,7 @@ from contacts.choices import COMMUNICATION_CHANNELS, CONTACT_SOURCES, CONTACT_ST
 
 def order_contacts(queryset, key, descending=False):
     text_fields = {
+        "language",
         "phone",
         "email",
         "address_line",
@@ -54,7 +55,13 @@ def order_contacts(queryset, key, descending=False):
             "organization",
             output_field=CharField(),
         )
-    elif key in {"created_at", "updated_at", "is_active", "do_not_call"}:
+    elif key in {
+        "created_at",
+        "updated_at",
+        "last_activity_at",
+        "is_active",
+        "do_not_call",
+    }:
         expression = F(key)
         return queryset.order_by(
             expression.desc(nulls_last=True)

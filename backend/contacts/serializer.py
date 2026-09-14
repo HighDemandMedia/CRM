@@ -5,6 +5,7 @@ from common.serializer import (
     AttachmentsSerializer,
     OrganizationSerializer,
     ProfileSerializer,
+    TagsSerializer,
     TeamsSerializer,
 )
 from contacts.models import Contact
@@ -17,6 +18,8 @@ from contacts.models import Contact
 class ContactSerializer(serializers.ModelSerializer):
     """Serializer for reading Contact data"""
 
+    last_activity_at = serializers.DateTimeField(read_only=True)
+    tag_details = TagsSerializer(source="tags", many=True, read_only=True)
     created_by_email = serializers.CharField(
         source="created_by.email", read_only=True, default=None
     )
@@ -82,7 +85,9 @@ class ContactSerializer(serializers.ModelSerializer):
             "phone",
             "source",
             "stage",
+            "appointment_at",
             "preferred_communication_channel",
+            "language",
             # Professional Information
             "organization",
             "title",
@@ -101,6 +106,7 @@ class ContactSerializer(serializers.ModelSerializer):
             "teams",
             # Tags
             "tags",
+            "tag_details",
             # Notes
             "description",
             # System
@@ -108,6 +114,7 @@ class ContactSerializer(serializers.ModelSerializer):
             "created_at",
             "created_by_email",
             "stage_entered_at",
+            "last_activity_at",
             "updated_at",
             "is_active",
             "org",
@@ -206,7 +213,9 @@ class CreateContactSerializer(serializers.ModelSerializer):
             "phone",
             "source",
             "stage",
+            "appointment_at",
             "preferred_communication_channel",
+            "language",
             # Professional Information
             "organization",
             "title",

@@ -1,6 +1,6 @@
+from common.languages import LANGUAGES
 from decimal import Decimal
 
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import Coalesce
@@ -12,13 +12,14 @@ from accounts.models import Account
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
 from common.models import Org, Profile, Tags, Teams
 from common.utils import (
+    COUNTRIES,
     CURRENCY_CODES,
     GOAL_TYPES,
     OPPORTUNITY_TYPES,
     PERIOD_TYPES,
-    SOURCES,
     STAGES,
 )
+from contacts.choices import CONTACT_SOURCES
 from contacts.models import Contact
 
 # Amount source choices for Opportunity
@@ -76,8 +77,21 @@ class Opportunity(AssignableMixin, BaseModel):
 
     # Source & Context
     lead_source = models.CharField(
-        _("Lead Source"), max_length=255, choices=SOURCES, blank=True, null=True
+        _("Lead Source"), max_length=255, choices=CONTACT_SOURCES, blank=True, null=True
     )
+
+    priority = models.CharField(
+        max_length=10,
+        choices=(("LOW", "Low"), ("MEDIUM", "Medium"), ("HIGH", "High")),
+        blank=True,
+        null=True,
+    )
+    address_line = models.CharField(max_length=255, blank=True, null=True)
+    language = models.CharField("Language", max_length=100, choices=LANGUAGES, blank=True, default="")
+    city = models.CharField(max_length=255, blank=True, null=True)
+    state = models.CharField(max_length=255, blank=True, null=True)
+    postcode = models.CharField(max_length=64, blank=True, null=True)
+    country = models.CharField(max_length=3, choices=COUNTRIES, blank=True, null=True)
 
     # Relationships
     contacts = models.ManyToManyField(Contact, related_name="opportunity_contacts")
@@ -161,24 +175,6 @@ class Opportunity(AssignableMixin, BaseModel):
     @property
     def created_on_arrow(self):
         return timesince(self.created_at) + " ago"
-
-    def clean(self):
-        """Validate opportunity data."""
-        super().clean()
-        errors = {}
-
-        # Closed date required for closed stages
-        if self.stage in ["CLOSED_WON", "CLOSED_LOST"] and not self.closed_on:
-            errors["closed_on"] = _(
-                "Close date is required when stage is Closed Won/Lost"
-            )
-
-        # Amount required for closed won
-        if self.stage == "CLOSED_WON" and not self.amount:
-            errors["amount"] = _("Amount is required for Closed Won opportunities")
-
-        if errors:
-            raise ValidationError(errors)
 
     def recalculate_amount(self):
         """

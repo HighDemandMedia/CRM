@@ -1,3 +1,4 @@
+import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { EDITABLE_FIELDS, getContactForEdit, updateContact } from '$lib/server/v2/contacts.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
@@ -12,11 +13,13 @@ export async function load({ cookies, params }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  createTag: createContactTag,
   save: async ({ cookies, params, request }) => {
     const form = await request.formData();
 
     /** @type {Record<string, any>} */
     const values = {};
+    readContactTags(form, values);
     for (const field of EDITABLE_FIELDS) {
       if (FLAGS.includes(field)) continue;
       // Only fields the form actually submitted. A control that is absent or

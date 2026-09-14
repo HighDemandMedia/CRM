@@ -22,6 +22,8 @@
  * is `"12"`, so every one of them is coerced here, at the boundary, rather
  * than in whichever component happens to add them up first.
  */
+import { STAGE_LABEL } from '$lib/v2/enums.js';
+import { attachmentHref } from './files.js';
 import { error } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
 
@@ -63,11 +65,27 @@ function toRow(deal) {
       name: deal.account?.name ?? 'No account'
     },
     stage: deal.stage,
+    stage_label: STAGE_LABEL[deal.stage] ?? deal.stage,
+    stage_entered_at: deal.stage_changed_at,
+    owner: ownerName(deal),
+    owner_count: deal.assigned_to?.length ?? 0,
+    contacts: deal.contacts ?? [],
+    priority_label: deal.priority ? deal.priority[0] + deal.priority.slice(1).toLowerCase() : '',
+    updated_at: deal.updated_at,
     amount: num(deal.amount) ?? 0,
     currency: deal.currency || 'USD',
     probability: deal.probability ?? 0,
     closed_on: deal.closed_on ?? null,
     opportunity_type: deal.opportunity_type ?? 'NEW_BUSINESS',
+    lead_source_label: deal.lead_source_label ?? deal.lead_source ?? '',
+    country_label: deal.country_label ?? deal.country ?? '',
+    priority: deal.priority ?? '',
+    address_line: deal.address_line ?? '',
+    language: deal.language ?? '',
+    city: deal.city ?? '',
+    state: deal.state ?? '',
+    postcode: deal.postcode ?? '',
+    country: deal.country ?? '',
     lead_source: deal.lead_source ?? '',
     description: deal.description ?? '',
     assigned_to: ownerName(deal),
@@ -104,11 +122,16 @@ export async function listDeals({ cookies }, params) {
 
   const response = await apiRequest(`/opportunities/?${query}`, {}, { cookies });
   const rows = (response.opportunities ?? []).map(toRow);
-  rows.sort((a, b) => b.amount - a.amount);
+  if (!query.has('sort')) rows.sort((a, b) => b.amount - a.amount);
 
   return {
     results: rows,
-    totals: normaliseTotals(response.totals, rows)
+    totals: normaliseTotals(response.totals, rows),
+    contacts: (response.contacts_list ?? []).map((c) => ({
+      id: c.id,
+      name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unnamed contact'
+    })),
+    accounts: (response.accounts_list ?? []).map((a) => ({ id: a.id, name: a.name }))
   };
 }
 
@@ -193,20 +216,18 @@ export async function listBoard({ cookies }, params) {
   const query = new URLSearchParams(params ?? undefined);
   const response = await apiRequest(`/opportunities/kanban/?${query}`, {}, { cookies });
 
-  const lanes = (response.columns ?? [])
-    .filter((/** @type {any} */ column) => !column.id.startsWith('CLOSED_'))
-    .map((/** @type {any} */ column) => {
-      const rows = (column.items ?? []).map(toRow);
-      return {
-        stage: column.id,
-        rows,
-        // The lane header counts every deal in the stage; the sum can only
-        // describe the ones actually returned, so a truncated lane says so.
-        count: column.item_count,
-        sum: rows.reduce((total, row) => total + row.amount, 0),
-        truncated: column.item_count > rows.length
-      };
-    });
+  const lanes = (response.columns ?? []).map((/** @type {any} */ column) => {
+    const rows = (column.items ?? []).map(toRow);
+    return {
+      stage: column.id,
+      rows,
+      // The lane header counts every deal in the stage; the sum can only
+      // describe the ones actually returned, so a truncated lane says so.
+      count: column.item_count,
+      sum: rows.reduce((total, row) => total + row.amount, 0),
+      truncated: column.item_count > rows.length
+    };
+  });
 
   return { lanes };
 }
@@ -223,6 +244,17 @@ export async function getDeal({ cookies }, id) {
 
   return {
     deal: toRow(raw),
+    attachments: (response.attachments ?? []).map((file) => ({
+      id: file.id,
+      name: file.file_name ?? 'Attachment',
+      href: attachmentHref(file.id)
+    })),
+    notes: (response.comments ?? []).map((note) => ({
+      id: note.id,
+      body: note.comment,
+      at: note.commented_on,
+      by: note.commented_by_user?.email || note.commented_by?.user_details?.email || null
+    })),
     activity: buildActivity(response),
     lineItems: (raw.line_items ?? []).map((/** @type {any} */ item) => ({
       id: item.id,
@@ -246,7 +278,7 @@ export async function getDeal({ cookies }, id) {
 }
 
 /**
- * Comments, plus the two events the record can actually reconstruct.
+ * Creation and stage events only. Notes are displayed in their own section.
  *
  * The mock timeline had a run of stage changes. `Opportunity` keeps only
  * `stage_changed_at`, the *last* one, and there is no history table, so one
@@ -259,13 +291,8 @@ export async function getDeal({ cookies }, id) {
 function buildActivity(response) {
   const deal = response.opportunity_obj;
 
-  const events = (response.comments ?? []).map((/** @type {any} */ comment) => ({
-    id: comment.id,
-    type: 'note',
-    at: comment.commented_on,
-    by: comment.commented_by_user?.email || comment.commented_by?.user_details?.email || null,
-    body: comment.comment
-  }));
+  /** @type {Array<{id:string,type:string,at:string,by:string|null,body:string}>} */
+  const events = [];
 
   const created = new Date(deal.created_at).getTime();
   const moved = deal.stage_changed_at ? new Date(deal.stage_changed_at).getTime() : 0;
@@ -280,14 +307,6 @@ function buildActivity(response) {
       body: 'Moved into this stage'
     });
   }
-
-  events.push({
-    id: `created-${deal.id}`,
-    type: 'stage',
-    at: deal.created_at,
-    by: deal.created_by?.email ?? null,
-    body: 'Deal created'
-  });
 
   return events.sort(
     (/** @type {any} */ a, /** @type {any} */ b) =>
@@ -305,7 +324,14 @@ export const EDITABLE_FIELDS = [
   'probability',
   'closed_on',
   'lead_source',
-  'description'
+  'description',
+  'priority',
+  'address_line',
+  'language',
+  'city',
+  'state',
+  'postcode',
+  'country'
 ];
 
 /**
@@ -321,12 +347,20 @@ export const EDITABLE_FIELDS = [
 async function listAccounts(cookies) {
   try {
     const response = await apiRequest('/opportunities/?limit=1', {}, { cookies });
-    return (response.accounts_list ?? []).map((/** @type {any} */ account) => ({
-      id: account.id,
-      name: account.name
-    }));
+    const geography = await apiRequest('/accounts/?limit=1', {}, { cookies });
+    return {
+      accounts: (response.accounts_list ?? []).map((account) => ({
+        id: account.id,
+        name: account.name
+      })),
+      contacts: (response.contacts_list ?? []).map((c) => ({
+        id: c.id,
+        name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unnamed contact'
+      })),
+      countries: geography.countries ?? []
+    };
   } catch {
-    return [];
+    return { accounts: [], contacts: [], countries: [] };
   }
 }
 
@@ -385,7 +419,7 @@ export async function getDealFormOptions({ cookies }) {
     myProfileId(cookies)
   ]);
   return {
-    accounts,
+    ...accounts,
     owners,
     defaults: { assigned_to: mine, currency: 'USD', stage: 'PROSPECTING' }
   };
@@ -411,14 +445,22 @@ export async function getDealForEdit({ cookies }, id) {
 
   return {
     deal,
-    accounts,
+    ...accounts,
     owners,
     form: {
       name: deal.name,
       account: deal.account.id ?? '',
       stage: deal.stage,
       opportunity_type: deal.opportunity_type,
-      amount: deal.amount ?? '',
+      amount: raw.amount ?? '',
+      priority: deal.priority,
+      address_line: deal.address_line,
+      language: deal.language ?? '',
+      city: deal.city,
+      state: deal.state,
+      postcode: deal.postcode,
+      country: deal.country,
+      contacts: (raw.contacts ?? []).map((c) => c.id),
       probability: deal.probability ?? '',
       closed_on: deal.closed_on ?? '',
       lead_source: deal.lead_source ?? '',
@@ -464,6 +506,7 @@ function toBody(values) {
     const value = values[field];
     body[field] = value === '' ? null : value;
   }
+  if ('contacts' in values) body.contacts = values.contacts;
   if ('amount' in body && body.amount !== null) body.amount = Number(body.amount);
   if ('probability' in body && body.probability !== null) {
     body.probability = Number(body.probability);
@@ -564,4 +607,23 @@ async function fetchDetail(cookies, id) {
     }
     throw err;
   }
+}
+
+/** @param {{cookies:import('@sveltejs/kit').Cookies}} event @param {string} id @param {File} file */
+export async function addDealAttachment({ cookies }, id, file) {
+  const body = new FormData();
+  body.set('opportunity_attachment', file);
+  return await apiRequest(`/opportunities/${id}/`, { method: 'POST', body }, { cookies });
+}
+
+/** @param {{cookies: import('@sveltejs/kit').Cookies}} event
+ * @param {string} id
+ * @param {string} comment
+ */
+export async function addDealNote({ cookies }, id, comment) {
+  return await apiRequest(
+    `/opportunities/${id}/`,
+    { method: 'POST', body: { comment } },
+    { cookies }
+  );
 }

@@ -351,7 +351,7 @@ export const opportunityStageOptions = [
   },
   {
     value: 'QUALIFICATION',
-    label: 'Qualification',
+    label: 'Follow Up',
     color:
       'bg-[var(--stage-qualified-bg)] text-[var(--stage-qualified)] dark:bg-[var(--stage-qualified)]/15'
   },
@@ -363,18 +363,18 @@ export const opportunityStageOptions = [
   },
   {
     value: 'NEGOTIATION',
-    label: 'Negotiation',
+    label: 'Stan By',
     color:
       'bg-[var(--stage-negotiation-bg)] text-[var(--stage-negotiation)] dark:bg-[var(--stage-negotiation)]/15'
   },
   {
     value: 'CLOSED_WON',
-    label: 'Closed Won',
+    label: 'Close Won',
     color: 'bg-[var(--stage-won-bg)] text-[var(--stage-won)] dark:bg-[var(--stage-won)]/15'
   },
   {
     value: 'CLOSED_LOST',
-    label: 'Closed Lost',
+    label: 'Close Lost',
     color: 'bg-[var(--stage-lost-bg)] text-[var(--stage-lost)] dark:bg-[var(--stage-lost)]/15'
   }
 ];
