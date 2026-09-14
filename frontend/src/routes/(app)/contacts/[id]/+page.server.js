@@ -1,3 +1,4 @@
+import { apiRequest } from '$lib/api-helpers.js';
 import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
@@ -21,6 +22,24 @@ export async function load({ cookies, params, locals }) {
 const FLAGS = ['do_not_call', 'is_active'];
 /** @type {import('./$types').Actions} */
 export const actions = {
+  association: async ({ cookies, params, request }) => {
+    const form = await request.formData();
+    try {
+      await apiRequest(
+        `/contacts/${params.id}/associations/`,
+        {
+          method: 'POST',
+          body: Object.fromEntries(
+            ['kind', 'operation', 'target'].map((k) => [k, String(form.get(k) ?? '')])
+          )
+        },
+        { cookies }
+      );
+      return { associated: true };
+    } catch (err) {
+      return fail(400, { message: readableError(err, 'Could not update association.') });
+    }
+  },
   save: async ({ cookies, params, request }) => {
     const form = await request.formData();
 

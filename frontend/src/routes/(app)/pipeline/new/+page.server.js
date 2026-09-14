@@ -1,3 +1,4 @@
+import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { EDITABLE_FIELDS, createDeal, getDealFormOptions } from '$lib/server/v2/deals.js';
 
@@ -12,11 +13,13 @@ export async function load(event) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  createTag: createContactTag,
   async create(event) {
     const form = await event.request.formData();
 
     /** @type {Record<string, any>} */
     const values = {};
+    readContactTags(form, values);
     if (form.has('contacts_present')) {
       const ids = form.getAll('contacts').map(String).sort();
       if (JSON.stringify(ids) !== form.get('contacts_original')) values.contacts = ids;

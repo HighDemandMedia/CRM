@@ -1,3 +1,6 @@
+import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
+import { apiRequest } from '$lib/api-helpers.js';
+import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail } from '@sveltejs/kit';
 import { readableError } from '$lib/server/v2/form-errors.js';
 import {
@@ -9,21 +12,42 @@ import {
 } from '$lib/server/v2/accounts.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies, params }) {
-  const [account, editor] = await Promise.all([
+export async function load({ cookies, params, locals }) {
+  const [account, editor, { people }] = await Promise.all([
     getAccount({ cookies }, params.id),
-    getAccountForEdit({ cookies }, params.id)
+    getAccountForEdit({ cookies }, params.id),
+    getOrgPeopleAndTeams(cookies)
   ]);
-  return { ...account, editor };
+  return { ...account, editor, hosts: people, defaultHost: resolveMe(people, locals.user?.email) };
 }
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  association: async ({ cookies, params, request }) => {
+    const form = await request.formData();
+    try {
+      await apiRequest(
+        `/record-associations/company/${params.id}/`,
+        {
+          method: 'POST',
+          body: Object.fromEntries(
+            ['kind', 'operation', 'target'].map((k) => [k, String(form.get(k) ?? '')])
+          )
+        },
+        { cookies }
+      );
+      return { associated: true };
+    } catch (err) {
+      return fail(400, { message: String(err?.message || 'Could not update association.') });
+    }
+  },
+  createTag: createContactTag,
   save: async ({ cookies, params, request }) => {
     const form = await request.formData();
 
     /** @type {Record<string, any>} */
     const values = {};
+    readContactTags(form, values);
     if (form.has('contacts_present')) {
       const ids = form.getAll('contacts').map(String).sort();
       if (JSON.stringify(ids) !== form.get('contacts_original')) values.contacts = ids;

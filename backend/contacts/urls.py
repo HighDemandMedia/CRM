@@ -1,10 +1,12 @@
 from django.urls import path
 
 from contacts import import_views, views
+from contacts.association_views import ContactAssociationView
 
 app_name = "api_contacts"
 
 urlpatterns = [
+    path("<uid:pk>/associations/", ContactAssociationView.as_view()),
     path("", views.ContactsListView.as_view()),
     # CSV import (must be before <uid:pk>/ to avoid being captured as an ID)
     path(

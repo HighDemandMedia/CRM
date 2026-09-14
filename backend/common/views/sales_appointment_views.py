@@ -1,15 +1,18 @@
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from accounts.models import Account
 from contacts.models import Contact
+from contacts.choices import CONTACT_SOURCES
+from opportunity.models import Opportunity
 from datetime import timedelta
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from common.models import SalesAppointment, Profile, Activity
+from common.models import SalesAppointment, Profile, Activity, Comment
 from common.permissions import HasOrgContext, is_org_admin
 
 
@@ -19,6 +22,13 @@ def sync_attendee(appointment, request, action, previous_start=None):
         return
     attendee_id = appointment.contact_id or appointment.company_id
     attendee = model.objects.select_for_update().get(pk=attendee_id, org=appointment.org)
+    if action == 'scheduled' and appointment.internal_notes.strip():
+        Comment.objects.create(
+            content_type=ContentType.objects.get_for_model(model),
+            object_id=attendee.pk, org=appointment.org,
+            comment=appointment.internal_notes.strip(),
+            commented_by=request.profile, is_internal=True,
+        )
     before = attendee.appointment_at
     after = before
     if action == 'scheduled' or before == previous_start:
@@ -73,8 +83,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SalesAppointment
-        fields = ('id', 'title', 'host', 'host_name', 'starts_at', 'ends_at', 'internal_notes', 'contact', 'company', 'attendee')
-        read_only_fields = ('id',)
+        fields = ('id', 'title', 'host', 'host_name', 'starts_at', 'ends_at', 'internal_notes', 'contact', 'company', 'attendee', 'deal')
+        read_only_fields = ('id', 'deal')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -90,13 +100,13 @@ class AppointmentSerializer(serializers.ModelSerializer):
         return attrs
 
 
-def lock_host_and_check(request, host_id, start, end, exclude=None):
+def lock_host_and_check(request, host_id, start, end, exclude=None, allow_overlap=False):
     # Serialize bookings even when there are no existing events to lock.
     get_object_or_404(Profile.objects.select_for_update(), pk=host_id, org=request.profile.org, is_active=True, user__is_active=True)
     conflicts = SalesAppointment.objects.filter(org=request.profile.org, host_id=host_id, cancelled_at__isnull=True, starts_at__lt=end, ends_at__gt=start)
     if exclude:
         conflicts = conflicts.exclude(pk=exclude)
-    if conflicts.exists():
+    if conflicts.exists() and not allow_overlap:
         raise serializers.ValidationError('This host is already booked during that time. Choose another time.')
 
 
@@ -109,14 +119,18 @@ class AppointmentAvailabilityView(APIView):
         field = serializers.DateTimeField()
         start = field.run_validation(request.query_params.get('start'))
         end = field.run_validation(request.query_params.get('end'))
-        if end <= start or end-start > timedelta(days=2):
+        if end <= start or end-start > timedelta(days=8):
             raise serializers.ValidationError('Invalid availability range.')
         records = SalesAppointment.objects.filter(org=request.profile.org,host_id=host_id,cancelled_at__isnull=True,starts_at__lt=end,ends_at__gt=start)
         exclude=request.query_params.get('exclude')
         if exclude:
             records=records.exclude(pk=serializers.UUIDField().run_validation(exclude))
-        # Free/busy only: other users' titles, attendees and notes stay private.
-        return Response({'busy':list(records.order_by('starts_at').values('starts_at','ends_at'))})
+        admin = is_org_admin(request.profile)
+        return Response({'busy':[
+            {'starts_at':record.starts_at, 'ends_at':record.ends_at,
+             'title':record.title if admin or record.host_id == request.profile.pk or record.created_by_id == request.user.pk else None}
+            for record in records.order_by('starts_at').only('starts_at','ends_at','title','host_id','created_by_id')
+        ]})
 
 
 class SalesAppointmentView(APIView):
@@ -138,8 +152,28 @@ class SalesAppointmentView(APIView):
         serializer = AppointmentSerializer(data=request.data, context={'request':request})
         serializer.is_valid(raise_exception=True)
         values=serializer.validated_data
-        lock_host_and_check(request, values['host'].pk, values['starts_at'], values['ends_at'])
-        appointment = serializer.save(org=request.profile.org, created_by=request.user)
+        allow_overlap = serializers.BooleanField().run_validation(request.data.get('allow_overlap', False))
+        lock_host_and_check(request, values['host'].pk, values['starts_at'], values['ends_at'], allow_overlap=allow_overlap)
+        deal = None
+        if serializers.BooleanField().run_validation(request.data.get('create_deal', False)):
+            attendee = values.get('contact') or values.get('company')
+            if not attendee:
+                raise serializers.ValidationError('Select an attendee to create a deal, or uncheck Create a deal.')
+            source = request.data.get('deal_source') or attendee.source
+            if source not in dict(CONTACT_SOURCES):
+                raise serializers.ValidationError('Select a Source for the deal; the attendee has no source.')
+            name = request.data.get('deal_name') or f'{attendee.name} - Deal'
+            name = serializers.CharField(max_length=255).run_validation(name)
+            copied = {key:getattr(attendee, key, None) for key in ['phone','email','address_line','city','state','postcode','country']}
+            deal = Opportunity.objects.create(
+                name=name, org=request.profile.org, created_by=request.user,
+                stage='PROSPECTING', priority='MEDIUM', lead_source=source,
+                language=attendee.language or '', currency=request.profile.org.default_currency,
+                account=values.get('company'), **copied)
+            deal.assigned_to.add(values['host'])
+            if values.get('contact'):
+                deal.contacts.add(values['contact'])
+        appointment = serializer.save(org=request.profile.org, created_by=request.user, deal=deal)
         sync_attendee(appointment, request, "scheduled")
         return Response(serializer.data, status=201)
 

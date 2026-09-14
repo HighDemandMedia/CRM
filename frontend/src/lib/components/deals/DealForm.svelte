@@ -1,4 +1,5 @@
 <script>
+  import TagPicker from '$lib/v2/components/TagPicker.svelte';
   import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
   import { enhance, deserialize } from '$app/forms';
   import { resolve } from '$app/paths';
@@ -18,6 +19,8 @@
   let values = $state(
     untrack(() => ({
       name: '',
+      phone: '',
+      email: '',
       amount: '',
       stage: data.defaults?.stage ?? 'PROSPECTING',
       closed_on: '',
@@ -35,6 +38,12 @@
       ...(data.form ?? {}),
       ...(result?.values ?? {})
     }))
+  );
+  let creatingTag = $state(false);
+  let selectedTags = $state(
+    /** @type {string[]} */ (
+      untrack(() => (result?.values?.tags ?? data.form?.tags ?? []).map(String))
+    )
   );
   let contacts = $state(/** @type {string[]} */ (untrack(() => [...(values.contacts ?? [])])));
   let saving = $state(false);
@@ -207,6 +216,27 @@
       /></label
     >
     <label
+      >Phone<input
+        class="v2-input"
+        type="tel"
+        name="phone"
+        maxlength="25"
+        bind:value={values.phone}
+      /></label
+    >
+    <label
+      >Email<input class="v2-input" type="email" name="email" bind:value={values.email} /></label
+    >
+    <div class="v2-field">
+      <span class="tags-label">Tags</span><TagPicker
+        options={data.tagOptions ?? []}
+        original={data.form?.tags ?? []}
+        canCreate={data.canCreateTags}
+        bind:selected={selectedTags}
+        bind:creating={creatingTag}
+      />
+    </div>
+    <label
       >Amount<input
         class="v2-input"
         name="amount"
@@ -310,10 +340,13 @@
     >
   {/if}
   {#if !autoSave}<div class="actions">
-      <button class="v2-btn v2-btn-primary" disabled={saving} type="submit"
+      <button class="v2-btn v2-btn-primary" disabled={saving || creatingTag} type="submit"
         >{saving ? 'Saving…' : editing ? 'Save deal' : 'Create deal'}</button
-      >{#if inline}<button class="v2-btn" type="button" disabled={saving} onclick={onCancel}
-          >Cancel</button
+      >{#if inline}<button
+          class="v2-btn"
+          type="button"
+          disabled={saving || creatingTag}
+          onclick={onCancel}>Cancel</button
         >{:else}<a
           class="v2-btn"
           href={resolve(editing ? `/pipeline/${data.deal.id}` : '/pipeline')}>Cancel</a
@@ -323,6 +356,12 @@
 </form>
 
 <style>
+  .tags-label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
   :is(.auto-save, .inline-edit) .fields {
     grid-template-columns: minmax(0, 1fr);
   }

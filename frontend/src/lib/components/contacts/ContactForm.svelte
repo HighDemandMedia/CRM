@@ -2,8 +2,7 @@
   import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
   import { enhance, deserialize } from '$app/forms';
   import { untrack, onMount, onDestroy } from 'svelte';
-  import TagBadge from '$lib/v2/components/TagBadge.svelte';
-  import { tagColors } from '$lib/v2/tag-colors.js';
+  import TagPicker from '$lib/v2/components/TagPicker.svelte';
   import { contactChanges } from '$lib/v2/contact-autosave.js';
   import { resolve } from '$app/paths';
 
@@ -37,70 +36,12 @@
       ...(result?.values ?? {})
     }))
   );
+  let creatingTag = $state(false);
   let selectedTags = $state(
     /** @type {string[]} */ (
       untrack(() => (result?.values?.tags ?? data.form?.tags ?? []).map(String))
     )
   );
-  let availableTags = $state(/** @type {any[]} */ (untrack(() => [...(data.tagOptions ?? [])])));
-  const originalTags = untrack(() =>
-    JSON.stringify([...(data.form?.tags ?? [])].map(String).sort())
-  );
-  let newTagName = $state('');
-  let tagsOpen = $state(false);
-  let filteredTags = $derived(
-    availableTags.filter(
-      (tag) =>
-        (tag.is_active !== false || selectedTags.includes(String(tag.id))) &&
-        tag.name.toLowerCase().includes(newTagName.trim().toLowerCase())
-    )
-  );
-  let exactTag = $derived(
-    availableTags.find(
-      (tag) => tag.is_active !== false && tag.name.toLowerCase() === newTagName.trim().toLowerCase()
-    )
-  );
-  let pickedTags = $derived(availableTags.filter((tag) => selectedTags.includes(String(tag.id))));
-  let newTagColor = $state('blue');
-  let creatingTag = $state(false);
-  let tagError = $state('');
-  async function addTag() {
-    if (!newTagName.trim() || creatingTag) return;
-    if (exactTag) {
-      selectedTags = [...new Set([...selectedTags, String(exactTag.id)])];
-      newTagName = '';
-      return;
-    }
-    if (!data.canCreateTags) return;
-    creatingTag = true;
-    tagError = '';
-    try {
-      const body = new FormData();
-      body.set('name', newTagName.trim());
-      body.set('color', newTagColor);
-      const response = await fetch('?/createTag', {
-        method: 'POST',
-        body,
-        headers: { 'x-sveltekit-action': 'true' }
-      });
-      const result = deserialize(await response.text());
-      if (result.type !== 'success' || !result.data?.tag) {
-        tagError =
-          result.type === 'failure'
-            ? String(result.data?.error ?? 'Could not create tag.')
-            : 'Could not create tag. Refresh the page and try again.';
-        return;
-      }
-      const tag = /** @type {{id: string, name: string, color: string}} */ (result.data.tag);
-      availableTags = [...availableTags.filter((item) => item.id !== tag.id), tag];
-      selectedTags = [...new Set([...selectedTags, String(tag.id)])];
-      newTagName = '';
-    } catch {
-      tagError = 'Could not confirm tag creation. Refresh the page before trying again.';
-    } finally {
-      creatingTag = false;
-    }
-  }
   let autoReady = $state(false);
   let autoStatus = $state('');
   let autoError = $state('');
@@ -262,66 +203,14 @@
         />
       </div>
     {/each}
-    <div class="v2-field tag-field">
-      <label for="contact-tags-picker">Tags</label>
-      <input type="hidden" name="tags_present" value="1" />
-      <input type="hidden" name="tags_original" value={originalTags} />
-      {#each selectedTags as id}<input type="hidden" name="tags" value={id} />{/each}
-      <details class="tag-dropdown" bind:open={tagsOpen}>
-        <summary id="contact-tags-picker" class="v2-input">
-          <span class="tag-selected">
-            {#each pickedTags as tag (tag.id)}<TagBadge {tag} />{:else}Select tags{/each}
-          </span><span aria-hidden="true">▾</span>
-        </summary>
-        <div class="tag-menu">
-          <input
-            class="v2-input"
-            aria-label="Search or create tag"
-            placeholder="Search or create tag"
-            maxlength="50"
-            bind:value={newTagName}
-            onkeydown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                void addTag();
-              }
-              if (event.key === 'Escape') {
-                event.preventDefault();
-                tagsOpen = false;
-              }
-            }}
-          />
-          <div class="tag-options">
-            {#each filteredTags as tag (tag.id)}
-              <label
-                ><input
-                  type="checkbox"
-                  checked={selectedTags.includes(String(tag.id))}
-                  onchange={(event) => {
-                    selectedTags = event.currentTarget.checked
-                      ? [...new Set([...selectedTags, String(tag.id)])]
-                      : selectedTags.filter((id) => id !== String(tag.id));
-                  }}
-                /><TagBadge {tag} /></label
-              >
-            {:else}<span class="v2-sub">No matching tags</span>{/each}
-          </div>
-          {#if newTagName.trim() && !exactTag && data.canCreateTags}
-            <div class="tag-create">
-              <select class="v2-input" aria-label="Tag color" bind:value={newTagColor}>
-                {#each Object.keys(tagColors) as color}<option value={color}
-                    >{color[0].toUpperCase() + color.slice(1)}</option
-                  >{/each}
-              </select>
-              <TagBadge tag={{ name: newTagName.trim(), color: newTagColor }} />
-              <button class="v2-btn" type="button" disabled={creatingTag} onclick={addTag}>
-                {creatingTag ? 'Creating…' : `Create “${newTagName.trim()}”`}
-              </button>
-            </div>
-          {/if}
-          {#if tagError}<p class="v2-error" role="alert">{tagError}</p>{/if}
-        </div>
-      </details>
+    <div class="v2-field">
+      <span class="tags-label">Tags</span><TagPicker
+        options={data.tagOptions ?? []}
+        original={data.form?.tags ?? []}
+        canCreate={data.canCreateTags}
+        bind:selected={selectedTags}
+        bind:creating={creatingTag}
+      />
     </div>
     <div class="v2-field">
       <label for="contact-appointment">Appointment</label>
@@ -428,8 +317,11 @@
       <button class="v2-btn v2-btn-primary" type="submit" disabled={saving || creatingTag}>
         {saving ? 'Saving…' : editing ? 'Save contact' : 'Create contact'}
       </button>
-      {#if inline}<button class="v2-btn" type="button" disabled={saving} onclick={onCancel}
-          >Cancel</button
+      {#if inline}<button
+          class="v2-btn"
+          type="button"
+          disabled={saving || creatingTag}
+          onclick={onCancel}>Cancel</button
         >{:else}<a
           class="v2-btn"
           href={resolve(editing ? `/contacts/${data.contact.id}` : '/contacts')}>Cancel</a
@@ -439,80 +331,19 @@
 </form>
 
 <style>
+  .tags-label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
   :is(.auto-save, .inline-edit) .fields {
     grid-template-columns: minmax(0, 1fr);
-  }
-  :is(.auto-save, .inline-edit) .tag-menu {
-    position: static;
   }
   .save-status {
     min-height: 20px;
     font-size: 12px;
     color: var(--v2-slate);
-  }
-
-  .tag-field {
-    position: relative;
-  }
-  .tag-dropdown summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    cursor: pointer;
-    list-style: none;
-    min-height: 40px;
-  }
-  .tag-dropdown summary::-webkit-details-marker {
-    display: none;
-  }
-  .tag-selected {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    min-width: 0;
-  }
-  .tag-menu {
-    position: absolute;
-    left: 0;
-    right: 0;
-    z-index: 10;
-    background: var(--v2-card, white);
-    border: 1px solid var(--v2-line);
-    border-radius: 8px;
-    padding: 10px;
-    box-shadow: 0 8px 20px #0002;
-  }
-  .tag-options {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 200px;
-    overflow-y: auto;
-    padding: 10px 0;
-  }
-  .tag-options label {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    cursor: pointer;
-  }
-  .tag-create {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-    border-top: 1px solid var(--v2-line);
-    padding-top: 10px;
-  }
-  .tag-create .v2-input {
-    width: auto;
-    max-width: 100%;
-  }
-  .tag-create button {
-    max-width: 100%;
-    white-space: normal;
-    overflow-wrap: anywhere;
   }
 
   .fields {

@@ -1,4 +1,6 @@
 <script>
+  import DeleteRecord from '$lib/v2/components/DeleteRecord.svelte';
+  import ContactAssociations from '$lib/v2/components/ContactAssociations.svelte';
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
   import { Pencil } from '@lucide/svelte';
   let editingProperties = $state(false);
@@ -40,6 +42,7 @@
     {#if deal.account.id}<a href={resolve(`/accounts/${deal.account.id}`)}>{deal.account.name}</a
       >{/if}
   {/snippet}
+
 </PageHeader>
 
 <div class="deal-layout">
@@ -136,6 +139,26 @@
   </div>
 
   <aside class="v2-rail deal-properties" aria-label="Deal properties">
+    <div style="margin-bottom:20px">
+      <ContactAssociations
+        contactId={deal.id}
+        parentKind="deal"
+        kind="contact"
+        items={contacts.map((c) => ({
+          ...c,
+          name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.name || c.email
+        }))}
+      />
+    </div>
+    <div style="margin-bottom:20px">
+      <ContactAssociations
+        contactId={deal.id}
+        parentKind="deal"
+        kind="company"
+        items={deal.account?.id ? [deal.account] : []}
+      />
+    </div>
+
     <div class="properties-heading">
       <h2>Properties</h2>
       <button
@@ -162,6 +185,9 @@
       <PropertySummary
         entries={[
           ['Name', deal.name],
+          ['Phone', deal.phone || '—'],
+          ['Email', deal.email || '—'],
+          ['Tags', deal.tags?.map((t) => t.name).join(', ') || '—'],
           ['Amount', deal.amount != null ? money(deal.amount, deal.currency) : '—'],
           ['Language', deal.language || '—'],
           ['Stage', STAGE_LABEL[deal.stage] || '—'],
@@ -169,12 +195,6 @@
           ['Deal owner', deal.owner || '—'],
           ['Priority', deal.priority_label || '—'],
           ['Source', deal.lead_source_label || '—'],
-          ['Company', deal.account?.id ? deal.account.name : '—'],
-          [
-            'Contacts',
-            contacts.map((c) => [c.first_name, c.last_name].filter(Boolean).join(' ')).join(', ') ||
-              '—'
-          ],
           ['Address', deal.address_line || '—'],
           ['City', deal.city || '—'],
           ['State', deal.state || '—'],
@@ -188,31 +208,6 @@
       <dd>{longDate(deal.stage_changed_at)}</dd>
     </dl>
 
-    <div class="v2-label v2-rail-head">Contact</div>
-    {#each contacts as c (c.id)}
-      <!-- A link now that `/contacts/<uuid>` resolves. These names were
-           plain text because the contacts module was still fixtures. -->
-      <a
-        class="v2-rail-row"
-        href={resolve(`/contacts/${c.id}`)}
-        style="color:inherit;text-decoration:none"
-      >
-        <Avatar name="{c.first_name} {c.last_name}" size={27} />
-        <div style="min-width:0">
-          <div style="font-size:12.5px;font-weight:550">{c.first_name} {c.last_name}</div>
-          <!-- `relationship` (Champion, Blocker) was a fixture field. Contact
-               has `title` and `department`, so the line says those. -->
-          <div class="v2-sub" style="font-size:11px">
-            {[c.title, c.department].filter(Boolean).join(' · ') || 'No title recorded'}
-          </div>
-        </div>
-      </a>
-    {:else}
-      <p class="v2-sub" style="font-size:12px">
-        Nobody is linked to this deal yet. Add the person who signs it.
-      </p>
-    {/each}
-
     <!--
       An "Attached" panel listing this account's invoices and tickets used to
       sit here. Both are real models, but neither is on the opportunity
@@ -221,6 +216,8 @@
     -->
   </aside>
 </div>
+
+<DeleteRecord kind="deal" id={deal.id} />
 
 <style>
   .properties-heading {

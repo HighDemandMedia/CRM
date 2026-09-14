@@ -1,3 +1,5 @@
+import { apiRequest } from '$lib/api-helpers.js';
+import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail } from '@sveltejs/kit';
 import {
   getDeal,
@@ -18,6 +20,25 @@ export async function load(event) {
 }
 /** @type {import('./$types').Actions} */
 export const actions = {
+  association: async ({ cookies, params, request }) => {
+    const form = await request.formData();
+    try {
+      await apiRequest(
+        `/record-associations/deal/${params.id}/`,
+        {
+          method: 'POST',
+          body: Object.fromEntries(
+            ['kind', 'operation', 'target'].map((k) => [k, String(form.get(k) ?? '')])
+          )
+        },
+        { cookies }
+      );
+      return { associated: true };
+    } catch (err) {
+      return fail(400, { message: String(err?.message || 'Could not update association.') });
+    }
+  },
+  createTag: createContactTag,
   async save(event) {
     const form = await event.request.formData();
 
@@ -28,6 +49,7 @@ export const actions = {
      * @type {Record<string, any>}
      */
     const values = {};
+    readContactTags(form, values);
     if (form.has('contacts_present')) {
       const ids = form.getAll('contacts').map(String).sort();
       if (JSON.stringify(ids) !== form.get('contacts_original')) values.contacts = ids;

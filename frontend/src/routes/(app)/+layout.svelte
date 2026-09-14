@@ -1,4 +1,6 @@
 <script>
+  import { onMount } from 'svelte';
+  import { PanelLeftClose, PanelLeftOpen } from '@lucide/svelte';
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import '../../app.css';
@@ -13,6 +15,14 @@
   let { data, children } = $props();
 
   let paletteOpen = $state(false);
+  let navigationHidden = $state(false);
+  onMount(() => {
+    try { navigationHidden = localStorage.getItem('crm-navigation-hidden') === 'true'; } catch {}
+  });
+  function toggleNavigation() {
+    navigationHidden = !navigationHidden;
+    try { localStorage.setItem('crm-navigation-hidden', String(navigationHidden)); } catch {}
+  }
 
   // The sidebar is hidden below 768px, and the tab bar only carries four of the
   // ~16 destinations. This drawer is how a phone reaches the rest of the nav and
@@ -58,6 +68,8 @@
 <svelte:window {onkeydown} />
 
 <div class="v2-root v2-shell">
+  <div class="desktop-navigation" class:collapsed={navigationHidden}>
+  <div id="desktop-navigation-content" hidden={navigationHidden}>
   <Sidebar
     counts={data.counts}
     org={data.org}
@@ -65,6 +77,14 @@
     terminology={data.org.terminology}
     onsearch={() => (paletteOpen = true)}
   />
+  </div>
+  <button class="navigation-toggle" type="button" onclick={toggleNavigation}
+    aria-label={navigationHidden ? 'Show navigation' : 'Hide navigation'}
+    title={navigationHidden ? 'Show navigation' : 'Hide navigation'}
+    aria-expanded={!navigationHidden} aria-controls="desktop-navigation-content">
+    {#if navigationHidden}<PanelLeftOpen size={16} />{:else}<PanelLeftClose size={16} />{/if}
+  </button>
+  </div>
   <div class="v2-main">
     <!-- Phone top bar. The sidebar is hidden below 768px; this replaces the
          org mark and the search affordance it carried. -->
@@ -151,3 +171,13 @@
 
   <CommandPalette open={paletteOpen} onclose={() => (paletteOpen = false)} />
 </div>
+
+<style>
+  .desktop-navigation { position: relative; display: flex; flex-shrink: 0; }
+  .desktop-navigation.collapsed { width: 32px; }
+  .navigation-toggle { position: absolute; top: 16px; right: -12px; z-index: 20; width: 26px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--v2-line); border-radius: 6px; background: var(--v2-bg, white); color: var(--v2-ink); cursor: pointer; }
+  .collapsed .navigation-toggle { right: 3px; }
+  #desktop-navigation-content { height: 100%; }
+  #desktop-navigation-content :global(.v2-nav) { height: 100%; }
+  @media (max-width: 767px) { .desktop-navigation { display: none; } }
+</style>

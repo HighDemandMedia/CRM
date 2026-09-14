@@ -34,11 +34,19 @@ def test_attendee_selection_and_scope(admin_client, admin_profile, org_a, org_b,
     fields = {'first_name':'Attendee'} if kind == 'contact' else {'name':'Attendee'}
     local = model.objects.create(org=org_a, **fields)
     foreign = model.objects.create(org=org_b, **fields)
-    payload = {'title':'Event','host':str(admin_profile.pk),'starts_at':'2026-09-13T13:00:00Z','ends_at':'2026-09-13T14:00:00Z',kind:str(local.pk)}
+    payload = {'title':'Event','host':str(admin_profile.pk),'starts_at':'2026-09-13T13:00:00Z','ends_at':'2026-09-13T14:00:00Z',kind:str(local.pk),'internal_notes':'Prepare the consultation'}
     created = admin_client.post('/api/sales-appointments/',payload,format='json')
     assert created.status_code == 201, created.data
     assert created.data['attendee']['name'] == 'Attendee'
     assert created.data['attendee']['type'] == kind
+    from common.models import Comment
+    from django.contrib.contenttypes.models import ContentType
+    notes = Comment.objects.filter(content_type=ContentType.objects.get_for_model(model),object_id=local.pk)
+    note = notes.get()
+    assert note.comment == 'Prepare the consultation'
+    assert note.org_id == org_a.pk and note.commented_by_id == admin_profile.pk
+    assert note.is_internal and note.commented_on
+
     local.refresh_from_db()
     assert local.appointment_at.isoformat() == '2026-09-13T13:00:00+00:00'
     from common.models import Activity
@@ -53,6 +61,7 @@ def test_attendee_selection_and_scope(admin_client, admin_profile, org_a, org_b,
     assert admin_client.patch(url,{'operation':'cancel'},format='json').status_code == 200
     local.refresh_from_db()
     assert local.appointment_at is None
+    assert notes.count() == 1  # Rescheduling and cancelling must not duplicate notes.
     assert Activity.objects.filter(entity_id=local.pk,description='Event cancelled: Event').exists()
     payload[kind] = str(foreign.pk)
     assert admin_client.post('/api/sales-appointments/',payload,format='json').status_code == 400
@@ -114,7 +123,7 @@ def test_host_overlap_boundaries_cancel_and_reschedule(admin_client, admin_profi
     assert book('13:00','14:00').status_code == 201
 
 @pytest.mark.django_db
-def test_availability_scope_exclusion_and_privacy(admin_client, admin_profile, org_b_client):
+def test_availability_scope_exclusion_and_privacy(admin_client, admin_profile, org_b_client, user_client):
     created = admin_client.post('/api/sales-appointments/',{
         'title':'Private title','internal_notes':'Private notes','host':str(admin_profile.pk),
         'starts_at':'2026-09-15T13:00:00Z','ends_at':'2026-09-15T14:00:00Z',
@@ -123,10 +132,71 @@ def test_availability_scope_exclusion_and_privacy(admin_client, admin_profile, o
     endpoint = '/api/sales-appointments/availability/'
     response = admin_client.get(endpoint,query)
     assert response.status_code == 200
+    assert admin_client.get(endpoint,{**query,'end':'2026-09-22T00:00:00Z'}).status_code == 200
+    assert admin_client.get(endpoint,{**query,'end':'2026-09-25T00:00:00Z'}).status_code == 400
     assert len(response.data['busy']) == 1
-    assert set(response.data['busy'][0]) == {'starts_at','ends_at'}
+    assert set(response.data['busy'][0]) == {'starts_at','ends_at','title'}
+    assert response.data['busy'][0]['title'] == 'Private title'
+    assert user_client.get(endpoint,query).data['busy'][0]['title'] is None
     assert org_b_client.get(endpoint,query).status_code == 404
     assert admin_client.get(endpoint,{**query,'exclude':created.data['id']}).data == {'busy':[]}
     assert admin_client.get(endpoint,{**query,'start':query['end']}).status_code == 400
     assert admin_client.patch(f"/api/sales-appointments/{created.data['id']}/",{'operation':'cancel'},format='json').status_code == 200
     assert admin_client.get(endpoint,query).data == {'busy':[]}
+
+@pytest.mark.django_db
+def test_overlap_requires_explicit_confirmation(admin_client, admin_profile):
+    endpoint = '/api/sales-appointments/'
+    payload = {'title':'Confirmed overlap','host':str(admin_profile.pk),
+               'starts_at':'2026-09-15T13:00:00Z','ends_at':'2026-09-15T14:00:00Z'}
+    assert admin_client.post(endpoint,payload,format='json').status_code == 201
+    for value in [False, 'false']:
+        assert admin_client.post(endpoint,{**payload,'allow_overlap':value},format='json').status_code == 400
+    assert admin_client.post(endpoint,{**payload,'allow_overlap':'invalid'},format='json').status_code == 400
+    assert SalesAppointment.objects.count() == 1
+    assert admin_client.post(endpoint,{**payload,'allow_overlap':True},format='json').status_code == 201
+    assert SalesAppointment.objects.count() == 2
+    # Confirmation applies only to that request, not subsequent bookings.
+    assert admin_client.post(endpoint,payload,format='json').status_code == 400
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('kind',['contact','company'])
+def test_event_creates_associated_deal(admin_client, admin_profile, org_a, kind):
+    from contacts.models import Contact
+    from accounts.models import Account
+    from opportunity.models import Opportunity
+    from common.models import Comment
+    model = Contact if kind == 'contact' else Account
+    fields = {'first_name':'Attendee'} if kind == 'contact' else {'name':'Attendee'}
+    attendee = model.objects.create(org=org_a, source='META', language='Spanish', phone='3055550188', email='attendee@example.com',city='Miami',**fields)
+    body={'title':'Event','host':str(admin_profile.pk),'starts_at':'2026-09-15T13:00:00Z','ends_at':'2026-09-15T14:00:00Z','create_deal':True,kind:str(attendee.pk),'internal_notes':'Only attendee notes'}
+    response=admin_client.post('/api/sales-appointments/',body,format='json')
+    assert response.status_code == 201, response.data
+    appointment=SalesAppointment.objects.get(pk=response.data['id'])
+    deal=appointment.deal
+    assert deal.name=='Attendee - Deal' and deal.lead_source=='META'
+    assert deal.priority=='MEDIUM' and deal.stage=='PROSPECTING'
+    assert deal.phone==attendee.phone and deal.email==attendee.email and deal.city=='Miami'
+    assert deal.language=='Spanish' and deal.assigned_to.filter(pk=admin_profile.pk).exists()
+    assert deal.org_id==org_a.pk and deal.created_by_id==admin_profile.user_id
+    assert deal.amount is None and deal.closed_on is None and not deal.description and not deal.tags.exists()
+    assert not Comment.objects.filter(object_id=deal.pk).exists()
+    if kind=='contact': assert deal.contacts.filter(pk=attendee.pk).exists()
+    else: assert deal.account_id==attendee.pk
+    admin_client.patch(f'/api/sales-appointments/{appointment.pk}/',{'operation':'cancel'},format='json')
+    assert Opportunity.objects.filter(pk=deal.pk).exists()
+
+@pytest.mark.django_db
+def test_event_deal_missing_source_is_atomic_and_optional(admin_client,admin_profile,org_a):
+    from contacts.models import Contact
+    from opportunity.models import Opportunity
+    attendee=Contact.objects.create(first_name='No source',org=org_a)
+    body={'title':'Event','host':str(admin_profile.pk),'starts_at':'2026-09-15T13:00:00Z','ends_at':'2026-09-15T14:00:00Z','create_deal':True,'contact':str(attendee.pk)}
+    assert admin_client.post('/api/sales-appointments/',body,format='json').status_code==400
+    assert not SalesAppointment.objects.exists() and not Opportunity.objects.exists()
+    response=admin_client.post('/api/sales-appointments/',{**body,'deal_source':'GOOGLE','deal_name':'Custom deal'},format='json')
+    assert response.status_code==201,response.data
+    assert Opportunity.objects.get().name=='Custom deal'
+    response=admin_client.post('/api/sales-appointments/',{**body,'create_deal':False,'starts_at':'2026-09-16T13:00:00Z','ends_at':'2026-09-16T14:00:00Z'},format='json')
+    assert response.status_code==201 and response.data['deal'] is None
+    assert Opportunity.objects.count()==1

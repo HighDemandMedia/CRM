@@ -1,4 +1,8 @@
 <script>
+  import CreateAppointment from '$lib/v2/components/CreateAppointment.svelte';
+  let scheduled = $state(false);
+  import DeleteRecord from '$lib/v2/components/DeleteRecord.svelte';
+  import ContactAssociations from '$lib/v2/components/ContactAssociations.svelte';
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
   import { Pencil } from '@lucide/svelte';
   let editingProperties = $state(false);
@@ -77,7 +81,19 @@
       .filter(Boolean)
       .join(' · ')}
   {/snippet}
+
+  {#snippet actions()}
+    <CreateAppointment
+      hosts={data.hosts}
+      defaultHost={data.defaultHost}
+      selected={new Date()}
+      defaultAttendee={{ id: account.id, name: account.name, type: 'company' }}
+      action={`${resolve('/calendar')}?/create`}
+      onCreated={() => { scheduled = true; void invalidateAll(); }}
+    />
+  {/snippet}
 </PageHeader>
+{#if scheduled}<div class="scheduled-message" role="status">Event scheduled. <a href={resolve('/calendar')}>View calendar</a></div>{/if}
 
 <div class="v2-scroll company-layout">
   <aside class="company-properties" aria-label="Company properties">
@@ -92,7 +108,7 @@
     </div>
     {#if editingProperties}
       <CompanyForm
-        data={{...data.editor,org:data.org}}
+        data={{ ...data.editor, org: data.org }}
         result={form}
         editing
         inline
@@ -106,14 +122,17 @@
       <PropertySummary
         entries={[
           ['Name', account.name],
+          ['Owner', data.owners?.join(', ') || '—'],
+          ['Phone', account.phone || '—'],
+          ['Email', account.email || '—'],
+          [
+            'Preferred Communication Channel',
+            { SMS: 'SMS', CALL: 'Call', EMAIL: 'Email' }[account.preferred_communication_channel] ||
+              '—'
+          ],
+          ['Tags', data.tags?.join(', ') || '—'],
           ['Domain', account.website || '—'],
           ['Language', account.language || '—'],
-          [
-            'Contacts',
-            contacts
-              .map((c) => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.name)
-              .join(', ') || '—'
-          ],
           ['Industry', account.industry || '—'],
           ['Number of employees', account.number_of_employees],
           [
@@ -203,92 +222,36 @@
       style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start"
       class="v2-account-grid"
     >
-      <!-- Contacts -->
-      <section class="v2-card" style="overflow:hidden">
-        <div class="v2-card-head">
-          <span class="v2-label">Contacts</span>
-          <a href={resolve('/contacts')}>View all</a>
-        </div>
-        {#each contacts as c (c.id)}
-          <div
-            style="display:flex;gap:11px;align-items:center;padding:10px 15px;border-bottom:1px solid var(--v2-line-soft)"
-          >
-            <Avatar name="{c.first_name} {c.last_name}" size={29} />
-            <!-- A link now. This was deliberately dead text while
-                 `/contacts/<uuid>` answered 404, which is the reason
-                 contacts was the module to wire next. -->
-            <a
-              href={resolve(`/contacts/${c.id}`)}
-              style="flex:1;min-width:0;color:inherit;text-decoration:none"
-            >
-              <div style="font-weight:550;font-size:13px">{c.first_name} {c.last_name}</div>
-              <!-- title and department. The mock showed a "relationship"
-                   (Champion / Blocker); Contact has no such field. -->
-              <div class="v2-sub" style="font-size:11.5px">
-                {[c.title, c.department].filter(Boolean).join(' · ') || 'No title recorded'}
-              </div>
-            </a>
-            {#if c.email}
-              <a class="v2-btn v2-btn-sm" href="mailto:{c.email}" aria-label="Email {c.first_name}">
-                <Mail size={13} />
-              </a>
-            {:else}
-              <button
-                type="button"
-                class="v2-btn v2-btn-sm"
-                disabled
-                title="Add an email to this contact"
-                aria-label="Email unavailable: no email address"><Mail size={13} /></button
-              >
-            {/if}
-          </div>
-        {:else}
-          <p class="v2-sub" style="padding:14px 15px;font-size:12.5px">
-            Nobody here yet. <a href={resolve(`/contacts/new?account=${account.id}`)}
-              >Add the person</a
-            > you actually talk to.
-          </p>
-        {/each}
+      <section class="v2-card" style="padding:16px">
+        <ContactAssociations
+          contactId={account.id}
+          parentKind="company"
+          kind="contact"
+          items={contacts.map((c) => ({
+            ...c,
+            name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.name || c.email
+          }))}
+        />
       </section>
-
-      <!-- Deals -->
-      <section class="v2-card" style="overflow:hidden">
-        <div class="v2-card-head">
-          <span class="v2-label">Deals</span>
-          <a href={resolve('/pipeline')}>View all</a>
-        </div>
-        {#each deals as d (d.id)}
-          <a
-            href={resolve(`/pipeline/${d.id}`)}
-            style="display:flex;gap:12px;align-items:center;padding:11px 15px;border-bottom:1px solid var(--v2-line-soft);color:inherit;text-decoration:none"
-          >
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:550;font-size:13px">{d.name}</div>
-              <!-- `closed_on` is labelled "Expected Close Date" on the model
-                   and means two different things depending on the stage. Bare,
-                   it reads as though an open deal already closed. -->
-              <div class="v2-sub" style="font-size:11.5px">
-                {STAGE_LABEL[d.stage]}{d.closed_on
-                  ? d.stage.startsWith('CLOSED_')
-                    ? ` · closed ${shortDate(d.closed_on)}`
-                    : ` · due ${shortDate(d.closed_on)}`
-                  : ''}
-              </div>
+      <section class="v2-card" style="padding:16px">
+        <ContactAssociations
+          contactId={account.id}
+          parentKind="company"
+          kind="deal"
+          items={deals}
+        />
+      </section>
+      <section class="v2-card company-attachments" aria-label="Company notes">
+        <h2>Notes</h2>
+        <div style="max-height:320px;overflow-y:auto">
+          {#each data.activity ?? [] as note (note.id)}
+            <div style="padding:10px 0;border-bottom:1px solid var(--v2-line)">
+              <div style="white-space:pre-wrap;overflow-wrap:anywhere">{note.body}</div>
+              <p class="v2-sub">{note.by} · {exactTime(note.at)}</p>
             </div>
-            {#if d.aging_status === 'red' && !d.stage.startsWith('CLOSED_')}
-              <Pill tone="rust">{d.days_in_current_stage}d</Pill>
-            {/if}
-            <span class="v2-num" style="font-weight:600;font-size:13px"
-              >{money(d.amount, d.currency)}</span
-            >
-          </a>
-        {:else}
-          <p class="v2-sub" style="padding:14px 15px;font-size:12.5px">
-            No deals yet. Create one when there is something real to sell.
-          </p>
-        {/each}
+          {:else}<p class="v2-sub">No notes yet.</p>{/each}
+        </div>
       </section>
-
       {#if data.eventHistory?.length}<section class="v2-card company-attachments">
           <h2>Activity</h2>
           {#each data.eventHistory as entry (entry.id)}<div
@@ -365,7 +328,10 @@
   </div>
 </div>
 
+<DeleteRecord kind="company" id={account.id} />
+
 <style>
+  .scheduled-message { padding: 8px 24px; font-size: 13px; }
   .properties-heading {
     display: flex;
     align-items: center;

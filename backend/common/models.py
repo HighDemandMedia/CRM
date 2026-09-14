@@ -1127,6 +1127,7 @@ class PackApplication(BaseOrgModel):
 
 
 class SalesAppointment(models.Model):
+    deal = models.ForeignKey("opportunity.Opportunity", null=True, blank=True, on_delete=models.SET_NULL, related_name="sales_appointments")
     cancelled_at = models.DateTimeField(null=True, blank=True)
     cancelled_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='cancelled_sales_appointments')
     change_history = models.JSONField(default=list, blank=True)

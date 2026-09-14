@@ -1,4 +1,5 @@
 <script>
+  import ColumnPicker from '$lib/v2/components/ColumnPicker.svelte';
   import StageProgress from '$lib/v2/components/StageProgress.svelte';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
@@ -192,7 +193,6 @@
   });
   const defaults = ['name', 'website', 'owner', 'industry', 'source_label', 'contacts'];
   let selected = $state([...defaults]);
-  let configuring = $state(false);
   let ready = $state(false);
   /** @type {Record<string, number>} */
   let widths = $state({});
@@ -201,10 +201,6 @@
       .map((key) => fields.find((field) => field[0] === key))
       .filter((field) => field !== undefined)
   );
-  let pickerFields = $derived([
-    ...orderedFields,
-    ...fields.filter(([key]) => !selected.includes(key))
-  ]);
   let totalWidth = $derived(selected.reduce((sum, key) => sum + (widths[key] ?? 160), 120));
   const widthKey = 'crm.companies.widths.v1';
   const storageKey = 'crm.companies.columns.v1';
@@ -619,43 +615,11 @@
       >
     </nav>
     {#if data.view === 'list'}
-      <button
-        class="v2-btn"
-        type="button"
-        aria-expanded={configuring}
-        aria-controls="contact-columns"
-        onclick={() => (configuring = !configuring)}>Edit columns</button
-      >
+      <ColumnPicker {fields} {selected} onToggle={toggleColumn} />
     {/if}
   </div>
 </form>
-{#if configuring && data.view === 'list'}
-  <fieldset id="contact-columns" class="columns-picker">
-    <legend>Fields shown in the list</legend>
-    <p class="v2-sub">
-      Choose the fields to show. Drag column headers to change their order. Saved in this browser.
-    </p>
-    <div class="column-options">
-      {#each pickerFields as [key, label] (key)}
-        <div class="column-setting">
-          <label
-            ><input
-              type="checkbox"
-              checked={selected.includes(key)}
-              disabled={selected.length === 1 && selected.includes(key)}
-              onchange={() => toggleColumn(key)}
-            />{label}</label
-          >
-        </div>
-      {/each}
-    </div>
-    <button class="v2-btn" onclick={() => saveColumns([...defaults])}
-      >Restore default columns</button
-    >
-    <button class="v2-btn" onclick={fitVisible}>Fit widths to content</button>
-    <button class="v2-btn" onclick={() => (configuring = false)}>Done</button>
-  </fieldset>
-{/if}
+
 
 {#if filterError}<p role="alert">{filterError}</p>{/if}
 
@@ -970,12 +934,6 @@
     box-shadow: inset -3px 0 0 #2563eb;
   }
 
-  .column-setting {
-    border: 1px solid var(--v2-line);
-    border-radius: 6px;
-    padding: 10px;
-    min-width: 0;
-  }
   .table-hint {
     padding: 0 24px;
     font-size: 12px;
@@ -1101,24 +1059,6 @@
     height: 36px;
     padding: 0;
     justify-content: center;
-  }
-  .columns-picker {
-    margin: 0 24px 16px;
-    padding: 16px;
-    border: 1px solid #d6d7d9;
-    border-radius: 8px;
-  }
-  .column-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 12px;
-    margin: 16px 0;
-  }
-  .column-options label {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    font-size: 13px;
   }
   .contact-cell {
     white-space: nowrap;

@@ -11,7 +11,7 @@ from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
 from common.models import Org, Profile, Tags, Teams
 from common.utils import COUNTRIES, CURRENCY_CODES
 from common.validators import flexible_phone_validator
-from contacts.choices import CONTACT_SOURCES, CONTACT_STAGES
+from contacts.choices import CONTACT_SOURCES, CONTACT_STAGES, COMMUNICATION_CHANNELS
 from contacts.models import Contact
 
 # Cleanup notes:
@@ -35,6 +35,7 @@ class Account(AssignableMixin, BaseModel):
         blank=True,
         validators=[flexible_phone_validator],
     )
+    preferred_communication_channel = models.CharField(max_length=16, choices=COMMUNICATION_CHANNELS, blank=True, null=True)
     website = models.URLField(_("Website"), blank=True, null=True)
 
     source = models.CharField(

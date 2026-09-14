@@ -13,6 +13,9 @@ def test_company_properties_and_contacts(admin_client, org_a, org_b, admin_profi
     tag = Tags.objects.create(name="Company tag", color="blue", org=org_a)
     payload = {
         "name": "Company properties",
+        "phone": "3055550188",
+        "email": "company@example.com",
+        "preferred_communication_channel": "SMS",
         "tag_ids": [str(tag.pk)],
         "website": "https://example.com",
         "source": "META",
@@ -25,6 +28,9 @@ def test_company_properties_and_contacts(admin_client, org_a, org_b, admin_profi
     response = admin_client.post("/api/accounts/", payload, format="json")
     assert response.status_code == 200, response.data
     account = Account.objects.get(name=payload["name"], org=org_a)
+    assert account.phone == payload["phone"]
+    assert account.email == payload["email"]
+    assert account.preferred_communication_channel == "SMS"
     assert account.tags.filter(pk=tag.pk).exists()
     assert account.pages == payload["pages"]
     assert list(account.contacts.all()) == [contact]
@@ -42,6 +48,12 @@ def test_company_properties_and_contacts(admin_client, org_a, org_b, admin_profi
     response = admin_client.patch(url, {"pages": [], "contacts": []}, format="json")
     assert response.status_code == 200, response.data
     account.refresh_from_db()
+    response = admin_client.patch(url, {"preferred_communication_channel":"EMAIL", "phone":"", "email":"", "tag_ids":[], "assigned_to":[]}, format="json")
+    assert response.status_code == 200, response.data
+    account.refresh_from_db()
+    assert account.preferred_communication_channel == 'EMAIL'
+    assert not account.tags.exists() and not account.assigned_to.exists()
+    assert not account.phone and not account.email
     assert account.pages == []
     assert not account.contacts.exists()
 
@@ -52,6 +64,7 @@ def test_company_properties_and_contacts(admin_client, org_a, org_b, admin_profi
         ("pages", [{"name": "Bad", "url": "javascript:alert(1)"}]),
         ("pages", {}),
         ("source", "INVALID"),
+        ("preferred_communication_channel", "INVALID"),
         ("annual_revenue", -1),
         ("number_of_employees", -1),
     ],

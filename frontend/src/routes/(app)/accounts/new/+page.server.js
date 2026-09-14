@@ -1,3 +1,4 @@
+import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { EDITABLE_FIELDS, createAccount, getAccountFormOptions } from '$lib/server/v2/accounts.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
@@ -9,11 +10,14 @@ export async function load({ cookies }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  createTag: createContactTag,
   create: async ({ cookies, request }) => {
     const form = await request.formData();
 
     /** @type {Record<string, any>} */
     const values = {};
+    readContactTags(form, values);
+    if (form.has('assigned_to')) values.assigned_to = String(form.get('assigned_to') ?? '');
     if (form.has('contacts_present')) {
       const ids = form.getAll('contacts').map(String).sort();
       if (JSON.stringify(ids) !== form.get('contacts_original')) values.contacts = ids;

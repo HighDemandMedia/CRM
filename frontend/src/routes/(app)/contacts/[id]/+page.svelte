@@ -1,4 +1,6 @@
 <script>
+  import DeleteRecord from '$lib/v2/components/DeleteRecord.svelte';
+  import ContactAssociations from '$lib/v2/components/ContactAssociations.svelte';
   import ContactForm from '$lib/components/contacts/ContactForm.svelte';
   let editingProperties = $state(false);
   import Attachments from '$lib/v2/components/Attachments.svelte';
@@ -28,6 +30,7 @@
 <PageHeader title={contact.name}>
   {#snippet crumb()}<a href={resolve('/contacts')}>Contacts</a>{/snippet}
   {#snippet actions()}
+
     <CreateAppointment
       hosts={data.hosts}
       defaultHost={data.defaultHost}
@@ -156,21 +159,12 @@
     </section>
   </main>
   <aside class="contact-relations">
-    <section class="profile-section">
-      <h2>Companies</h2>
-      {#each companies as company (company.id)}
-        <a class="related-item" href={resolve(`/accounts/${company.id}`)}>{company.name}</a>
-      {:else}<p class="v2-sub">{contact.organization || 'No associated companies.'}</p>{/each}
-    </section>
-    <section class="profile-section">
-      <h2>Deals</h2>
-      {#each data.deals as deal (deal.id)}
-        <a class="related-item" href={resolve(`/pipeline/${deal.id}`)}>
-          <strong>{deal.name}</strong><span>{money(deal.amount, deal.currency)}</span>
-          <small>{STAGE_LABEL[deal.stage] ?? deal.stage}</small>
-        </a>
-      {:else}<p class="v2-sub">No associated deals.</p>{/each}
-    </section>
+    <div class="profile-section">
+      <ContactAssociations contactId={contact.id} kind="company" items={companies} />
+    </div>
+    <div class="profile-section">
+      <ContactAssociations contactId={contact.id} kind="deal" items={data.deals} />
+    </div>
     <section class="profile-section">
       <h2>Attachments</h2>
       <Attachments attachments={data.attachments} action="?/note" />
@@ -197,6 +191,8 @@
     </details>
   </aside>
 </div>
+
+<DeleteRecord kind="contact" id={contact.id} />
 
 <style>
   .properties-heading {

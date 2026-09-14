@@ -6,7 +6,7 @@
   let details;
   import { onMount, tick } from 'svelte';
   import { resolve } from '$app/paths';
-  import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+  import { ChevronLeft, ChevronRight, Building2, UserRound } from '@lucide/svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { calendarDays, dateKey, shiftDate, timedCards } from '$lib/v2/calendar.js';
   let selected = $state(new Date());
@@ -19,7 +19,7 @@
     const mode = view;
     if (ready)
       void tick().then(() => {
-        if (scroller) scroller.scrollTop = mode === 'month' ? 0 : 8 * 120;
+        if (scroller) scroller.scrollTop = mode === 'month' ? 0 : 8 * 60;
       });
   });
   let events = $state(/** @type {any[]} */ ([]));
@@ -75,16 +75,20 @@
 </script>
 
 {#snippet eventCard(event)}
+  {@const attendeeType = event.attendee?.type ?? event.type}
+  {@const typeLabel = attendeeType === 'company' ? 'Company' : attendeeType === 'contact' ? 'Contact' : 'Event'}
   <button
     type="button"
+    title={`${typeLabel} · ${event.title} · ${new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
     class="appointment"
-    class:company={event.type === 'company'}
+    class:company={attendeeType === 'company'}
+    class:unlinked={attendeeType !== 'company' && attendeeType !== 'contact'}
     onclick={(click) => details.open(event, click.currentTarget)}
   >
     <div class="event-time">
       {new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
     </div>
-    <strong>{event.title}</strong>
+    <strong>{#if attendeeType === 'company'}<Building2 size={12} aria-label="Company" />{:else if attendeeType === 'contact'}<UserRound size={12} aria-label="Contact" />{/if}{event.title}</strong>
   </button>
 {/snippet}
 
@@ -103,6 +107,7 @@
     onclick={() => (selected = shiftDate(selected, view, 1))}><ChevronRight size={16} /></button
   >
   <h2>{title}</h2>
+  <div class="event-legend" aria-label="Event types"><span class="contact-key"><UserRound size={13} />Contacts</span><span class="company-key"><Building2 size={13} />Companies</span></div>
   <CreateAppointment
     hosts={data.hosts}
     defaultHost={data.defaultHost}
@@ -173,7 +178,7 @@
         </header>
       {/each}
       <div class="hour-labels">
-        {#each hours as hour}<div class="hour-label" style={`top:${hour * 120}px`}>
+        {#each hours as hour}<div class="hour-label" style={`top:${hour * 60}px`}>
             {hour % 12 || 12}
             {hour < 12 ? 'AM' : 'PM'}
           </div>{/each}
@@ -182,13 +187,13 @@
         <section class="time-day" aria-label={day.toDateString()}>
           {#each hours as hour}<div
               class="hour-line"
-              style={`top:${hour * 120}px`}
+              style={`top:${hour * 60}px`}
               aria-hidden="true"
             ></div>{/each}
           {#each timedCards(grouped.get(dateKey(day)) ?? []) as item (item.event.id)}
             <div
               class="timed-card"
-              style={`height:${Math.max(28, item.duration * 2 - 4)}px;top:${item.minute * 2}px;left:calc(${(item.lane / item.lanes) * 100}% + 3px);width:calc(${100 / item.lanes}% - 6px)`}
+              style={`height:${Math.max(14, item.duration - 2)}px;top:${item.minute}px;left:calc(${(item.lane / item.lanes) * 100}% + 3px);width:calc(${100 / item.lanes}% - 6px)`}
             >
               {@render eventCard(item.event)}
             </div>
@@ -233,7 +238,7 @@
     left: 0;
     z-index: 2;
     background: var(--v2-bg, white);
-    height: 3000px;
+    height: 1440px;
   }
   .hour-label {
     position: absolute;
@@ -244,33 +249,35 @@
   }
   .time-day {
     position: relative;
-    height: 3000px;
+    height: 1440px;
     border-right: 1px solid var(--v2-line);
     min-width: 0;
   }
   .hour-line {
     position: absolute;
     width: 100%;
-    height: 120px;
+    height: 60px;
     border-top: 1px solid var(--v2-line);
     pointer-events: none;
   }
   .hour-line::after {
     content: '';
     position: absolute;
-    top: 59px;
+    top: 29px;
     width: 100%;
     border-top: 1px dotted var(--v2-line-soft);
   }
   .timed-card {
     position: absolute;
-    height: 116px;
+    height: 58px;
     min-width: 0;
   }
   .timed-card .appointment {
     height: 100%;
     box-sizing: border-box;
-    overflow: auto;
+    overflow: hidden;
+    padding: 2px 6px;
+    gap: 1px;
   }
 
   .calendar-toolbar {
@@ -366,9 +373,40 @@
     font-size: 12px;
     overflow-wrap: anywhere;
   }
+  .month .appointments {
+    gap: 3px;
+  }
+  .month .appointment {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 6px;
+    height: 26px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .month .event-time {
+    flex: none;
+    white-space: nowrap;
+    font-size: 10px;
+  }
+  .month .appointment strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+  }
   .appointment:hover {
     filter: brightness(0.97);
   }
+  .event-legend { display: flex; gap: 12px; font-size: 12px; }
+  .event-legend span { display: flex; align-items: center; gap: 4px; }
+  .contact-key { color: #2563eb; }
+  .company-key { color: #7c3aed; }
+  .appointment strong :global(svg) { display: inline-block; vertical-align: -1px; margin-right: 4px; }
+  .appointment.unlinked { background: #f3f4f6; border-color: #d1d5db; border-left-color: #6b7280; color: #374151; }
   .appointment.company {
     background: #f5f3ff;
     border-color: #ddd6fe;

@@ -1,4 +1,5 @@
 from common.languages import LANGUAGES
+from common.validators import flexible_phone_validator
 from decimal import Decimal
 
 from django.db import models
@@ -87,6 +88,8 @@ class Opportunity(AssignableMixin, BaseModel):
         null=True,
     )
     address_line = models.CharField(max_length=255, blank=True, null=True)
+    phone = models.CharField(max_length=25, blank=True, null=True, validators=[flexible_phone_validator])
+    email = models.EmailField(blank=True, null=True)
     language = models.CharField("Language", max_length=100, choices=LANGUAGES, blank=True, default="")
     city = models.CharField(max_length=255, blank=True, null=True)
     state = models.CharField(max_length=255, blank=True, null=True)

@@ -38,6 +38,7 @@
  * encoder as numbers, the model fields as strings, and the pages add them
  * together, so everything numeric is coerced here, at the boundary.
  */
+import { getTags } from './tags.js';
 import { attachmentHref } from './files.js';
 import { error } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
@@ -159,6 +160,7 @@ function toRow(account) {
     currency: account.currency || 'USD',
     appointment_at: account.appointment_at ?? null,
     language: account.language ?? '',
+    preferred_communication_channel: account.preferred_communication_channel ?? '',
     city: account.city ?? '',
     country: account.country ?? '',
     country_display: account.country_display ?? '',
@@ -361,6 +363,7 @@ export const EDITABLE_FIELDS = [
   'address_line',
   'appointment_at',
   'language',
+  'preferred_communication_channel',
   'city',
   'state',
   'postcode',
@@ -378,8 +381,13 @@ export const EDITABLE_FIELDS = [
  * @param {import('@sveltejs/kit').Cookies} cookies
  */
 async function listChoices(cookies) {
-  const response = await apiRequest('/accounts/?limit=1', {}, { cookies });
+  const [response, tagOptions] = await Promise.all([
+    apiRequest('/accounts/?limit=1', {}, { cookies }),
+    getTags({ cookies })
+  ]);
   return {
+    tagOptions: tagOptions.tags,
+    canCreateTags: tagOptions.can_edit,
     contacts: (response.contacts ?? []).map((c) => ({
       ...c,
       name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unnamed contact'
@@ -449,6 +457,7 @@ export async function getAccountForEdit({ cookies }, id) {
       address_line: raw.address_line ?? '',
       appointment_at: account.appointment_at ?? null,
       language: account.language ?? '',
+      preferred_communication_channel: account.preferred_communication_channel ?? '',
       city: account.city,
       state: raw.state ?? '',
       postcode: raw.postcode ?? '',

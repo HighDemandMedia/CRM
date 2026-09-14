@@ -1,3 +1,5 @@
+from common.views.record_delete_views import RecordDeleteView
+from common.views.record_association_views import RecordAssociationView
 from common.views.sales_appointment_views import SalesAppointmentView, AppointmentAttendeesView, SalesAppointmentManageView, AppointmentAvailabilityView
 from django.urls import path
 
@@ -63,6 +65,8 @@ app_name = "api_common"
 
 
 urlpatterns = [
+    path("record-delete/<str:kind>/<uid:pk>/", RecordDeleteView.as_view()),
+    path("record-associations/<str:kind>/<uid:pk>/", RecordAssociationView.as_view()),
     path("sales-appointments/availability/", AppointmentAvailabilityView.as_view(), name="appointment_availability"),
     path("sales-appointments/<uid:pk>/", SalesAppointmentManageView.as_view(), name="manage_sales_appointment"),
     path("sales-appointments/attendees/", AppointmentAttendeesView.as_view(), name="appointment_attendees"),

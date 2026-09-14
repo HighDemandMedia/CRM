@@ -1,3 +1,4 @@
+import { getTags } from './tags.js';
 /**
  * Pipeline: the second v2 module wired to the real API.
  *
@@ -82,6 +83,9 @@ function toRow(deal) {
     priority: deal.priority ?? '',
     address_line: deal.address_line ?? '',
     language: deal.language ?? '',
+    phone: deal.phone ?? '',
+    email: deal.email ?? '',
+    tags: deal.tags ?? [],
     city: deal.city ?? '',
     state: deal.state ?? '',
     postcode: deal.postcode ?? '',
@@ -328,6 +332,8 @@ export const EDITABLE_FIELDS = [
   'priority',
   'address_line',
   'language',
+  'phone',
+  'email',
   'city',
   'state',
   'postcode',
@@ -347,6 +353,7 @@ export const EDITABLE_FIELDS = [
 async function listAccounts(cookies) {
   try {
     const response = await apiRequest('/opportunities/?limit=1', {}, { cookies });
+    const tagOptions = await getTags({ cookies });
     const geography = await apiRequest('/accounts/?limit=1', {}, { cookies });
     return {
       accounts: (response.accounts_list ?? []).map((account) => ({
@@ -357,6 +364,8 @@ async function listAccounts(cookies) {
         id: c.id,
         name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unnamed contact'
       })),
+      tagOptions: tagOptions.tags,
+      canCreateTags: tagOptions.can_edit,
       countries: geography.countries ?? []
     };
   } catch {
@@ -456,6 +465,9 @@ export async function getDealForEdit({ cookies }, id) {
       priority: deal.priority,
       address_line: deal.address_line,
       language: deal.language ?? '',
+      phone: deal.phone ?? '',
+      email: deal.email ?? '',
+      tags: (raw.tags ?? []).map((t) => t.id),
       city: deal.city,
       state: deal.state,
       postcode: deal.postcode,
@@ -507,6 +519,7 @@ function toBody(values) {
     body[field] = value === '' ? null : value;
   }
   if ('contacts' in values) body.contacts = values.contacts;
+  if ('tags' in values) body.tags = values.tags;
   if ('amount' in body && body.amount !== null) body.amount = Number(body.amount);
   if ('probability' in body && body.probability !== null) {
     body.probability = Number(body.probability);

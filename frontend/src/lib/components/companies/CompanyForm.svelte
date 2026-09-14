@@ -1,4 +1,5 @@
 <script>
+  import TagPicker from '$lib/v2/components/TagPicker.svelte';
   import AppointmentInput from '$lib/v2/components/AppointmentInput.svelte';
   import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
   import { companyStages } from '$lib/v2/company-stages.js';
@@ -18,6 +19,9 @@
   let values = $state(
     untrack(() => ({
       name: '',
+      phone: '',
+      email: '',
+      preferred_communication_channel: '',
       website: '',
       assigned_to: '',
       industry: '',
@@ -36,6 +40,12 @@
       ...(data.form ?? {}),
       ...(result?.values ?? {})
     }))
+  );
+  let creatingTag = $state(false);
+  let selectedTags = $state(
+    /** @type {string[]} */ (
+      untrack(() => (result?.values?.tags ?? data.form?.tags ?? []).map(String))
+    )
   );
   let pages = $state(
     /** @type {{name:string,url:string}[]} */ (
@@ -275,6 +285,45 @@
       </details>
     </div>
     <label
+      >Owner<select class="v2-input" name="assigned_to" bind:value={values.assigned_to}
+        ><option value="">Select user</option>{#each data.owners ?? [] as owner}<option
+            value={owner.id}>{owner.name}</option
+          >{/each}</select
+      ></label
+    >
+    <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
+    <label
+      >Phone<input
+        class="v2-input"
+        name="phone"
+        type="tel"
+        maxlength="25"
+        bind:value={values.phone}
+      /></label
+    >
+    <label
+      >Email<input class="v2-input" name="email" type="email" bind:value={values.email} /></label
+    >
+    <label
+      >Preferred Communication Channel<select
+        class="v2-input"
+        name="preferred_communication_channel"
+        bind:value={values.preferred_communication_channel}
+        ><option value="">Select channel</option><option value="SMS">SMS</option><option
+          value="CALL">Call</option
+        ><option value="EMAIL">Email</option></select
+      ></label
+    >
+    <div class="v2-field">
+      <span class="tags-label">Tags</span><TagPicker
+        options={data.tagOptions ?? []}
+        original={data.form?.tags ?? []}
+        canCreate={data.canCreateTags}
+        bind:selected={selectedTags}
+        bind:creating={creatingTag}
+      />
+    </div>
+    <label
       >Industry<select class="v2-input" name="industry" bind:value={values.industry}
         ><option value="">Select industry</option>{#each data.industries ?? [] as option}<option
             value={option.value}>{option.label}</option
@@ -367,10 +416,13 @@
   </fieldset>
 
   {#if !autoSave}<div class="actions">
-      <button class="v2-btn v2-btn-primary" type="submit" disabled={saving}
+      <button class="v2-btn v2-btn-primary" type="submit" disabled={saving || creatingTag}
         >{saving ? 'Saving…' : editing ? 'Save company' : 'Create company'}</button
-      >{#if inline}<button class="v2-btn" type="button" disabled={saving} onclick={onCancel}
-          >Cancel</button
+      >{#if inline}<button
+          class="v2-btn"
+          type="button"
+          disabled={saving || creatingTag}
+          onclick={onCancel}>Cancel</button
         >{:else}<a
           class="v2-btn"
           href={resolve(editing ? `/accounts/${data.account.id}` : '/accounts')}>Cancel</a
@@ -380,6 +432,12 @@
 </form>
 
 <style>
+  .tags-label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
   :is(.auto-save, .inline-edit) .fields {
     grid-template-columns: minmax(0, 1fr);
   }

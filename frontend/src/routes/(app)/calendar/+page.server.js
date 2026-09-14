@@ -47,11 +47,15 @@ export const actions = {
   create: async ({ cookies, request }) => {
     const form = await request.formData();
     const body = Object.fromEntries(
-      ['title', 'host', 'starts_at', 'ends_at', 'internal_notes'].map((key) => [
+      ['title', 'host', 'starts_at', 'ends_at', 'internal_notes', 'allow_overlap'].map((key) => [
         key,
         String(form.get(key) ?? '')
       ])
     );
+    body.create_deal = form.get('create_deal') === 'on' ? 'true' : 'false';
+    body.deal_name = String(form.get('deal_name') ?? '');
+    body.deal_source = String(form.get('deal_source') ?? '');
+    body.allow_overlap = form.get('allow_overlap') === 'true' ? 'true' : 'false';
     const attendee = String(form.get('attendee') ?? '');
     if (attendee) {
       const [kind, id] = attendee.split(':');
