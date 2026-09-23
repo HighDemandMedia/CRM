@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { createTask, getTaskFormOptions } from '$lib/server/v2/tasks.js';
-import { readableError } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 import { listTickets } from '$lib/server/v2/tickets.js';
 import { listDeals } from '$lib/server/v2/deals.js';
 import { listLeads } from '$lib/server/v2/leads.js';
@@ -95,10 +95,11 @@ export const actions = {
     const values = {
       title: form.get('title')?.toString().trim() ?? '',
       status: form.get('status')?.toString() || 'New',
-      priority: form.get('priority')?.toString() || 'Medium',
+      priority: form.get('priority')?.toString() ?? '',
       // An empty date input submits "", which the API reads as a bad date
       // rather than as "none". Null is the one that means no due date.
       due_date: form.get('due_date')?.toString() || null,
+      reminder_days: form.get('reminder_days') ? Number(form.get('reminder_days')) : null,
       description: form.get('description')?.toString().trim() ?? '',
       assigned_to: form
         .getAll('assigned_to')
@@ -116,7 +117,7 @@ export const actions = {
     } catch (/** @type {any} */ err) {
       return fail(400, {
         values: { ...values, parent_kind: kind },
-        error: readableError(err, 'Could not save this task.')
+        stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this task.')
       });
     }
 

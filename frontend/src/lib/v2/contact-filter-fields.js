@@ -43,12 +43,4 @@ export const advancedContactFilters = [
   { key: 'created_at', label: 'Created date', type: 'range' },
   { key: 'last_activity_at', label: 'Last activity date', type: 'range' },
   { key: 'appointment_at', label: 'Appointment date', type: 'range' },
-  {
-    key: 'do_not_call',
-    label: 'Marketing Opt-Out',
-    options: [
-      ['true', 'Yes'],
-      ['false', 'No']
-    ]
-  }
 ];

@@ -1,8 +1,8 @@
 import { apiRequest } from '$lib/api-helpers.js';
 import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
-import { readableError } from '$lib/server/v2/form-errors.js';
-import { fail } from '@sveltejs/kit';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
+import { fail, redirect } from '@sveltejs/kit';
 import {
   addContactNote,
   getContact,
@@ -16,10 +16,11 @@ export async function load({ cookies, params, locals }) {
     getContact({ cookies }, params.id, true),
     getOrgPeopleAndTeams(cookies)
   ]);
+  if (contact.contact.id !== params.id) redirect(303, `/contacts/${contact.contact.id}`);
   return { ...contact, hosts: people, defaultHost: resolveMe(people, locals.user?.email) };
 }
 
-const FLAGS = ['do_not_call', 'is_active'];
+const FLAGS = ['is_active'];
 /** @type {import('./$types').Actions} */
 export const actions = {
   association: async ({ cookies, params, request }) => {
@@ -56,8 +57,7 @@ export const actions = {
 
     /*
      * A cleared checkbox submits nothing at all, so "absent means leave alone"
-     * is exactly wrong for these two: it would make "do not call" impossible to
-     * switch off. Each one is paired with a hidden field that is always sent,
+     * is wrong for boolean controls that need to be switched off. Each one is paired with a hidden field that is always sent,
      * so the form can distinguish an unticked box from a field it does not own.
      */
     for (const flag of FLAGS) {
@@ -80,7 +80,7 @@ export const actions = {
     try {
       await updateContact({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, error: readableError(err, 'Could not save this contact.') });
+      return fail(400, { values, stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this contact.') });
     }
 
     return { saved: true };
@@ -105,7 +105,7 @@ export const actions = {
       if (Object.keys(values).length) await updateContact({ cookies }, params.id, values);
       return { saved: true };
     } catch (/** @type {any} */ err) {
-      return fail(400, { error: readableError(err, 'Could not save contact changes.') });
+      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save contact changes.') });
     }
   },
   /**

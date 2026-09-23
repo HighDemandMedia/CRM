@@ -13,5 +13,6 @@ export const dealColumns = [
   ['state', 'State'],
   ['postcode', 'Zip Code'],
   ['country_label', 'Country'],
+  ['last_activity_at', 'Last Activity'],
   ['created_at', 'Created']
 ];

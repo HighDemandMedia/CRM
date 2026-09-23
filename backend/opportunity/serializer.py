@@ -1,3 +1,7 @@
+from common.pipeline_settings import PipelineMoveChoicesMixin
+from common.last_activity import LastActivitySerializerMixin, ActivityListSerializer
+from common.pipeline_settings import PipelineRulesMixin, stages_for
+from common.rbac import VisibleCRMSerializerMixin
 from django.db.models import Sum
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -127,12 +131,21 @@ class OpportunityLineItemCreateSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
-class OpportunitySerializer(serializers.ModelSerializer):
+class OpportunitySerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer):
     """Serializer for reading Opportunity data"""
+
+    stage_label = serializers.SerializerMethodField()
+
+    def get_stage_label(self, obj):
+        cache = self.__dict__.setdefault('_pipeline_labels', {})
+        if obj.org_id not in cache:
+            cache[obj.org_id] = {s['key']: s['label'] for s in stages_for(obj.org, 'Opportunity')}
+        return cache[obj.org_id].get(obj.stage, obj.get_stage_display())
 
     lead_source_label = serializers.CharField(
         source="get_lead_source_display", read_only=True
     )
+    last_activity_at = serializers.DateTimeField(read_only=True)
     country_label = serializers.CharField(source="get_country_display", read_only=True)
     account = AccountSerializer()
     closed_by = ProfileSerializer()
@@ -167,6 +180,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
         return obj.get_aging_status(aging_configs=aging_configs)
 
     class Meta:
+        list_serializer_class = ActivityListSerializer
         model = Opportunity
         fields = (
             "id",
@@ -174,6 +188,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
             "name",
             "account",
             "stage",
+            "stage_label",
             "opportunity_type",
             # Financial Information
             "currency",
@@ -210,6 +225,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
             # System
             "created_by",
             "created_at",
+            "last_activity_at",
             "is_active",
             "org",
             "created_on_arrow",
@@ -222,7 +238,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
         )
 
 
-class OpportunityCreateSerializer(serializers.ModelSerializer):
+class OpportunityCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
     """Serializer for creating/updating Opportunity data"""
 
     probability = serializers.IntegerField(
@@ -237,6 +253,8 @@ class OpportunityCreateSerializer(serializers.ModelSerializer):
             self.org = request_obj.profile.org
 
     def validate_name(self, name):
+        if not name:
+            return name
         if self.instance:
             if (
                 Opportunity.objects.filter(name__iexact=name, org=self.org)
@@ -273,19 +291,9 @@ class OpportunityCreateSerializer(serializers.ModelSerializer):
         from common.validators import payload_id_list
         from contacts.models import Contact
 
-        creating = self.instance is None
-        for field in ("stage", "priority", "lead_source"):
-            if (creating or field in self.initial_data) and not self._resolved(
-                data, field
-            ):
-                errors[field] = "This field is required."
-        if creating or "assigned_to" in self.initial_data:
-            ids = payload_id_list(
-                self.initial_data.get("assigned_to") or [], "assigned_to"
-            )
-            if not ids or Profile.objects.filter(
-                org=self.org, is_active=True, pk__in=ids
-            ).count() != len(set(ids)):
+        if "assigned_to" in self.initial_data:
+            ids = payload_id_list(self.initial_data.get("assigned_to") or [], "assigned_to")
+            if Profile.objects.filter(org=self.org, is_active=True, pk__in=ids).count() != len(set(ids)):
                 errors["assigned_to"] = "Choose a deal owner from this organization."
         if "contacts" in self.initial_data:
             ids = payload_id_list(self.initial_data.get("contacts") or [], "contacts")
@@ -302,17 +310,6 @@ class OpportunityCreateSerializer(serializers.ModelSerializer):
         account = self._resolved(data, "account")
         if account and account.org_id != self.org.pk:
             errors["account"] = "Choose a company from this organization."
-        if (
-            (
-                creating
-                or "account" in self.initial_data
-                or "contacts" in self.initial_data
-            )
-            and not account
-            and not ids
-        ):
-            errors["contacts"] = "Associate at least one contact or company."
-
         # `amount` stops being the client's field once the deal has line items.
         # `OpportunityLineItem.save()` calls `recalculate_amount()`, which sets
         # `amount` from the lines and stamps `amount_source = "CALCULATED"`.
@@ -441,7 +438,8 @@ class OpportunityKanbanCardSerializer(serializers.ModelSerializer):
         return obj.get_aging_status(aging_configs=aging_configs)
 
 
-class OpportunityMoveSerializer(serializers.Serializer):
+class OpportunityMoveSerializer(PipelineMoveChoicesMixin, serializers.Serializer):
+    pipeline_target = "Opportunity"
     """Payload for PATCH /opportunities/<pk>/move/.
 
     `column_id` is the id the board GET handed the client for the destination

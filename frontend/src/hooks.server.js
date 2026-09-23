@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/sveltekit';
  */
 
 import { redirect } from '@sveltejs/kit';
+import { demoPageAllowed } from '$lib/v2/demo-view.js';
 import axios from 'axios';
 import { env } from '$env/dynamic/public';
 import { describeError } from '$lib/server/log-safe.js';
@@ -20,7 +21,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 /**
  * @typedef {{ default_currency?: string, currency_symbol?: string, default_country?: string|null }} OrgSettingsPayload
- * @typedef {{ org_id?: string, org_name?: string, role?: string, user_id?: string, user_name?: string, user_email?: string, user_profile_pic?: string, exp?: number, iat?: number, org_settings?: OrgSettingsPayload }} JWTPayload
+ * @typedef {{ org_id?: string, org_name?: string, role?: string, is_super_admin?: boolean, is_demo?: boolean, user_id?: string, user_name?: string, user_email?: string, user_profile_pic?: string, exp?: number, iat?: number, org_settings?: OrgSettingsPayload }} JWTPayload
  * @typedef {{ id: string, name: string }} OrgInfo
  * @typedef {{ org: OrgInfo, role?: string }} ProfileInfo
  * @typedef {{ id?: string, organizations?: Array<{ id: string, name: string }> }} UserInfo
@@ -251,7 +252,9 @@ export const handle = sequence(Sentry.sentryHandle(), async function _handle({ e
         };
         /** @type {any} */ (event.locals).profile = {
           org: event.locals.org,
-          role: jwtPayload.role || 'USER'
+          role: jwtPayload.role || 'USER',
+          is_super_admin: !!jwtPayload.is_super_admin,
+          is_demo: !!jwtPayload.is_demo
         };
         event.locals.org_name = jwtPayload.org_name || 'Organization';
         // Extract org settings for currency/locale
@@ -289,7 +292,9 @@ export const handle = sequence(Sentry.sentryHandle(), async function _handle({ e
           const newPayload = decodeJwtPayload(switchResult.access_token);
           /** @type {any} */ (event.locals).profile = {
             org: switchResult.current_org,
-            role: newPayload?.role || 'USER'
+            role: newPayload?.role || 'USER',
+            is_super_admin: !!newPayload?.is_super_admin,
+            is_demo: !!newPayload?.is_demo
           };
           event.locals.org_name = switchResult.current_org?.name || 'Organization';
           event.locals.org_settings = newPayload?.org_settings || {
@@ -318,7 +323,7 @@ export const handle = sequence(Sentry.sentryHandle(), async function _handle({ e
   // endpoints). Without them here the guard redirects every customer who clicks
   // a link to /login, so the portal is unreachable. Server-side token→org
   // resolution + RLS is what actually protects the data (see docs/PORTAL_RLS.md).
-  const PUBLIC_ROUTES = ['/login', '/logout', '/bounce', '/portal', '/csat'];
+  const PUBLIC_ROUTES = ['/login', '/logout', '/bounce', '/portal', '/csat', '/invite'];
 
   // Define semi-protected routes (auth required, but no org)
   const AUTH_ONLY_ROUTES = ['/org'];
@@ -348,5 +353,8 @@ export const handle = sequence(Sentry.sentryHandle(), async function _handle({ e
     }
   }
 
+  if (event.locals.profile?.is_demo && !isPublicRoute && !isAuthOnlyRoute && !pathname.startsWith('/api/') && !demoPageAllowed(pathname)) {
+    throw redirect(303, '/');
+  }
   return resolve(event);
 });

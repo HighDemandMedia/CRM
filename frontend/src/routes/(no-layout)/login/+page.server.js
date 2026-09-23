@@ -11,7 +11,7 @@
  */
 
 import axios from 'axios';
-import { redirect } from '@sveltejs/kit';
+import { redirect, fail } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 import { generateCodeVerifier, generateCodeChallenge, generateState } from '$lib/utils/pkce.js';
@@ -64,7 +64,7 @@ export async function load({ url, cookies }) {
   // Check if user is already authenticated
   const jwtAccess = cookies.get('jwt_access');
   if (jwtAccess) {
-    throw redirect(307, '/org');
+    throw redirect(307, cookies.get('crm_invitation') ? '/invite' : '/org');
   }
 
   // Generate OAuth parameters and return login URL
@@ -148,7 +148,7 @@ async function handleOAuthCallback(code, returnedState, cookies) {
   }
 
   // Success - redirect to organization selection
-  throw redirect(307, '/org');
+  throw redirect(307, cookies.get('crm_invitation') ? '/invite' : '/org');
 }
 
 /**
@@ -157,6 +157,7 @@ async function handleOAuthCallback(code, returnedState, cookies) {
  * @returns {Promise<object>} Object containing the Google OAuth URL
  */
 async function generateOAuthUrl(cookies) {
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_LOGIN_DOMAIN) return { google_url: null };
   // Generate PKCE parameters
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = await generateCodeChallenge(codeVerifier);
@@ -198,7 +199,7 @@ export const actions = {
     const email = formData.get('email');
 
     if (!email) {
-      return { success: false, error: 'Email is required' };
+      return fail(400, { error: 'Email is required' });
     }
 
     try {
@@ -210,8 +211,7 @@ export const actions = {
       );
       return { success: true };
     } catch {
-      // Always show success to user (backend also returns 200 always)
-      return { success: true };
+      return fail(503, { error: 'Email could not be sent. Please try again shortly.' });
     }
   }
 };

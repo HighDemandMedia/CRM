@@ -11,7 +11,10 @@
     Receipt,
     BookOpen,
     Plus,
-    CornerDownLeft
+    CalendarDays,
+    CircleCheck,
+    Sun,
+    X
   } from '@lucide/svelte';
 
   /**
@@ -30,37 +33,54 @@
 
   const ACTIONS = [
     {
-      kind: 'Actions',
+      kind: 'Create',
+      id: 'act-contact',
+      title: 'New contact',
+      meta: '',
+      href: '/contacts/new',
+      icon: Users
+    },
+    {
+      kind: 'Create',
+      id: 'act-company',
+      title: 'New company',
+      meta: '',
+      href: '/accounts/new',
+      icon: Building2
+    },
+    {
+      kind: 'Create',
       id: 'act-deal',
       title: 'New deal',
-      meta: 'Deals',
+      meta: '',
       href: '/pipeline/new',
-      icon: Plus
-    },
-    {
-      kind: 'Actions',
-      id: 'act-today',
-      title: 'Go to Today',
-      meta: '',
-      href: '/',
       icon: Columns3
     },
     {
-      kind: 'Actions',
-      id: 'act-tasks',
-      title: 'Go to Tasks',
+      kind: 'Create',
+      id: 'act-task',
+      title: 'New task',
       meta: '',
-      href: '/tasks',
-      icon: Columns3
+      href: '/tasks/new',
+      icon: CircleCheck
     },
     {
-      kind: 'Actions',
-      id: 'act-invoices',
-      title: 'Go to Invoices',
+      kind: 'Create',
+      id: 'act-ticket',
+      title: 'New ticket',
       meta: '',
-      href: '/invoices',
-      icon: Receipt
-    }
+      href: '/tickets/new',
+      icon: LifeBuoy
+    },
+    {
+      kind: 'Open',
+      id: 'act-calendar',
+      title: 'Calendar',
+      meta: '',
+      href: '/calendar',
+      icon: CalendarDays
+    },
+    { kind: 'Open', id: 'act-today', title: 'Today', meta: '', href: '/', icon: Sun }
   ];
 
   const ICON = {
@@ -80,7 +100,18 @@
   /** @type {HTMLInputElement | undefined} */
   let input = $state();
 
-  let rows = $derived(query.trim() ? hits : ACTIONS);
+  let loading = $state(false),
+    failure = $state('');
+  let rows = $derived(
+    query.trim()
+      ? [
+          ...ACTIONS.filter((action) =>
+            `${action.title} ${action.kind}`.toLowerCase().includes(query.trim().toLowerCase())
+          ),
+          ...hits
+        ]
+      : ACTIONS
+  );
 
   /** Grouped for display, but `rows` stays flat so ↑/↓ crosses group borders. */
   let groups = $derived(
@@ -92,31 +123,35 @@
     }, /** @type {{kind: string, rows: any[]}[]} */ ([]))
   );
 
-  // Re-runs whenever the query changes. `seq` drops out-of-order responses,
-  // which matters now that this is a network call rather than a filter. The
-  // request goes to /api/search, a server route that scopes to the org and
-  // keeps the httpOnly token off the client.
-  let seq = 0;
   $effect(() => {
-    const q = query;
-    const mine = ++seq;
-    if (!q.trim()) {
-      hits = [];
-      cursor = 0;
+    const q = query.trim();
+    hits = [];
+    cursor = 0;
+    failure = '';
+    if (!open || !q) {
+      loading = false;
       return;
     }
-    fetch(`/api/search?q=${encodeURIComponent(q)}`)
-      .then((r) => r.json())
-      .then((r) => {
-        if (mine !== seq) return;
-        hits = r.results || [];
-        cursor = 0;
-      })
-      .catch(() => {
-        if (mine !== seq) return;
-        hits = [];
-        cursor = 0;
-      });
+    const controller = new AbortController();
+    loading = true;
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(q)}`, {
+          signal: controller.signal
+        });
+        if (!response.ok) throw new Error();
+        const result = await response.json();
+        if (!controller.signal.aborted) hits = result.results || [];
+      } catch {
+        if (!controller.signal.aborted) failure = 'Could not search. Please try again.';
+      } finally {
+        if (!controller.signal.aborted) loading = false;
+      }
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   });
 
   $effect(() => {
@@ -174,18 +209,22 @@
           bind:this={input}
           bind:value={query}
           type="text"
-          placeholder="Search deals, accounts, people, tickets, invoices…"
+          placeholder="Search records or actions…"
           aria-label="Search"
           aria-autocomplete="list"
           autocomplete="off"
           spellcheck="false"
         />
-        <kbd class="v2-kbd">esc</kbd>
+        <button class="palette-close" type="button" aria-label="Close search" onclick={onclose}
+          ><X size={16} /></button
+        >
       </div>
 
       <div class="v2-palette-list" role="listbox" aria-label="Results">
         {#each groups as group (group.kind)}
-          <div class="v2-palette-group v2-label">{group.kind}</div>
+          <div class="v2-palette-group v2-label">
+            {group.kind === 'Accounts' ? 'Companies' : group.kind}
+          </div>
           {#each group.rows as row (row.id)}
             {@const i = rows.indexOf(row)}
             {@const Icon = row.icon ?? ICON[row.kind] ?? Search}
@@ -206,19 +245,35 @@
           {/each}
         {:else}
           <p class="v2-sub" style="padding:22px 15px;text-align:center;margin:0">
-            Nothing matches “{query}”. Try an account name, a deal, or an invoice number.
+            {loading ? 'Searching…' : failure || `No results for “${query}”.`}
           </p>
         {/each}
-      </div>
-
-      <div class="v2-palette-foot">
-        <span><kbd class="v2-kbd">↑</kbd> <kbd class="v2-kbd">↓</kbd> move</span>
-        <span><CornerDownLeft size={11} style="vertical-align:-1px" /> open</span>
-        <span><kbd class="v2-kbd">esc</kbd> close</span>
-        {#if query.trim()}
-          <span style="margin-left:auto" class="v2-num">{hits.length} found</span>
-        {/if}
       </div>
     </div>
   </div>
 {/if}
+
+<style>
+  .palette-close {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--v2-slate);
+    cursor: pointer;
+  }
+  .palette-close:hover {
+    background: var(--v2-paper);
+    color: var(--v2-ink);
+  }
+  .v2-palette-row {
+    min-height: 42px;
+  }
+  .v2-palette-group {
+    padding-top: 12px;
+  }
+</style>

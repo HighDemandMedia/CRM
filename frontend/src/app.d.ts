@@ -15,6 +15,8 @@ declare global {
       profile?: {
         role?: string;
         is_organization_admin?: boolean;
+        is_super_admin?: boolean;
+        is_demo?: boolean;
       };
     }
     // interface PageData {}

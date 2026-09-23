@@ -48,6 +48,7 @@ METADATA_BYTE_CAP = 4096
 # metadata.changes describing the field diff.
 _TRACKED_SCALAR_FIELDS = (
     "name",
+    "category", "source", "due_at", "waiting_reason", "resolution_note", "deal_id", "deal_id",
     "case_type",
     "description",
     "closed_on",
@@ -236,7 +237,7 @@ def case_pre_save_sla_pause(sender, instance, **kwargs):
         instance.sla_paused_at = None
 
 
-RESOLVED_STATUSES = ("Closed",)
+RESOLVED_STATUSES = ("Resolved", "Closed")
 
 
 @receiver(pre_save, sender=Case)

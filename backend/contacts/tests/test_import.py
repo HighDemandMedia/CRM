@@ -86,14 +86,15 @@ class TestImportPreview:
         # Preview must not write anything
         assert Contact.objects.filter(org=org_a).count() == 0
 
-    def test_missing_required_header(self, admin_client, admin_profile):
+    def test_optional_headers_may_be_omitted(self, admin_client, admin_profile):
         csv_file = _csv(["first_name"], [["Alice"]])
         response = admin_client.post(
             "/api/contacts/import/preview/", {"file": csv_file}, format="multipart"
         )
         assert response.status_code == 200
         body = response.json()
-        assert "last_name" in (body["header_error"] or "")
+        assert body["header_error"] is None
+        assert body["summary"]["valid"] == 1
 
     def test_unknown_header_rejected(self, admin_client, admin_profile):
         csv_file = _csv(

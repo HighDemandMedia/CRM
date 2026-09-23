@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { getTicketForEdit, updateTicket } from '$lib/server/v2/tickets.js';
-import { readableError } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 
 /** Scalars this form owns. `account` is not among them. See the loader note. */
 const FIELDS = ['name', 'status', 'priority', 'case_type', 'description', 'closed_on'];
@@ -51,7 +51,7 @@ export const actions = {
     try {
       await updateTicket({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, error: readableError(err, 'Could not save this ticket.') });
+      return fail(400, { values, stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this ticket.') });
     }
 
     redirect(303, `/tickets/${params.id}`);

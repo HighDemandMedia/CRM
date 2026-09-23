@@ -1,17 +1,18 @@
 <script>
-  /** @type {{stage?:string|null, label?:string, stages:{value:string,label:string}[]}} */
+  /** @type {{stage?:string|null, label?:string, stages:{value:string,label:string,percentage?:number}[]}} */
   let { stage, label = '', stages } = $props();
   let pipeline = $derived(stages.filter((item) => item.value !== 'UNASSIGNED'));
   let position = $derived(pipeline.findIndex((item) => item.value === stage));
   let complete = $derived(stage === 'QUALIFIED' || stage === 'CLOSED_WON');
   let lost = $derived(stage === 'LOST' || stage === 'CLOSED_LOST');
+  let percentage = $derived(pipeline[position]?.percentage);
   let name = $derived(pipeline[position]?.label || label || 'No stage');
 </script>
 
 <div class="stage-progress" aria-label={name}>
   <div class="segments" aria-hidden="true">
     {#each pipeline as item, index (item.value)}<span
-        class:filled={!lost && (complete || (position >= 0 && index <= position))}
+        class:filled={percentage != null ? index < Math.ceil(percentage / 100 * pipeline.length) : !lost && (complete || (position >= 0 && index <= position))}
       ></span>{/each}
   </div>
   <span class="stage-name">{name}</span>

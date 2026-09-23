@@ -1,4 +1,5 @@
 <script>
+  import { userName } from '$lib/utils/user-name.js';
   import { Users, Pencil, Trash2 } from '@lucide/svelte';
   import { SectionCard } from '$lib/components/ui/section-card/index.js';
   import * as Avatar from '$lib/components/ui/avatar/index.js';
@@ -39,7 +40,7 @@
 
   /** @param {TeamMember} member */
   function getMemberName(member) {
-    return member.user_details?.email?.split('@')[0] || 'User';
+    return userName(member, 'User');
   }
 
   /** @param {TeamMember} member */

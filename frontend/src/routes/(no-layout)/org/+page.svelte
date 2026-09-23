@@ -1,8 +1,7 @@
 <script>
-  import { resolve } from '$app/paths';
+  import { resolve, base } from '$app/paths';
   import '../../../app.css';
   import '$lib/v2/styles/v2.css';
-  import imgLogo from '$lib/assets/images/logo.png';
   import { Building2, LogOut, Plus, ChevronRight } from '@lucide/svelte';
   import { enhance } from '$app/forms';
 
@@ -14,14 +13,14 @@
 </script>
 
 <svelte:head>
-  <title>Choose organisation · BottleCRM</title>
+  <title>Choose organisation · High Demand Media CRM</title>
 </svelte:head>
 
 <div class="v2-root v2-auth">
   <div class="v2-auth-box">
     <a href={resolve('/')} class="v2-auth-brand">
-      <img src={imgLogo} alt="" />
-      <b>BottleCRM</b>
+      <img src={`${base}/brand/hdm-symbol.png`} alt="" />
+      <b>High Demand Media CRM</b>
     </a>
 
     <div class="v2-auth-card">
@@ -70,15 +69,17 @@
           </form>
         {/each}
 
+        {#if !data.demoMode}
         <a href={resolve('/org/new')} class="v2-auth-add">
           <Plus />
           Create new organisation
         </a>
+        {/if}
       {:else}
         <div class="v2-state" style="padding:22px 0 8px">
           <div class="v2-state-icon"><Building2 size={22} /></div>
           <h3>No organisations yet</h3>
-          <p>Create your first workspace to start using BottleCRM.</p>
+          <p>Create your first workspace to start using High Demand Media CRM.</p>
           <a href={resolve('/org/new')} class="v2-btn v2-btn-primary">
             <Plus size={15} />
             Create organisation

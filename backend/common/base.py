@@ -101,6 +101,8 @@ class BaseModel(AuditModel):
         request the server decides, outside one the caller does, and outside a
         request there is no client to decide against.
         """
+        from common.rbac import assert_model_write
+        assert_model_write(self, 'create' if self._state.adding else 'edit')
         user = get_current_user()
         if user is None or user.is_anonymous:
             # No request, so nothing to derive from. Leave whatever the caller
@@ -113,6 +115,11 @@ class BaseModel(AuditModel):
         # who last touched it.
         self.updated_by = user
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        from common.rbac import assert_model_write
+        assert_model_write(self, 'delete')
+        return super().delete(*args, **kwargs)
 
     def __str__(self):
         return str(self.id)

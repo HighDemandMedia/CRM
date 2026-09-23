@@ -1,592 +1,368 @@
 <script>
+  import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
+  import StageRuleNotice from "$lib/components/pipelines/StageRuleNotice.svelte";
+  import { page } from "$app/state";
+  import { configuredStages, configuredLabel } from "$lib/v2/pipeline-config.js";
+  const statusOptions = $derived(configuredStages(page.data.pipelineConfig, "Task", ["New", "In Progress", "Completed"].map(value => ({value,label:value}))));
+  import TaskReminder from '$lib/components/tasks/TaskReminder.svelte';
+  import { asInternalPath } from '$lib/utils/paths.js';
   import { resolve } from '$app/paths';
-  /**
-   * One task: what it is, what it is attached to, who is on it, and the one
-   * control that finishes it.
-   *
-   * A task is an action item, not a person or a record, so the page is built
-   * around the verb. The identity mark is a completion circle at the leading
-   * edge of the title, the universal "tick to finish" control, and it is the
-   * same one-field PATCH the list row sends, in the position the eye already
-   * goes to. Everything below is the note, the parent record, the people, and
-   * the conversation.
-   *
-   * Brought to the shape of the lead and contact detail pages: the flat
-   * read-only comment list is now a writable activity feed that takes comments
-   * AND files, day-grouped and filterable. Nothing is faked. Every event kind
-   * is backed by a row that exists (`Task` has no history table, so there are no
-   * invented status events beyond the record's own creation).
-   */
-  import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import NextAction from '$lib/v2/components/NextAction.svelte';
-  import Pill from '$lib/v2/components/Pill.svelte';
-  import Avatar from '$lib/v2/components/Avatar.svelte';
-  import { relativeDays, longDate, shortDate, daysSince } from '$lib/v2/format.js';
-  import { TASK_PRIORITY_TONE, TASK_STATUS_TONE } from '$lib/v2/enums.js';
   import { enhance } from '$app/forms';
-  import {
-    ChevronRight,
-    CircleCheck,
-    Circle,
-    Paperclip,
-    MessageSquare,
-    Sparkles,
-    X
-  } from '@lucide/svelte';
-
-  /** @type {{ data: any, form: any }} */
+  import PageHeader from '$lib/v2/components/PageHeader.svelte';
+  import RecordTabs from '$lib/v2/components/RecordTabs.svelte';
+  import Attachments from '$lib/v2/components/Attachments.svelte';
+  import TaskAssignees from '$lib/components/tasks/TaskAssignees.svelte';
+  import TaskParent from '$lib/components/tasks/TaskParent.svelte';
+  import Pill from '$lib/v2/components/Pill.svelte';
+  import { longDate, daysSince } from '$lib/v2/format.js';
+  import { TASK_PRIORITY_TONE, TASK_STATUS_TONE } from '$lib/v2/enums.js';
+  import { CircleCheck, RotateCcw, Pencil } from '@lucide/svelte';
   let { data, form } = $props();
-
-  let { task, activity, contacts, owners, canDelete } = $derived(data);
-
-  let late = $derived.by(() => {
-    if (!task.due_date || task.is_done) return 0;
-    const n = daysSince(task.due_date) ?? 0;
-    return n > 0 ? n : 0;
-  });
-
-  /**
-   * The next single step, said as a step.
-   *
-   * A task has exactly one, and which one depends on two facts the page
-   * already shows, so this is not new information, it is the same
-   * information with the verb attached. A finished task has no next step.
-   */
-  let next = $derived.by(() => {
-    if (task.is_done) return null;
-    if (late) {
-      return {
-        label: `${late} ${late === 1 ? 'day' : 'days'} late`,
-        text: `This was due ${longDate(task.due_date)}. Finish it or move the date. Leaving it late does neither.`
-      };
-    }
-    if (!task.due_date) {
-      return {
-        label: 'No due date',
-        text: 'Nothing will bring this back to your attention. Give it a date, or close it if it is not really a task.'
-      };
-    }
-    return null;
-  });
-
-  // ── comment composer ─────────────────────────────────────────────────────
-  let comment = $state('');
-  let saving = $state(false);
-
-  // The picked file's name, mirrored out of the input so the composer can show
-  // and clear it. `fileInput` is the element itself. A file input's value can
-  // only be cleared through the DOM, not by rebinding.
-  let fileName = $state('');
-  /** @type {HTMLInputElement | undefined} */
-  let fileInput;
-
-  /** @param {Event} e */
-  function pickFile(e) {
-    fileName = /** @type {HTMLInputElement} */ (e.currentTarget).files?.[0]?.name ?? '';
-  }
-  function clearFile() {
-    if (fileInput) fileInput.value = '';
-    fileName = '';
-  }
-
-  // A task accepts a file on its own, the API saves the attachment in a block
-  // separate from the comment, so the composer sends when there is either text
-  // or a file, and the button says which it will do.
-  let canSubmit = $derived(Boolean(comment.trim() || fileName));
-
-  // ── activity feed ────────────────────────────────────────────────────────
-  // Three real kinds (comment / file / created). The filter only appears once
-  // there is a file to filter. With nothing but comments it would sort one pile.
-  let hasFiles = $derived(activity.some((/** @type {any} */ e) => e.type === 'file'));
-  let filter = $state(/** @type {'all'|'comments'|'files'} */ ('all'));
-  let shown = $derived(
-    filter === 'files'
-      ? activity.filter((/** @type {any} */ e) => e.type === 'file')
-      : filter === 'comments'
-        ? activity.filter((/** @type {any} */ e) => e.type !== 'file')
-        : activity
+  let task = $derived(data.task);
+  let editing = $state(false),
+    busy = $state(false),
+    commentBusy = $state(false),
+    comment = $state('');
+  let draft = $state(/** @type {any} */ ({}));
+  const formId = $props.id();
+  let comments = $derived(data.activity.filter((entry) => entry.type === 'comment'));
+  let history = $derived(data.activity.filter((entry) => entry.type !== 'comment'));
+  let files = $derived(
+    data.activity
+      .filter((entry) => entry.type === 'file' && entry.href)
+      .map((entry) => ({
+        id: entry.id,
+        name: entry.body,
+        href: /** @type {`/api/attachments/${string}/download`} */ (entry.href)
+      }))
   );
-  let newestId = $derived(shown[0]?.id ?? null);
-
-  /**
-   * The line under an event: "Attached" for a file, the author where known, then
-   * how long ago, joined so no separator dangles when a part is missing.
-   * @param {{type:string,by:string|null,at:string}} e
-   */
-  function metaFor(e) {
-    const parts = [];
-    if (e.type === 'file') parts.push('Attached');
-    if (e.by) parts.push(e.by);
-    parts.push(relativeDays(e.at));
-    return parts.join(' · ');
+  let late = $derived(!task.is_done && task.due_date && (daysSince(task.due_date) ?? 0) > 0);
+  const exactDate = (value) =>
+    value
+      ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+      : '—';
+  function edit() {
+    draft = { ...data.editor.form, assigned_to: [...task.assigned_ids] };
+    editing = true;
   }
-
-  /** @param {string} iso */
-  function dayGroup(iso) {
-    const n = daysSince(iso);
-    if (n === 0) return 'Today';
-    if (n === 1) return 'Yesterday';
-    return shortDate(iso);
-  }
-
-  // Interleave day headers so each date is announced once, in order.
-  let feed = $derived.by(() => {
-    /** @type {Array<{kind:'day',id:string,label:string}|{kind:'event',id:string,event:any}>} */
-    const out = [];
-    let last = null;
-    for (const e of shown) {
-      const g = dayGroup(e.at);
-      if (g !== last) {
-        out.push({ kind: 'day', id: `day-${g}-${e.id}`, label: g });
-        last = g;
+  function save() {
+    busy = true;
+    return async ({ result, update }) => {
+      try {
+        await update({ reset: false });
+        if (result.type === 'success') editing = false;
+      } finally {
+        busy = false;
       }
-      out.push({ kind: 'event', id: e.id, event: e });
-    }
-    return out;
-  });
+    };
+  }
 </script>
 
-<PageHeader title={task.title} record>
-  {#snippet leading()}
-    <!-- The completion control, at the leading edge of the title where task
-         software has trained the eye to look. Same one-field PATCH as the list
-         row; a filled moss circle means done, and clicking it reopens. -->
-    <form method="POST" action="?/toggle" use:enhance style="display:flex">
-      <input type="hidden" name="done" value={task.is_done ? 'false' : 'true'} />
-      <button
-        class="done-toggle"
-        class:done={task.is_done}
-        type="submit"
-        aria-label={task.is_done ? 'Reopen task' : 'Mark task done'}
-        title={task.is_done ? 'Reopen task' : 'Mark done'}
-      >
-        {#if task.is_done}<CircleCheck size={24} />{:else}<Circle size={24} />{/if}
-      </button>
-    </form>
-  {/snippet}
-  {#snippet crumb()}
-    <a href={resolve('/tasks')}>Tasks</a>
-    <ChevronRight size={12} />
-    <span>{task.status}</span>
-  {/snippet}
-  {#snippet sub()}
-    {[
-      task.related ? `on ${task.related.name}` : 'not attached to a record',
-      task.due_date ? `due ${relativeDays(task.due_date)}` : 'no due date',
-      task.assigned_names.length ? task.assigned_names.join(', ') : 'nobody assigned'
-    ].join(' · ')}
-  {/snippet}
+<PageHeader title={task.title || `Task · ${task.id.slice(0, 8)}`} record>
+  {#snippet crumb()}<a href={resolve('/tasks')}>Tasks</a><span>{configuredLabel(page.data.pipelineConfig, 'Task', task.status, task.status)}</span>{/snippet}
   {#snippet actions()}
-    <a class="v2-btn" href={resolve(`/tasks/${task.id}/edit`)}>Edit</a>
-    {#if canDelete}
-      <form method="POST" action="?/delete" use:enhance>
-        <button class="v2-btn" type="submit">Delete</button>
+    {#if editing}<button class="v2-btn v2-btn-primary" type="submit" form={formId} disabled={busy}
+        >{busy ? 'Saving…' : 'Save'}</button
+      ><button class="v2-btn" disabled={busy} onclick={() => (editing = false)}>Cancel</button>
+    {:else}<button class="v2-btn" onclick={edit}><Pencil size={14} />Edit</button>
+      <form method="POST" action="?/toggle" use:enhance>
+        <input type="hidden" name="done" value={task.is_done ? 'false' : 'true'} /><button
+          class="v2-btn v2-btn-primary"
+          type="submit"
+          >{#if task.is_done}<RotateCcw size={15} />Reopen{:else}<CircleCheck size={15} />Complete
+            task{/if}</button
+        >
       </form>
     {/if}
   {/snippet}
 </PageHeader>
-
-<div style="display:flex;flex:1;min-height:0;overflow:hidden">
-  <div class="v2-main">
-    <div class="v2-scroll">
-      <div class="v2-pad" style="padding-top:16px;padding-bottom:32px">
-        {#if form?.error}
-          <p style="color:var(--v2-rust);font-size:12.5px;margin:0 0 14px" role="alert">
-            {form.error}
-          </p>
-        {/if}
-
-        {#if next}
-          <div style="margin-bottom:20px">
-            <NextAction label={next.label} text={next.text} />
-          </div>
-        {/if}
-
-        {#if task.description}
-          <div class="v2-label" style="margin-bottom:10px">Note</div>
-          <article
-            class="v2-card"
-            style="padding:16px 18px;max-width:70ch;font-size:13.5px;line-height:1.65;white-space:pre-wrap"
-          >
-            {task.description}
-          </article>
-        {:else}
-          <p class="v2-sub" style="font-size:12.5px;max-width:70ch;margin:0">
-            No note on this task. The title is all anyone else has to go on.
-          </p>
-        {/if}
-
-        <div class="act-head">
-          <div class="v2-label">Activity</div>
-          {#if hasFiles}
-            <!-- Only real kinds. There is no status/started/moved split because
-                 a Task has no history table to draw one from. -->
-            <div class="seg" role="tablist" aria-label="Filter activity">
-              <button class:on={filter === 'all'} onclick={() => (filter = 'all')}>All</button>
-              <button class:on={filter === 'comments'} onclick={() => (filter = 'comments')}
-                >Comments</button
-              >
-              <button class:on={filter === 'files'} onclick={() => (filter = 'files')}>Files</button
-              >
-            </div>
-          {/if}
-        </div>
-
-        <!-- The composer. `reset: false` plus clearing state by hand on success
-             keeps the box and the binding in step; a failed post keeps the words
-             and the picked file. A task takes a comment, a file, or both. -->
-        <form
-          method="POST"
-          action="?/comment"
-          enctype="multipart/form-data"
-          class="note-form"
-          use:enhance={() => {
-            saving = true;
-            return async ({ result, update }) => {
-              saving = false;
-              if (result.type === 'success') {
-                comment = '';
-                clearFile();
-              }
-              await update({ reset: false });
-            };
-          }}
+<StageRuleNotice issue={form?.stageRequirements}/>
+{#if form?.error && !form?.stageRequirements}<p class="v2-error error" role="alert">{form.error}</p>{/if}
+<div class="task-profile">
+  <main>
+    <section class="panel description">
+      {#if editing}<label
+          >Task name<input
+            class="v2-input"
+            form={formId}
+            name="title" required
+            disabled={busy}
+            bind:value={draft.title}
+            maxlength="200"
+          /></label
         >
-          <label class="v2-sr-only" for="comment">Add a comment</label>
-          <textarea
-            id="comment"
-            name="comment"
-            rows="3"
-            bind:value={comment}
-            class="note-input"
-            placeholder="What happened? Anyone on this task will see it."></textarea>
-          <div class="note-actions">
-            <button class="v2-btn v2-btn-primary" type="submit" disabled={saving || !canSubmit}>
-              {saving
-                ? 'Saving…'
-                : comment.trim()
-                  ? 'Comment'
-                  : fileName
-                    ? 'Attach file'
-                    : 'Comment'}
-            </button>
-            <label class="v2-btn" class:has-file={fileName}>
-              <Paperclip size={14} />
-              <span class="attach-label">{fileName || 'Attach file'}</span>
-              <input
-                bind:this={fileInput}
-                type="file"
-                name="attachment"
-                onchange={pickFile}
-                hidden
-              />
-            </label>
-            {#if fileName}
-              <button
-                type="button"
-                class="v2-btn-quiet clear-file"
-                onclick={clearFile}
-                title="Remove file"
-              >
-                <X size={13} />
-              </button>
-            {/if}
-          </div>
-        </form>
-
-        <div class="tl">
-          {#each feed as row (row.id)}
-            {#if row.kind === 'day'}
-              <div class="tl-day">{row.label}</div>
-            {:else}
-              {@const e = row.event}
-              <div class="tl-row" class:latest={e.id === newestId}>
-                <span class="tl-ico" data-kind={e.type}>
-                  {#if e.type === 'file'}<Paperclip size={13} />
-                  {:else if e.type === 'status'}<Sparkles size={13} />
-                  {:else}<MessageSquare size={13} />{/if}
-                </span>
-                <div class="tl-body">
-                  {#if e.type === 'file' && e.href}
-                    <a
-                      class="tl-file"
-                      href={resolve(e.href)}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                    >
-                      {e.body}
-                    </a>
-                  {:else}
-                    <div class="tl-text" class:comment={e.type === 'comment'}>{e.body}</div>
-                  {/if}
-                  <div class="tl-meta">{metaFor(e)}</div>
-                </div>
-              </div>
-            {/if}
-          {:else}
-            <p class="v2-sub" style="font-size:12.5px">
-              Nothing logged yet. The first comment you add shows up here.
-            </p>
-          {/each}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <aside class="v2-rail">
-    <div class="v2-label v2-rail-head">Task</div>
-    <dl class="v2-kv">
-      <dt>Status</dt>
-      <dd><Pill tone={TASK_STATUS_TONE[task.status]}>{task.status}</Pill></dd>
-      <dt>Priority</dt>
-      <dd><Pill tone={TASK_PRIORITY_TONE[task.priority]}>{task.priority}</Pill></dd>
-      <dt>Due</dt>
-      <dd style={late ? 'color:var(--v2-rust);font-weight:600' : ''}>
-        {#if !task.due_date}
-          <span class="v2-muted">not set</span>
-        {:else if late}
-          {longDate(task.due_date)} · {late}d late
-        {:else}
-          {longDate(task.due_date)}
-        {/if}
-      </dd>
-      <dt>Attached to</dt>
-      <dd>
-        {#if task.related}
-          <a href={resolve(task.related.href)}>{task.related.name}</a>
-          <span class="v2-sub" style="display:block;font-size:11.5px">{task.related.kind}</span>
-        {:else}
-          <span class="v2-muted">nothing</span>
-        {/if}
-      </dd>
-      <dt>Created</dt>
-      <dd>{longDate(task.created_at)}</dd>
-    </dl>
-
-    <div class="v2-label v2-rail-head">Assigned to</div>
-    <!-- A multi-select, not a single one. `assigned_to` is many-to-many and
-         the API rewrites the whole list on every save, so a one-owner picker
-         would silently drop co-assignees, and the seeded org has tasks with
-         two. -->
-    <form method="POST" action="?/assign" use:enhance style="padding:0 16px 16px">
-      <label class="v2-sr-only" for="assigned_to">Assigned to</label>
-      <select
-        id="assigned_to"
-        name="assigned_to"
-        multiple
-        size={Math.min(owners.length || 1, 5)}
-        class="v2-input"
-      >
-        {#each owners as person (person.id)}
-          <option value={person.id} selected={task.assigned_ids.includes(person.id)}>
-            {person.name}
-          </option>
-        {/each}
-      </select>
-      <p class="v2-sub" style="font-size:11px;margin:6px 0 8px">
-        Hold ⌘ or Ctrl to pick more than one. Clearing the list leaves the task with nobody on it.
-      </p>
-      <button class="v2-btn" type="submit">Save</button>
-    </form>
-
-    {#if contacts.length}
-      <div class="v2-label v2-rail-head">People</div>
-      <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px">
-        {#each contacts as person (person.id)}
-          <a
-            href={resolve(`/contacts/${person.id}`)}
-            style="display:flex;gap:8px;align-items:center;color:inherit;text-decoration:none;font-size:12.5px"
+        <label
+          >Description<textarea
+            class="v2-input"
+            form={formId}
+            name="description"
+            disabled={busy}
+            bind:value={draft.description}
+            rows="5"></textarea></label
+        >
+      {:else}<h2>Description</h2>
+        <p class="body">{task.description || 'No description.'}</p>{/if}
+    </section>
+    <section class="panel journal">
+      <RecordTabs>
+        {#snippet notes()}
+          <form
+            method="POST"
+            action="?/comment"
+            use:enhance={() => {
+              commentBusy = true;
+              return async ({ result, update }) => {
+                try {
+                  await update({ reset: false });
+                  if (result.type === 'success') comment = '';
+                } finally {
+                  commentBusy = false;
+                }
+              };
+            }}
           >
-            <Avatar name={person.name} size={20} />
-            {person.name}
-          </a>
-        {/each}
-      </div>
+            <textarea
+              class="v2-input"
+              aria-label="Add a note"
+              name="comment"
+              rows="3"
+              placeholder="Write a note…"
+              bind:value={comment}></textarea>
+            <button class="v2-btn" disabled={commentBusy || !comment.trim()}
+              >{commentBusy ? 'Saving…' : 'Add note'}</button
+            >
+          </form>
+          <div class="entries">
+            {#each comments as entry (entry.id)}<article>
+                <p class="body">{entry.body}</p>
+                <small>{entry.by || '—'} · {exactDate(entry.at)}</small>
+              </article>{:else}<p class="muted">No notes.</p>{/each}
+          </div>
+        {/snippet}
+        {#snippet activity()}<div class="entries">
+            {#each history as entry (entry.id)}<article>
+                {#if entry.href}<a
+                    href={resolve(asInternalPath(entry.href))}
+                    target="_blank"
+                    rel="noopener noreferrer">{entry.body}</a
+                  >{:else}<p class="body">{entry.body}</p>{/if}<small
+                  >{entry.by ? `${entry.by} · ` : ''}{exactDate(entry.at)}</small
+                >
+              </article>{:else}<p class="muted">No activity yet.</p>{/each}
+          </div>{/snippet}
+      </RecordTabs>
+    </section>
+    <details class="panel attachments">
+      <summary>Attachments <span>{files.length}</span></summary>
+      <div><Attachments attachments={files} action="?/comment" /></div>
+    </details>
+  </main>
+  <aside class="panel properties">
+    <h2>Properties</h2>
+    {#if editing}<form id={formId} method="POST" action="?/properties" use:enhance={save}>
+        <input type="hidden" name="parent_kind_original" value={data.editor.form.parent_kind} />
+        <input type="hidden" name="parent_id_original" value={data.editor.form.parent_id} />
+        <fieldset disabled={busy}>
+          <label
+            >Status<select class="v2-input" name="status" bind:value={draft.status}
+              >{#each ['New', 'In Progress', 'Completed'] as status}<option>{status}</option
+                >{/each}</select
+            ></label
+          >
+          <label
+            >Priority<select class="v2-input" name="priority" bind:value={draft.priority}
+              ><option value="">None</option>{#each ['Low', 'Medium', 'High'] as priority}<option>{priority}</option
+                >{/each}</select
+            ></label
+          >
+          <label
+            >Due date<input
+              class="v2-input"
+              type="date"
+              name="due_date"
+              bind:value={draft.due_date}
+            /></label
+          >
+          <TaskReminder bind:value={draft.reminder_days} />
+          <TaskAssignees people={data.editor.owners} bind:selected={draft.assigned_to} />
+          <TaskParent
+            parents={data.editor.parents}
+            bind:kind={draft.parent_kind}
+            bind:selected={draft.parent_id}
+          />
+        </fieldset>
+      </form>
+    {:else}
+      <PropertySummary target="Task" record={task} entries={[
+        ['Name',task.title], ['Status', configuredLabel(page.data.pipelineConfig, 'Task', task.status, task.status)], ['Priority', task.priority],
+        ['Due date', task.due_date ? longDate(task.due_date) + (late ? ' · Overdue' : '') : '—', 'due_date'],
+        ['Reminder',task.reminder_days == null ? 'No reminder' : task.reminder_days === 0 ? 'On due date' : `${task.reminder_days} days before`, 'reminder_days'],
+        ['Assigned to',task.assigned_names.join(', ') || '—'],
+        ['Last Activity',exactDate(task.last_activity_at)], ['Created',exactDate(task.created_at)]
+      ]}/>
+
+      <section class="associations">
+        <h2>Association</h2>
+        {#if task.related}<a class="associated" href={resolve(asInternalPath(task.related.href))}
+            ><small
+              >{{ account: 'Company', deal: 'Deal', ticket: 'Ticket', lead: 'Lead' }[
+                task.related.kind
+              ] || task.related.kind}</small
+            ><strong>{task.related.name}</strong></a
+          >{:else}<p class="muted">No association.</p>{/if}
+      </section>
+      {#if data.contacts.length}<section class="associations">
+          <h2>Contacts</h2>
+          {#each data.contacts as contact}<a
+              class="associated"
+              href={resolve(`/contacts/${contact.id}`)}
+              ><strong>{contact.name}</strong>{#if contact.email}<small>{contact.email}</small
+                >{/if}</a
+            >{/each}
+        </section>{/if}
     {/if}
+
+    {#if data.canDelete}<form class="delete" method="POST" action="?/delete" use:enhance>
+        <button type="submit" class="v2-btn">Delete</button>
+      </form>{/if}
   </aside>
 </div>
 
 <style>
-  /* The completion control. An open task shows an empty ring that fills moss on
-     hover (a preview of done); a finished task is a solid moss check that dims
-     slightly on hover to read as "click to reopen". */
-  .done-toggle {
+  .task-profile {
     display: grid;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 1.5px solid var(--v2-line);
-    background: var(--v2-card);
-    color: var(--v2-slate);
-    cursor: pointer;
-    padding: 0;
-    transition:
-      border-color 0.12s,
-      color 0.12s,
-      background 0.12s;
-  }
-  .done-toggle:hover {
-    border-color: var(--v2-moss);
-    color: var(--v2-moss);
-  }
-  .done-toggle:focus-visible {
-    outline: 2px solid var(--v2-ember);
-    outline-offset: 2px;
-  }
-  .done-toggle.done {
-    background: var(--v2-moss);
-    border-color: var(--v2-moss);
-    color: var(--v2-paper);
-  }
-  .done-toggle.done:hover {
-    opacity: 0.85;
-  }
-
-  /* ── comment composer ───────────────────────────────────────────────────── */
-  .note-form {
-    max-width: 70ch;
-    margin-bottom: 22px;
-  }
-  .note-input {
-    width: 100%;
-    padding: 9px 11px;
-    font: inherit;
-    font-size: 13px;
-    color: var(--v2-ink);
-    background: var(--v2-card);
-    border: 1px solid var(--v2-line);
-    border-radius: 8px;
-    resize: vertical;
-    line-height: 1.5;
-  }
-  .note-input:focus {
-    outline: 2px solid var(--v2-ember);
-    outline-offset: -1px;
-  }
-  .note-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-    flex-wrap: wrap;
-  }
-  /* The attach control is a label wrapping a hidden input, so the whole chip is
-     the click target. */
-  .note-actions label {
-    cursor: pointer;
-  }
-  .note-actions .attach-label {
-    max-width: 190px;
+    grid-template-columns: minmax(0, 1fr) 310px;
+    gap: 18px;
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    padding: 16px 22px 20px;
   }
-  .note-actions .has-file {
-    border-color: var(--v2-slate);
-    color: var(--v2-ink);
-  }
-  .clear-file {
-    padding: 5px 7px;
-  }
-
-  /* ── activity ───────────────────────────────────────────────────────────── */
-  .act-head {
+  main {
+    overflow-y: auto;
+    min-height: 0;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    max-width: 70ch;
-    margin: 26px 0 12px;
+    flex-direction: column;
+    gap: 14px;
   }
-  .seg {
-    display: flex;
-    border: 1px solid var(--v2-line);
-    border-radius: 7px;
-    overflow: hidden;
-    flex: none;
-  }
-  .seg button {
-    padding: 4px 11px;
-    font: inherit;
-    font-size: 11.8px;
-    color: var(--v2-slate);
+  .panel {
     background: var(--v2-card);
-    border: 0;
-    cursor: pointer;
+    border-radius: 12px;
+    padding: 20px;
   }
-  .seg button + button {
-    border-left: 1px solid var(--v2-line);
-  }
-  .seg button.on {
-    color: var(--v2-ink);
-    background: var(--v2-hover);
-    font-weight: 600;
-  }
-
-  .tl {
-    max-width: 70ch;
-  }
-  .tl-day {
-    font-size: 11px;
+  h2 {
+    font-size: 14px;
     font-weight: 650;
-    letter-spacing: 0.02em;
-    color: var(--v2-slate);
-    margin: 14px 0 9px;
+    margin: 0 0 12px;
   }
-  .tl-day:first-child {
-    margin-top: 0;
-  }
-  .tl-row {
-    display: flex;
-    gap: 11px;
-    align-items: flex-start;
-    padding-bottom: 15px;
-  }
-  /* A small icon chip instead of a bare dot: the kind of event is legible at a
-     glance, which is the whole point of a mixed feed. */
-  .tl-ico {
-    flex: none;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: var(--v2-line-soft);
-    border: 1px solid var(--v2-line);
-    color: var(--v2-slate);
-    margin-top: 1px;
-  }
-  .tl-row.latest .tl-ico {
-    background: var(--v2-ink);
-    border-color: var(--v2-ink);
-    color: var(--v2-paper);
-  }
-  .tl-body {
-    min-width: 0;
-    padding-top: 3px;
-  }
-  .tl-text {
-    font-size: 13px;
-    line-height: 1.55;
-    color: var(--v2-ink);
+  .body {
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
   }
-  .tl-file {
-    display: inline-flex;
-    font-size: 13px;
-    font-weight: 550;
+  .description > .body {
+    max-height: 240px;
+    overflow: auto;
+  }
+  label {
+    display: grid;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--v2-slate);
+    margin-bottom: 16px;
+  }
+  .v2-input {
+    width: 100%;
+  }
+  .journal form .v2-btn {
+    margin-top: 8px;
+  }
+  .entries {
+    max-height: 340px;
+    overflow: auto;
+    margin-top: 16px;
+  }
+  .entries article {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--v2-line-soft);
+  }
+  small {
+    display: block;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--v2-slate);
+  }
+  .properties {
+    min-height: 0;
+    overflow-y: auto;
+  }
+  fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+  .associations {
+    margin-top: 22px;
+  }
+  .associated {
+    display: block;
+    background: var(--v2-paper);
+    border-radius: 7px;
+    padding: 10px;
     color: var(--v2-ink);
     text-decoration: none;
+    margin-top: 6px;
     overflow-wrap: anywhere;
+    font-size: 13px;
   }
-  .tl-file:hover {
-    text-decoration: underline;
+  .associated small {
+    margin: 0 0 4px;
   }
-  .tl-meta {
-    font-size: 11.5px;
+  .delete {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+  .delete button {
+    color: var(--v2-rust);
+  }
+  .attachments {
+    padding: 0;
+  }
+  .attachments summary {
+    padding: 15px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .attachments summary span {
     color: var(--v2-slate);
-    margin-top: 2px;
-    overflow-wrap: anywhere;
+    margin-left: 8px;
+    font-size: 12px;
+  }
+  .attachments > div {
+    padding: 0 20px 20px;
+  }
+  .muted {
+    color: var(--v2-slate);
+    font-size: 12px;
+  }
+  .error {
+    margin: 0;
+    padding: 10px 22px;
+  }
+  @media (max-width: 800px) {
+    .task-profile {
+      grid-template-columns: 1fr;
+      overflow: auto;
+      padding: 12px;
+    }
+    main,
+    .properties {
+      overflow: visible;
+    }
   }
 </style>

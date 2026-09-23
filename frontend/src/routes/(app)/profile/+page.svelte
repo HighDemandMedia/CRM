@@ -1,253 +1,186 @@
 <script>
   import { resolve } from '$app/paths';
-  /**
-   * Your own account.
-   *
-   * The fields that are NOT editable here are the interesting ones. Role is
-   * shown and cannot be changed from this page. The API refuses to let anyone
-   * change their own role (ProfileSelfUpdateSerializer names only name and
-   * phone), and an input that always fails is worse than no input. Same for the
-   * organisation: which org you are in decides which rows you can see at all,
-   * and it comes from the JWT, not from a form.
-   *
-   * Two things you CAN do: edit your name and phone (PATCH /profile/), and
-   * switch org, a real action that re-issues the token rather than editing a
-   * field, so it goes through its own action and the copy says so.
-   */
+  import { untrack } from 'svelte';
+  import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
   import { enhance } from '$app/forms';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import Pill from '$lib/v2/components/Pill.svelte';
-  import Avatar from '$lib/v2/components/Avatar.svelte';
-  import { relativeDays, shortDate, count } from '$lib/v2/format.js';
-  import { ROLE_LABEL, ROLE_TONE } from '$lib/v2/enums.js';
-  import { KeyRound, Lock, ArrowLeftRight } from '@lucide/svelte';
+  import { Mail, CalendarDays, Link2, UserRound } from '@lucide/svelte';
 
-  /** @type {{ data: any, form: any }} */
+  /** @type {{data:any, form:any}} */
   let { data, form } = $props();
-
   let p = $derived(data.profile);
   let name = $derived(`${p.user_details.first_name} ${p.user_details.last_name}`.trim());
-
-  // Editing name + phone. The backend stores one `name` on User, so the form
-  // offers a single full-name field rather than the split the header renders.
-  let editing = $state(false);
-  let editName = $state('');
-  let editPhone = $state('');
-
-  function openEdit() {
-    editName = name;
-    editPhone = p.phone || '';
-    editing = true;
+  let activeTab = $state('info');
+  const tabs = [
+    { id: 'info', label: 'Profile info', icon: UserRound },
+    { id: 'integrations', label: 'Integrations', icon: Link2 }
+  ];
+  $effect(() => {
+    if (form?.scope === 'email') activeTab = 'integrations';
+  });
+  function navigateTabs(event, index) {
+    const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (!keys.includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+      : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    activeTab = tabs[next].id;
+    event.currentTarget.parentElement.querySelectorAll('[role="tab"]')[next].focus();
   }
+  let editName = $state(untrack(() => name)), editPhone = $state(untrack(() => p.phone)), editLanguage = $state(untrack(() => p.language)), editTimezone = $state(untrack(() => p.timezone));
+  let saving = $state(false);
+  let emailBusy = $state(false);
+  let dirty = $derived(editName !== name || editPhone !== p.phone || editLanguage !== p.language || editTimezone !== p.timezone);
+  $effect(() => {
+    editName = name;
+    editPhone = p.phone;
+    editLanguage = p.language;
+    editTimezone = p.timezone;
+  });
 
+  function resetDetails() {
+    editName = name; editPhone = p.phone; editLanguage = p.language; editTimezone = p.timezone;
+  }
   const onEdit = (/** @type {any} */ { formData }) => {
-    // Only send the field the person actually changed. The PATCH treats an
-    // absent field as "leave it alone", so an untouched phone is not
-    // re-validated, which matters because some seeded numbers carry an
-    // extension the validator rejects, and re-sending one would block a plain
-    // name change. Same rule the leads form uses for its owner select.
-    if ((formData.get('name') ?? '') === name) formData.delete('name');
-    if ((formData.get('phone') ?? '') === (p.phone || '')) formData.delete('phone');
-
-    return async (/** @type {any} */ { result, update }) => {
-      if (result.type === 'success') {
-        editing = false;
-        await update(); // reloads the profile with the saved values
-      } else {
-        await update({ reset: false }); // keep what they typed, show the message
-      }
+    for (const [key, previous] of Object.entries({name, phone:p.phone, language:p.language, timezone:p.timezone})) {
+      if (formData.get(key) === previous) formData.delete(key);
+    }
+    saving = true;
+    return async (/** @type {any} */ {result, update}) => {
+      saving = false;
+      await update({reset:false});
     };
   };
-
-  // `form` is shared by both actions; the switch action tags its failures.
-  let editError = $derived(form?.scope === 'switch' ? '' : (form?.message ?? ''));
-  let switchError = $derived(form?.scope === 'switch' ? (form?.message ?? '') : '');
+  const onEmail = () => {
+    emailBusy = true;
+    return async (/** @type {any} */ {update}) => {
+      emailBusy = false;
+      await update({reset:false});
+    };
+  };
 </script>
 
-<PageHeader title={name} record>
-  {#snippet sub()}
-    {ROLE_LABEL[p.role]} · {data.org.name} · joined {shortDate(p.joined_at)}
-  {/snippet}
-  {#snippet actions()}
-    {#if !editing}
-      <button class="v2-btn v2-btn-primary" onclick={openEdit}>Edit details</button>
-    {/if}
-  {/snippet}
+<div class="profile-shell">
+<PageHeader title="Profile">
+  {#snippet sub()}Your details, preferences and connected accounts{/snippet}
 </PageHeader>
 
+<div class="profile-tabs" role="tablist" aria-label="Profile sections">
+  {#each tabs as tab, index}
+    <button id={`profile-tab-${tab.id}`} role="tab" type="button"
+      aria-selected={activeTab === tab.id} aria-controls={`profile-panel-${tab.id}`}
+      tabindex={activeTab === tab.id ? 0 : -1} class:active={activeTab === tab.id}
+      onclick={() => activeTab = tab.id} onkeydown={event => navigateTabs(event, index)}>
+      <tab.icon size={16}/><span>{tab.label}</span>
+    </button>
+  {/each}
+</div>
 <div class="v2-scroll">
-  <div class="v2-pad" style="padding-top:18px;padding-bottom:32px">
-    <div class="v2-split">
-      <div>
-        <div class="v2-label" style="margin-bottom:10px">You</div>
-
-        {#if editing}
-          <form
-            class="v2-card"
-            method="POST"
-            action="?/edit"
-            use:enhance={onEdit}
-            style="padding:17px 18px;margin-bottom:20px"
-          >
-            <div class="v2-field">
-              <label for="f-name">Full name</label>
-              <input
-                id="f-name"
-                name="name"
-                class="v2-input"
-                bind:value={editName}
-                maxlength="255"
-              />
-            </div>
-            <div class="v2-field" style="margin-top:12px">
-              <label for="f-phone">Phone</label>
-              <input
-                id="f-phone"
-                name="phone"
-                class="v2-input"
-                bind:value={editPhone}
-                placeholder="+44 20 7946 0100"
-              />
-              <p class="v2-hint">Digits and separators only. Leave blank to remove it.</p>
-            </div>
-            {#if editError}
-              <p class="v2-error" style="margin-top:10px">{editError}</p>
-            {/if}
-            <div style="display:flex;gap:8px;margin-top:16px">
-              <button class="v2-btn v2-btn-primary" type="submit">Save</button>
-              <button class="v2-btn" type="button" onclick={() => (editing = false)}>Cancel</button>
-            </div>
-          </form>
-        {:else}
-          <div class="v2-card" style="padding:17px 18px;margin-bottom:20px">
-            <div style="display:flex;gap:13px;align-items:center;margin-bottom:16px">
-              <Avatar {name} size={46} />
-              <div style="min-width:0">
-                <div style="font-weight:640;font-size:15px">{name}</div>
-                <div class="v2-sub" style="font-size:12.5px">{p.user_details.email}</div>
-              </div>
-            </div>
-            <dl class="v2-kv">
-              <dt>Phone</dt>
-              <dd class="v2-num" style="font-size:12px">{p.phone || '—'}</dd>
-              <dt>Teams</dt>
-              <dd>{p.teams.join(', ') || '—'}</dd>
-              <dt>Joined</dt>
-              <dd>{shortDate(p.joined_at)}</dd>
-              <dt>Last signed in</dt>
-              <dd>{relativeDays(p.last_login)}</dd>
-            </dl>
+  <div class="profile-layout">
+    <div id="profile-panel-info" role="tabpanel" aria-labelledby="profile-tab-info" hidden={activeTab !== 'info'} tabindex="0" class="profile-panel personal">
+      <div class="section-heading"><div><h2>Personal information</h2><p class="section-description">Manage your details and personal preferences.</p></div></div>
+      <form class="details-form" method="POST" action="?/edit" use:enhance={onEdit}>
+        <fieldset disabled={saving}>
+          <div class="settings-group">
+            <label>Full name<input class="v2-input" name="name" bind:value={editName} maxlength="255" autocomplete="name"/></label>
+            <label>Email<input class="v2-input" type="email" value={p.user_details.email} readonly aria-describedby="email-help"/></label>
+            <p id="email-help" class="help">Your sign-in email.</p>
+            <label>Phone<input class="v2-input" name="phone" bind:value={editPhone} maxlength="20" type="tel" autocomplete="tel"/></label>
           </div>
-        {/if}
-
-        <div class="v2-label" style="margin-bottom:10px">Organisations</div>
-        <div class="v2-card" style="overflow:hidden">
-          {#each p.orgs as o (o.id)}
-            <div class="v2-setting">
-              <div class="v2-setting-body">
-                <b>{o.name}</b>
-                <span class="v2-sub" style="font-size:11.5px">
-                  You are {ROLE_LABEL[o.role] === 'Admin' ? 'an admin' : 'a member'} here
-                </span>
-              </div>
-              {#if o.is_current}
-                <Pill tone="ink" dot>Current</Pill>
-              {:else}
-                <!-- Switching org re-issues the token; it does not edit a field
-                     on this page. The action swaps the cookies and reloads. -->
-                <form method="POST" action="?/switchOrg" use:enhance class="v2-inline-form">
-                  <input type="hidden" name="org_id" value={o.id} />
-                  <button class="v2-btn v2-btn-sm" type="submit">
-                    <ArrowLeftRight size={12} />Switch
-                  </button>
-                </form>
-              {/if}
-            </div>
-          {/each}
-        </div>
-        {#if switchError}
-          <p class="v2-error" style="margin-top:9px">{switchError}</p>
-        {/if}
-        <p class="v2-sub" style="font-size:11.5px;margin-top:11px">
-          Switching organisation signs you in again with a new token. Which org you are in decides
-          which records exist for you at all, so it is not a filter you can toggle.
-        </p>
-      </div>
-
-      <div>
-        <div class="v2-label" style="margin-bottom:10px">Access</div>
-        <div class="v2-card" style="overflow:hidden;margin-bottom:20px">
-          <div class="v2-setting">
-            <div class="v2-setting-body">
-              <b>Role</b>
-              <!-- Displayed, never editable from here. -->
-              <span class="v2-sub" style="font-size:11.5px">
-                Set by an admin. You cannot change your own role.
-              </span>
-            </div>
-            <Lock size={14} style="color:var(--v2-slate);flex:none" />
-            <Pill tone={ROLE_TONE[p.role]}>{ROLE_LABEL[p.role]}</Pill>
+          <div class="settings-group">
+            <h3>Regional preferences</h3>
+            <LanguageSelect bind:value={editLanguage}/>
+            <label>Time zone<select class="v2-input" name="timezone" bind:value={editTimezone}>
+              <option value="">Organization default · {p.organization_timezone.replaceAll('_', ' ')}</option>
+              {#each data.timezones as zone}<option value={zone.name}>{zone.label}</option>{/each}
+            </select></label>
           </div>
-          <!-- /profile/tokens, not /settings/api-tokens. The settings page is
-               the org-wide oversight list and 403s a member, so this count used
-               to lead most of the people who clicked it to "Admins only". -->
-          <a class="v2-setting" href={resolve('/profile/tokens')}>
-            <div class="v2-setting-body">
-              <b>API tokens</b>
-              <span class="v2-sub" style="font-size:11.5px">
-                Each one signs in as you, with your role.
-              </span>
-            </div>
-            <KeyRound size={14} style="color:var(--v2-slate);flex:none" />
-            <span class="v2-num" style="font-size:13px;font-weight:600">
-              {count(p.active_token_count)}
-            </span>
-          </a>
-          <div class="v2-setting">
-            <div class="v2-setting-body">
-              <b>Sign-in method</b>
-              <!-- It used to say "Google, on <email>", which is false for
-                   anyone who signed in with an emailed code. Nothing in the
-                   payload says which was used, so this states what holds for
-                   both rather than guessing. -->
-              <span class="v2-sub" style="font-size:11.5px">
-                {p.user_details.email}, by Google or an emailed code. There is no password to
-                change.
-              </span>
-            </div>
-          </div>
+          {#if p.teams.length}<div class="team-summary"><span>Teams</span><strong>{p.teams.join(', ')}</strong></div>{/if}
+        </fieldset>
+        {#if !form?.scope && form?.message}<p class="feedback failure" role="alert">{form.message}</p>{/if}
+        {#if !form?.scope && form?.saved && !dirty}<p class="feedback" role="status">Profile saved.</p>{/if}
+        <div class="form-actions detail-actions">
+          <button class="v2-btn v2-btn-primary" disabled={saving || !dirty}>{saving ? 'Saving…' : 'Save changes'}</button>
+          {#if dirty}<button class="v2-btn" type="button" disabled={saving} onclick={resetDetails}>Cancel</button>{/if}
         </div>
-
-        <div class="v2-label" style="margin-bottom:10px">Where your work shows up</div>
-        <div class="v2-card" style="overflow:hidden">
-          <a class="v2-setting" href={resolve('/goals')}>
-            <div class="v2-setting-body">
-              <b>Goals</b>
-              <span class="v2-sub" style="font-size:11.5px">Your quota and how it is pacing</span>
-            </div>
-          </a>
-          <a class="v2-setting" href={resolve('/timesheet')}>
-            <div class="v2-setting-body">
-              <b>Timesheet</b>
-              <span class="v2-sub" style="font-size:11.5px">Hours you have logged this week</span>
-            </div>
-          </a>
-          <a class="v2-setting" href={resolve('/tasks')}>
-            <div class="v2-setting-body">
-              <b>Tasks</b>
-              <span class="v2-sub" style="font-size:11.5px">What is assigned to you</span>
-            </div>
-          </a>
-        </div>
-      </div>
+      </form>
     </div>
+      <div id="profile-panel-integrations" role="tabpanel" aria-labelledby="profile-tab-integrations" hidden={activeTab !== 'integrations'} tabindex="0" class="profile-panel">
+        <div class="section-heading"><h2 id="integration-title"><Link2 size={17}/>Connected accounts</h2><span class="subtle-badge">Per user</span></div>
+        <p class="section-description">Manage your email and calendar connections.</p>
+        <div class="integration">
+          <div class="integration-heading"><div class="service-icon"><Mail size={21}/></div><div><h3>Gmail</h3><p>{p.integrations?.gmail?.email || 'No account connected'}</p></div><span class="status-badge">Setup required</span></div>
+          <form method="POST" action="?/emailMode" use:enhance={onEmail}>
+            <label>Email access<select class="v2-input" name="email_integration_mode" value={p.email_integration_mode} disabled={emailBusy}>
+              <option value="">Choose access</option><option value="send">Send only</option><option value="read_send">Read, send and sync</option>
+            </select></label>
+            <div class="integration-actions"><button class="v2-btn v2-btn-sm" disabled={emailBusy}>{emailBusy ? 'Saving…' : 'Save preference'}</button><button class="v2-btn v2-btn-primary v2-btn-sm" type="button" disabled>Connect Gmail</button></div>
+            {#if form?.scope === 'email'}<p class="feedback" class:failure={form.message} role="status">{form.message || 'Preference saved. Gmail is not connected yet.'}</p>{/if}
+          </form>
+          <p class="help">Choose the access to request when Gmail is enabled. This does not grant access to your mailbox.</p>
+        </div>
+        <div class="integration">
+          <div class="integration-heading"><div class="service-icon"><CalendarDays size={21}/></div><div><h3>Google Calendar</h3><p>{p.integrations?.google_calendar?.email || 'No account connected'}</p></div><span class="status-badge">Setup required</span></div>
+          <p class="section-description">Connect your account to choose a calendar, synchronize events and manage disconnection.</p>
+          <dl class="connection-details"><div><dt>Calendar</dt><dd>Not selected</dd></div><div><dt>Last sync</dt><dd>Not synced</dd></div></dl>
+          <button class="v2-btn v2-btn-primary v2-btn-sm" disabled>Connect Google Calendar</button>
+        </div>
+        <p class="setup-note">Google connections are not enabled for this CRM yet. Signing in with Google does not connect Gmail or Calendar.</p>
+      </div>
   </div>
 </div>
 
+</div>
+
 <style>
-  /* The Switch button sits in a form so it can POST; keep it laid out exactly
-     as the bare button was (the row uses flex; the form must not add a box). */
-  .v2-inline-form {
-    display: contents;
-  }
+  .profile-shell { display:flex; flex-direction:column; flex:1; min-height:0; min-width:0; background:var(--v2-bg, #fff); }
+  .profile-shell > .v2-scroll { flex:1; min-height:0; }
+  .settings-group { display:grid; gap:20px; }
+  .settings-group + .settings-group { padding-top:26px; border-top:1px solid var(--v2-line-soft); }
+  .settings-group h3 { margin-bottom:2px; font-size:14px; }
+  .settings-group .help { margin-top:-14px; }
+  .details-form label { font-weight:500; gap:9px; font-size:13px; }
+  .details-form :global(select), .details-form :global(input) { min-height:42px; background:var(--v2-bg, #fff); border-radius:7px; }
+  .details-form input[readonly] { background:var(--v2-line-soft); color:var(--v2-slate); }
+  .team-summary { display:flex; gap:12px; font-size:12px; color:var(--v2-slate); }
+  .team-summary strong { font-weight:500; color:var(--v2-ink); }
+  .detail-actions { margin-top:28px; padding-top:20px; border-top:1px solid var(--v2-line-soft); }
+  .section-heading .section-description { margin:8px 0 0; }
+  .integration, .setup-note { max-width:680px; }
+
+  .profile-tabs { display:flex; gap:24px; padding:0 24px; border-bottom:1px solid var(--v2-line); flex-shrink:0; overflow-x:auto; }
+  .profile-tabs button { display:flex; align-items:center; justify-content:center; gap:8px; padding:16px 0 13px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--v2-slate); font:inherit; font-size:13px; white-space:nowrap; cursor:pointer; }
+  .profile-tabs button.active { color:var(--v2-ink); border-bottom-color:var(--v2-ink); font-weight:600; }
+  .profile-tabs button:hover { color:var(--v2-ink); }
+  .profile-tabs button:focus-visible { outline:2px solid var(--v2-slate); outline-offset:-3px; border-radius:4px; }
+  .profile-layout { padding:30px 32px; max-width:1000px; width:100%; box-sizing:border-box; }
+  .profile-panel[hidden] { display:none; }
+  .profile-panel:focus-visible { outline:2px solid var(--v2-line); outline-offset:3px; }
+
+  .section-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
+  h2 { display:flex; gap:8px; align-items:center; margin:0; font-size:16px; font-weight:600; }
+  h3 { font-size:14px; margin:0; font-weight:600; }
+  .help { font-size:11px; color:var(--v2-slate); line-height:1.5; margin:8px 0 0; overflow-wrap:anywhere; }
+  dt { color:var(--v2-slate); font-size:12px; margin-bottom:5px; }
+  dd { margin:0; font-size:13px; overflow-wrap:anywhere; }
+  label { display:grid; gap:7px; font-size:12px; }
+  .details-form { max-width:640px; margin-top:26px; }
+  .details-form fieldset { display:grid; gap:26px; }
+  fieldset { margin:0; padding:0; border:0; min-width:0; }
+  .v2-input { width:100%; min-width:0; }
+  .form-actions { display:flex; gap:8px; margin-top:18px; }
+  .section-description { color:var(--v2-slate); font-size:12px; line-height:1.6; margin:0 0 16px; }
+  .integration + .integration { border-top:1px solid var(--v2-line); padding-top:22px; margin-top:22px; }
+  .integration-heading { display:flex; gap:12px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
+  .integration-heading > div:nth-child(2) { flex:1; min-width:120px; }
+  .integration-heading p { color:var(--v2-slate); font-size:12px; margin:4px 0 0; }
+  .service-icon { display:grid; place-items:center; width:40px; height:40px; background:var(--v2-line-soft); border-radius:10px; color:var(--v2-slate); }
+  .status-badge, .subtle-badge { font-size:10px; padding:4px 8px; background:var(--v2-line-soft); color:var(--v2-slate); border-radius:6px; white-space:nowrap; }
+  .integration-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .connection-details { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:0 0 16px; }
+  .setup-note { margin:20px 0 0; padding-top:16px; border-top:1px solid var(--v2-line); font-size:11px; color:var(--v2-slate); line-height:1.6; }
+  .feedback { color:var(--v2-moss); font-size:12px; margin:12px 0 0; }
+  .feedback.failure { color:var(--v2-rust); }
+
+  @media(max-width:600px) { .profile-layout { padding:14px; }  .profile-tabs { gap:16px; padding:0 14px; } .profile-tabs button { font-size:12px; gap:5px; } }
 </style>

@@ -1,0 +1,21 @@
+# Local-only email sandbox. Captures mail instead of delivering externally.
+# docker compose -f docker-compose.yml -f docker-compose.mail.yml up -d
+services:
+  mailpit:
+    image: axllent/mailpit:v1.27.4
+    ports:
+      - "127.0.0.1:8025:8025"
+  backend:
+    environment: &local_mail
+      EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+      EMAIL_HOST: mailpit
+      EMAIL_PORT: "1025"
+      EMAIL_USE_TLS: "false"
+      EMAIL_USE_SSL: "false"
+      EMAIL_HOST_USER: ""
+      EMAIL_HOST_PASSWORD: ""
+      DEFAULT_FROM_EMAIL: "High Demand Media CRM <noreply@crm.local>"
+    depends_on:
+      - mailpit
+  celery-worker:
+    environment: *local_mail

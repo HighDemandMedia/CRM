@@ -58,5 +58,5 @@ export async function load({ url, cookies }) {
   }
 
   // Success - redirect to org selection (same as Google OAuth)
-  throw redirect(307, '/org');
+  throw redirect(307, cookies.get('crm_invitation') ? '/invite' : '/org');
 }

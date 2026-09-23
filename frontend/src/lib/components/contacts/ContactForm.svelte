@@ -1,6 +1,10 @@
 <script>
+  import ContactDuplicates from "./ContactDuplicates.svelte";
+  import StageRuleNotice from "$lib/components/pipelines/StageRuleNotice.svelte";
+  import { creationEnhance } from '$lib/components/creation/enhance.js';
+  const enhance = creationEnhance();
   import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
-  import { enhance, deserialize } from '$app/forms';
+  import { deserialize } from '$app/forms';
   import { untrack, onMount, onDestroy } from 'svelte';
   import TagPicker from '$lib/v2/components/TagPicker.svelte';
   import { contactChanges } from '$lib/v2/contact-autosave.js';
@@ -45,6 +49,7 @@
   let autoReady = $state(false);
   let autoStatus = $state('');
   let autoError = $state('');
+  let autoIssue = $state(null);
   let autoBusy = false;
   /** @type {Record<string, any>} */
   let baseline = {};
@@ -62,6 +67,7 @@
     autoBusy = true;
     autoStatus = 'Saving…';
     autoError = '';
+    autoIssue = null;
     let saved = false;
     try {
       const body = new FormData();
@@ -73,6 +79,7 @@
       });
       const result = deserialize(await response.text());
       if (result.type !== 'success') {
+        autoIssue = result.type === 'failure' ? result.data?.stageRequirements : null;
         autoError =
           result.type === 'failure'
             ? String(result.data?.error ?? 'Could not save changes.')
@@ -120,7 +127,7 @@
   let saving = $state(false);
   const textFields = /** @type {const} */ ([
     { key: 'name', label: 'Name', required: true, type: 'text', max: 255, autocomplete: 'name' },
-    { key: 'phone', label: 'Phone', required: true, type: 'tel', max: 25, autocomplete: 'tel' },
+    { key: 'phone', label: 'Phone', required: false, type: 'tel', max: 25, autocomplete: 'tel' },
     {
       key: 'email',
       label: 'Email',
@@ -170,10 +177,11 @@
     };
   }}
 >
-  {#if result?.error}<p class="v2-error" role="alert">{result.error}</p>{/if}
+  <StageRuleNotice issue={autoIssue || result?.stageRequirements}/>
+  {#if result?.error && !result?.stageRequirements}<p class="v2-error" role="alert">{result.error}</p>{/if}
   {#if autoSave}
     <div class="save-status" role="status">{autoStatus}</div>
-    {#if autoError}<div class="v2-error" role="alert">
+    {#if autoError && !autoIssue}<div class="v2-error" role="alert">
         {autoError}
         <button
           type="button"
@@ -203,6 +211,7 @@
         />
       </div>
     {/each}
+    <ContactDuplicates name={values.name || ''} email={values.email || ''} phone={values.phone || ''} exclude={data.contact?.id || ''}/>
     <div class="v2-field">
       <span class="tags-label">Tags</span><TagPicker
         options={data.tagOptions ?? []}
@@ -227,12 +236,11 @@
       <input type="hidden" name="appointment_at" value={values.appointment_at ?? ''} />
     </div>
     <div class="v2-field">
-      <label for="contact-source">Source *</label>
+      <label for="contact-source">Source</label>
       <select
         id="contact-source"
         name="source"
         class="v2-input"
-        required
         bind:value={values.source}
       >
         <option value="">Select source</option>
@@ -241,8 +249,8 @@
       </select>
     </div>
     <div class="v2-field">
-      <label for="contact-stage">Stage *</label>
-      <select id="contact-stage" name="stage" class="v2-input" required bind:value={values.stage}>
+      <label for="contact-stage">Stage</label>
+      <select id="contact-stage" name="stage" class="v2-input" bind:value={values.stage}>
         <option value="">Select stage</option>
         {#each data.stages ?? [] as option}<option value={option.value}>{option.label}</option
           >{/each}

@@ -1,3 +1,4 @@
+from common.rbac import CRMRecordManager
 from common.languages import LANGUAGES
 from common.validators import flexible_phone_validator
 from decimal import Decimal
@@ -37,6 +38,7 @@ DISCOUNT_TYPES = (
 
 
 class Opportunity(AssignableMixin, BaseModel):
+    objects = CRMRecordManager()
     """
     Opportunity model for CRM - Sales pipeline management
     Based on Twenty CRM and Salesforce patterns
@@ -283,6 +285,13 @@ class Opportunity(AssignableMixin, BaseModel):
             if not self.stage_changed_at:
                 self.stage_changed_at = timezone.now()
 
+        if self.org_id and (self.org.pipeline_settings or {}).get('Opportunity'):
+            from common.pipeline_settings import stages_for
+            configured = next((s for s in stages_for(self.org, 'Opportunity') if s['key'] == self.stage), None)
+            if configured:
+                self.probability = configured['percentage']
+                if kwargs.get('update_fields') is not None:
+                    kwargs['update_fields'] = set(kwargs['update_fields']) | {'probability'}
         super().save(*args, **kwargs)
 
 

@@ -1,11 +1,10 @@
 <script>
-  import { resolve } from '$app/paths';
+  import { resolve, base } from '$app/paths';
   import '../../../app.css';
   import '$lib/v2/styles/v2.css';
   import { enhance } from '$app/forms';
 
   import imgGoogle from '$lib/assets/images/google.svg';
-  import imgLogo from '$lib/assets/images/logo.png';
   import { Mail, Check } from '@lucide/svelte';
 
   let { data = {} } = $props();
@@ -37,18 +36,18 @@
 </script>
 
 <svelte:head>
-  <title>Sign in · BottleCRM</title>
+  <title>Sign in · High Demand Media CRM</title>
   <meta
     name="description"
-    content="Sign in to BottleCRM to manage your contacts, deals, and grow your business."
+    content="Sign in to High Demand Media CRM to manage your contacts, deals, and grow your business."
   />
 </svelte:head>
 
 <div class="v2-root v2-auth">
   <div class="v2-auth-box">
     <a href={resolve('/')} class="v2-auth-brand">
-      <img src={imgLogo} alt="" />
-      <b>BottleCRM</b>
+      <img src={`${base}/brand/hdm-symbol.png`} alt="" />
+      <b>High Demand Media CRM</b>
     </a>
 
     <div class="v2-auth-card">
@@ -59,25 +58,28 @@
 
       <!-- Primary path. Google's mark keeps a white tile so it stays legible on
            Ember; the whole button is the one Ember action on this screen. -->
-      <a
-        href={data['google_url']}
-        rel="external"
-        onclick={handleGoogleLogin}
-        class="v2-btn v2-btn-primary v2-btn-block"
-        style:pointer-events={isLoading ? 'none' : null}
-        style:opacity={isLoading ? '0.85' : null}
-      >
-        {#if isLoading}
-          <span class="v2-spin"></span>
-          <span>Redirecting…</span>
-        {:else}
-          <img src={imgGoogle} alt="" class="v2-auth-gicon" />
-          <span>Continue with Google</span>
-        {/if}
-      </a>
+      {#if data['google_url']}<a
+          href={data['google_url']}
+          rel="external"
+          onclick={handleGoogleLogin}
+          class="v2-btn v2-btn-primary v2-btn-block"
+          style:pointer-events={isLoading ? 'none' : null}
+          style:opacity={isLoading ? '0.85' : null}
+        >
+          {#if isLoading}
+            <span class="v2-spin"></span>
+            <span>Redirecting…</span>
+          {:else}
+            <img src={imgGoogle} alt="" class="v2-auth-gicon" />
+            <span>Continue with Google</span>
+          {/if}
+        </a>
 
-      <div class="v2-auth-divider">or</div>
+        <div class="v2-auth-divider">or</div>{/if}
 
+      {#if data['error']}<p role="alert" class="v2-error">
+          Sign-in could not be completed. Please try again.
+        </p>{/if}
       {#if magicLinkSent}
         <div class="v2-auth-note v2-auth-note-ok">
           <Check />
@@ -126,13 +128,5 @@
     <p class="v2-sub" style="text-align:center;margin:14px 0 0">
       New here? Enter your email above to get started.
     </p>
-
-    <div class="v2-auth-foot">
-      <a href="https://bottlecrm.io/privacy-policy">Privacy</a>
-      <span class="v2-auth-dot"></span>
-      <a href="https://bottlecrm.io/terms">Terms</a>
-      <span class="v2-auth-dot"></span>
-      <a href="https://github.com/django-crm/Django-CRM" target="_blank" rel="noopener">GitHub</a>
-    </div>
   </div>
 </div>

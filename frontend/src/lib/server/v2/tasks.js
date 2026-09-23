@@ -1,3 +1,4 @@
+import { userName } from '$lib/utils/user-name.js';
 /**
  * Tasks: the seventh v2 module wired to the real API.
  *
@@ -100,7 +101,7 @@ function toPerson(profile) {
   const user = profile?.user_details ?? profile?.user ?? {};
   return {
     id: profile?.id ?? '',
-    name: user.name || user.email || profile?.user__email || '',
+    name: userName(profile, ''),
     email: user.email || profile?.user__email || ''
   };
 }
@@ -114,10 +115,12 @@ function toRow(row) {
   const assigned = (row.assigned_to ?? []).map(toPerson);
   return {
     id: row.id,
+    custom_fields: row.custom_fields ?? {},
     title: row.title ?? '',
     status: row.status,
     priority: row.priority,
     due_date: row.due_date ?? null,
+    reminder_days: row.reminder_days ?? null,
     description: row.description ?? '',
     related: toRelated(row),
     assigned_to: assigned,
@@ -127,6 +130,7 @@ function toRow(row) {
     assigned_ids: assigned.map((person) => person.id),
     tags: (row.tags ?? []).map((/** @type {any} */ tag) => tag.name ?? tag),
     created_at: row.created_at,
+    last_activity_at: row.last_activity_at ?? row.created_at ?? null,
     // Derived once rather than in four templates. "Completed" is the only
     // status that means finished, and a finished task is never late.
     is_done: row.status === 'Completed'
@@ -329,6 +333,7 @@ export const EDITABLE_FIELDS = [
   'status',
   'priority',
   'due_date',
+  'reminder_days',
   'description',
   'account',
   'opportunity',

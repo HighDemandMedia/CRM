@@ -98,7 +98,7 @@ function buildBody(allowed, values) {
   // `options` is only legal on a dropdown. `validate_definition_options`
   // rejects a non-empty options list on any other type, so this is not
   // defensive noise: sending it turns a valid text field into a 400.
-  if (values.field_type === 'dropdown') {
+  if (['dropdown', 'multi_select'].includes(values.field_type)) {
     const rows = (values.options ?? [])
       .map((/** @type {any} */ o) => ({
         value: o.value ? String(o.value) : slugifyOptionValue(String(o.label ?? '')),
@@ -147,4 +147,29 @@ export async function updateCustomField({ cookies }, id, values) {
 export async function deactivateCustomField({ cookies }, id) {
   if (!id) throw new Error('Which field? No field id was given.');
   return await apiRequest(`/custom-fields/${id}/`, { method: 'DELETE' }, { cookies });
+}
+
+/** Permanently remove a custom definition and its values, after typed confirmation. */
+export async function deleteCustomField({ cookies }, id, confirmation) {
+  if (!id) throw new Error('Choose a custom property to delete.');
+  return apiRequest(`/custom-fields/${id}/?permanent=true`, {
+    method: 'DELETE', body: { confirmation }
+  }, { cookies });
+}
+
+const PROPERTY_OBJECTS = ['Contact', 'Account', 'Opportunity', 'Task', 'Case'];
+
+/** Admin catalog: only the selected object's counts are computed. */
+export async function getPropertyCatalog({ cookies }, target = 'Contact') {
+  if (!PROPERTY_OBJECTS.includes(target)) target = 'Contact';
+  const resp = await apiRequest(
+    `/custom-fields/?catalog=true&target_model=${encodeURIComponent(target)}`,
+    {},
+    { cookies }
+  );
+  return {
+    ...resp,
+    objects: (resp.objects ?? []).filter((object) => PROPERTY_OBJECTS.includes(object.value)),
+    can_edit: viewerRole(cookies) === 'ADMIN'
+  };
 }

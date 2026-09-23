@@ -1,3 +1,5 @@
+import { apiRequest } from '$lib/api-helpers.js';
+import { readableError } from '$lib/server/v2/form-errors.js';
 import { fail } from '@sveltejs/kit';
 import {
   getNotifications,
@@ -6,12 +8,22 @@ import {
 } from '$lib/server/v2/notifications.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies }) {
-  return await getNotifications({ cookies });
+export async function load({ cookies, url }) {
+  const [feed, preferences] = await Promise.all([getNotifications({ cookies, url }), apiRequest('/profile/', {}, { cookies })]);
+  return { ...feed, preferences };
 }
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  preferences: async ({ cookies, request }) => {
+    const form = await request.formData();
+    const body = Object.fromEntries(['notify_in_app', 'notify_mentions', 'notify_comments'].map(key => [key, form.get(key) === 'on']));
+    try {
+      await apiRequest('/profile/', { method: 'PATCH', body }, { cookies });
+      return { scope: 'preferences', saved: true };
+    } catch (err) { return fail(400, { scope: 'preferences', message: readableError(err, 'Could not save preferences.') }); }
+  },
+
   /**
    * Mark one notification read. The page updates optimistically and calls this
    * to persist; `markNotificationRead` hits the recipient-scoped endpoint, so a

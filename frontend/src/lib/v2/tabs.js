@@ -26,8 +26,7 @@ export const TAB_SETS = {
    * says the rest out loud, because nothing about the word suggests it.
    */
   tasks: [
-    { href: '/tasks', label: 'Task list', exact: true, count: 'tasks' },
-    { href: '/tasks/board', label: 'Boards' },
+    { href: '/tasks', label: 'Tasks', exact: true },
     { href: '/tasks/calendar', label: 'Calendar' }
   ],
   invoices: [

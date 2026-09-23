@@ -70,10 +70,10 @@ class TestValidatePayload:
         assert "severity" in errors
         assert cleaned == {}
 
-    def test_required_field_missing_errors(self, org_a):
+    def test_legacy_required_field_is_optional(self, org_a):
         self._defn(org_a, is_required=True)
         cleaned, errors = validate_payload("Case", {}, org_a)
-        assert errors.get("severity") == "is required"
+        assert errors == {}
 
     def test_required_field_preserved_from_existing(self, org_a):
         self._defn(org_a, is_required=True)

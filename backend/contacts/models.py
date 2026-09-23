@@ -1,3 +1,4 @@
+from common.rbac import CRMRecordManager
 from common.languages import LANGUAGES
 from django.db import models, transaction
 from django.db.models import Q
@@ -7,11 +8,23 @@ from django.utils.translation import gettext_lazy as _
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
 from common.models import Org, Profile, Tags, Teams
 from common.utils import COUNTRIES
-from common.validators import flexible_phone_validator
+from common.validators import flexible_phone_validator, contact_phone_key
 from contacts.choices import COMMUNICATION_CHANNELS, CONTACT_SOURCES, CONTACT_STAGES
 
 
+class ActiveContactManager(CRMRecordManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(merged_at__isnull=True)
+
+
 class Contact(AssignableMixin, BaseModel):
+    objects = ActiveContactManager()
+    all_objects = CRMRecordManager()
+    merged_into = models.ForeignKey('self', null=True, blank=True, editable=False,
+        on_delete=models.SET_NULL, related_name='merged_contacts')
+    merged_at = models.DateTimeField(null=True, editable=False)
+    merge_snapshot = models.JSONField(default=dict, editable=False)
+
     """
     Contact model for CRM - Streamlined for modern sales workflow
     Based on Twenty CRM and Salesforce patterns
@@ -29,12 +42,14 @@ class Contact(AssignableMixin, BaseModel):
         validators=[flexible_phone_validator],
     )
 
+    phone_match_key = models.CharField(max_length=25, blank=True, default="", editable=False)
+
     # Nullable for pre-existing and automatically imported records with unknown data.
     source = models.CharField(
         max_length=32, choices=CONTACT_SOURCES, blank=True, null=True
     )
     stage = models.CharField(
-        max_length=32, choices=CONTACT_STAGES, blank=True, null=True
+        max_length=32, choices=CONTACT_STAGES, blank=True, null=True, default="LEAD"
     )
     appointment_at = models.DateTimeField("Appointment", null=True, blank=True)
     stage_entered_at = models.DateTimeField(null=True, blank=True, editable=False)
@@ -112,6 +127,7 @@ class Contact(AssignableMixin, BaseModel):
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["org", "-created_at"]),
+            models.Index(fields=["org", "phone_match_key"], name="contact_org_phone_match_idx"),
         ]
         constraints = [
             # Case-insensitive unique email per organization (when email is not null)
@@ -119,11 +135,16 @@ class Contact(AssignableMixin, BaseModel):
                 Lower("email"),
                 "org",
                 name="unique_contact_email_per_org",
-                condition=Q(email__isnull=False) & ~Q(email=""),
+                condition=Q(email__isnull=False) & ~Q(email="") & Q(merged_at__isnull=True),
             ),
         ]
 
     def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        if update_fields is None or "phone" in update_fields:
+            self.phone_match_key = contact_phone_key(self.phone)
+            if update_fields is not None:
+                kwargs["update_fields"] = {*update_fields, "phone_match_key"}
         # Keep the contact write and its audit entries in the same transaction.
         with transaction.atomic():
             if not self._state.adding:

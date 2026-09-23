@@ -31,3 +31,13 @@ def contact_deal_values(profile, user, contact_ids):
             }
         )
     return result
+
+
+def contact_pipeline_totals(profile, user, contact_ids):
+    """Count each visible associated deal once, even across several contacts."""
+    from common.money_totals import money_totals
+
+    deals = Opportunity.objects.filter(org=profile.org, contacts__id__in=contact_ids)
+    if not (is_org_admin(profile) or user.is_superuser):
+        deals = deals.filter(Q(created_by=profile.user) | Q(assigned_to=profile))
+    return money_totals(deals)

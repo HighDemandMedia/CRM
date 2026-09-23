@@ -1,4 +1,10 @@
 <script>
+  import { showStageRequirements } from "$lib/components/pipelines/feedback.js";
+  import PipelineTotal from '$lib/v2/components/PipelineTotal.svelte';
+  import PipelineCardSummary from '$lib/v2/components/PipelineCardSummary.svelte';
+  import '$lib/v2/styles/pipeline.css';
+  import '$lib/v2/styles/list-view.css';
+  import { pipelineTone } from '$lib/v2/pipeline-view.js';
   import ColumnPicker from '$lib/v2/components/ColumnPicker.svelte';
   import StageProgress from '$lib/v2/components/StageProgress.svelte';
   import { resolve } from '$app/paths';
@@ -10,7 +16,6 @@
   /** @type {HTMLCanvasElement | null} */
   let dragPreview = null;
   let suppressSort = false;
-  import { stageDuration } from '$lib/v2/contact-time.js';
   let clock = $state(Date.now());
   import { onMount, untrack } from 'svelte';
 
@@ -96,6 +101,7 @@
       });
       const result = deserialize(await response.text());
       if (result.type !== 'success') {
+        if (showStageRequirements(result, 'Account', id, {stage})) { moveStatus = ''; return; }
         moveError =
           result.type === 'failure'
             ? String(result.data?.error ?? 'Could not move this company.')
@@ -469,7 +475,12 @@
 
 <PageHeader title="Companies">
   {#snippet sub()}<span class="v2-num">{count(data.totals.count)}</span>
-    {data.totals.count === 1 ? 'company' : 'companies'}{/snippet}
+    {data.totals.count === 1 ? 'company' : 'companies'}{#if data.view === 'pipeline'}
+      {' · '} <PipelineTotal
+        currency={data.org.currency}
+        values={data.totals.money_totals}
+        label="Total annual revenue"
+      />{/if}{/snippet}
   {#snippet actions()}
     <a class="v2-btn v2-btn-primary" href={resolve('/accounts/new')}><Plus />New company</a>
   {/snippet}
@@ -620,17 +631,21 @@
   </div>
 </form>
 
-
 {#if filterError}<p role="alert">{filterError}</p>{/if}
 
-<div class="v2-scroll">
+<div
+  class="v2-scroll"
+  class:pipeline-scroll={data.view === 'pipeline'}
+  class:list-scroll={data.view !== 'pipeline'}
+>
   {#if data.view === 'pipeline'}
     {#if moveError}<p class="table-hint" role="alert">{moveError}</p>{/if}
     <p class="table-hint v2-sub" role="status">{moveStatus}</p>
-    <div class="contact-board" aria-label="Companies by stage">
+    <div class="contact-board hdm-board" aria-label="Companies by stage">
       {#each data.board as stage (stage.value)}
         <section
-          class="stage-column"
+          class="stage-column pipeline-column"
+          data-tone={pipelineTone(stage.label)}
           class:drop-target={dropStage === stage.value}
           aria-label={stage.label}
           ondragover={(event) => overStage(event, stage.value)}
@@ -640,47 +655,44 @@
               dropStage = '';
           }}
         >
-          <header>
+          <header class="pipeline-header">
             <h2>{stage.label}</h2>
-            <span class="v2-num">{count(stage.count)}</span>
+            <div class="pipeline-stage-totals">
+              <PipelineTotal
+                currency={data.org.currency}
+                values={stage.moneyTotals}
+                label="Total annual revenue"
+              /><span class="pipeline-stage-count">{count(stage.count)}</span>
+            </div>
           </header>
-          {#each stage.contacts as contact (contact.id)}
-            {@const stageAge = stageDuration(contact.stage_entered_at, clock)}
-            <article
-              class="contact-card"
-              class:card-dragging={draggedContact === contact.id}
-              class:card-saving={movingContact === contact.id}
-              aria-busy={movingContact === contact.id}
-              draggable={!movingContact}
-              ondragstart={(event) => startContactDrag(event, contact.id, stage.value)}
-              ondragend={endContactDrag}
-            >
-              <a draggable="false" class="card-name" href={resolve(`/accounts/${contact.id}`)}
-                ><strong>{contact.name}</strong></a
+          <div class="pipeline-cards">
+            {#each stage.contacts as contact (contact.id)}
+              <article
+                class="contact-card pipeline-card compact-pipeline-card"
+                class:card-dragging={draggedContact === contact.id}
+                class:card-saving={movingContact === contact.id}
+                aria-busy={movingContact === contact.id}
+                draggable={!movingContact}
+                ondragstart={(event) => startContactDrag(event, contact.id, stage.value)}
+                ondragend={endContactDrag}
               >
-              <dl>
-                {#if contact.website}<dt>Domain</dt>
-                  <dd>{contact.website}</dd>{/if}
-                {#if contact.owner}<dt>Owner</dt>
-                  <dd>{contact.owner}</dd>{/if}
-                {#if contact.industry}<dt>Industry</dt>
-                  <dd>{contact.industry}</dd>{/if}
-                {#if contact.annual_revenue !== null}<dt>Revenue</dt>
-                  <dd>{money(contact.annual_revenue, contact.currency)}</dd>{/if}
-                {#if contact.contacts.length}<dt>Contacts</dt>
-                  <dd>{cell(contact, 'contacts')}</dd>{/if}
-              </dl>
-              {#if stageAge}
-                <div class="card-bottom">
-                  {#if stageAge}
-                    <div class="card-dates">
-                      <span class="stage-time" title="Days in this stage">{stageAge}</span>
-                    </div>
-                  {/if}
-                </div>
-              {/if}
-            </article>
-          {:else}<p class="v2-sub">No companies on this page.</p>{/each}
+                <PipelineCardSummary
+                  name={contact.name}
+                  tags={contact.tags}
+                  href={`/accounts/${contact.id}`}
+                  email={contact.email}
+                  phone={contact.phone}
+                  values={contact.annual_revenue === null
+                    ? []
+                    : [{ amount: contact.annual_revenue, currency: contact.currency }]}
+                  valueLabel="Annual revenue"
+                  lastActivity={contact.last_activity_at}
+                  stageEntered={contact.stage_entered_at}
+                  now={clock}
+                />
+              </article>
+            {:else}<p class="pipeline-empty">No companies</p>{/each}
+          </div>
           <footer>
             {#if stage.offset > 0}<a
                 class="v2-btn"
@@ -702,7 +714,7 @@
   {:else}
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this overflow region to scroll the table.) -->
     <div
-      class="contact-table-scroll"
+      class="contact-table-scroll hdm-list"
       ondragover={previewPosition}
       ondrop={dropColumn}
       ondragleave={leaveColumns}
@@ -722,6 +734,7 @@
               <th
                 scope="col"
                 data-column={key}
+                data-field={key}
                 class:drag-source={dragging === key}
                 class:insert-before={dragging !== '' && insertionIndex === selected.indexOf(key)}
                 class:insert-after={dragging !== '' &&
@@ -780,6 +793,7 @@
               {#each orderedFields as [key] (key)}
                 <td
                   class="contact-cell"
+                  data-field={key}
                   title={String(cell(contact, key))}
                   class:drag-source={dragging === key}
                   class:insert-before={dragging !== '' && insertionIndex === selected.indexOf(key)}
@@ -789,7 +803,7 @@
                 >
                   {#if key === 'name'}<a
                       class="v2-row-link v2-table-primary"
-                      href={resolve(`/accounts/${contact.id}`)}>{contact.name}</a
+                      href={resolve(`/accounts/${contact.id}`)}>{contact.name || `Company · ${contact.id.slice(0, 8)}`}</a
                     >
                   {:else if key === 'stage_label'}<StageProgress
                       stage={contact.stage}
@@ -802,9 +816,14 @@
                   {:else}{cell(contact, key)}{/if}
                 </td>
               {/each}
-              <td
-                ><a href={resolve(`/accounts/${contact.id}`)}>Open</a> ·
-                <a href={resolve(`/accounts/${contact.id}/edit`)}>Edit</a></td
+              <td class="list-row-actions"
+                ><a aria-label={`Open ${contact.name}`} href={resolve(`/accounts/${contact.id}`)}
+                  >Open</a
+                >
+                <a
+                  aria-label={`Edit ${contact.name}`}
+                  href={resolve(`/accounts/${contact.id}/edit`)}>Edit</a
+                ></td
               >
             </tr>
           {:else}<tr><td colspan={selected.length + 1}>No companies on this page.</td></tr>{/each}
@@ -901,13 +920,6 @@
     max-width: 100%;
   }
 
-  .card-bottom {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: 12px;
-  }
   .stage-column.drop-target {
     outline: 2px solid #2563eb;
     outline-offset: -2px;
@@ -1019,25 +1031,6 @@
     opacity: 0.45;
   }
 
-  .card-dates {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 5px;
-    margin-left: auto;
-    flex-shrink: 0;
-    text-align: right;
-    font-size: 11px;
-    color: #666;
-  }
-  .stage-time {
-    color: #a94312;
-    background: #fff0e5;
-    padding: 4px 8px;
-    border-radius: 5px;
-    font-weight: 600;
-  }
-
   .pagination {
     display: flex;
     align-items: center;
@@ -1101,28 +1094,6 @@
     border-radius: 8px;
     padding: 14px;
     margin-bottom: 12px;
-  }
-  .card-name {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: inherit;
-    text-decoration: none;
-    overflow-wrap: anywhere;
-  }
-  dl {
-    display: grid;
-    grid-template-columns: 55px minmax(0, 1fr);
-    gap: 7px;
-    font-size: 12px;
-    margin: 16px 0;
-  }
-  dt {
-    color: #666;
-  }
-  dd {
-    margin: 0;
-    overflow-wrap: anywhere;
   }
   footer {
     display: flex;

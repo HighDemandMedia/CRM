@@ -1,3 +1,6 @@
+from common.last_activity import LastActivitySerializerMixin, ActivityListSerializer
+from common.pipeline_settings import PipelineRulesMixin, stages_for
+from common.rbac import VisibleCRMSerializerMixin
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -15,7 +18,7 @@ from contacts.models import Contact
 # - created_on_arrow (frontend computes its own humanized timestamps)
 
 
-class ContactSerializer(serializers.ModelSerializer):
+class ContactSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer):
     """Serializer for reading Contact data"""
 
     last_activity_at = serializers.DateTimeField(read_only=True)
@@ -25,7 +28,14 @@ class ContactSerializer(serializers.ModelSerializer):
     )
     name = serializers.CharField(read_only=True)
     source_label = serializers.CharField(source="get_source_display", read_only=True)
-    stage_label = serializers.CharField(source="get_stage_display", read_only=True)
+    stage_label = serializers.SerializerMethodField()
+
+    def get_stage_label(self, obj):
+        cache = self.__dict__.setdefault('_pipeline_labels', {})
+        key = (obj.org_id, obj.__class__.__name__)
+        if key not in cache:
+            cache[key] = {s['key']: s['label'] for s in stages_for(obj.org, key[1])}
+        return cache[key].get(obj.stage, obj.get_stage_display())
     preferred_communication_channel_label = serializers.CharField(
         source="get_preferred_communication_channel_display", read_only=True
     )
@@ -71,6 +81,7 @@ class ContactSerializer(serializers.ModelSerializer):
         ]
 
     class Meta:
+        list_serializer_class = ActivityListSerializer
         model = Contact
         fields = (
             "id",
@@ -127,7 +138,7 @@ class ContactSerializer(serializers.ModelSerializer):
         )
 
 
-class CreateContactSerializer(serializers.ModelSerializer):
+class CreateContactSerializer(PipelineRulesMixin, serializers.ModelSerializer):
     """Serializer for creating/updating Contact data"""
 
     name = serializers.CharField(required=False, allow_blank=False, max_length=255)
@@ -142,15 +153,8 @@ class CreateContactSerializer(serializers.ModelSerializer):
             if self.instance is None or name != self.instance.name:
                 attrs["first_name"] = name
                 attrs["last_name"] = ""
-        errors = {}
-        if self.instance is None:
-            if not attrs.get("first_name", "").strip():
-                errors["name"] = "Name is required."
-            for field in ("phone", "source", "stage"):
-                if not attrs.get(field):
-                    errors[field] = "This field is required."
-        if errors:
-            raise serializers.ValidationError(errors)
+        if self.instance is None and not attrs.get("first_name", "").strip():
+            raise serializers.ValidationError({"name": "Name is required."})
         return attrs
 
     def __init__(self, *args, **kwargs):

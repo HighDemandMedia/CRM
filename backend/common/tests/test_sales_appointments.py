@@ -200,3 +200,72 @@ def test_event_deal_missing_source_is_atomic_and_optional(admin_client,admin_pro
     response=admin_client.post('/api/sales-appointments/',{**body,'create_deal':False,'starts_at':'2026-09-16T13:00:00Z','ends_at':'2026-09-16T14:00:00Z'},format='json')
     assert response.status_code==201 and response.data['deal'] is None
     assert Opportunity.objects.count()==1
+
+@pytest.mark.django_db
+def test_multiple_attendees_sync_and_deal(admin_client, admin_profile, user_profile, org_a):
+    from contacts.models import Contact
+    from accounts.models import Account
+    from common.models import Activity, Comment
+    contacts = [Contact.objects.create(first_name=name, org=org_a, source='META') for name in ['First', 'Second']]
+    company = Account.objects.create(name='Company', org=org_a)
+    body = {'title':'Group meeting','host':str(admin_profile.pk),
+            'starts_at':'2026-09-15T13:00:00Z','ends_at':'2026-09-15T14:00:00Z',
+            'contacts':[str(c.pk) for c in contacts] + [str(contacts[0].pk)],
+            'companies':[str(company.pk)],'users':[str(user_profile.pk)],
+            'internal_notes':'Prepare together','create_deal':True}
+    response = admin_client.post('/api/sales-appointments/', body, format='json')
+    assert response.status_code == 201, response.data
+    assert len(response.data['attendees']) == 4
+    record = SalesAppointment.objects.get(pk=response.data['id'])
+    assert record.deal.contacts.count() == 2 and record.deal.account_id == company.pk
+    for attendee in [*contacts, company]:
+        attendee.refresh_from_db()
+        assert attendee.appointment_at == record.starts_at
+        assert Comment.objects.filter(object_id=attendee.pk, comment='Prepare together').count() == 1
+        assert Activity.objects.filter(entity_id=attendee.pk, description='Event scheduled: Group meeting').count() == 1
+    url = f'/api/sales-appointments/{record.pk}/'
+    assert admin_client.patch(url, {'operation':'reschedule','starts_at':'2026-09-16T15:00:00Z','ends_at':'2026-09-16T16:00:00Z'}, format='json').status_code == 200
+    for attendee in [*contacts, company]:
+        attendee.refresh_from_db()
+        assert attendee.appointment_at.day == 16
+    assert admin_client.patch(url, {'operation':'cancel'}, format='json').status_code == 200
+    for attendee in [*contacts, company]:
+        attendee.refresh_from_db()
+        assert attendee.appointment_at is None
+
+@pytest.mark.django_db
+def test_internal_meeting_visible_to_invited_user(admin_client, admin_profile, user_profile, user_client):
+    body = {'title':'Internal meeting','host':str(admin_profile.pk),
+            'starts_at':'2026-09-15T13:00:00Z','ends_at':'2026-09-15T14:00:00Z',
+            'users':[str(user_profile.pk)]}
+    response = admin_client.post('/api/sales-appointments/', body, format='json')
+    assert response.status_code == 201, response.data
+    assert response.data['deal'] is None
+    assert response.data['attendees'][0]['type'] == 'user'
+    query = {'start':'2026-09-15T00:00:00Z','end':'2026-09-16T00:00:00Z'}
+    invited = user_client.get('/api/sales-appointments/',query)
+    assert len(invited.data) == 1 and invited.data[0]['can_manage'] is False
+    assert user_client.patch(f"/api/sales-appointments/{response.data['id']}/",{'operation':'cancel'},format='json').status_code == 404
+    availability = admin_client.get('/api/sales-appointments/availability/',{**query,'host':str(user_profile.pk)})
+    assert len(availability.data['busy']) == 1
+    # An internal-only event cannot create a deal.
+    body.update(create_deal=True, allow_overlap=True)
+    assert admin_client.post('/api/sales-appointments/',body,format='json').status_code == 400
+
+@pytest.mark.django_db
+def test_multiple_attendee_scope_and_inactive_users(admin_client, admin_profile, user_profile, org_b):
+    from common.models import Profile
+    from contacts.models import Contact
+    foreign = Contact.objects.create(first_name='Other tenant',org=org_b)
+    body = {'title':'Meeting','host':str(admin_profile.pk),
+            'starts_at':'2026-09-15T13:00:00Z','ends_at':'2026-09-15T14:00:00Z'}
+    assert admin_client.post('/api/sales-appointments/',{**body,'contacts':[str(foreign.pk)]},format='json').status_code == 400
+    foreign_profile = Profile.objects.filter(org=org_b).first()
+    if foreign_profile:
+        assert admin_client.post('/api/sales-appointments/',{**body,'users':[str(foreign_profile.pk)]},format='json').status_code == 400
+    user_profile.is_active = False
+    user_profile.save(update_fields=['is_active'])
+    assert admin_client.post('/api/sales-appointments/',{**body,'users':[str(user_profile.pk)]},format='json').status_code == 400
+    choices = admin_client.get('/api/sales-appointments/attendees/').data['users']
+    assert str(user_profile.pk) not in [item['id'] for item in choices]
+    assert all(Profile.objects.get(pk=item['id']).org_id == admin_profile.org_id for item in choices)

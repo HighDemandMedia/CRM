@@ -1,218 +1,356 @@
 <script>
   import { resolve } from '$app/paths';
+  import { invalidateAll } from '$app/navigation';
+  import { enhance } from '$app/forms';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import Pill from '$lib/v2/components/Pill.svelte';
-  import { money, count } from '$lib/v2/format.js';
-  import { Target } from '@lucide/svelte';
-
-  /** @type {{ data: any }} */
-  let { data } = $props();
-
-  const TONE_VAR = {
-    rust: 'var(--v2-rust)',
-    clay: 'var(--v2-clay)',
-    slate: 'var(--v2-slate)',
-    moss: 'var(--v2-moss)'
-  };
-
-  let { queue, summary, later, goals } = $derived(data);
-
-  /** Revenue goals are money; deals and activities goals are plain counts. */
-  const goalValue = (g, n) => (g.goal_type === 'REVENUE' ? money(n, data.org.currency) : count(n));
-
-  /**
-   * Coloured on the server's pace judgement, not on the raw percentage, so the
-   * strip agrees with the goals page rather than calling a goal green in week
-   * two of a quarter for being 40% of the way there.
-   */
-  const goalColor = (g) =>
-    g.status === 'completed'
-      ? 'var(--v2-moss)'
-      : g.status === 'behind'
-        ? 'var(--v2-rust)'
-        : g.status === 'at_risk'
-          ? 'var(--v2-clay)'
-          : 'var(--v2-slate)';
-
-  const plural = (/** @type {number} */ n, /** @type {string} */ one, /** @type {string} */ many) =>
-    `${n} ${n === 1 ? one : many}`;
-
-  // Built as one string rather than conditional markup: the "quiet deals"
-  // clause only makes sense when there are any, and the numbers are often zero
-  // in a real org, so the copy adapts instead of reading "0 deals … have gone
-  // quiet."
-  //
-  // It used to close with "Those are first", which was generated from a count
-  // rather than from the sort it described. Quiet deals rank below overdue
-  // invoices, so on the seeded org all seven of them fell off the end of the
-  // list the sentence had just promised to lead with.
-  let subText = $derived(
-    summary.count === 0
-      ? 'Nothing needs you right now: you’re all clear for today.'
-      : summary.quiet_deals === 0
-        ? `${plural(summary.count, 'thing wants', 'things want')} you today.`
-        : `${plural(summary.count, 'thing wants', 'things want')} you today. ` +
-          `${plural(summary.quiet_deals, 'deal', 'deals')} worth ${money(summary.quiet_value, data.org.currency)} ` +
-          `${summary.quiet_deals === 1 ? 'has' : 'have'} gone quiet.`
-  );
-
-  // The queue shows the most urgent 8. Everything past that is real work with
-  // nowhere on this page to go, so name it and link each source to its own
-  // list. "That's everything" is only true when nothing was left out.
-  let hidden = $derived(Math.max(0, summary.count - summary.shown));
+  import EventDetails from '$lib/v2/components/EventDetails.svelte';
+  import { money } from '$lib/v2/format.js';
+  import { CalendarDays, Circle, CheckCheck, Clock3, ArrowUpRight } from '@lucide/svelte';
+  let { data, form } = $props();
+  let day = $derived(data.day);
+  let details;
+  let saving = $state({});
+  const clock = (value) =>
+    new Date(value).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: day.timezone
+    });
+  const date = (value) =>
+    new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
 </script>
 
 <PageHeader title="Today">
-  {#snippet sub()}{subText}{/snippet}
-</PageHeader>
-
-<div class="v2-scroll">
-  <div class="v2-pad" style="padding-top:14px;padding-bottom:26px">
-    <!--
-      Only the top item gets the ember button. Five ember buttons down a page
-      is v1's mistake in a new coat: if everything is the primary action then
-      nothing is, and the colour stops carrying information.
-    -->
-    {#each queue as item, i (item.id)}
-      <div class="v2-card" style="margin-bottom:8px">
-        <div class="v2-queue-item">
-          <span class="v2-queue-spine" style="background:{TONE_VAR[item.tone]}"></span>
-          <div class="v2-queue-body">
-            <a href={resolve(item.href)} style="color:inherit;text-decoration:none">
-              <div style="font-weight:640;letter-spacing:-0.012em">{item.title}</div>
-            </a>
-            <div class="v2-sub" style="margin-top:2px">{item.detail}</div>
-          </div>
-          <!-- On a phone these drop to their own line rather than squeezing
-               the title into three words per row. -->
-          <div class="v2-queue-actions">
-            <Pill tone={item.tone}>{item.due}</Pill>
-            <a class="v2-btn" class:v2-btn-primary={i === 0} href={resolve(item.href)}
-              >{item.action}</a
-            >
-          </div>
-        </div>
-      </div>
-    {/each}
-
-    {#if queue.length && hidden === 0}
-      <p class="v2-sub" style="margin:15px 0 21px;font-size:12.5px">That’s everything due today.</p>
-    {:else if queue.length}
-      <p class="v2-sub" style="margin:15px 0 21px;font-size:12.5px">
-        <span class="v2-num">{hidden}</span>
-        {hidden === 1 ? 'more is' : 'more are'} waiting:
-        {#each summary.sources as source, i (source.href)}<a
-            href={resolve(source.href)}
-            style="color:inherit">{source.count} {source.label}</a
-          >{i < summary.sources.length - 1 ? ', ' : '.'}{/each}
-      </p>
-    {:else}
-      <div class="v2-card" style="margin-bottom:8px">
-        <div class="v2-pad" style="padding:20px;text-align:center">
-          <div style="font-weight:640;letter-spacing:-0.012em">Inbox zero for today</div>
-          <div class="v2-sub" style="margin-top:3px">
-            No overdue tickets, invoices, quiet deals or tasks. Anything coming up is below.
-          </div>
-        </div>
-      </div>
-    {/if}
-
-    <!--
-      Where you stand, under what needs doing.
-
-      The queue is about today and a quota is about the period, so this sits
-      below the queue rather than above it: it is context for the work, not
-      work. It shows only goals running right now, narrowed server-side to the
-      ones the reader may see, and stays out of the way entirely when there are
-      none.
-    -->
-    {#if goals.length}
-      <div class="v2-label" style="margin:6px 0 9px">
-        <Target size={12} style="vertical-align:-1px;margin-right:4px" />
-        Where you stand
-      </div>
-      <div class="goals">
-        {#each goals as g (g.id)}
-          <a class="v2-card goal" href={resolve('/goals')}>
-            <div class="goal-head">
-              <span class="goal-name">{g.name}</span>
-              <span class="v2-num" style="font-weight:650;font-size:12.5px;color:{goalColor(g)}">
-                {g.progress_percent}%
-              </span>
-            </div>
-            <div class="v2-bar" style="margin-top:8px">
-              <i style="width:{g.progress_percent}%;background:{goalColor(g)}"></i>
-            </div>
-            <div class="v2-sub" style="font-size:11.5px;margin-top:6px">
-              {goalValue(g, g.progress_value)} of {goalValue(g, g.target_value)}
-            </div>
-          </a>
-        {/each}
-      </div>
-    {/if}
-
-    {#if later.length}
-      <div class="v2-label" style="margin:6px 0 9px">Later this week</div>
-      {#each later as row (row.id)}
-        <div
-          style="display:flex;gap:13px;align-items:baseline;padding:9px 3px;border-bottom:1px solid var(--v2-line-soft)"
+  {#snippet sub()}Your day at a glance · {new Date(`${day.date}T12:00:00`).toLocaleDateString(
+      'en-US',
+      { weekday: 'long', month: 'long', day: 'numeric' }
+    )}{/snippet}
+  {#snippet actions()}{#if day.can_select_user}<form method="GET">
+        <select
+          class="v2-input"
+          aria-label="Whose day"
+          name="user"
+          value={day.selected_user}
+          onchange={(event) => event.currentTarget.form?.requestSubmit()}
+          ><option value="all">Team day</option>{#each day.people as person}<option
+              value={person.id}>{person.id === day.current_user ? 'My day' : person.name}</option
+            >{/each}</select
         >
-          <!-- The day is a short word, not a label, sentence case, same as the mocks. -->
-          <span class="v2-muted" style="font-size:11.5px;font-weight:650;width:26px;flex:none"
-            >{row.day}</span
-          >
-          <span style="flex:1;font-size:13.5px">{row.title}</span>
-          <span class="v2-sub" style="font-size:11.5px">{row.meta}</span>
-        </div>
-      {/each}
-    {/if}
-
-    {#if summary.cleared_yesterday > 0}
-      <p class="v2-sub" style="margin-top:20px;font-size:12px">
-        Yesterday you cleared <span class="v2-num">{summary.cleared_yesterday}</span>.
-      </p>
-    {/if}
+      </form>{:else}<span class="my-day">My day</span>{/if}{/snippet}
+</PageHeader>
+<EventDetails bind:this={details} onChanged={() => void invalidateAll()} />
+{#if form?.error}<p class="error" role="alert">{form.error}</p>{/if}
+<div class="today-scroll">
+  <div class="day-counts">
+    <div>
+      <CalendarDays size={18} /><strong>{day.counts.events}</strong><span>Events today</span>
+    </div>
+    <div>
+      <CheckCheck size={18} /><strong>{day.counts.tasks_today}</strong><span>Tasks due today</span>
+    </div>
+    <div class:late={day.counts.overdue > 0}>
+      <Clock3 size={18} /><strong>{day.counts.overdue}</strong><span>Overdue</span>
+    </div>
+  </div>
+  <div class="day-layout">
+    <section class="panel agenda">
+      <header>
+        <h2>Today's agenda <span>{day.counts.events}</span></h2>
+        <a href={resolve('/calendar')}>View calendar <ArrowUpRight size={13} /></a>
+      </header>
+      <p class="timezone">{day.timezone.replaceAll('_', ' ')}</p>
+      {#each day.events as event}<button
+          class="event"
+          class:company={event.attendee?.type === 'company'}
+          onclick={(click) => details.open(event, click.currentTarget)}
+          ><span class="event-time">{clock(event.start)}<small>{clock(event.end)}</small></span
+          ><span
+            ><strong>{event.title}</strong>{#if event.attendee}<small
+                >{event.attendee.type === 'company' ? 'Company' : 'Contact'} · {event.attendee
+                  .name}</small
+              >{/if}<small>{event.host}</small></span
+          ></button
+        >{:else}<div class="empty">
+          <CalendarDays size={24} />
+          <p>No events scheduled today.</p>
+          <a href={resolve('/calendar')}>Schedule an event</a>
+        </div>{/each}
+      {#if day.counts.events > day.events.length}<a class="more" href={resolve('/calendar')}
+          >View all {day.counts.events} events</a
+        >{/if}
+    </section>
+    <div class="work">
+      {#if day.reminders?.length}<section class="panel">
+          <header>
+            <h2>Task reminders <span>{day.counts.reminders}</span></h2>
+            <a href={resolve('/tasks')}>View all <ArrowUpRight size={13} /></a>
+          </header>
+          {#each day.reminders as task}<a class="work-row" href={resolve(`/tasks/${task.id}`)}
+              ><span class="record"
+                ><strong>{task.name}</strong><small>{task.priority} priority</small></span
+              ><span class="due">Due {date(task.due)}</span></a
+            >{/each}
+        </section>{/if}
+      <section class="panel">
+        <header>
+          <h2>Tasks <span>{day.counts.tasks}</span></h2>
+          <a href={resolve('/tasks')}>View all <ArrowUpRight size={13} /></a>
+        </header>
+        {#each day.tasks as task}<div class="work-row">
+            <form
+              method="POST"
+              action="?/complete"
+              use:enhance={() => {
+                saving[task.id] = true;
+                return async ({ update }) => {
+                  try {
+                    await update({ reset: false });
+                  } finally {
+                    saving[task.id] = false;
+                  }
+                };
+              }}
+            >
+              <input type="hidden" name="id" value={task.id} /><button
+                class="complete"
+                aria-label={`Complete ${task.name}`}
+                title="Complete task"
+                disabled={saving[task.id]}><Circle size={19} /></button
+              >
+            </form>
+            <a class="record" href={resolve(`/tasks/${task.id}`)}
+              ><strong>{task.name}</strong><small>{task.priority} · {task.status}</small></a
+            ><span class="due" class:late={task.overdue}
+              >{task.overdue ? date(task.due) : 'Today'}</span
+            >
+          </div>{:else}<p class="empty-copy">No tasks due today or overdue.</p>{/each}
+      </section>
+      <section class="panel">
+        <header>
+          <h2>Deals to follow up <span>{day.counts.deals}</span></h2>
+          <a href={resolve('/pipeline')}>View all <ArrowUpRight size={13} /></a>
+        </header>
+        {#each day.deals as deal}<a class="work-row record" href={resolve(`/pipeline/${deal.id}`)}
+            ><span
+              ><strong>{deal.name}</strong><small
+                >{deal.stage} · {money(deal.amount, deal.currency)}</small
+              ></span
+            ><span class="due" class:late={deal.overdue}
+              >{deal.overdue ? date(deal.due) : 'Today'}</span
+            ></a
+          >{:else}<p class="empty-copy">No open deals due to close today or overdue.</p>{/each}
+      </section>
+      <section class="panel">
+        <header>
+          <h2>Tickets <span>{day.counts.tickets}</span></h2>
+          <a href={resolve('/tickets')}>View all <ArrowUpRight size={13} /></a>
+        </header>
+        {#each day.tickets as ticket}<a
+            class="work-row record"
+            href={resolve(`/tickets/${ticket.id}`)}
+            ><span
+              ><strong>{ticket.name}</strong><small>{ticket.code} · {ticket.priority}</small></span
+            ><span class="due" class:late={ticket.overdue}
+              >{ticket.overdue ? date(ticket.due) : 'Today'}</span
+            ></a
+          >{:else}<p class="empty-copy">No open tickets due today or overdue.</p>{/each}
+      </section>
+    </div>
   </div>
 </div>
 
 <style>
-  /*
-    Phone first: one goal per row at 390px, where three across would leave each
-    bar too short to read. Widens from the 768px breakpoint v2.css already uses.
-  */
-  .goals {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-    margin-bottom: 18px;
+  .today-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 10px 22px 24px;
   }
-
-  .goal {
-    display: block;
-    padding: 13px 15px;
-    color: inherit;
+  .day-counts {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .day-counts > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--v2-card);
+    padding: 14px 18px;
+    border-radius: 10px;
+    color: var(--v2-slate);
+  }
+  .day-counts strong {
+    font-size: 22px;
+    color: var(--v2-ink);
+  }
+  .day-counts span {
+    font-size: 12px;
+  }
+  .day-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 18px;
+    align-items: start;
+  }
+  .panel {
+    background: var(--v2-card);
+    border-radius: 12px;
+    padding: 18px;
+    min-width: 0;
+  }
+  .work {
+    display: grid;
+    gap: 14px;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-size: 14px;
+    font-weight: 650;
+    margin: 0;
+  }
+  h2 span {
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--v2-slate);
+    margin-left: 6px;
+  }
+  header a {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    color: var(--v2-slate);
     text-decoration: none;
   }
-
-  .goal-head {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
+  .timezone {
+    margin: -4px 0 16px;
+    font-size: 11px;
+    color: var(--v2-slate);
   }
-
-  .goal-name {
+  .event {
+    display: flex;
+    text-align: left;
+    gap: 16px;
+    width: 100%;
+    border: 0;
+    border-left: 3px solid #9c91b0;
+    background: var(--v2-paper);
+    border-radius: 7px;
+    padding: 14px 12px;
+    margin: 8px 0;
+    cursor: pointer;
+    color: var(--v2-ink);
+  }
+  .event.company {
+    border-left-color: #7b958b;
+  }
+  .event-time {
+    flex-shrink: 0;
+    font-size: 12px;
+    min-width: 72px;
+  }
+  strong {
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  small {
+    display: block;
+    font-size: 11px;
+    color: var(--v2-slate);
+    margin-top: 5px;
+  }
+  .work-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--v2-line-soft);
+  }
+  .work-row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+  .record {
+    color: var(--v2-ink);
+    text-decoration: none;
     flex: 1;
     min-width: 0;
-    font-weight: 600;
-    font-size: 13px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
-
-  @media (min-width: 768px) {
-    .goals {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+  .record:hover strong {
+    text-decoration: underline;
+  }
+  .work-row > span:first-child {
+    flex: 1;
+  }
+  .due {
+    margin-left: auto;
+    font-size: 11px;
+    flex-shrink: 0;
+    color: var(--v2-slate);
+  }
+  .late {
+    color: var(--v2-rust);
+  }
+  .complete {
+    border: 0;
+    background: none;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    color: var(--v2-slate);
+    cursor: pointer;
+  }
+  .complete:disabled {
+    opacity: 0.4;
+    cursor: wait;
+  }
+  .empty {
+    padding: 36px 12px;
+    text-align: center;
+    color: var(--v2-slate);
+    font-size: 13px;
+  }
+  .empty :global(svg) {
+    margin: auto;
+  }
+  .empty a,
+  .more {
+    font-size: 12px;
+    color: var(--v2-ink);
+  }
+  .empty-copy {
+    font-size: 12px;
+    color: var(--v2-slate);
+    margin: 20px 0 6px;
+  }
+  .error {
+    color: var(--v2-rust);
+    padding: 0 22px;
+  }
+  .my-day {
+    color: var(--v2-slate);
+    font-size: 13px;
+  }
+  @media (max-width: 1050px) {
+    .day-layout {
+      grid-template-columns: 1fr;
+    }
+    .today-scroll {
+      padding: 10px 12px 20px;
     }
   }
 </style>

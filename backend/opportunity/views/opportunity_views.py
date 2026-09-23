@@ -1,3 +1,5 @@
+from common.rbac import configured, permitted
+from common.money_totals import money_totals
 import json
 from datetime import timedelta
 from decimal import Decimal
@@ -118,6 +120,7 @@ class OpportunityListView(APIView, LimitOffsetPagination):
         return {
             "count": totals_queryset.count(),
             "amount_sum": aggregates["amount_sum"],
+            "money_totals": money_totals(totals_queryset) if self.request.query_params.get("include_pipeline_totals") == "true" else [],
             "weighted_sum": aggregates["weighted_sum"],
             # Closed deals are never stalled; `get_aging_status()` returns
             # green for them, so the count excludes them regardless of whether
@@ -136,7 +139,8 @@ class OpportunityListView(APIView, LimitOffsetPagination):
         accounts = Account.objects.filter(org=self.request.profile.org)
         contacts = Contact.objects.filter(org=self.request.profile.org)
         if (
-            not is_org_admin(self.request.profile)
+            not configured(self.request.profile)
+            and not is_org_admin(self.request.profile)
             and not self.request.user.is_superuser
         ):
             queryset = queryset.filter(
@@ -569,7 +573,7 @@ class OpportunityDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
         if (
-            not is_org_admin(self.request.profile)
+            not configured(self.request.profile) and not is_org_admin(self.request.profile)
             and not self.request.user.is_superuser
         ):
             if self.request.profile.user != self.object.created_by:

@@ -1,4 +1,5 @@
 <script>
+  import { fieldInputType, fieldInputStep } from '$lib/v2/custom-field-input.js';
   import { resolve } from '$app/paths';
   import { enhance } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
@@ -54,6 +55,7 @@
 
   /** @param {CustomFieldDef} defn */
   function defaultFor(defn) {
+    if (defn.field_type === 'multi_select') return [];
     if (defn.field_type === 'checkbox') return false;
     if (defn.field_type === 'number') return '';
     return '';
@@ -150,6 +152,18 @@
                 <input id={`cf_${defn.key}`} type="checkbox" bind:checked={draft[defn.key]} />
                 <span class="text-[var(--text-secondary)]">{defn.label}</span>
               </label>
+            {:else if defn.field_type === 'multi_select'}
+              <div class="space-y-2" role="group" aria-label={defn.label}>
+                {#each defn.options || [] as opt (opt.value)}
+                  <label class="flex items-center gap-2 text-sm"
+                    ><input
+                      type="checkbox"
+                      value={opt.value}
+                      bind:group={draft[defn.key]}
+                    />{opt.label}</label
+                  >
+                {/each}
+              </div>
             {:else if defn.field_type === 'dropdown'}
               <select
                 id={`cf_${defn.key}`}
@@ -157,13 +171,21 @@
                 bind:value={draft[defn.key]}
                 class="w-full rounded-md border border-[var(--border-default)] bg-[var(--surface-default)] px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--color-primary-default)]"
               >
-                <option value="">, None, </option>
+                <option value="">None</option>
                 {#each defn.options || [] as opt (opt.value)}
                   <option value={opt.value}>{opt.label}</option>
                 {/each}
               </select>
             {:else}
-              <Input id={`cf_${defn.key}`} bind:value={draft[defn.key]} />
+              <Input
+                id={`cf_${defn.key}`}
+                type={fieldInputType(defn.field_type)}
+                step={fieldInputStep(defn.field_type)}
+                min={defn.field_type === 'percentage' ? 0 : undefined}
+                max={defn.field_type === 'percentage' ? 100 : undefined}
+                required={!!defn.is_required}
+                bind:value={draft[defn.key]}
+              />
             {/if}
           </div>
         {/each}

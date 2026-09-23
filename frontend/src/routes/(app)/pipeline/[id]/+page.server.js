@@ -9,7 +9,7 @@ import {
   updateDeal,
   EDITABLE_FIELDS
 } from '$lib/server/v2/deals.js';
-import { readableError } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 /** @type {import('./$types').PageServerLoad} */
 export async function load(event) {
   const [deal, editor] = await Promise.all([
@@ -120,7 +120,7 @@ export const actions = {
       if (Object.keys(changes).length) await updateDeal(event, event.params.id, changes);
       return { saved: true };
     } catch (/** @type {any} */ err) {
-      return fail(400, { error: readableError(err, 'Could not save changes.') });
+      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save changes.') });
     }
   }
 };

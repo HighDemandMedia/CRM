@@ -6,6 +6,7 @@
   let details;
   import { onMount, tick } from 'svelte';
   import { resolve } from '$app/paths';
+  import { page } from '$app/state';
   import { ChevronLeft, ChevronRight, Building2, UserRound } from '@lucide/svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { calendarDays, dateKey, shiftDate, timedCards } from '$lib/v2/calendar.js';
@@ -44,7 +45,9 @@
     return result;
   });
   onMount(() => {
-    selected = new Date();
+    const date = page.url.searchParams.get('date');
+    const requested = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? new Date(`${date}T12:00:00`) : null;
+    selected = requested && Number.isFinite(requested.getTime()) ? requested : new Date();
     ready = true;
   });
   $effect(() => {
@@ -52,7 +55,10 @@
     const first = days[0],
       last = days[days.length - 1];
     const end = new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1);
-    const query = new URLSearchParams({ start: first.toISOString(), end: end.toISOString() });
+    const query = new URLSearchParams({
+      start: first.toISOString(),
+      end: end.toISOString()
+    });
     refresh;
     const controller = new AbortController();
     busy = true;
@@ -65,7 +71,8 @@
         if (!controller.signal.aborted) events = result.events;
       })
       .catch((err) => {
-        if (!controller.signal.aborted) failure = 'Could not load appointments. Please try again.';
+        if (!controller.signal.aborted)
+          failure = 'Could not load appointments. Please try again.';
       })
       .finally(() => {
         if (!controller.signal.aborted) busy = false;
@@ -75,21 +82,30 @@
 </script>
 
 {#snippet eventCard(event)}
-  {@const attendeeType = event.attendee?.type ?? event.type}
-  {@const typeLabel = attendeeType === 'company' ? 'Company' : attendeeType === 'contact' ? 'Contact' : 'Event'}
-  <button
-    type="button"
-    title={`${typeLabel} · ${event.title} · ${new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
-    class="appointment"
-    class:company={attendeeType === 'company'}
-    class:unlinked={attendeeType !== 'company' && attendeeType !== 'contact'}
-    onclick={(click) => details.open(event, click.currentTarget)}
-  >
-    <div class="event-time">
-      {new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-    </div>
-    <strong>{#if attendeeType === 'company'}<Building2 size={12} aria-label="Company" />{:else if attendeeType === 'contact'}<UserRound size={12} aria-label="Contact" />{/if}{event.title}</strong>
-  </button>
+    {@const attendeeType = event.attendee?.type ?? event.type}
+    {@const typeLabel =
+      attendeeType === 'company' ? 'Company' : attendeeType === 'contact' ? 'Contact' : 'Event'}
+    <button
+      type="button"
+      title={`${typeLabel} · ${event.title} · ${new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
+      class="appointment"
+      class:company={attendeeType === 'company'}
+      class:unlinked={attendeeType !== 'company' && attendeeType !== 'contact'}
+      onclick={(click) => details.open(event, click.currentTarget)}
+    >
+      <div class="event-time">
+        {new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+      </div>
+      <strong
+        >{#if attendeeType === 'company'}<Building2
+            size={12}
+            aria-label="Company"
+          />{:else if attendeeType === 'contact'}<UserRound
+            size={12}
+            aria-label="Contact"
+          />{/if}{event.title}</strong
+      >
+    </button>
 {/snippet}
 
 <EventDetails bind:this={details} onChanged={() => refresh++} />
@@ -107,7 +123,11 @@
     onclick={() => (selected = shiftDate(selected, view, 1))}><ChevronRight size={16} /></button
   >
   <h2>{title}</h2>
-  <div class="event-legend" aria-label="Event types"><span class="contact-key"><UserRound size={13} />Contacts</span><span class="company-key"><Building2 size={13} />Companies</span></div>
+  <div class="event-legend" aria-label="Event types">
+    <span class="contact-key"><UserRound size={13} />Contacts</span><span class="company-key"
+      ><Building2 size={13} />Companies</span
+    >
+  </div>
   <CreateAppointment
     hosts={data.hosts}
     defaultHost={data.defaultHost}
@@ -401,12 +421,33 @@
   .appointment:hover {
     filter: brightness(0.97);
   }
-  .event-legend { display: flex; gap: 12px; font-size: 12px; }
-  .event-legend span { display: flex; align-items: center; gap: 4px; }
-  .contact-key { color: #2563eb; }
-  .company-key { color: #7c3aed; }
-  .appointment strong :global(svg) { display: inline-block; vertical-align: -1px; margin-right: 4px; }
-  .appointment.unlinked { background: #f3f4f6; border-color: #d1d5db; border-left-color: #6b7280; color: #374151; }
+  .event-legend {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+  }
+  .event-legend span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .contact-key {
+    color: #2563eb;
+  }
+  .company-key {
+    color: #7c3aed;
+  }
+  .appointment strong :global(svg) {
+    display: inline-block;
+    vertical-align: -1px;
+    margin-right: 4px;
+  }
+  .appointment.unlinked {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    border-left-color: #6b7280;
+    color: #374151;
+  }
   .appointment.company {
     background: #f5f3ff;
     border-color: #ddd6fe;

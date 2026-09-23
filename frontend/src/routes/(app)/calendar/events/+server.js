@@ -60,6 +60,7 @@ export async function GET({ cookies, url }) {
   // A linked event is also reflected in the attendee's Appointment field.
   const linked = new Set(
     appointments.flatMap((a) => [
+      ...(a.attendees ?? []).filter(person => person.type !== 'user').map(person => `${person.type}:${person.id}:${Date.parse(a.starts_at)}`),
       a.contact ? `contact:${a.contact}:${Date.parse(a.starts_at)}` : '',
       a.company ? `company:${a.company}:${Date.parse(a.starts_at)}` : ''
     ])
@@ -81,6 +82,8 @@ export async function GET({ cookies, url }) {
           hostId: a.host,
           notes: a.internal_notes,
           attendee: a.attendee,
+          attendees: a.attendees,
+          canManage: a.can_manage,
           contactName: a.attendee?.name ?? '',
           language: a.attendee?.language ?? '',
           phone: a.attendee?.phone ?? '',

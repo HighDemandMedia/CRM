@@ -1,3 +1,5 @@
+from cases.workflow import TERMINAL_STATUSES
+from common.rbac import configured, permitted
 import json
 import statistics
 from datetime import timedelta
@@ -99,6 +101,11 @@ def apply_case_list_filters(queryset, params):
     if not params:
         return queryset
 
+    for field in ("category", "source", "waiting_reason"):
+        if params.get(field):
+            queryset = queryset.filter(**{field: params[field]})
+    if params.get("overdue") == "true":
+        queryset = queryset.filter(due_at__lt=timezone.now()).exclude(status__in=TERMINAL_STATUSES)
     if params.get("name"):
         queryset = queryset.filter(name__icontains=params.get("name"))
     # Status can be a single value or a list. Mobile uses the list form for
@@ -123,9 +130,11 @@ def apply_case_list_filters(queryset, params):
         queryset = queryset.filter(tags__id__in=tags).distinct()
     if params.get("search"):
         search = params.get("search")
-        queryset = queryset.filter(
-            Q(name__icontains=search) | Q(description__icontains=search)
-        )
+        match = Q(name__icontains=search) | Q(description__icontains=search) | Q(account__name__icontains=search) | Q(contacts__first_name__icontains=search) | Q(contacts__last_name__icontains=search)
+        number = search.upper().removeprefix("TKT-").strip()
+        if number.isdigit():
+            match |= Q(ticket_number=int(number))
+        queryset = queryset.filter(match).distinct()
     created_at_gte = date_param(params, "created_at__gte")
     if created_at_gte:
         queryset = queryset.filter(created_at__date__gte=created_at_gte)
@@ -203,7 +212,7 @@ class CaseListView(APIView, LimitOffsetPagination):
         accounts = Account.objects.filter(org=self.request.profile.org).order_by("-id")
         contacts = Contact.objects.filter(org=self.request.profile.org).order_by("-id")
         profiles = Profile.objects.filter(is_active=True, org=self.request.profile.org)
-        if not is_org_admin(self.request.profile):
+        if not configured(self.request.profile) and not is_org_admin(self.request.profile):
             # Watcher allowance: a non-admin who is a watcher must still be
             # able to see the case even when un-assigned. The rule now lives
             # in `cases.access` so the detail view enforces the same one. It
@@ -235,7 +244,7 @@ class CaseListView(APIView, LimitOffsetPagination):
         # property per row, so counting it here would mean instantiating every
         # case in the queue. Nobody having replied yet is the fact the queue
         # can actually establish, and it is the one worth acting on.
-        open_cases = queryset.filter(status__in=OPEN_STATUSES)
+        open_cases = queryset.exclude(status__in=TERMINAL_STATUSES)
         context["open_count"] = open_cases.count()
         context["urgent_count"] = open_cases.filter(priority="Urgent").count()
         context["awaiting_first_reply"] = open_cases.filter(
@@ -275,7 +284,7 @@ class CaseListView(APIView, LimitOffsetPagination):
         # had no way to populate an assignee picker from the endpoint that
         # already knew the answer. Same `id` / `user__email` shape the
         # contacts and accounts lists publish.
-        context["users"] = list(profiles.values("id", "user__email"))
+        context["users"] = list(profiles.values("id", "user__email", "user__name"))
         return context
 
     @extend_schema(

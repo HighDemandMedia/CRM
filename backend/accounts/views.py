@@ -1,3 +1,7 @@
+from common.pipeline_settings import stages_for
+from common.last_activity import with_last_activity
+from common.rbac import configured, permitted
+from common.money_totals import money_totals
 from common.models import Activity
 from common.calendar_filters import filter_calendar
 import json
@@ -107,12 +111,13 @@ ROLLUP_FIELDS = (
     "open_pipeline",
     "open_deal_count",
     "overdue_amount",
+    "overdue_deal_count",
     "open_tickets",
     "first_won_on",
 )
 
 
-def _per_account(model, aggregate, output_field, **filters):
+def _per_account(model, aggregate, output_field, exclude=None, **filters):
     """One aggregate over one account's related rows, as a correlated subquery.
 
     Not `.annotate(Sum(...), Count(...))` on the outer queryset: two aggregates
@@ -127,7 +132,7 @@ def _per_account(model, aggregate, output_field, **filters):
     a reader of the page, and should.
     """
     return Subquery(
-        model.objects.filter(account=OuterRef("pk"), **filters)
+        model.objects.filter(account=OuterRef("pk"), **filters).exclude(**(exclude or {}))
         .values("account")
         .annotate(value=aggregate)
         .values("value")[:1],
@@ -155,7 +160,7 @@ def annotate_rollups(queryset):
     """
     zero = Decimal("0")
     won = {"stage": "CLOSED_WON"}
-    unclosed = {"stage__in": OPEN_STAGES}
+    unclosed = {"exclude": {"stage__in": CLOSED_STAGES}}
     past_due = {
         "status__in": UNPAID_STATUSES,
         "due_date__lt": timezone.localdate(),
@@ -183,9 +188,13 @@ def annotate_rollups(queryset):
         overdue_amount=Coalesce(
             _per_account(Invoice, Sum("amount_due"), MONEY, **past_due), zero
         ),
+        overdue_deal_count=Coalesce(
+            _per_account(Opportunity, Count("id"), IntegerField(),
+                         exclude={"stage__in": CLOSED_STAGES}, closed_on__lt=timezone.localdate()), 0
+        ),
         open_tickets=Coalesce(
             _per_account(
-                Case, Count("id"), IntegerField(), status__in=OPEN_CASE_STATUSES
+                Case, Count("id"), IntegerField(), exclude={"status__in": TERMINAL_STATUSES}
             ),
             0,
         ),
@@ -209,7 +218,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
             .order_by("-created_at", "pk")
             .prefetch_related("assigned_to__user", "contacts", "tags")
         )
-        if not is_org_admin(self.request.profile):
+        if not configured(self.request.profile) and not is_org_admin(self.request.profile):
             queryset = queryset.filter(
                 Q(created_by=self.request.profile.user)
                 | Q(assigned_to=self.request.profile)
@@ -317,6 +326,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
             value = date_param(params, f"updated_at__{suffix}")
             if value:
                 queryset = queryset.filter(**{f"updated_at__date__{suffix}": value})
+        queryset = with_last_activity(queryset)
         sort = params.get("sort", "")
         expression = None
         if sort in {
@@ -333,11 +343,12 @@ class AccountsListView(APIView, LimitOffsetPagination):
             "annual_revenue",
             "created_at",
             "updated_at",
+            "last_activity_at",
         }:
             expression = (
                 F(sort)
                 if sort
-                in {"number_of_employees", "annual_revenue", "created_at", "updated_at"}
+                in {"number_of_employees", "annual_revenue", "created_at", "updated_at", "last_activity_at"}
                 else Lower(sort)
             )
         elif sort == "owner":
@@ -367,7 +378,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
                 else ("country", COUNTRIES)
             )
             if sort == "stage_label":
-                field, choices = "stage", CONTACT_STAGES
+                field, choices = "stage", [(s["key"], s["label"]) for s in stages_for(self.request.profile.org, "Account")]
             expression = Lower(
                 SortCase(
                     *[
@@ -391,6 +402,8 @@ class AccountsListView(APIView, LimitOffsetPagination):
         # Account model no longer has status field, return all accounts
         # Filter by is_active instead
         queryset_active = queryset.filter(is_active=True)
+        if params.get("include_pipeline_totals") == "true":
+            context["money_totals"] = money_totals(queryset_active, "annual_revenue")
         results_accounts_active = self.paginate_queryset(
             queryset_active.distinct(), self.request, view=self
         )
@@ -438,7 +451,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
         member_scope = Q(created_by=self.request.profile.user) | Q(
             assigned_to=self.request.profile
         )
-        narrow_to_member = not is_org_admin(self.request.profile)
+        narrow_to_member = not configured(self.request.profile) and not is_org_admin(self.request.profile)
 
         contact_qs = Contact.objects.filter(org=self.request.profile.org)
         if narrow_to_member:
@@ -462,7 +475,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
         context["tags"] = tags
         users = Profile.objects.filter(
             is_active=True, org=self.request.profile.org
-        ).values("id", "user__email")
+        ).values("id", "user__email", "user__name")
         context["users"] = users
         leads = Lead.objects.filter(org=self.request.profile.org).exclude(
             Q(status="converted") | Q(status="closed")
@@ -718,7 +731,7 @@ class AccountDetailView(APIView):
     )
     def delete(self, request, pk, format=None):
         self.object = self.get_object(pk)
-        if not is_org_admin(self.request.profile):
+        if not configured(self.request.profile) and not is_org_admin(self.request.profile):
             if self.request.profile.user_id != self.object.created_by_id:
                 return Response(
                     {

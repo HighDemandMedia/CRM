@@ -1,4 +1,5 @@
 <script>
+  import { fieldInputType, fieldInputStep } from '$lib/v2/custom-field-input.js';
   import { resolve } from '$app/paths';
   /**
    * Editing a lead.
@@ -507,7 +508,20 @@
               {f.label}
               {#if f.is_required}<span class="req">required</span>{/if}
             </label>
-            {#if f.field_type === 'dropdown'}
+            {#if f.field_type === 'multi_select'}
+              <div role="group" aria-label={f.label}>
+                {#each f.options as o (o.value)}
+                  <label class="cf-check"
+                    ><input
+                      type="checkbox"
+                      name="cf_{f.key}"
+                      value={o.value}
+                      bind:group={f.value}
+                    />{o.label}</label
+                  >
+                {/each}
+              </div>
+            {:else if f.field_type === 'dropdown'}
               <select
                 id="f-cf-{f.key}"
                 name="cf_{f.key}"
@@ -516,7 +530,7 @@
                 onblur={() => (touched[`cf_${f.key}`] = true)}
                 aria-invalid={show(`cf_${f.key}`) ? 'true' : undefined}
               >
-                <option value="">—</option>
+                {#if f.field_type !== 'multi_select'}<option value="">—</option>{/if}
                 {#each f.options as o (o.value)}
                   <option value={o.value}>{o.label}</option>
                 {/each}
@@ -535,12 +549,10 @@
                 id="f-cf-{f.key}"
                 name="cf_{f.key}"
                 class="v2-input"
-                type={f.field_type === 'number'
-                  ? 'number'
-                  : f.field_type === 'date'
-                    ? 'date'
-                    : 'text'}
-                step={f.field_type === 'number' ? 'any' : undefined}
+                type={fieldInputType(f.field_type)}
+                step={fieldInputStep(f.field_type)}
+                min={f.field_type === 'percentage' ? 0 : undefined}
+                max={f.field_type === 'percentage' ? 100 : undefined}
                 bind:value={f.value}
                 onblur={() => (touched[`cf_${f.key}`] = true)}
                 aria-invalid={show(`cf_${f.key}`) ? 'true' : undefined}

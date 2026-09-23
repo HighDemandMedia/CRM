@@ -1,3 +1,11 @@
+from common.views.property_layout_views import PropertyLayoutView
+from common.views.crm_report_views import CRMReportView
+from common.views.pipeline_settings_views import PipelineSettingsView
+from common.views.member_removal_views import MemberRemovalView
+from common.views.role_views import RolesView, RoleDetailView, MemberRoleView, RoleExportCheckView
+from common.views.profile_photo_views import ProfilePhotoView
+from common.views.invitation_views import InvitationsView, InvitationDetailView, AcceptInvitationView
+from common.views.today_summary_views import TodaySummaryView
 from common.views.record_delete_views import RecordDeleteView
 from common.views.record_association_views import RecordAssociationView
 from common.views.sales_appointment_views import SalesAppointmentView, AppointmentAttendeesView, SalesAppointmentManageView, AppointmentAvailabilityView
@@ -65,6 +73,18 @@ app_name = "api_common"
 
 
 urlpatterns = [
+    path("reports/crm/", CRMReportView.as_view(), name="crm_reports"),
+    path("property-layout/", PropertyLayoutView.as_view()),
+    path("pipeline-settings/", PipelineSettingsView.as_view()),
+    path("members/<uuid:pk>/remove/", MemberRemovalView.as_view()),
+    path("roles/export/<str:module>/", RoleExportCheckView.as_view()),
+    path("roles/", RolesView.as_view()),
+    path("roles/<uuid:pk>/", RoleDetailView.as_view()),
+    path("roles/members/<uuid:pk>/", MemberRoleView.as_view()),
+    path("invitations/", InvitationsView.as_view()),
+    path("invitations/<uuid:pk>/", InvitationDetailView.as_view()),
+    path("auth/accept-invitation/", AcceptInvitationView.as_view()),
+    path("dashboard/day-summary/", TodaySummaryView.as_view()),
     path("record-delete/<str:kind>/<uid:pk>/", RecordDeleteView.as_view()),
     path("record-associations/<str:kind>/<uid:pk>/", RecordAssociationView.as_view()),
     path("sales-appointments/availability/", AppointmentAvailabilityView.as_view(), name="appointment_availability"),
@@ -124,6 +144,7 @@ urlpatterns = [
     ),
     path("org/<uid:pk>/", OrgUpdateView.as_view()),
     path("profile/", ProfileView.as_view()),
+    path("profile/photo/", ProfilePhotoView.as_view(), name="profile_photo"),
     # Personal Access Tokens (REST API), a user manages ONLY their own
     path(
         "profile/tokens/",

@@ -1,4 +1,9 @@
 <script>
+  import { configuredLabel } from '$lib/v2/pipeline-config.js';
+  import { page } from '$app/state';
+
+  import RecordTabs from '$lib/v2/components/RecordTabs.svelte';
+  import NotesEditor from '$lib/components/deals/DealNotes.svelte';
   import CreateAppointment from '$lib/v2/components/CreateAppointment.svelte';
   let scheduled = $state(false);
   import DeleteRecord from '$lib/v2/components/DeleteRecord.svelte';
@@ -11,22 +16,8 @@
   import CompanyForm from '$lib/components/companies/CompanyForm.svelte';
   import { invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
-  /**
-   * The account is a workspace, not a form.
-   *
-   * v1 rendered an account as ~28 stacked label/value rows, so answering
-   * "what is going on with Northwind?" meant visiting four other pages. Here
-   * the deals, people, tickets and invoices are on the page, and the next
-   * action names the problem that spans them.
-   *
-   * All four panels come from the single detail response, the API already
-   * returned them, so this costs no extra round trips.
-   */
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import NextAction from '$lib/v2/components/NextAction.svelte';
-  import StatCard from '$lib/v2/components/StatCard.svelte';
   import Pill from '$lib/v2/components/Pill.svelte';
-  import Avatar from '$lib/v2/components/Avatar.svelte';
   import { money, shortDate, longDate } from '$lib/v2/format.js';
   import {
     STAGE_LABEL,
@@ -41,59 +32,38 @@
 
   let { account, deals, contacts, tickets, invoices, owners } = $derived(data);
 
-  let openDeals = $derived(deals.filter((/** @type {any} */ d) => !d.stage.startsWith('CLOSED_')));
-  let stalled = $derived(openDeals.filter((/** @type {any} */ d) => d.aging_status === 'red'));
-  // `past_due` is decided by the same rule as the header figure. See
-  // `isPastDue` in the data layer. The invoice's own `is_overdue` flag counts
-  // drafts, and a rail that disagrees with its header discredits both.
-  let pastDue = $derived(invoices.filter((/** @type {any} */ i) => i.past_due));
-
-  /** One sentence that connects problems across objects. Every clause is a
-      fact on this page: a stalled deal, or an invoice past its due date. */
-  let headline = $derived(
-    stalled.length && pastDue.length
-      ? `${stalled[0].name} is stalled and ${pastDue[0].invoice_number} is past due, same account, two problems.`
-      : stalled.length
-        ? `${stalled[0].name} has not moved in ${stalled[0].days_in_current_stage} days.`
-        : pastDue.length
-          ? `${pastDue[0].invoice_number} is past due, ${money(pastDue[0].amount_due, pastDue[0].currency)}.`
-          : null
-  );
+  let overdueDeals = $derived(account.overdue_deal_count ?? 0);
 </script>
 
-<PageHeader title={account.name} record>
+<PageHeader title={account.name || `Company · ${account.id.slice(0, 8)}`} record>
   {#snippet crumb()}
     <a href={resolve('/accounts')}>Companies</a>
     <ChevronRight size={12} />
     <span>{account.industry || 'No industry'}</span>
   {/snippet}
   {#snippet sub()}
-    {[
-      account.industry,
-      account.number_of_employees ? `${account.number_of_employees} staff` : null,
-      /* Derived: the close date of the first deal won here. There is no
-         contract model, so this is what "customer since" can honestly mean. */
-      account.first_won_on
-        ? `customer since ${longDate(account.first_won_on)}`
-        : 'No deals won yet',
-      owners.length ? `owned by ${owners[0]}` : null
-    ]
-      .filter(Boolean)
-      .join(' · ')}
+    {[account.website, account.industry].filter(Boolean).join(' · ')}
   {/snippet}
 
   {#snippet actions()}
+    {#if account.email}<a class="v2-btn" href={`mailto:${account.email}`}><Mail size={15} />Email</a
+      >{/if}
     <CreateAppointment
       hosts={data.hosts}
       defaultHost={data.defaultHost}
       selected={new Date()}
       defaultAttendee={{ id: account.id, name: account.name, type: 'company' }}
       action={`${resolve('/calendar')}?/create`}
-      onCreated={() => { scheduled = true; void invalidateAll(); }}
+      onCreated={() => {
+        scheduled = true;
+        void invalidateAll();
+      }}
     />
   {/snippet}
 </PageHeader>
-{#if scheduled}<div class="scheduled-message" role="status">Event scheduled. <a href={resolve('/calendar')}>View calendar</a></div>{/if}
+{#if scheduled}<div class="scheduled-message" role="status">
+    Event scheduled. <a href={resolve('/calendar')}>View calendar</a>
+  </div>{/if}
 
 <div class="v2-scroll company-layout">
   <aside class="company-properties" aria-label="Company properties">
@@ -119,9 +89,11 @@
         }}
       />
     {:else}
-      <PropertySummary
+      <PropertySummary target="Account" record={account}
+        tags={account.tags}
         entries={[
           ['Name', account.name],
+          ['Last Activity', exactTime(account.last_activity_at)],
           ['Owner', data.owners?.join(', ') || '—'],
           ['Phone', account.phone || '—'],
           ['Email', account.email || '—'],
@@ -140,7 +112,7 @@
             account.annual_revenue != null ? money(account.annual_revenue, account.currency) : '—'
           ],
           ['Source', account.source_label || '—'],
-          ['Stage', account.stage_label || '—'],
+          ['Stage', configuredLabel(page.data.pipelineConfig, 'Account', account.stage, account.stage_label) || '—'],
           ['Appointment', account.appointment_at ? exactTime(account.appointment_at) : '—'],
           ['Address', data.editor.form.address_line || '—'],
           ['City', account.city || '—'],
@@ -159,74 +131,13 @@
     {/if}
   </aside>
   <div class="v2-pad company-content" style="padding-bottom:32px">
-    <div class="v2-stats" style="margin-bottom:16px">
-      <StatCard
-        label="Revenue won"
-        value={account.won_amount ? money(account.won_amount, data.org.currency) : '—'}
-        tone={account.won_amount ? 'moss' : 'slate'}
-        detail={account.won_count
-          ? `${account.won_count} deal${account.won_count === 1 ? '' : 's'} won`
-          : 'Nothing won yet'}
-      />
-      <StatCard
-        label="Open pipeline"
-        value={account.open_pipeline ? money(account.open_pipeline, data.org.currency) : '—'}
-        detail={account.open_deal_count
-          ? `${account.open_deal_count} open deal${account.open_deal_count === 1 ? '' : 's'}`
-          : 'No open deals'}
-      />
-      <StatCard
-        label="Past due"
-        value={account.overdue_amount ? money(account.overdue_amount, data.org.currency) : '—'}
-        tone={account.overdue_amount ? 'rust' : 'slate'}
-        detail={pastDue.length
-          ? pastDue.map((/** @type {any} */ i) => i.invoice_number).join(', ')
-          : 'Nothing past due'}
-      />
-      <StatCard
-        label="Open tickets"
-        value={String(account.open_tickets ?? 0)}
-        tone={tickets.some((/** @type {any} */ t) => t.priority === 'Urgent') ? 'rust' : 'slate'}
-        detail={tickets.length ? `${tickets[0].name} · ${tickets[0].priority}` : 'None open'}
-      />
-    </div>
-
-    {#if headline}
-      <div style="margin-bottom:16px">
-        <!--
-          The invoice half of this had an `href` it should not have had: it
-          pointed at `/invoices/<uuid>` while invoices is still fixtures
-          keyed by slugs, so the one button on the page labelled "the thing
-          that needs you" answered 404. Found by following the page's own
-          outbound links rather than by reading it.
-
-          Without an `href` the action stays a button that does nothing, which
-          is the same wrong answer more quietly, so when the target is not
-          wired the action is dropped entirely and the sentence stands on its
-          own. It comes back when invoices is.
-        -->
-        <NextAction
-          label="Needs you"
-          text={headline}
-          action={stalled.length ? 'Open the deal' : null}
-          href={stalled.length ? `/pipeline/${stalled[0].id}` : null}
-          tone="rust"
-        />
-      </div>
-    {/if}
-
-    <!-- align-items:start so each card is its own height. Stretched to match
-         its neighbour, a one-row panel ends in a tall blank area that reads as
-         content that failed to load. -->
-    <div
-      style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start"
-      class="v2-account-grid"
-    >
+    <div class="company-workspace">
       <section class="v2-card" style="padding:16px">
         <ContactAssociations
           contactId={account.id}
           parentKind="company"
           kind="contact"
+          detailed
           items={contacts.map((c) => ({
             ...c,
             name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.name || c.email
@@ -239,64 +150,55 @@
           parentKind="company"
           kind="deal"
           items={deals}
-        />
+          detailed
+        >
+          {#snippet summary()}<div class="deal-totals">
+              <span
+                ><strong>{account.open_deal_count ?? 0}</strong> open · {money(
+                  account.open_pipeline ?? 0,
+                  data.org.currency
+                )}</span
+              >
+              <span class:overdue={overdueDeals > 0}><strong>{overdueDeals}</strong> past due</span>
+              <span>Won {money(account.won_amount ?? 0, data.org.currency)}</span>
+            </div>{/snippet}
+        </ContactAssociations>
       </section>
-      <section class="v2-card company-attachments" aria-label="Company notes">
-        <h2>Notes</h2>
-        <div style="max-height:320px;overflow-y:auto">
-          {#each data.activity ?? [] as note (note.id)}
-            <div style="padding:10px 0;border-bottom:1px solid var(--v2-line)">
-              <div style="white-space:pre-wrap;overflow-wrap:anywhere">{note.body}</div>
-              <p class="v2-sub">{note.by} · {exactTime(note.at)}</p>
-            </div>
-          {:else}<p class="v2-sub">No notes yet.</p>{/each}
+      <section class="v2-card company-journal" aria-label="Company notes and activity">
+        <RecordTabs>
+          {#snippet notes()}{#key account.id}<NotesEditor
+                notes={data.activity ?? []}
+              />{/key}{/snippet}
+          {#snippet activity()}<div class="company-history">
+              {#each data.eventHistory ?? [] as entry (entry.id)}<div class="history-entry">
+                  <div>{entry.body}</div>
+                  <p class="v2-sub">{entry.by} · {exactTime(entry.at)}</p>
+                </div>{:else}<p class="v2-sub">No activity yet.</p>{/each}
+            </div>{/snippet}
+        </RecordTabs>
+      </section>
+      <details class="v2-card company-secondary">
+        <summary>Attachments <span>{data.attachments.length}</span></summary>
+        <div class="secondary-content"><Attachments attachments={data.attachments} /></div>
+      </details>
+      <details class="v2-card company-secondary">
+        <summary>Tickets <span>{tickets.length}</span></summary>
+        <div class="secondary-content">
+          <ContactAssociations
+            contactId={account.id}
+            parentKind="company"
+            kind="ticket"
+            items={tickets}
+          />
         </div>
-      </section>
-      {#if data.eventHistory?.length}<section class="v2-card company-attachments">
-          <h2>Activity</h2>
-          {#each data.eventHistory as entry (entry.id)}<div
-              style="padding:10px 0;border-bottom:1px solid var(--v2-line)"
-            >
-              <div>{entry.body}</div>
-              <p class="v2-sub">{entry.by} · {exactTime(entry.at)}</p>
-            </div>{/each}
-        </section>{/if}
-      <section class="v2-card company-attachments">
-        <h2>Attachments</h2>
-        <Attachments attachments={data.attachments} />
-      </section>
+      </details>
 
-      <!-- Tickets -->
-      <section class="v2-card" style="overflow:hidden">
-        <div class="v2-card-head">
-          <span class="section-title"
-            ><span class="v2-label">Tickets</span><span class="review-badge" title="Pending review"
-              >Review</span
-            ></span
-          >
-          <a href={resolve('/tickets')}>View all</a>
-        </div>
-        {#each tickets as t (t.id)}
-          <!-- A link again: tickets is wired, so a real id sent to
-               `/tickets/<uuid>` opens the ticket. -->
-          <a
-            href={resolve(`/tickets/${t.id}`)}
-            style="display:flex;gap:12px;align-items:center;padding:11px 15px;border-bottom:1px solid var(--v2-line-soft);color:inherit;text-decoration:none"
-          >
-            <span style="flex:1;font-size:13px;min-width:0">{t.name}</span>
-            <span class="v2-sub" style="font-size:11.5px">{t.status}</span>
-            <Pill tone={PRIORITY_TONE[t.priority]}>{t.priority}</Pill>
-          </a>
-        {:else}
-          <p class="v2-sub" style="padding:14px 15px;font-size:12.5px">
-            No tickets. <a href={resolve(`/tickets/new?account=${account.id}`)}>Raise one</a> if something
-            is wrong.
-          </p>
-        {/each}
-      </section>
-
+      {#if !page.data.demoMode}
       <!-- Invoices -->
-      <section class="v2-card" style="overflow:hidden">
+      <details class="v2-card company-secondary">
+        <summary
+          >Invoices <span>{invoices.length}</span><span class="review-badge">Review</span></summary
+        >
         <div class="v2-card-head">
           <span class="section-title"
             ><span class="v2-label">Invoices</span><span class="review-badge" title="Pending review"
@@ -323,7 +225,8 @@
         {:else}
           <p class="v2-sub" style="padding:14px 15px;font-size:12.5px">Nothing billed yet.</p>
         {/each}
-      </section>
+      </details>
+      {/if}
     </div>
   </div>
 </div>
@@ -331,7 +234,10 @@
 <DeleteRecord kind="company" id={account.id} />
 
 <style>
-  .scheduled-message { padding: 8px 24px; font-size: 13px; }
+  .scheduled-message {
+    padding: 8px 24px;
+    font-size: 13px;
+  }
   .properties-heading {
     display: flex;
     align-items: center;
@@ -372,7 +278,8 @@
 
   .company-layout {
     display: grid;
-    grid-template-columns: 260px minmax(340px, 1fr);
+    grid-template-columns: 300px minmax(340px, 1fr);
+    padding: 20px 0 20px 22px;
     grid-template-rows: minmax(0, 1fr);
     min-height: 0;
   }
@@ -380,11 +287,9 @@
     min-height: 0;
     overflow-y: auto;
     padding: 20px;
-    border-right: 1px solid var(--v2-line);
-  }
-  .company-properties h2 {
-    font-size: 15px;
-    margin: 0 0 20px;
+    background: var(--v2-card);
+    border: 0;
+    border-radius: 12px;
   }
   .company-content {
     min-width: 0;
@@ -392,17 +297,61 @@
     overflow-y: auto;
   }
 
-  .company-attachments {
-    padding: 16px;
+  .company-workspace {
+    display: grid;
+    gap: 14px;
   }
-  .company-attachments h2 {
+  .company-journal {
+    padding: 18px;
+  }
+  .company-history {
+    max-height: 340px;
+    overflow-y: auto;
+  }
+  .history-entry {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--v2-line-soft);
+    overflow-wrap: anywhere;
+  }
+  .deal-totals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    color: var(--v2-slate);
+    font-size: 12px;
+  }
+  .deal-totals .overdue {
+    color: #b42318;
+  }
+  .company-secondary > summary {
+    cursor: pointer;
+    padding: 14px 16px;
     font-size: 14px;
-    margin: 0 0 14px;
+    font-weight: 600;
   }
-
-  @media (max-width: 1080px) {
-    .v2-account-grid {
-      grid-template-columns: 1fr !important;
+  .company-secondary > summary span {
+    margin-left: 8px;
+    font-size: 12px;
+    color: var(--v2-slate);
+    font-weight: 400;
+  }
+  .secondary-content {
+    padding: 0 16px 16px;
+  }
+  @media (max-width: 800px) {
+    .company-layout {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto;
+      padding: 12px;
+      gap: 14px;
+      overflow-y: auto;
+    }
+    .company-properties,
+    .company-content {
+      overflow: visible;
+    }
+    .company-content {
+      padding: 0;
     }
   }
 </style>

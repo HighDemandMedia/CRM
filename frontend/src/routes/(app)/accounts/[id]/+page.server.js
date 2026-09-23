@@ -2,7 +2,7 @@ import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 import { apiRequest } from '$lib/api-helpers.js';
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail } from '@sveltejs/kit';
-import { readableError } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 import {
   getAccount,
   getAccountForEdit,
@@ -23,6 +23,17 @@ export async function load({ cookies, params, locals }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  note: async ({ cookies, params, request }) => {
+    const form = await request.formData();
+    const comment = String(form.get('comment') ?? '').trim();
+    if (!comment) return fail(400, { message: 'Write a note before saving.' });
+    try {
+      await apiRequest(`/accounts/${params.id}/`, { method: 'POST', body: { comment } }, { cookies });
+      return { noted: true };
+    } catch (err) {
+      return fail(400, { message: readableError(err, 'Could not save note.') });
+    }
+  },
   association: async ({ cookies, params, request }) => {
     const form = await request.formData();
     try {
@@ -76,7 +87,7 @@ export const actions = {
     try {
       await updateAccount({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, error: readableError(err, 'Could not save this company.') });
+      return fail(400, { values, stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this company.') });
     }
 
     return { saved: true };
@@ -93,7 +104,7 @@ export const actions = {
       if (Object.keys(changes).length) await updateAccount({ cookies }, params.id, changes);
       return { saved: true };
     } catch (/** @type {any} */ err) {
-      return fail(400, { error: readableError(err, 'Could not save changes.') });
+      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save changes.') });
     }
   },
   attach: async ({ cookies, params, request }) => {

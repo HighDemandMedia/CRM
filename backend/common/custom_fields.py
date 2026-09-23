@@ -10,7 +10,12 @@ See docs/cases/tier1/custom-fields.md and docs/cases/COORDINATION_DECISIONS.md.
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, time
+from decimal import Decimal, InvalidOperation
+import math
+import re
+from django.core.validators import validate_email, URLValidator
+from django.core.exceptions import ValidationError
 from typing import Any
 
 from rest_framework import serializers as drf_serializers
@@ -38,10 +43,10 @@ def is_supported_target(target_model: str) -> bool:
 
 def validate_definition_options(field_type: str, options: Any) -> None:
     """Raise serializers.ValidationError for malformed dropdown options."""
-    if field_type != "dropdown":
+    if field_type not in ("dropdown", "multi_select"):
         if options not in (None, [], {}):
             raise drf_serializers.ValidationError(
-                {"options": "options is only valid for dropdown fields"}
+                {"options": "options is only valid for selection fields"}
             )
         return
 
@@ -83,13 +88,73 @@ def _coerce_value(field_type: str, raw: Any):
     if field_type in ("text", "textarea"):
         return str(raw), None
 
+    if field_type in ("email", "url", "phone"):
+        if not isinstance(raw, str):
+            return None, "must be text"
+        value = raw.strip()
+        if not value:
+            return None, None
+        try:
+            if field_type == "email":
+                validate_email(value)
+            elif field_type == "url":
+                if not re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", value):
+                    value = "https://" + value
+                URLValidator(schemes=["http", "https"])(value)
+            else:
+                if not re.fullmatch(r"\+?[0-9 ()\-.]+", value):
+                    raise ValidationError("Invalid phone")
+                digits = re.sub(r"\D", "", value)
+                if not 7 <= len(digits) <= 15:
+                    raise ValidationError("Invalid phone")
+                value = ("+" if value.startswith("+") else "") + digits
+        except ValidationError:
+            return None, f"must be a valid {field_type}"
+        return value, None
+
+    if field_type in ("integer", "percentage", "money"):
+        try:
+            if isinstance(raw, bool):
+                raise ValueError
+            value = Decimal(str(raw))
+            if not value.is_finite():
+                raise ValueError
+            if field_type == "integer":
+                if value != value.to_integral_value() or abs(value) > 9007199254740991:
+                    raise ValueError
+                return int(value), None
+            if field_type == "percentage":
+                if not 0 <= value <= 100:
+                    raise ValueError
+                return float(value), None
+            if abs(value) >= Decimal("100000000000000") or value != value.quantize(Decimal("0.01")):
+                raise ValueError
+            return format(value, ".2f"), None
+        except (InvalidOperation, TypeError, ValueError):
+            return None, {"integer": "must be a whole number within the safe integer range", "percentage": "must be between 0 and 100", "money": "must be an amount with at most 2 decimal places and 14 integer digits"}[field_type]
+
+    if field_type == "time":
+        try:
+            value = time.fromisoformat(str(raw))
+            if value.tzinfo is not None:
+                raise ValueError
+            return value.isoformat(), None
+        except ValueError:
+            return None, "must be a valid local time (HH:MM or HH:MM:SS)"
+
+    if field_type == "multi_select":
+        if not isinstance(raw, list) or any(not isinstance(v, str) for v in raw):
+            return None, "must be a list of option values"
+        return list(dict.fromkeys(raw)), None
+
     if field_type == "number":
         try:
             if isinstance(raw, bool):
                 raise ValueError
-            if isinstance(raw, (int, float)):
-                return float(raw), None
-            return float(str(raw)), None
+            value = float(raw)
+            if not math.isfinite(value):
+                raise ValueError
+            return value, None
         except (TypeError, ValueError):
             return None, "must be a number"
 
@@ -177,21 +242,22 @@ def validate_payload(
         if error:
             errors[key] = error
             continue
-        if coerced is None or coerced == "":
+        if coerced is None or coerced == "" or coerced == []:
             cleaned.pop(key, None)
             continue
-        if defn.field_type == "dropdown":
+        if defn.field_type in ("dropdown", "multi_select"):
             allowed = {opt.get("value") for opt in (defn.options or [])}
-            if coerced not in allowed:
+            choices = coerced if defn.field_type == "multi_select" else [coerced]
+            if any(choice not in allowed for choice in choices):
                 errors[key] = f"must be one of {sorted(allowed)}"
                 continue
         cleaned[key] = coerced
 
     # Required fields: error if neither a new value nor an existing one is set.
     for defn in active_by_key.values():
-        if not defn.is_required:
+        if defn.target_model in {"Contact", "Account", "Opportunity", "Task", "Case"} or not defn.is_required:
             continue
-        present = cleaned.get(defn.key) not in (None, "")
+        present = cleaned.get(defn.key) not in (None, "", [])
         if not present:
             errors.setdefault(defn.key, "is required")
 

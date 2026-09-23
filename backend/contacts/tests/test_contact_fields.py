@@ -30,8 +30,8 @@ def test_full_name_and_optional_fields_round_trip(admin_client):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("missing", ["name", "phone", "source", "stage"])
-def test_required_fields_enforced_by_api(admin_client, missing):
+@pytest.mark.parametrize("missing", ["phone", "source", "stage"])
+def test_general_fields_are_optional(admin_client, missing):
     payload = {
         "name": "Demo",
         "phone": "3055550199",
@@ -40,16 +40,13 @@ def test_required_fields_enforced_by_api(admin_client, missing):
     }
     del payload[missing]
     response = admin_client.post("/api/contacts/", payload, format="json")
-    assert response.status_code == 400
-    assert missing in response.data["errors"]
+    assert response.status_code == 200, response.data
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "field,value",
     [
-        ("name", " "),
-        ("phone", ""),
         ("phone", "abc"),
         ("source", "INVALID"),
         ("stage", "CLOSED_WON"),
@@ -71,7 +68,7 @@ def test_invalid_contact_values_rejected(admin_client, field, value):
 @pytest.mark.django_db
 def test_legacy_name_and_unknown_fields_preserved(admin_client, org_a, admin_user):
     c = Contact.objects.create(
-        first_name="María", last_name="del Carmen", org=org_a, created_by=admin_user
+        first_name="María", last_name="del Carmen", stage=None, org=org_a, created_by=admin_user
     )
     response = admin_client.patch(
         f"/api/contacts/{c.id}/",
@@ -112,7 +109,7 @@ def test_choices_and_contact_filters_are_org_scoped(
 def test_pipeline_unassigned_and_pagination_do_not_lose_contacts(
     admin_client, org_a, org_b
 ):
-    Contact.objects.create(first_name="Legacy", org=org_a)
+    Contact.objects.create(first_name="Legacy", stage=None, org=org_a)
     Contact.objects.create(first_name="Empty", stage="", org=org_a)
     Contact.objects.create(first_name="Private legacy", org=org_b)
     for name in ("Lead one", "Lead two"):

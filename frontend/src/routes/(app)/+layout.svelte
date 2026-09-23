@@ -1,27 +1,40 @@
 <script>
+  import StageTransitionLayer from "$lib/components/pipelines/StageTransitionLayer.svelte";
+  import CreateLayer from '$lib/components/creation/CreateLayer.svelte';
   import { onMount } from 'svelte';
   import { PanelLeftClose, PanelLeftOpen } from '@lucide/svelte';
-  import { resolve } from '$app/paths';
+  import { resolve, base } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import '../../app.css';
   import '$lib/v2/styles/v2.css';
   import { page } from '$app/state';
   import { afterNavigate } from '$app/navigation';
+  import PreferencesNav from '$lib/v2/components/PreferencesNav.svelte';
   import Sidebar from '$lib/v2/components/Sidebar.svelte';
   import CommandPalette from '$lib/v2/components/CommandPalette.svelte';
   import { Search, Sun, Columns3, LifeBuoy, Receipt, Plus, Menu } from '@lucide/svelte';
 
-  /** @type {{ data: { counts: Record<string, number>, org: { name: string, terminology?: Record<string, string> | null }, role: string }, children: import('svelte').Snippet }} */
+  /** @type {{ data: { accountUser: { name?: string, email?: string }, accountId: string, counts: Record<string, number>, org: { name: string, terminology?: Record<string, string> | null }, role: string, isSuperAdmin?: boolean }, children: import('svelte').Snippet }} */
   let { data, children } = $props();
+
+  let preferencesOpen = $derived(
+    ['/profile', '/team', '/settings', '/notifications', '/invoices/templates', '/goals'].some(
+      (path) => page.url.pathname === path || page.url.pathname.startsWith(`${path}/`)
+    )
+  );
 
   let paletteOpen = $state(false);
   let navigationHidden = $state(false);
   onMount(() => {
-    try { navigationHidden = localStorage.getItem('crm-navigation-hidden') === 'true'; } catch {}
+    try {
+      navigationHidden = localStorage.getItem('crm-navigation-hidden') === 'true';
+    } catch {}
   });
   function toggleNavigation() {
     navigationHidden = !navigationHidden;
-    try { localStorage.setItem('crm-navigation-hidden', String(navigationHidden)); } catch {}
+    try {
+      localStorage.setItem('crm-navigation-hidden', String(navigationHidden));
+    } catch {}
   }
 
   // The sidebar is hidden below 768px, and the tab bar only carries four of the
@@ -61,7 +74,7 @@
 </script>
 
 <svelte:head>
-  <title>BottleCRM v2</title>
+  <title>High Demand Media CRM</title>
   <meta name="robots" content="noindex" />
 </svelte:head>
 
@@ -69,21 +82,30 @@
 
 <div class="v2-root v2-shell">
   <div class="desktop-navigation" class:collapsed={navigationHidden}>
-  <div id="desktop-navigation-content" hidden={navigationHidden}>
-  <Sidebar
-    counts={data.counts}
-    org={data.org}
-    role={data.role}
-    terminology={data.org.terminology}
-    onsearch={() => (paletteOpen = true)}
-  />
-  </div>
-  <button class="navigation-toggle" type="button" onclick={toggleNavigation}
-    aria-label={navigationHidden ? 'Show navigation' : 'Hide navigation'}
-    title={navigationHidden ? 'Show navigation' : 'Hide navigation'}
-    aria-expanded={!navigationHidden} aria-controls="desktop-navigation-content">
-    {#if navigationHidden}<PanelLeftOpen size={16} />{:else}<PanelLeftClose size={16} />{/if}
-  </button>
+    <div id="desktop-navigation-content">
+      <Sidebar
+        collapsed={navigationHidden}
+        counts={data.counts}
+        org={data.org}
+        user={data.accountUser}
+        accountId={data.accountId}
+        role={data.role}
+        isSuperAdmin={data.isSuperAdmin}
+        terminology={data.org.terminology}
+        onsearch={() => (paletteOpen = true)}
+      />
+    </div>
+    <button
+      class="navigation-toggle"
+      type="button"
+      onclick={toggleNavigation}
+      aria-label={navigationHidden ? 'Show navigation' : 'Hide navigation'}
+      title={navigationHidden ? 'Show navigation' : 'Hide navigation'}
+      aria-expanded={!navigationHidden}
+      aria-controls="desktop-navigation-content"
+    >
+      {#if navigationHidden}<PanelLeftOpen size={16} />{:else}<PanelLeftClose size={16} />{/if}
+    </button>
   </div>
   <div class="v2-main">
     <!-- Phone top bar. The sidebar is hidden below 768px; this replaces the
@@ -98,7 +120,7 @@
       >
         <Menu />
       </button>
-      <span class="v2-mark">{data.org.name.slice(0, 1)}</span>
+      <img src={`${base}/brand/hdm-symbol.png`} alt="High Demand Media" width="36" height="25" />
       <h2>{data.org.name}</h2>
       <button
         class="v2-btn v2-btn-quiet"
@@ -111,7 +133,10 @@
       </button>
     </div>
 
-    {@render children()}
+    <div class="page-workspace">
+      {#if preferencesOpen}<PreferencesNav />{/if}
+      <div class="route-content" class:with-preferences={preferencesOpen}>{@render children()}</div>
+    </div>
 
     <nav class="v2-tabbar" aria-label="Sections">
       {#each TABS as tab (tab.href)}
@@ -158,7 +183,10 @@
         <Sidebar
           counts={data.counts}
           org={data.org}
+          user={data.accountUser}
+          accountId={data.accountId}
           role={data.role}
+        isSuperAdmin={data.isSuperAdmin}
           terminology={data.org.terminology}
           onsearch={() => {
             menuOpen = false;
@@ -169,15 +197,78 @@
     </div>
   {/if}
 
+  <CreateLayer />
+  <StageTransitionLayer />
   <CommandPalette open={paletteOpen} onclose={() => (paletteOpen = false)} />
 </div>
 
 <style>
-  .desktop-navigation { position: relative; display: flex; flex-shrink: 0; }
-  .desktop-navigation.collapsed { width: 32px; }
-  .navigation-toggle { position: absolute; top: 16px; right: -12px; z-index: 20; width: 26px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--v2-line); border-radius: 6px; background: var(--v2-bg, white); color: var(--v2-ink); cursor: pointer; }
-  .collapsed .navigation-toggle { right: 3px; }
-  #desktop-navigation-content { height: 100%; }
-  #desktop-navigation-content :global(.v2-nav) { height: 100%; }
-  @media (max-width: 767px) { .desktop-navigation { display: none; } }
+  .page-workspace {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .route-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+  @media (max-width: 767px) {
+    .page-workspace {
+      flex-direction: column;
+    }
+  }
+
+  .with-preferences {
+    container: preferences-body / inline-size;
+  }
+  @container preferences-body (max-width: 700px) {
+    .route-content :global(.v2-split),
+    .route-content :global(.v2-split-wide) {
+      grid-template-columns: 1fr;
+    }
+  }
+  .desktop-navigation {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+  }
+  .desktop-navigation.collapsed {
+    width: 64px;
+  }
+  .navigation-toggle {
+    position: absolute;
+    top: 16px;
+    right: -12px;
+    z-index: 20;
+    width: 26px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--v2-line);
+    border-radius: 6px;
+    background: var(--v2-bg, white);
+    color: var(--v2-ink);
+    cursor: pointer;
+  }
+  .collapsed .navigation-toggle {
+    right: -12px;
+  }
+  #desktop-navigation-content {
+    height: 100%;
+  }
+  #desktop-navigation-content :global(.v2-nav) {
+    height: 100%;
+  }
+  @media (max-width: 767px) {
+    .desktop-navigation {
+      display: none;
+    }
+  }
 </style>

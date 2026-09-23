@@ -8,7 +8,7 @@ from common.models import Profile
 from contacts.choices import COMMUNICATION_CHANNELS, CONTACT_SOURCES, CONTACT_STAGES
 
 
-def order_contacts(queryset, key, descending=False):
+def order_contacts(queryset, key, descending=False, org=None):
     text_fields = {
         "language",
         "phone",
@@ -27,6 +27,9 @@ def order_contacts(queryset, key, descending=False):
             COMMUNICATION_CHANNELS,
         ),
     }
+    if org and key == "stage_label":
+        from common.pipeline_settings import stages_for
+        catalogs["stage_label"] = ("stage", [(s["key"], s["label"]) for s in stages_for(org, "Contact")])
     if key == "name":
         expression = Trim(Concat("first_name", Value(" "), "last_name"))
     elif key in text_fields:

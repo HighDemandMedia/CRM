@@ -5,7 +5,7 @@ Defines SLA defaults by priority.
 """
 
 # Terminal statuses
-TERMINAL_STATUSES = {"Closed", "Rejected", "Duplicate"}
+TERMINAL_STATUSES = {"Resolved", "Closed", "Rejected", "Duplicate"}
 
 # Statuses that require closed_on date
 CLOSED_DATE_REQUIRED_STATUSES = {"Closed"}

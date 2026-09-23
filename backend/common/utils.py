@@ -67,8 +67,9 @@ LEAD_SOURCE = (
 
 STATUS_CHOICE = (
     ("New", "New"),
-    ("Assigned", "Assigned"),
-    ("Pending", "Pending"),
+    ("Assigned", "In Progress"),
+    ("Pending", "Waiting"),
+    ("Resolved", "Resolved"),
     ("Closed", "Closed"),
     ("Rejected", "Rejected"),
     ("Duplicate", "Duplicate"),

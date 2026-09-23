@@ -1,3 +1,6 @@
+from common.last_activity import LastActivitySerializerMixin, ActivityListSerializer
+from common.pipeline_settings import PipelineRulesMixin, stages_for
+from common.rbac import VisibleCRMSerializerMixin
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -17,8 +20,15 @@ from contacts.serializer import ContactSerializer
 # - created_on_arrow (frontend computes its own humanized timestamps)
 
 
-class AccountSerializer(serializers.ModelSerializer):
-    stage_label = serializers.CharField(source="get_stage_display", read_only=True)
+class AccountSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer):
+    stage_label = serializers.SerializerMethodField()
+
+    def get_stage_label(self, obj):
+        cache = self.__dict__.setdefault('_pipeline_labels', {})
+        key = (obj.org_id, obj.__class__.__name__)
+        if key not in cache:
+            cache[key] = {s['key']: s['label'] for s in stages_for(obj.org, key[1])}
+        return cache[key].get(obj.stage, obj.get_stage_display())
     source_label = serializers.CharField(source="get_source_display", read_only=True)
     """Serializer for reading Account data"""
 
@@ -78,6 +88,7 @@ class AccountSerializer(serializers.ModelSerializer):
         ]
 
     class Meta:
+        list_serializer_class = ActivityListSerializer
         model = Account
         fields = (
             "id",
@@ -212,8 +223,18 @@ class AccountWriteSerializer(serializers.ModelSerializer):
         ]
 
 
-class AccountCreateSerializer(serializers.ModelSerializer):
+class AccountCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
     """Serializer for creating/updating Account data"""
+
+    website = serializers.URLField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=200,
+        error_messages={
+            "invalid": "Enter a valid company domain or website URL.",
+        },
+    )
 
     def __init__(self, *args, **kwargs):
         request_obj = kwargs.pop("request_obj", None)
@@ -275,6 +296,8 @@ class AccountCreateSerializer(serializers.ModelSerializer):
         return super().validate(attrs)
 
     def validate_name(self, name):
+        if not name:
+            return name
         if self.instance:
             if self.instance.name != name:
                 if not Account.objects.filter(name__iexact=name, org=self.org).exists():

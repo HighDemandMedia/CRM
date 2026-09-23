@@ -46,6 +46,13 @@ def create(
     if recipient is None or not getattr(recipient, "is_active", True):
         return None
 
+    if not recipient.notify_in_app:
+        return None
+    if verb.endswith(".mentioned") and not recipient.notify_mentions:
+        return None
+    if verb.endswith(".commented") and not recipient.notify_comments:
+        return None
+
     entity_type = ""
     entity_id = None
     if entity is not None:

@@ -64,6 +64,8 @@ def before_contact(sender, instance, raw=False, update_fields=None, **kwargs):
             "created_by",
             "updated_by",
             "stage_entered_at",
+            "phone_match_key",
+            "merged_into", "merged_at", "merge_snapshot",
         }:
             continue
         if (

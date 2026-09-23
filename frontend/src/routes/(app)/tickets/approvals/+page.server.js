@@ -5,7 +5,7 @@ import {
   rejectApproval,
   cancelApproval
 } from '$lib/server/v2/approvals.js';
-import { readableError } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 
 /**
  * The approvals queue. `load` returns `{ approvals, totals, rules }`; the three
@@ -30,7 +30,7 @@ export const actions = {
       await approveApproval({ cookies }, id, form.get('note')?.toString() || '');
     } catch (/** @type {any} */ err) {
       return fail(err?.status === 403 ? 403 : 400, {
-        error: readableError(err, 'Could not approve this request.')
+        stageRequirements: stageRequirements(err), error: readableError(err, 'Could not approve this request.')
       });
     }
     return { approved: true };
@@ -46,7 +46,7 @@ export const actions = {
       await rejectApproval({ cookies }, id, reason);
     } catch (/** @type {any} */ err) {
       return fail(err?.status === 403 ? 403 : 400, {
-        error: readableError(err, 'Could not reject this request.')
+        stageRequirements: stageRequirements(err), error: readableError(err, 'Could not reject this request.')
       });
     }
     return { rejected: true };
@@ -60,7 +60,7 @@ export const actions = {
       await cancelApproval({ cookies }, id);
     } catch (/** @type {any} */ err) {
       return fail(err?.status === 403 ? 403 : 400, {
-        error: readableError(err, 'Could not withdraw this request.')
+        stageRequirements: stageRequirements(err), error: readableError(err, 'Could not withdraw this request.')
       });
     }
     return { cancelled: true };

@@ -1,3 +1,4 @@
+import { userName } from '$lib/utils/user-name.js';
 /**
  * Web forms: the wiring behind `/settings/web-forms`.
  *
@@ -78,7 +79,7 @@ async function listProfiles(cookies) {
     const resp = await apiRequest('/users/get-teams-and-users/', {}, { cookies });
     return (resp.profiles ?? []).map((/** @type {any} */ p) => ({
       id: p.id,
-      name: p.user_details?.email || p.user?.email || 'Unknown'
+      name: userName(p)
     }));
   } catch {
     return [];

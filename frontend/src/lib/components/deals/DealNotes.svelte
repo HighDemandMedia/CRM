@@ -40,16 +40,18 @@
     >
     {#if noteError}<p class="v2-error" role="alert">{noteError}</p>{/if}
   </form>
+  <div class="notes-list">
   {#each notes as entry (entry.id)}
     <article class="history-entry">
       <div class="history-body">{entry.body}</div>
       <div class="entry-meta">{entry.by || 'Not recorded'} · {exactTime(entry.at)}</div>
     </article>
   {:else}<p class="v2-sub">No notes.</p>{/each}
+  </div>
 </div>
 
 <style>
-  .notes-panel {
+  .notes-list {
     max-height: 320px;
     overflow-y: auto;
     overscroll-behavior-y: contain;
@@ -76,10 +78,10 @@
   .history-body {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    font-size: 13px;
+    font-size: 14px;
   }
   .entry-meta {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--v2-slate);
     margin-top: 6px;
   }

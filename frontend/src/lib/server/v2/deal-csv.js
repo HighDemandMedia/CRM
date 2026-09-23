@@ -43,6 +43,7 @@ export async function exportDeals(event) {
   const lines = [columns.map(([, label]) => csvCell(label)).join(',')];
   const query = dealQuery(event.url);
   query.set('limit', '100');
+  query.set('permission_action', 'export');
   let offset = 0;
   while (true) {
     if (event.request?.signal.aborted) throw new Error('Export canceled.');

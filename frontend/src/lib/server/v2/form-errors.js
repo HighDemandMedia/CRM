@@ -38,6 +38,8 @@ export function readableError(err, fallback) {
    * because the flattened message in that case is the bare string "errors:"
    * and an empty apology beside a failed save reads as though it worked.
    */
+  const issue = stageRequirements(err);
+  if (issue) return issue.message;
   const direct = err?.body?.errors;
   if (typeof direct === 'string') return direct.trim() || fallback;
 
@@ -56,4 +58,8 @@ export function readableError(err, fallback) {
   } catch {
     return message;
   }
+}
+
+export function stageRequirements(err) {
+  return err?.body?.errors?.stage_requirements ?? err?.body?.stage_requirements ?? null;
 }

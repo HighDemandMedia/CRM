@@ -1,17 +1,24 @@
-import { getToday } from '$lib/server/v2/today.js';
-import { getCurrentGoals } from '$lib/server/v2/goals.js';
-
-/**
- * Today, plus the goals running today.
- *
- * Two requests in parallel rather than one: `/dashboard/today/` builds the
- * queue and `/opportunities/goals/` the strip, and neither waits on the other.
- * `getCurrentGoals` swallows its own failure, so a goals outage costs the strip
- * and not the page.
- *
- * @type {import('./$types').PageServerLoad}
- */
-export async function load(event) {
-  const [today, goals] = await Promise.all([getToday(event), getCurrentGoals(event)]);
-  return { ...today, goals };
+import { apiRequest } from '$lib/api-helpers.js';
+import { fail } from '@sveltejs/kit';
+import { setTaskDone } from '$lib/server/v2/tasks.js';
+import { actions as calendarActions } from './calendar/+page.server.js';
+export async function load({ cookies, url }) {
+  const params = new URLSearchParams();
+  if (url.searchParams.get('user')) params.set('user', url.searchParams.get('user'));
+  return { day: await apiRequest(`/dashboard/day-summary/?${params}`, {}, { cookies }) };
 }
+export const actions = {
+  manage: ({ cookies, request }) =>
+    calendarActions.manage(/** @type {any} */ ({ cookies, request })),
+  complete: async (event) => {
+    const form = await event.request.formData();
+    const id = String(form.get('id') ?? '');
+    if (!id) return fail(400, { error: 'Choose a task.' });
+    try {
+      await setTaskDone(event, id, true);
+    } catch {
+      return fail(400, { error: 'Could not complete the task. Please try again.' });
+    }
+    return { saved: true };
+  }
+};

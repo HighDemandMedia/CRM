@@ -74,6 +74,13 @@ export function displayValue(definition, value) {
   switch (definition.field_type) {
     case 'checkbox':
       return value ? 'Yes' : 'No';
+    case 'percentage':
+      return `${value}%`;
+    case 'multi_select':
+      return (Array.isArray(value) ? value : [])
+        .map((v) => definition.options?.find((o) => o.value === v)?.label ?? v)
+        .join(', ');
+    case 'integer':
     case 'number':
       return typeof value === 'number' ? value.toLocaleString() : String(value);
     case 'dropdown': {
@@ -105,7 +112,8 @@ export function pairForDisplay(definitions, values) {
       label: d.label,
       field_type: d.field_type,
       value: displayValue(d, raw),
-      filled: raw !== null && raw !== undefined && raw !== ''
+      filled:
+        raw !== null && raw !== undefined && raw !== '' && (!Array.isArray(raw) || raw.length > 0)
     };
   });
 }
@@ -132,11 +140,15 @@ export function pairForEdit(definitions, values) {
       options: d.options ?? [],
       is_required: d.is_required ?? false,
       value:
-        d.field_type === 'checkbox'
-          ? Boolean(raw)
-          : raw === null || raw === undefined
-            ? ''
-            : String(raw)
+        d.field_type === 'multi_select'
+          ? Array.isArray(raw)
+            ? [...raw]
+            : []
+          : d.field_type === 'checkbox'
+            ? Boolean(raw)
+            : raw === null || raw === undefined
+              ? ''
+              : String(raw)
     };
   });
 }
@@ -159,6 +171,10 @@ export function collectFromForm(form, definitions) {
   const out = {};
   for (const d of definitions) {
     const field = `cf_${d.key}`;
+    if (d.field_type === 'multi_select') {
+      out[d.key] = form.getAll(field).map(String);
+      continue;
+    }
     if (d.field_type === 'checkbox') {
       out[d.key] = form.get(field) !== null;
       continue;

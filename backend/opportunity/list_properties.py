@@ -1,3 +1,4 @@
+from common.last_activity import with_last_activity
 from django.db.models import Case, CharField, F, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Lower
 
@@ -21,6 +22,7 @@ def filter_and_sort(queryset, params):
         value = date_param(params, f"updated_at__{bound}")
         if value:
             queryset = queryset.filter(**{f"updated_at__date__{bound}": value})
+    queryset = with_last_activity(queryset)
     sort = params.get("sort")
     expression = None
     if sort in {
@@ -33,10 +35,11 @@ def filter_and_sort(queryset, params):
         "postcode",
         "created_at",
         "updated_at",
+        "last_activity_at",
     }:
         expression = (
             F(sort)
-            if sort in {"amount", "closed_on", "created_at", "updated_at"}
+            if sort in {"amount", "closed_on", "created_at", "updated_at", "last_activity_at"}
             else Lower(sort)
         )
     elif sort == "account":

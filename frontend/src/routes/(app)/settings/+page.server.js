@@ -1,6 +1,7 @@
-import { getSettingsHub } from '$lib/server/v2/settings.js';
+import { redirect } from '@sveltejs/kit';
+import { resolve } from '$app/paths';
 
-/** @type {import('./$types').PageServerLoad} */
-export async function load(event) {
-  return getSettingsHub(event);
+// Keep old settings links working; settings now live in the preferences navigation.
+export function load() {
+  redirect(303, resolve('/profile'));
 }

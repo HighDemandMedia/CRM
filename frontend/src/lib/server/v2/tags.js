@@ -162,3 +162,13 @@ export async function mergeTags({ cookies }, id, into) {
   );
   return { tag: resp.tag ?? null, moved: resp.moved ?? 0 };
 }
+
+/** Update the tag itself so its existing record associations keep the same ID. */
+export async function updateTag({ cookies }, id, values) {
+  const name = (values.name ?? '').trim();
+  if (!id || !name) throw new Error('A tag needs a name.');
+  const response = await apiRequest(`/tags/${id}/`, {
+    method: 'PUT', body: {name, color: values.color}
+  }, {cookies});
+  return response.tag ?? response;
+}

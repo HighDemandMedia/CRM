@@ -1,372 +1,160 @@
 <script>
-  import { SvelteMap } from 'svelte/reactivity';
-  /**
-   * The labels shared across accounts, leads, deals and tickets.
-   *
-   * A tag list without usage counts is a list of words. The two questions an
-   * admin actually has are "which of these is nobody using" and "have we ended
-   * up with two tags for one idea", and both need the counts to answer.
-   *
-   * `slug` is unique per org and derived from `name`, so two tags can never
-   * collide on the slug, but "Renewal" and "Renewals" slug differently while
-   * meaning the same thing, and the work splits silently across them.
-   */
-  import { enhance } from '$app/forms';
+  import { deserialize } from '$app/forms';
+  import { invalidateAll } from '$app/navigation';
+  import { toast } from 'svelte-sonner';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import SettingsCrumb from '$lib/v2/components/SettingsCrumb.svelte';
-  import Pill from '$lib/v2/components/Pill.svelte';
-  import StatCard from '$lib/v2/components/StatCard.svelte';
-  import EmptyState from '$lib/v2/components/EmptyState.svelte';
-  import ConfirmAction from '$lib/v2/components/ConfirmAction.svelte';
-  import { count } from '$lib/v2/format.js';
-  import { Plus, Merge, Tags as TagsIcon } from '@lucide/svelte';
+  import TeamPanel from '$lib/components/team/TeamPanel.svelte';
+  import TagBadge from '$lib/v2/components/TagBadge.svelte';
+  import * as Dropdown from '$lib/components/ui/dropdown-menu/index.js';
+  import { tagColors } from '$lib/v2/tag-colors.js';
+  import { Plus, Search, ChevronDown, Pencil, Archive, RotateCcw, Merge, Check } from '@lucide/svelte';
 
-  /** @type {{ data: any, form: any }} */
-  let { data, form } = $props();
-
-  // The "New tag" disclosure. Open while adding, closed on a successful
-  // create; a failed one stays open so the error next to the input is
-  // actually visible instead of vanishing the instant the form action
-  // returns.
-  let adding = $state(false);
-
-  // Disables the Create button while the submit is in flight, so a
-  // double-click cannot fire two creates: the second would either duplicate
-  // the tag or, for a same-named resubmit, come back as "already exists"
-  // right after the first one succeeded.
-  let busy = $state(false);
-
+  /** @type {{data:any, form:any}} */
+  let {data, form} = $props();
+  let query = $state(''), status = $state('active'), object = $state('');
+  let sort = $state('name'), descending = $state(false), expanded = $state('');
+  let panel = $state(''), selected = $state(/** @type {any} */(null));
+  let name = $state(''), color = $state('blue'), destination = $state('');
+  let busy = $state(false), error = $state(''), confirmed = $state(false);
+  const objectNames = {contacts:'Contacts', accounts:'Companies', opportunities:'Deals', tasks:'Tasks', cases:'Tickets', leads:'Leads', api_settings:'API settings', solutions:'Knowledge base', web_forms:'Web forms'};
+  const labelFor = key => objectNames[key] || key.replaceAll('_',' ');
+  const used = tag => Object.values(tag.usage || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+  const usage = tag => Object.entries(tag.usage || {}).filter(([,value]) => Number(value)>0);
+  let objectOptions = $derived(Object.entries(objectNames).filter(([key]) => ['contacts','accounts','opportunities','tasks','cases'].includes(key) || data.tags.some(t=>t.usage?.[key]>0)));
   let totals = $derived(data.totals);
-
-  /**
-   * Total usage across every model a tag can be applied to.
-   *
-   * Summed over the keys the backend sends rather than a list written out
-   * here, so it cannot drift from `_TAGGABLE`
-   * (`backend/common/views/tags_views.py`) the way the old hard-coded four
-   * did: contacts, tasks and API settings were all missing, so a tag in real
-   * use on contacts read as unused both here and on the totals card. A test
-   * on the backend now walks the model registry to keep that list complete;
-   * this sums whatever it sends.
-   */
-  const used = (t) => Object.values(t.usage ?? {}).reduce((sum, n) => sum + (n || 0), 0);
-
-  let tags = $derived(
-    [...data.tags].sort((a, b) => used(b) - used(a) || a.name.localeCompare(b.name))
-  );
-
-  /**
-   * Tags that probably mean the same thing.
-   *
-   * A suggestion, computed over every active tag in the org. Settings lists
-   * are not paginated, so this is not an aggregate over rows we cannot see.
-   * The match is deliberately crude (case, spacing, punctuation and a
-   * trailing plural), and it decides nothing on its own: it puts two names
-   * next to each other and offers the merge, because "Invoice" and "Invoices"
-   * might genuinely be two ideas in some org.
-   */
-  const normalise = (name) =>
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '')
-      .replace(/s$/, '');
-
-  let duplicateGroups = $derived.by(() => {
-    /** @type {Map<string, any[]>} */
-    const groups = new SvelteMap();
-    // Active tags only. The list itself is fetched with
-    // `?include_archived=true` so an admin can see what has been turned off,
-    // but an archived tag is not offered on new records and so cannot be
-    // splitting anyone's work: it is not a duplicate, it is a former one.
-    // Grouping over the full list also meant the banner never went away.
-    // Turning one of the pair off used to leave it nagging forever, and once
-    // Merge was wired that got worse: the merge archives the tag it empties,
-    // so the banner would come straight back offering to merge a tag that no
-    // longer had any records.
-    for (const t of data.tags.filter((/** @type {any} */ t) => t.is_active)) {
-      const key = normalise(t.name);
-      groups.set(key, [...(groups.get(key) ?? []), t]);
-    }
-    return [...groups.values()]
-      .filter((g) => g.length > 1)
-      .map((g) => {
-        // Most-used first, so `keep` is the tag the org already voted for and
-        // a merge moves the smaller pile. `keep` is necessarily active now
-        // that the grouping is, which matters because `TagsMergeView` refuses
-        // an archived destination: moving records onto a tag the page renders
-        // as "Off" reads as data loss.
-        const ranked = [...g].sort((a, b) => used(b) - used(a) || a.name.localeCompare(b.name));
-        return { all: ranked, keep: ranked[0], merge: ranked.slice(1) };
-      });
-  });
+  let filters = $derived([{key:'active',label:'Active',count:totals.active}, {key:'unused',label:'Unused',count:totals.unused}, {key:'archived',label:'Archived',count:totals.count-totals.active}, {key:'all',label:'All',count:totals.count}]);
+  let tags = $derived([...data.tags].filter(t =>
+    (status === 'all' || (status === 'archived' ? !t.is_active : t.is_active && (status !== 'unused' || used(t) === 0))) &&
+    (!object || t.usage?.[object]>0) && t.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
+  ).sort((a,b) => (sort === 'usage' ? used(a)-used(b) || a.name.localeCompare(b.name) : a.name.localeCompare(b.name)) * (descending ? -1 : 1)));
+  let mergeTargets = $derived(data.tags.filter(t=>t.is_active && t.id !== selected?.id));
+  let into = $derived(mergeTargets.find(t=>t.id === destination));
+  function openEditor(tag=null) {
+    selected=tag; name=tag?.name || ''; color=tag?.color || 'blue'; error=''; panel=tag ? 'edit' : 'create';
+  }
+  function openMerge(tag) {selected=tag; destination=''; confirmed=false; error=''; panel='merge';}
+  function reorder(key) {if (sort === key) descending=!descending; else {sort=key; descending=key === 'usage';}}
+  async function perform(action, values) {
+    if (busy) return;
+    busy=true; error='';
+    try {
+      const body = new FormData();
+      Object.entries(values).forEach(([key,value])=>body.set(key,String(value)));
+      const response = await fetch(`?/${action}`,{method:'POST',body,headers:{'x-sveltekit-action':'true'}});
+      const result=/** @type {any} */(deserialize(await response.text()));
+      if (result.type !== 'success') throw new Error(result.type==='failure' ? String(result.data?.[action]?.error || 'Could not save. Please try again.') : 'Could not save. Please try again.');
+      panel='';
+      toast.success({create:'Tag saved',edit:'Tag updated',archive:'Tag archived. Existing records keep it.',restore:'Tag restored',merge:'Tags merged'}[action]);
+      if (action === 'create' || action === 'restore') {status='active'; query=''; object='';}
+      await invalidateAll();
+    } catch(cause) {error=cause.message || 'Could not save. Please try again.';}
+    finally {busy=false;}
+  }
+  function submit(event) {
+    event.preventDefault();
+    if (panel === 'merge') {if(confirmed && destination) void perform('merge',{id:selected.id,into:destination});}
+    else void perform(panel,{...(selected ? {id:selected.id}:{}),name:name.trim(),color});
+  }
 </script>
 
 <PageHeader title="Tags">
-  {#snippet crumb()}<SettingsCrumb />{/snippet}
-  {#snippet sub()}
-    <span class="v2-num">{count(totals.active)}</span> in use across accounts, leads, deals and tickets
-  {/snippet}
-  {#snippet actions()}
-    {#if data.can_edit}
-      {#if adding}
-        <form
-          class="v2-tag-add-form"
-          method="POST"
-          action="?/create"
-          use:enhance={() => {
-            busy = true;
-            return async (/** @type {any} */ { result, update }) => {
-              await update();
-              busy = false;
-              // Only close on success. A failed submit (the empty-name guard, a
-              // duplicate name) has to leave the form open, or the error rendered
-              // below never gets seen: it lives inside this same `{#if adding}`
-              // block.
-              if (result.type === 'success') adding = false;
-            };
-          }}
-        >
-          {#if form?.create?.error}
-            <p class="v2-error">{form.create.error}</p>
-          {/if}
-          <!-- svelte-ignore a11y_autofocus -->
-          <input
-            class="v2-input"
-            name="name"
-            placeholder="Tag name"
-            required
-            autofocus
-            disabled={busy}
-          />
-          <button class="v2-btn v2-btn-primary" type="submit" disabled={busy}>Create</button>
-          <button class="v2-btn" type="button" disabled={busy} onclick={() => (adding = false)}>
-            Cancel
-          </button>
-        </form>
-      {:else}
-        <button class="v2-btn v2-btn-primary" onclick={() => (adding = true)}
-          ><Plus />New tag</button
-        >
-      {/if}
-    {/if}
-  {/snippet}
+  {#snippet actions()}{#if data.can_edit}<button class="v2-btn v2-btn-primary" disabled={busy} onclick={()=>openEditor()}><Plus size={16}/>New tag</button>{/if}{/snippet}
 </PageHeader>
-
-<div class="v2-pad" style="padding-top:16px;flex:none">
-  <div class="v2-stats">
-    <StatCard label="Active" value={count(totals.active)} tone="ink" />
-    <StatCard
-      label="Applied to nothing"
-      value={count(totals.unused)}
-      tone={totals.unused > 0 ? 'clay' : 'slate'}
-      detail="Counts accounts, leads, deals and tickets only"
-    />
-    <StatCard label="Turned off" value={count(totals.count - totals.active)} tone="slate" />
+<div class="tag-settings">
+  <div class="status-filters" role="group" aria-label="Tag status">
+    {#each filters as filter}<button type="button" class:chosen={status===filter.key} aria-pressed={status===filter.key} onclick={()=>status=filter.key}>{filter.label}<span>{filter.count}</span></button>{/each}
+  </div>
+  <div class="toolbar">
+    <label class="search"><Search size={16}/><input aria-label="Search tags" type="search" placeholder="Search tags…" bind:value={query}/></label>
+    <select class="v2-input object-filter" aria-label="Filter tags by object" bind:value={object}><option value="">All objects</option>{#each objectOptions as [key,label]}<option value={key}>{label}</option>{/each}</select>
+  </div>
+  {#if error && !panel}<p class="v2-error" role="alert">{error}</p>{/if}
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard access to horizontal scrolling.) -->
+  <div class="tag-table" role="region" aria-label="Tags list" tabindex="0">
+    <table>
+      <thead><tr>
+        <th scope="col" aria-sort={sort==='name' ? descending ? 'descending':'ascending':'none'}><button onclick={()=>reorder('name')}>Tag {sort==='name' ? descending ? '↓':'↑':''}</button></th>
+        <th scope="col" aria-sort={sort==='usage' ? descending ? 'descending':'ascending':'none'}><button onclick={()=>reorder('usage')}>Used in records {sort==='usage' ? descending ? '↓':'↑':''}</button></th>
+        <th scope="col">Status</th>{#if data.can_edit}<th scope="col" class="actions-heading">Actions</th>{/if}
+      </tr></thead>
+      <tbody>{#each tags as tag (tag.id)}
+        <tr>
+          <td><TagBadge {tag}/></td>
+          <td>{#if used(tag)}<button class="usage-button" aria-expanded={expanded===tag.id} aria-controls={`usage-${tag.id}`} onclick={()=>expanded=expanded===tag.id?'':tag.id}>{used(tag).toLocaleString()} {used(tag)===1?'record':'records'}<ChevronDown size={13}/></button>{:else}<span class="muted">Unused</span>{/if}</td>
+          <td><span class="status" class:archived={!tag.is_active}>{tag.is_active?'Active':'Archived'}</span></td>
+          {#if data.can_edit}<td class="row-actions"><Dropdown.Root>
+            <Dropdown.Trigger class="v2-btn v2-btn-sm" disabled={busy} aria-label={`Actions for ${tag.name}`}>Actions<ChevronDown size={13}/></Dropdown.Trigger>
+            <Dropdown.Content align="end">
+              <Dropdown.Item onclick={()=>openEditor(tag)}><Pencil size={14}/>Edit name & color</Dropdown.Item>
+              {#if tag.is_active}
+                <Dropdown.Item disabled={data.tags.filter(t=>t.is_active).length<2} onclick={()=>openMerge(tag)}><Merge size={14}/>Merge</Dropdown.Item>
+                <Dropdown.Separator/>
+                <Dropdown.Item onclick={()=>perform('archive',{id:tag.id})}><Archive size={14}/>Archive</Dropdown.Item>
+              {:else}<Dropdown.Item onclick={()=>perform('restore',{id:tag.id})}><RotateCcw size={14}/>Restore</Dropdown.Item>{/if}
+            </Dropdown.Content>
+          </Dropdown.Root></td>{/if}
+        </tr>
+        {#if expanded===tag.id}<tr id={`usage-${tag.id}`} class="usage-row"><td colspan={data.can_edit?4:3}><div class="usage-details">{#each usage(tag) as [key,total]}<span>{labelFor(key)} <strong>{Number(total).toLocaleString()}</strong></span>{/each}</div></td></tr>{/if}
+      {:else}<tr><td class="empty" colspan={data.can_edit?4:3}>{data.tags.length ? 'No tags match these filters.' : 'No tags yet.'}</td></tr>{/each}</tbody>
+    </table>
   </div>
 </div>
 
-<div class="v2-scroll">
-  <div class="v2-pad" style="padding-bottom:32px">
-    {#each duplicateGroups as group (group.all[0].id)}
-      <div class="v2-tag-banner">
-        <Merge size={16} style="color:var(--v2-clay);flex:none;margin-top:1px" />
-        <div>
-          <div style="font-weight:600;font-size:13px">
-            {group.all.map((t) => t.name).join(' and ')} look like the same tag
-          </div>
-          <p class="v2-sub" style="font-size:12px;margin:4px 0 0;line-height:1.5">
-            {group.all.map((t) => `${t.name} is on ${used(t)} records`).join('; ')}. Anyone
-            filtering by one of them misses the other.
-          </p>
-        </div>
-        {#if data.can_edit}
-          <!-- One control per tag being emptied, rather than one "Merge" for
-               the group: the endpoint takes a pair, and a group of three needs
-               a person to say which two go where. Confirmed, because unlike
-               "Turn off" this cannot be undone by clicking the other button.
-               The source is archived so its name survives, but nothing records
-               which records came from where. -->
-          <div style="flex:none;align-self:center;display:flex;gap:6px">
-            {#each group.merge as loser (loser.id)}
-              <ConfirmAction
-                action="?/merge"
-                label={group.merge.length > 1 ? `Merge ${loser.name}` : 'Merge'}
-                confirmLabel="Merge"
-                explain={`${used(loser)} ${used(loser) === 1 ? 'record moves' : 'records move'} from ${loser.name} to ${group.keep.name}, and ${loser.name} is turned off. Records already on ${group.keep.name} are untouched. This cannot be undone by merging back.`}
-                hidden={{ id: loser.id, into: group.keep.id }}
-              />
-            {/each}
-          </div>
-        {/if}
-      </div>
-    {/each}
-
-    {#if form?.merge?.error}
-      <p class="v2-error" style="margin-bottom:12px">{form.merge.error}</p>
-    {/if}
-    {#if form?.merged}
-      <p class="v2-sub" style="margin-bottom:12px">
-        Merged into {form.merged.name}. {count(form.merged.moved)}
-        {form.merged.moved === 1 ? 'record' : 'records'} moved.
-      </p>
-    {/if}
-
-    {#if form?.archive?.error}
-      <p class="v2-error" style="margin-bottom:12px">{form.archive.error}</p>
-    {/if}
-    {#if form?.restore?.error}
-      <p class="v2-error" style="margin-bottom:12px">{form.restore.error}</p>
-    {/if}
-
-    <div class="v2-label" style="margin-bottom:10px">All tags</div>
-    <div class="v2-table-wrap">
-      <table class="v2-table">
-        <thead>
-          <tr>
-            <th>Tag</th>
-            <th style="text-align:right">Accounts</th>
-            <th style="text-align:right">Contacts</th>
-            <th style="text-align:right">Leads</th>
-            <th style="text-align:right">Deals</th>
-            <th style="text-align:right">Tickets</th>
-            <th style="text-align:right">Tasks</th>
-            <th style="text-align:right">Total</th>
-            <th></th>
-            {#if data.can_edit}<th></th>{/if}
-          </tr>
-        </thead>
-        <tbody>
-          {#each tags as t (t.id)}
-            <tr style="opacity:{t.is_active ? 1 : 0.62}">
-              <td class="v2-table-primary">
-                {t.name}
-                <!-- The stored colour, named rather than painted. The model
-                     offers eighteen named hues; v2's palette has six tones and
-                     renders every tag in them, so a swatch here would be the
-                     only place in the product those eighteen exist. -->
-                <span class="v2-sub" style="font-size:11px;margin-left:7px">{t.color}</span>
-              </td>
-              <td class="v2-num" style="text-align:right">{t.usage.accounts || '—'}</td>
-              <td class="v2-num" style="text-align:right">{t.usage.contacts || '—'}</td>
-              <td class="v2-num" style="text-align:right">{t.usage.leads || '—'}</td>
-              <td class="v2-num" style="text-align:right">{t.usage.opportunities || '—'}</td>
-              <td class="v2-num" style="text-align:right">{t.usage.cases || '—'}</td>
-              <td class="v2-num" style="text-align:right">{t.usage.tasks || '—'}</td>
-              <td class="v2-num" style="text-align:right;font-weight:600">{used(t) || '—'}</td>
-              <td style="text-align:right">
-                {#if !t.is_active}
-                  <Pill tone="slate">Off</Pill>
-                {:else if used(t) === 0}
-                  <Pill tone="clay">Unused</Pill>
-                {/if}
-              </td>
-              {#if data.can_edit}
-                <td style="text-align:right">
-                  {#if t.is_active}
-                    <!-- `TagsDetailView.delete` soft-archives: it flips
-                         `is_active` to false and leaves the row (and every
-                         record's link to it) in place. "Turn off", not
-                         "Delete", says what actually happens, and the count
-                         below is the real number already computed by `used`,
-                         not a vague warning. -->
-                    <ConfirmAction
-                      action="?/archive"
-                      label="Turn off"
-                      confirmLabel="Turn off"
-                      explain={used(t) > 0
-                        ? `${used(t)} ${used(t) === 1 ? 'record keeps' : 'records keep'} this tag. Turning it off stops it being offered on new records, and keeps it on the ones that have it. You can turn it back on.`
-                        : 'Nothing carries this tag. Turning it off stops it being offered on new records. You can turn it back on.'}
-                      hidden={{ id: t.id }}
-                    />
-                  {:else}
-                    <!-- Turning a tag back on restores nothing that was
-                         destroyed, so unlike "Turn off" this doesn't need the
-                         two-click confirm. -->
-                    <form method="POST" action="?/restore" use:enhance>
-                      <input type="hidden" name="id" value={t.id} />
-                      <button class="v2-btn v2-btn-sm" type="submit">Turn back on</button>
-                    </form>
-                  {/if}
-                </td>
-              {/if}
-            </tr>
-          {:else}
-            <tr>
-              <td colspan={data.can_edit ? 8 : 7}>
-                <EmptyState
-                  title="No tags yet"
-                  body="Tags are shared across every record type, so the first one is worth naming carefully."
-                >
-                  {#snippet icon()}<TagsIcon size={21} />{/snippet}
-                </EmptyState>
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+{#if panel}<TeamPanel title={panel==='create'?'New tag':panel==='edit'?'Edit tag':'Merge tags'} {busy} onclose={()=>{panel='';error='';}}>
+  <form class="panel-form" onsubmit={submit}>
+    <div class="panel-body">
+      {#if panel==='merge'}
+        <div class="merge-source"><span>Merge</span><TagBadge tag={selected}/></div>
+        <label class="field">Into<select class="v2-input" bind:value={destination} required disabled={busy}><option value="">Select the tag to keep</option>{#each mergeTargets as target}<option value={target.id}>{target.name}</option>{/each}</select></label>
+        {#if into}<p class="merge-info">Records tagged <strong>{selected.name}</strong> will use <strong>{into.name}</strong>. Existing assignments of that tag stay unchanged. <strong>{selected.name}</strong> will be archived. This merge cannot be undone.</p><label class="confirm"><input type="checkbox" required bind:checked={confirmed} disabled={busy}/>Confirm merge into {into.name}</label>{/if}
+      {:else}
+        <label class="field">Name<input class="v2-input" bind:value={name} required maxlength="50" disabled={busy} placeholder="e.g. VIP"/></label>
+        <fieldset disabled={busy} class="color-field"><legend>Color</legend><div class="colors">{#each Object.entries(tagColors) as [key,hex]}<label class="swatch" class:selected={color===key} style:--swatch={hex} title={key}><input type="radio" name="tag-color" value={key} bind:group={color} aria-label={key}/>{#if color===key}<Check size={16}/>{/if}</label>{/each}</div></fieldset>
+        <div class="tag-example"><TagBadge tag={{name:name.trim() || 'Tag',color}}/></div>
+      {/if}
+      {#if error}<p class="v2-error" role="alert">{error}</p>{/if}
     </div>
-
-    <p class="v2-sub" style="font-size:11.5px;margin-top:14px;max-width:64ch">
-      Turning a tag off hides it from the pickers and leaves it on the records that already carry
-      it. Nothing is removed, and you can turn a tag back on at any time.
-    </p>
-  </div>
-</div>
+    <footer class="panel-footer"><button class="v2-btn" type="button" disabled={busy} onclick={()=>{panel='';error='';}}>Cancel</button><button class="v2-btn v2-btn-primary" disabled={busy || (panel==='merge' ? !confirmed || !destination : !name.trim())}>{busy?'Saving…':panel==='create'?'Create tag':panel==='edit'?'Save changes':'Merge tags'}</button></footer>
+  </form>
+</TeamPanel>{/if}
 
 <style>
-  .v2-tag-banner {
-    display: flex;
-    gap: 11px;
-    align-items: flex-start;
-    padding: 14px 16px;
-    margin-bottom: 16px;
-    border: 1px solid var(--v2-line);
-    border-radius: var(--v2-radius);
-    background: var(--v2-card);
-  }
-
-  /* The inline "New tag" disclosure lives in the page header's actions row
-     (a flex container), alongside the plain Create/Cancel buttons, so it has
-     to lay out as a single line rather than stack like a full-page form. */
-  .v2-tag-add-form {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    position: relative;
-  }
-  .v2-tag-add-form .v2-input {
-    width: 200px;
-  }
-  /* The error sits above the input per the leads/new convention, but there is
-     no room to grow the header's height for it, so it floats instead of
-     pushing the row down. `right: 0` plus `white-space: normal` (rather than
-     the `nowrap` a one-line floating label would default to) let it wrap
-     within the row's own width instead of running off narrow viewports; a
-     duplicate-name rejection ("A tag with this name already exists.") is
-     long enough to hit this in practice. */
-  .v2-tag-add-form .v2-error {
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    right: 0;
-    margin: 0 0 4px;
-    white-space: normal;
-  }
-  /* Below 768px `.v2-header .v2-actions` goes full width (v2.css), but this
-     form's own children do not: a 200px input plus two buttons is wider than
-     a phone screen, and a flex item does not shrink past its content's fixed
-     width on its own. Confirmed by emulating a 320px viewport: the row
-     overflowed and clipped "Cancel" before this rule existed. Wrapping the
-     input onto its own full-width line, with the buttons below it, keeps
-     everything on screen and touchable instead of cut off. */
-  @media (max-width: 768px) {
-    .v2-tag-add-form {
-      flex-wrap: wrap;
-      width: 100%;
-    }
-    .v2-tag-add-form .v2-input {
-      width: 100%;
-      flex: 1 1 100%;
-    }
-  }
+  .tag-settings {padding:0 var(--v2-pad,24px) 24px; flex:1; min-height:0; display:flex; flex-direction:column;}
+  .status-filters {display:flex; gap:16px; border-bottom:1px solid var(--v2-line); flex-shrink:0; overflow-x:auto;}
+  .status-filters button {border:0; border-bottom:2px solid transparent; background:transparent; padding:12px 2px; color:var(--v2-slate); display:flex; gap:8px; align-items:center; cursor:pointer; font-size:13px;}
+  .status-filters button.chosen {border-bottom-color:var(--v2-ink); color:var(--v2-ink); font-weight:600;}
+  .status-filters span {font-size:11px; padding:2px 6px; border-radius:5px; background:var(--v2-line-soft); font-variant-numeric:tabular-nums;}
+  .toolbar {display:flex; flex-wrap:wrap; gap:10px; padding:18px 0; flex-shrink:0;}
+  .search {display:flex; align-items:center; gap:8px; border:1px solid var(--v2-line); background:var(--v2-card); padding:0 12px; border-radius:7px; color:var(--v2-slate); width:min(320px,100%);}
+  .search input {border:0; background:transparent; width:100%; padding:10px 0; min-width:0; color:var(--v2-ink); font-size:13px; outline:0;}
+  .search:focus-within {outline:2px solid var(--v2-slate); outline-offset:2px;}
+  .object-filter {width:180px; font-size:13px;}
+  .tag-table {overflow:auto; min-height:0; border:1px solid var(--v2-line); border-radius:9px; background:var(--v2-card);}
+  table {width:100%; border-collapse:collapse; text-align:left; font-size:13px; min-width:470px;}
+  th {color:var(--v2-slate); font-size:12px; font-weight:500; position:sticky; top:0; background:var(--v2-card); z-index:1;}
+  th,td {padding:12px 16px; border-bottom:1px solid var(--v2-line-soft);}
+  tr:last-child td {border-bottom:0;}
+  th button {border:0; background:transparent; padding:0; font:inherit; color:inherit; cursor:pointer;}
+  tbody tr:hover {background:var(--v2-bg);}
+  .muted {color:var(--v2-slate);}
+  .usage-button {display:inline-flex; align-items:center; gap:6px; border:0; background:transparent; color:var(--v2-ink); padding:3px 0; cursor:pointer; font:inherit;}
+  .status {font-size:12px; color:var(--v2-ink);}
+  .status.archived {color:var(--v2-slate);}
+  .row-actions,.actions-heading {text-align:right; width:120px;}
+  .usage-details {display:flex; flex-wrap:wrap; gap:12px 24px; color:var(--v2-slate); font-size:12px;}
+  .usage-details strong {margin-left:6px; font-variant-numeric:tabular-nums; color:var(--v2-ink);}
+  .usage-row {background:var(--v2-bg);}
+  .empty {padding:40px 16px; text-align:center; color:var(--v2-slate);}
+  .color-field {border:0; padding:0; margin:0;}
+  .color-field legend {font-size:13px; font-weight:500; margin-bottom:12px;}
+  .colors {display:grid; grid-template-columns:repeat(9,30px); gap:12px;}
+  .swatch {position:relative; height:30px; border-radius:50%; background:var(--swatch); display:flex; align-items:center; justify-content:center; color:#172033; cursor:pointer;}
+  .swatch input {position:absolute; width:100%; height:100%; inset:0; margin:0; opacity:0; cursor:pointer;}
+  .swatch.selected {outline:2px solid var(--v2-ink); outline-offset:3px;}
+  .swatch:focus-within {outline:2px solid var(--v2-ink); outline-offset:3px;}
+  .tag-example {margin-top:24px;}
+  .merge-source {display:flex; gap:12px; align-items:center; margin-bottom:24px; font-size:13px;}
+  .merge-info {font-size:13px; line-height:1.7; color:var(--v2-slate);}
+  .confirm {display:flex; gap:8px; align-items:center; font-size:13px; margin-top:20px;}
+  @media(max-width:600px) {.tag-settings{padding:0 16px 16px;} .colors{grid-template-columns:repeat(6,30px);} .status-filters{gap:12px;} .search{width:100%;} .object-filter{width:100%;}}
 </style>

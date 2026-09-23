@@ -1,5 +1,5 @@
 import { fail } from '@sveltejs/kit';
-import { getTags, createTag, archiveTag, restoreTag, mergeTags } from '$lib/server/v2/tags.js';
+import { getTags, createTag, archiveTag, restoreTag, mergeTags, updateTag } from '$lib/server/v2/tags.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -9,6 +9,17 @@ export async function load({ cookies }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  async edit(event) {
+    const form = await event.request.formData();
+    try {
+      await updateTag(event, String(form.get('id') || ''), {
+        name: String(form.get('name') || ''), color: String(form.get('color') || 'blue')
+      });
+      return {edited: true};
+    } catch (err) {
+      return fail(err.status === 403 ? 403 : 400, {edit: {error: readableError(err, 'Could not update this tag.')}});
+    }
+  },
   // Admin-only. `load`'s `can_edit` hides the "New tag" control for a member,
   // but that is only the affordance; this check is the one that matters.
   // `TagsListView.post` (`backend/common/views/tags_views.py:143-149`) 403s a
@@ -20,7 +31,7 @@ export const actions = {
     const name = form.get('name')?.toString() ?? '';
 
     try {
-      await createTag(event, { name });
+      await createTag(event, { name, color: form.get('color')?.toString() || 'blue' });
     } catch (/** @type {any} */ err) {
       if (err?.status === 403) {
         return fail(403, { create: { name, error: 'Only an admin can create tags.' } });

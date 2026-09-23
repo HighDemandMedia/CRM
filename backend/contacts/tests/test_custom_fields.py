@@ -126,7 +126,7 @@ class TestContactCreateWithCustomFields:
         contact = Contact.objects.get(email="jane.unk@example.com", org=org_a)
         assert contact.custom_fields == {"severity": "S1"}
 
-    def test_create_required_missing_returns_400(self, admin_client, org_a):
+    def test_create_legacy_required_missing_is_optional(self, admin_client, org_a):
         _make_severity_def(org_a, is_required=True)
         response = admin_client.post(
             CONTACTS_LIST_URL,
@@ -140,8 +140,7 @@ class TestContactCreateWithCustomFields:
             },
             format="json",
         )
-        assert response.status_code == 400
-        assert "severity" in response.json()["errors"]["custom_fields"]
+        assert response.status_code == 200, response.data
 
 
 @pytest.mark.django_db

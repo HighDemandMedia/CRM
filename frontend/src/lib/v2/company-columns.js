@@ -14,5 +14,6 @@ export const companyColumns = [
   ['source_label', 'Source'],
   ['stage_label', 'Stage'],
   ['contacts', 'Contacts'],
+  ['last_activity_at', 'Last Activity'],
   ['created_at', 'Created'],
 ];

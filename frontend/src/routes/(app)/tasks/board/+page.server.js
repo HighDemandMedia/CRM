@@ -6,12 +6,12 @@ import {
   getBoard,
   moveBoardTask
 } from '$lib/server/v2/board.js';
-import { readableError } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 
 /** Map an api-helpers error to a form `fail`, preserving a 403 as a 403. */
 function toFail(/** @type {any} */ err, /** @type {string} */ fallback) {
   const status = err?.status === 403 ? 403 : 400;
-  return fail(status, { error: readableError(err, fallback) });
+  return fail(status, { stageRequirements: stageRequirements(err), error: readableError(err, fallback) });
 }
 
 /** @type {import('./$types').PageServerLoad} */

@@ -1,3 +1,5 @@
+from common.pipeline_settings import validate_entry, stages_for
+from common.rbac import configured
 """Kanban views for opportunities.
 
 Status-based only (Opportunity has no Pipeline/Stage model. It groups by the
@@ -99,7 +101,7 @@ class OpportunityKanbanView(APIView):
 
         # Match the list view's RBAC scoping so users only see opps they own
         # or are assigned to. Kanban shouldn't reveal more than the table.
-        if not is_org_admin(request.profile) and not request.user.is_superuser:
+        if not configured(request.profile) and not is_org_admin(request.profile) and not request.user.is_superuser:
             queryset = queryset.filter(
                 Q(created_by=request.profile.user) | Q(assigned_to=request.profile)
             ).distinct()
@@ -111,8 +113,9 @@ class OpportunityKanbanView(APIView):
         aging_configs = {c.stage: c for c in StageAgingConfig.objects.filter(org=org)}
 
         columns = []
-        stage_choices = Opportunity._meta.get_field("stage").choices
-        for stage_value, _label in stage_choices:
+        stage_choices = stages_for(org, 'Opportunity')
+        for configured_stage in stage_choices:
+            stage_value = configured_stage['key']
             cfg = STAGE_CONFIG.get(
                 stage_value,
                 {"order": 99, "color": "#6B7280", "type": "open", "label": stage_value},
@@ -123,8 +126,8 @@ class OpportunityKanbanView(APIView):
             columns.append(
                 {
                     "id": stage_value,
-                    "name": cfg["label"],
-                    "order": cfg["order"],
+                    "name": configured_stage["label"],
+                    "order": configured_stage["order"],
                     "color": cfg["color"],
                     "stage_type": cfg["type"],
                     "is_status_column": True,
@@ -202,7 +205,7 @@ class OpportunityMoveView(APIView):
         # creator branch sit dead long enough to need a PR.
         assert_deal_access(request.profile, request.user, opportunity)
 
-        serializer = OpportunityMoveSerializer(data=request.data)
+        serializer = OpportunityMoveSerializer(data=request.data, context={"request": request})
         if not serializer.is_valid():
             return Response(
                 {"error": True, "errors": serializer.errors},
@@ -211,6 +214,7 @@ class OpportunityMoveView(APIView):
         data = serializer.validated_data
 
         new_stage = data["column_id"]
+        validate_entry(org, "Opportunity", opportunity, {"stage": new_stage})
         entering_closed = (
             new_stage in CLOSED_STAGES and opportunity.stage not in CLOSED_STAGES
         )

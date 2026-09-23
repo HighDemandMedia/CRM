@@ -185,3 +185,16 @@ class TestTeamsDetailView:
             format="json",
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_edit_preserves_existing_inactive_member(admin_client, org_a, user_profile):
+    team = Teams.objects.create(org=org_a, name="Retained team")
+    team.users.add(user_profile)
+    user_profile.is_active = False
+    user_profile.save()
+    response = admin_client.patch(f"/api/teams/{team.pk}/", {"name":"Renamed team", "assign_users":[str(user_profile.pk)]}, format="json")
+    assert response.status_code == 200, response.data
+    assert team.users.filter(pk=user_profile.pk).exists()
+    response = admin_client.post("/api/teams/", {"name":"Another team", "assign_users":[str(user_profile.pk)]}, format="json")
+    assert response.status_code == 400

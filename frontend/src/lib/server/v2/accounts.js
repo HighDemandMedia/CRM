@@ -1,3 +1,4 @@
+import { userName } from '$lib/utils/user-name.js';
 /**
  * Accounts: the third v2 module wired to the real API.
  *
@@ -108,6 +109,7 @@ function toRollups(rollups) {
       open_pipeline: null,
       open_deal_count: null,
       overdue_amount: null,
+      overdue_deal_count: null,
       open_tickets: null,
       first_won_on: null
     };
@@ -118,6 +120,7 @@ function toRollups(rollups) {
     open_pipeline: num(rollups.open_pipeline) ?? 0,
     open_deal_count: rollups.open_deal_count ?? 0,
     overdue_amount: num(rollups.overdue_amount) ?? 0,
+    overdue_deal_count: rollups.overdue_deal_count ?? 0,
     open_tickets: rollups.open_tickets ?? 0,
     first_won_on: rollups.first_won_on ?? null
   };
@@ -147,12 +150,13 @@ function toRow(account) {
     contacts: account.contacts ?? [],
     owner:
       [...(account.assigned_to ?? [])]
-        .map((p) => p.user_details?.email ?? '')
+        .map((p) => userName(p, ''))
         .filter(Boolean)
         .sort()[0] ?? '',
     owner_count: (account.assigned_to ?? []).length,
     tags: account.tags ?? [],
     updated_at: account.updated_at ?? null,
+    last_activity_at: account.last_activity_at ?? account.created_at ?? null,
     email: account.email ?? '',
     phone: account.phone ?? '',
     number_of_employees: account.number_of_employees ?? null,
@@ -167,6 +171,7 @@ function toRow(account) {
     description: account.description ?? '',
     is_active: account.is_active !== false,
     created_at: account.created_at,
+    custom_fields: account.custom_fields ?? {},
     ...toRollups(account.rollups)
   };
 }
@@ -227,6 +232,7 @@ export async function listAccounts({ cookies }, params) {
     countries: response.countries ?? [],
     results: rows,
     totals: {
+      money_totals: response.money_totals ?? [],
       count: active.open_accounts_count ?? rows.length,
       // Every account with a deal won against it. This is the only definition
       // of "customer" the data supports; there is no customer flag.
@@ -344,7 +350,7 @@ export async function getAccount({ cookies }, id) {
  * @param {any} profile
  */
 function profileName(profile) {
-  return profile?.user_details?.email || profile?.user?.email || 'Unknown';
+  return userName(profile, 'Unknown');
 }
 
 /** Scalar fields the account forms own. Everything else is server-derived. */
@@ -402,7 +408,8 @@ async function listChoices(cookies) {
     })),
     owners: (response.users ?? []).map((/** @type {any} */ user) => ({
       id: user.id,
-      name: user.user__email
+      name: userName(user),
+      email: user.user__email || ''
     }))
   };
 }

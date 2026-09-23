@@ -1,4 +1,5 @@
 <script>
+  import { userName } from '$lib/utils/user-name.js';
   import { Building2, AlertCircle } from '@lucide/svelte';
 
   /**
@@ -67,7 +68,7 @@
 
   /** @param {any} assignee */
   function getAssigneeName(assignee) {
-    return assignee?.user_details?.email || assignee?.email || 'Unknown';
+    return userName(assignee, 'Unknown');
   }
 
   function getAvatarColor(email) {

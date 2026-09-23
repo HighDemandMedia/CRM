@@ -1,3 +1,5 @@
+from common.pipeline_settings import validate_entry
+from rest_framework.exceptions import ValidationError as PipelineValidationError
 """Bulk update / bulk delete endpoints for the Cases module."""
 
 import uuid
@@ -138,6 +140,7 @@ class BulkUpdateCasesView(APIView):
                 # A savepoint per case, so a blocked close rolls back only
                 # itself and the rest of the batch still commits.
                 with transaction.atomic():
+                    validate_entry(org, "Case", case, {**scalar_updates, **m2m_updates})
                     for k, v in scalar_updates.items():
                         setattr(case, k, v)
                     if scalar_updates:
@@ -165,6 +168,9 @@ class BulkUpdateCasesView(APIView):
                             manager.add(*related)
                         else:
                             manager.set(related)
+            except PipelineValidationError as exc:
+                results.append({"id": str(case.pk), "status": "blocked", "errors": exc.detail})
+                continue
             except ValidationError as exc:
                 results.append(_close_gate_outcome(str(case.pk), exc))
                 continue

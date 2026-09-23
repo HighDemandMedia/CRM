@@ -1,4 +1,5 @@
 <script>
+  import { userName } from '$lib/utils/user-name.js';
   import { Calendar, Link, AlertCircle } from '@lucide/svelte';
   import { formatDate } from '$lib/utils/formatting.js';
 
@@ -55,7 +56,7 @@
    * @param {any} assignee
    */
   function getAssigneeName(assignee) {
-    return assignee?.user_details?.email || assignee?.email || 'Unknown';
+    return userName(assignee, 'Unknown');
   }
 
   // Generate consistent avatar color from email

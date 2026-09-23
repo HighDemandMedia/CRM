@@ -1,288 +1,567 @@
 <script>
-  import { resolve } from '$app/paths';
+  import { showStageRequirements } from "$lib/components/pipelines/feedback.js";
+  import { configuredStages, configuredLabel } from "$lib/v2/pipeline-config.js";
+  import '$lib/v2/styles/pipeline.css';
+  import '$lib/v2/styles/list-view.css';
+  import { pipelineTone } from '$lib/v2/pipeline-view.js';
+  import { onMount } from 'svelte';
   import { page } from '$app/state';
-  import { invalidateAll } from '$app/navigation';
-  import { SvelteSet } from 'svelte/reactivity';
+  import { goto, invalidateAll } from '$app/navigation';
+  import { resolve } from '$app/paths';
+  import { deserialize } from '$app/forms';
+  import { List, Columns3, Plus, Download } from '@lucide/svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import SectionTabs from '$lib/v2/components/SectionTabs.svelte';
-  import FilterBar from '$lib/v2/components/FilterBar.svelte';
-  import Pill from '$lib/v2/components/Pill.svelte';
-  import Avatar from '$lib/v2/components/Avatar.svelte';
-  import EmptyState from '$lib/v2/components/EmptyState.svelte';
-  import BulkActionBar from '$lib/v2/components/BulkActionBar.svelte';
-  import { count, shortAge } from '$lib/v2/format.js';
-  import { PRIORITY_TONE, CASE_STATUS_TONE } from '$lib/v2/enums.js';
-  import { Plus, LifeBuoy } from '@lucide/svelte';
-
-  /** @type {{ data: any }} */
-  let { data } = $props();
-
-  let tickets = $derived(data.tickets);
-  let totals = $derived(data.totals);
-
-  // Bulk selection: loaded rows only, never the whole filtered set. SvelteSet
-  // is reactive on mutation, so add/delete/clear below re-render without
-  // reassigning the whole set.
-  let selected = new SvelteSet();
-  let banner = $state('');
-
-  /** @param {string} id */
-  function toggle(id) {
-    if (selected.has(id)) selected.delete(id);
-    else selected.add(id);
+  import ColumnPicker from '$lib/v2/components/ColumnPicker.svelte';
+  import AdvancedQueue from '$lib/components/tickets/AdvancedQueue.svelte';
+  import {
+    statuses as defaultStatuses,
+    priorities,
+    categories,
+    dueDateLabel,
+    statusLabel,
+    priorityLabel
+  } from '$lib/components/tickets/options.js';
+  const statuses = $derived(configuredStages(page.data.pipelineConfig, 'Case', defaultStatuses.map(([value,label]) => ({value,label}))).map(s => [s.value,s.label]));
+  let { data, form } = $props();
+  let advanced = $state(false),
+    search = $state(''),
+    timer,
+    dragging = $state(''),
+    target = $state(''),
+    error = $state(''),
+    moving = $state(false),
+    resolving = $state(null),
+    resolution = $state('');
+  const fields = [
+    ['ticket_code', 'ID'],
+    ['name', 'Title'],
+    ['status', 'Status'],
+    ['priority', 'Priority'],
+    ['assignee', 'Assigned to'],
+    ['association', 'Associated with'],
+    ['category', 'Category'],
+    ['source', 'Source'],
+    ['due_at', 'Due date'],
+    ['last_activity', 'Last activity']
+  ];
+  let columns = $state([
+    'ticket_code',
+    'name',
+    'status',
+    'priority',
+    'assignee',
+    'association',
+    'due_at'
+  ]);
+  const view = $derived(page.url.searchParams.get('view') ?? 'list');
+  const offset = $derived(Number(page.url.searchParams.get('offset') ?? 0));
+  let sort = $state(''),
+    asc = $state(true);
+  const date = (value) =>
+    value
+      ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+      : '—';
+  function value(t, key) {
+    if (key === 'status') return configuredLabel(page.data.pipelineConfig, 'Case', t.status, statusLabel(t.status));
+    if (key === 'priority') return priorityLabel(t.priority);
+    if (key === 'association')
+      return [t.account?.name, ...t.contacts.map((c) => c.name)].filter(Boolean).join(', ');
+    if (key === 'due_at') return dueDateLabel(t[key]);
+    if (key === 'last_activity') return date(t[key]);
+    return t[key] ?? '—';
   }
-  function toggleAll() {
-    if (selected.size === tickets.length) {
-      selected.clear();
-    } else {
-      selected.clear();
-      for (const t of tickets) selected.add(t.id);
+  const rows = $derived(
+    [...data.tickets].sort((a, b) =>
+      sort
+        ? String(value(a, sort)).localeCompare(String(value(b, sort)), undefined, {
+            numeric: true
+          }) * (asc ? 1 : -1)
+        : 0
+    )
+  );
+  const stages = $derived(statuses);
+  onMount(() => {
+    search = data.search;
+    try {
+      const saved = JSON.parse(localStorage.getItem('crm.ticket.columns') ?? 'null');
+      if (Array.isArray(saved) && saved.length)
+        columns = saved.filter((key) => fields.some(([id]) => id === key));
+    } catch {}
+    return () => clearTimeout(timer);
+  });
+  function toggle(key) {
+    columns = columns.includes(key) ? columns.filter((k) => k !== key) : [...columns, key];
+    localStorage.setItem('crm.ticket.columns', JSON.stringify(columns));
+  }
+  function filter(key, value) {
+    const url = new URL(page.url);
+    if (value) url.searchParams.set(key, value);
+    else url.searchParams.delete(key);
+    if (key !== 'offset') url.searchParams.delete('offset');
+    goto(url, { keepFocus: true, noScroll: true });
+  }
+  async function move(id, status) {
+    if (moving) return;
+    if (status === 'Resolved' && !resolving) {
+      resolving = id;
+      return;
+    }
+    moving = true;
+    error = '';
+    const body = new FormData();
+    body.set('id', id);
+    body.set('status', status);
+    if (status === 'Resolved') body.set('resolution_note', resolution);
+    try {
+      const result = deserialize(await (await fetch('?/move', { method: 'POST', body })).text());
+      if (result.type !== 'success') {
+        if (showStageRequirements(result, 'Case', id, {status, ...(status === 'Closed' ? {closed_on:new Date().toISOString().slice(0,10)} : {}), ...(status === 'Resolved' ? {resolution_note:resolution}: {})})) {resolving = null; return;}
+        error =
+          result.type === 'failure'
+            ? String(result.data?.error ?? 'Could not move ticket.')
+            : 'Could not move ticket.';
+      } else {
+        resolving = null;
+        resolution = '';
+        await invalidateAll();
+      }
+    } catch {
+      error = 'Could not move ticket. Try again.';
+    } finally {
+      moving = false;
+      dragging = '';
+      target = '';
     }
   }
-  /**
-   * @param {'update'|'delete'} kind
-   * @param {Record<string, number>} s
-   */
-  function summaryText(kind, s) {
-    const parts = [
-      `${kind === 'delete' ? s.deleted : s.updated} ${kind === 'delete' ? 'deleted' : 'updated'}`
-    ];
-    if (s.no_access) parts.push(`${s.no_access} skipped (no access)`);
-    if (s.approval_required) parts.push(`${s.approval_required} need approval`);
-    if (s.closed_on_required) parts.push(`${s.closed_on_required} missing close date`);
-    if (s.invalid) parts.push(`${s.invalid} invalid`);
-    return parts.join(' · ');
+  function drop(e, status) {
+    e.preventDefault();
+    const id = e.dataTransfer?.getData('text/plain');
+    if (id && rows.some((t) => t.id === id && t.status !== status)) move(id, status);
+    target = '';
   }
-
-  /**
-   * How the first-reply clock stands.
-   *
-   * The deadline arrives from the server, where it is walked through the org's
-   * business calendar and pushed forward by any time the ticket spent waiting
-   * on the customer. Recomputing it here from `opened_at + hours`, which is
-   * what the mock did, would put a second, quietly different answer on the
-   * same screen.
-   *
-   * A progress bar only means something while there is still time on the
-   * clock. Past the deadline a bar pinned at 100% says nothing about how bad
-   * it is, so we stop drawing one and say how far over it went instead.
-   *
-   * @param {any} t
-   */
-  function responsePressure(t) {
-    if (t.first_response_at) {
-      const took =
-        (new Date(t.first_response_at).getTime() - new Date(t.opened_at).getTime()) / 6e4;
-      return { state: 'met', label: `Met in ${fmtMins(took)}`, tone: 'moss' };
-    }
-    if (!t.first_response_deadline) {
-      return { state: 'none', label: 'No target', tone: 'slate' };
-    }
-    const now = Date.now();
-    const opened = new Date(t.opened_at).getTime();
-    const due = new Date(t.first_response_deadline).getTime();
-    if (now >= due) {
-      return { state: 'breached', label: `${fmtMins((now - due) / 6e4)} over`, tone: 'rust' };
-    }
-    const pct = Math.max(0, Math.min(100, Math.round(((now - opened) / (due - opened)) * 100)));
+  function modal(node) {
+    node.showModal();
     return {
-      state: 'running',
-      pct,
-      label: `${fmtMins((due - now) / 6e4)} left`,
-      tone: pct >= 75 ? 'rust' : pct >= 50 ? 'clay' : 'slate'
+      destroy() {
+        node.close();
+      }
     };
   }
-
-  /** @param {number} m */
-  function fmtMins(m) {
-    const n = Math.max(0, Math.round(m));
-    if (n < 60) return `${n}m`;
-    if (n < 1440) return `${Math.round(n / 60)}h`;
-    return `${Math.round(n / 1440)}d`;
+  function exportCSV() {
+    const safe = (v) => {
+      let s = String(v ?? '');
+      if (/^[=+@\-\t\r]/.test(s)) s = "'" + s;
+      return '"' + s.replaceAll('"', '""') + '"';
+    };
+    const text = [
+      columns.map((k) => fields.find(([id]) => id === k)?.[1]),
+      ...rows.map((t) => columns.map((k) => value(t, k)))
+    ]
+      .map((row) => row.map(safe).join(','))
+      .join('\r\n');
+    const url = URL.createObjectURL(
+      new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8;' })
+    );
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tickets.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   }
-
-  const TONE_VAR = {
-    moss: 'var(--v2-moss)',
-    rust: 'var(--v2-rust)',
-    clay: 'var(--v2-clay)',
-    slate: 'var(--v2-slate)'
-  };
 </script>
 
-<PageHeader title="Tickets">
-  {#snippet sub()}
-    <span class="v2-num">{count(totals.open)}</span> open ·
-    <span class="v2-num" style="color:var(--v2-rust)">{totals.urgent}</span> urgent ·
-    <!-- Not "breaching today". A breach depends on the org's business calendar
-         and is a per-row calculation; nobody having replied yet is a fact the
-         queue can establish, and it is the one that decides what to open. -->
-    <span class="v2-num">{count(totals.awaiting_reply)}</span> with no reply yet
-  {/snippet}
-  {#snippet actions()}
-    <a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}><Plus />New ticket</a>
-  {/snippet}
-</PageHeader>
-
-{#if page.url.search}
-  <p class="v2-sub" style="font-size:11.5px;margin:8px 0 0">
-    These numbers describe the filtered queue.
-  </p>
-{/if}
-
-<!-- Approvals and Analytics were buttons in this header that went nowhere.
-     They are sibling pages, so they belong in a tab strip that also tells you
-     which one you are on. -->
-<SectionTabs set="tickets" />
-
-{#if banner}
-  <p class="v2-sub" style="font-size:12px;margin:8px 0 0">{banner}</p>
-{/if}
-{#if selected.size > 0}
-  <BulkActionBar
-    ids={[...selected]}
-    people={data.people}
-    tags={data.tags}
-    onclear={() => selected.clear()}
-    ondone={async () => {
-      // The form action returned; show its summary, refresh, clear selection.
-      const r = page.form;
-      if (r?.ok) banner = summaryText(r.kind, r.summary);
-      selected.clear();
-      await invalidateAll();
-    }}
-  />
-{/if}
-
-<FilterBar
-  page="tickets"
-  url={page.url}
-  people={data.people}
-  tags={data.tags}
-  meId={data.meId}
-  meta="First-reply targets come from each ticket's SLA hours"
-/>
-
-<div class="v2-scroll">
-  {#if tickets.length === 0}
-    <!-- An empty queue is good news, so it does not read like a failure. -->
-    <EmptyState
-      title={data.showAll ? 'No tickets here yet' : 'The queue is clear'}
-      body={data.showAll
-        ? 'Nothing has been raised in this workspace. Tickets arrive here from email, the portal, and anyone who replies to a closed one.'
-        : 'Nothing is waiting on your team right now. Closed and rejected tickets are still here. They are just not in the way.'}
-    >
-      {#snippet icon()}<LifeBuoy size={21} />{/snippet}
-      {#snippet actions()}
-        <a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}>New ticket</a>
-        {#if !data.showAll}
-          <a class="v2-btn" href={resolve('/tickets?all=1')}>Show closed too</a>
-        {/if}
-        <a class="v2-btn" href={resolve('/solutions')}>Knowledge base</a>
-      {/snippet}
-    </EmptyState>
-  {:else}
-    <div class="v2-table-wrap">
-      <table class="v2-table">
-        <thead>
-          <tr>
-            <th style="width:34px">
-              <input
-                type="checkbox"
-                aria-label="Select all loaded"
-                checked={tickets.length > 0 && selected.size === tickets.length}
-                onchange={toggleAll}
-              />
-            </th>
-            <th>Subject</th>
-            <th>Priority</th>
-            <th>Status</th>
-            <th>Type</th>
-            <th>Account</th>
-            <th>Assignee</th>
-            <th class="v2-r">Age</th>
-            <th style="width:130px">First reply</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each tickets as t (t.id)}
-            {@const p = responsePressure(t)}
-            <tr>
-              <td data-m="lead">
-                <input
-                  type="checkbox"
-                  aria-label="Select ticket"
-                  checked={selected.has(t.id)}
-                  onchange={() => toggle(t.id)}
-                />
-              </td>
-              <td data-m="title">
-                <a class="v2-row-link" href={resolve(`/tickets/${t.id}`)}>
-                  <span class="v2-table-primary">{t.name}</span>
-                </a>
-              </td>
-              <td><Pill tone={PRIORITY_TONE[t.priority]}>{t.priority}</Pill></td>
-              <td data-m="tag"><Pill tone={CASE_STATUS_TONE[t.status]}>{t.status}</Pill></td>
-              <!-- Nullable on the model and null on plenty of rows, so it says
-                   so rather than printing an empty cell. -->
-              <td class="v2-muted" data-m="hide" style="font-size:12.5px">
-                {t.case_type ?? '—'}
-              </td>
-              <td class="v2-muted" style="font-size:12.5px">
-                {#if t.account}
-                  <a class="v2-row-link" href={resolve(`/accounts/${t.account.id}`)}
-                    >{t.account.name}</a
-                  >
-                {:else}
-                  No account
-                {/if}
-              </td>
-              <td data-m="hide">
-                {#if t.assignee}
-                  <Avatar name={t.assignee} size={22} />
-                {:else}
-                  <span class="v2-muted" style="font-size:12.5px">Unassigned</span>
-                {/if}
-              </td>
-              <td class="v2-r v2-num v2-muted" data-m="meta">{shortAge(t.opened_at)}</td>
-              <!-- Kept on a phone, unlike the other trailing columns: a running
-                   first-reply clock is the one thing in this queue that decides
-                   what to open next. It takes its own line so the meter has a
-                   width to fill. -->
-              <td data-m="bar">
-                {#if p.state === 'running'}
-                  <div style="display:flex;align-items:center;gap:8px">
-                    <span
-                      style="flex:1;height:4px;border-radius:3px;background:var(--v2-line);overflow:hidden;display:block"
-                    >
-                      <i
-                        style="display:block;height:100%;width:{p.pct}%;background:{TONE_VAR[
-                          p.tone
-                        ]}"
-                      ></i>
-                    </span>
-                    <span class="v2-num" style="font-size:11px;color:{TONE_VAR[p.tone]}"
-                      >{p.label}</span
+{#if advanced}<button class="v2-btn" onclick={() => (advanced = false)}>Back to tickets</button
+  ><AdvancedQueue {data} />{:else}
+  <PageHeader title="Tickets"
+    >{#snippet sub()}{data.totals.count}
+      {data.totals.count === 1 ? 'ticket' : 'tickets'}{/snippet}{#snippet actions()}<button
+        class="v2-btn"
+        onclick={exportCSV}><Download size={14} />Export CSV</button
+      ><a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}
+        ><Plus size={14} />New ticket</a
+      >{/snippet}</PageHeader
+  >
+  <div class="workspace">
+    <div class="filters">
+      <input
+        class="v2-input search"
+        aria-label="Search tickets"
+        placeholder="Search tickets…"
+        bind:value={search}
+        oninput={() => {
+          clearTimeout(timer);
+          timer = setTimeout(() => filter('search', search), 300);
+        }}
+      />
+      <select
+        class="v2-input"
+        aria-label="Assigned to"
+        value={page.url.searchParams.get('assigned_to') ?? ''}
+        onchange={(e) => filter('assigned_to', e.currentTarget.value)}
+        ><option value="">Assigned to</option>{#each data.people as person}<option value={person.id}
+            >{person.name}</option
+          >{/each}</select
+      >
+      <select
+        class="v2-input"
+        aria-label="Status"
+        value={data.status}
+        onchange={(e) => filter('status', e.currentTarget.value)}
+        ><option value="">All statuses</option>{#each statuses as [value, label]}<option {value}
+            >{label}</option
+          >{/each}</select
+      >
+      <select
+        class="v2-input"
+        aria-label="Priority"
+        value={page.url.searchParams.get('priority') ?? ''}
+        onchange={(e) => filter('priority', e.currentTarget.value)}
+        ><option value="">Priority</option>{#each priorities as [value, label]}<option {value}
+            >{label}</option
+          >{/each}</select
+      >
+      <select
+        class="v2-input"
+        aria-label="Category"
+        value={page.url.searchParams.get('category') ?? ''}
+        onchange={(e) => filter('category', e.currentTarget.value)}
+        ><option value="">Category</option>{#each categories as value}<option>{value}</option
+          >{/each}</select
+      >
+      <label class="overdue-filter"
+        ><input
+          type="checkbox"
+          checked={page.url.searchParams.get('overdue') === 'true'}
+          onchange={(e) => filter('overdue', e.currentTarget.checked ? 'true' : '')}
+        />Overdue</label
+      >
+      <div class="views">
+        <button
+          class="v2-btn"
+          aria-label="List view"
+          aria-pressed={view === 'list'}
+          onclick={() => filter('view', 'list')}><List size={16} /></button
+        ><button
+          class="v2-btn"
+          aria-label="Pipeline view"
+          aria-pressed={view === 'pipeline'}
+          onclick={() => filter('view', 'pipeline')}><Columns3 size={16} /></button
+        >{#if view === 'list'}<ColumnPicker {fields} selected={columns} onToggle={toggle} />{/if}
+      </div>
+    </div>
+    {#if error}<p class="v2-error" role="alert">{error}</p>{/if}
+    {#if view === 'pipeline'}<div class="pipeline hdm-board" aria-label="Tickets by status">
+        {#each stages as [status, label]}<section
+            class="pipeline-column"
+            data-tone={pipelineTone(label)}
+            class:target={target === status}
+            ondragover={(e) => {
+              if (!dragging || moving) return;
+              e.preventDefault();
+              target = status;
+            }}
+            ondrop={(e) => drop(e, status)}
+            ondragleave={(e) => {
+              if (!e.currentTarget.contains(/** @type {Node | null} */ (e.relatedTarget)))
+                target = '';
+            }}
+            aria-label={label}
+          >
+            <header class="pipeline-header">
+              <h2>{label}</h2>
+              <span>{rows.filter((t) => t.status === status).length}</span>
+            </header>
+            <div class="pipeline-cards">
+              {#each rows.filter((t) => t.status === status) as ticket}<article
+                  class="pipeline-card"
+                  draggable={!moving}
+                  ondragstart={(e) => {
+                    dragging = ticket.id;
+                    e.dataTransfer?.setData('text/plain', ticket.id);
+                  }}
+                  ondragend={() => {
+                    dragging = '';
+                    target = '';
+                  }}
+                  role="group"
+                  aria-label={ticket.name}
+                  class:dragging={dragging === ticket.id}
+                >
+                  <div class="ticket-meta">
+                    <small>{ticket.ticket_code}</small><span
+                      class="priority-badge"
+                      data-priority={ticket.priority}>{priorityLabel(ticket.priority)}</span
                     >
                   </div>
-                {:else}
-                  <span class="v2-num" style="font-size:11.5px;color:{TONE_VAR[p.tone]}"
-                    >{p.label}</span
+                  <a class="pipeline-name" draggable="false" href={resolve(`/tickets/${ticket.id}`)}
+                    >{ticket.name || `Ticket · ${ticket.id.slice(0, 8)}`}</a
                   >
-                {/if}
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-    <p class="v2-sub v2-pad" style="font-size:12px;padding-bottom:24px">
-      Showing <span class="v2-num">{tickets.length}</span> of
-      <span class="v2-num">{count(totals.count)}</span>
-      {#if !data.showAll}
-        · <a href={resolve('/tickets?all=1')} style="color:inherit">include closed</a>
-      {:else}
-        · <a href={resolve('/tickets')} style="color:inherit">open only</a>
-      {/if}
-    </p>
-  {/if}
-</div>
+                  <p>{ticket.assignee ?? 'Unassigned'}</p>
+                  <p>{ticket.category}</p>
+                  {#if ticket.due_at}<p
+                      class:overdue={ticket.is_open && new Date(ticket.due_at) < new Date()}
+                    >
+                      {dueDateLabel(ticket.due_at)}
+                    </p>{/if}<select
+                    class="ticket-stage-control"
+                    aria-label={`Move ${ticket.name}`}
+                    value={ticket.status}
+                    disabled={moving}
+                    onchange={(e) => move(ticket.id, e.currentTarget.value)}
+                    >{#each stages as [value, label]}<option {value}>{label}</option>{/each}</select
+                  >
+                </article>{:else}<p class="pipeline-empty">No tickets</p>{/each}
+            </div>
+          </section>{/each}
+      </div>
+    {:else}<div class="table-scroll hdm-list">
+        <table>
+          <thead
+            ><tr
+              >{#each columns as key}<th
+                  scope="col"
+                  data-field={key}
+                  aria-sort={sort === key ? (asc ? 'ascending' : 'descending') : 'none'}
+                  ><button
+                    onclick={() => {
+                      if (sort === key) asc = !asc;
+                      else {
+                        sort = key;
+                        asc = true;
+                      }
+                    }}
+                    >{fields.find(([id]) => id === key)?.[1]}{sort === key
+                      ? asc
+                        ? ' ↑'
+                        : ' ↓'
+                      : ''}</button
+                  ></th
+                >{/each}<th scope="col">Actions</th></tr
+            ></thead
+          ><tbody
+            >{#each rows as ticket}<tr
+                >{#each columns as key}<td
+                    data-field={key}
+                    title={String(value(ticket, key))}
+                    class:overdue={key === 'due_at' &&
+                      ticket.is_open &&
+                      ticket.due_at &&
+                      new Date(ticket.due_at) < new Date()}
+                    >{#if key === 'name' || key === 'ticket_code'}<a
+                        href={resolve(`/tickets/${ticket.id}`)}>{value(ticket, key) || ticket.ticket_code || `Ticket · ${ticket.id.slice(0, 8)}`}</a
+                      >{:else if key === 'status'}<span
+                        class="status list-badge"
+                        data-tone={pipelineTone(ticket.status)}>{value(ticket, key)}</span
+                      >{:else if key === 'priority'}<span
+                        class="list-badge"
+                        data-priority={ticket.priority}>{value(ticket, key)}</span
+                      >{:else}{value(ticket, key)}{/if}</td
+                  >{/each}<td class="list-row-actions"><a aria-label={`Edit ${ticket.name}`} href={resolve(`/tickets/${ticket.id}/edit`)}>Edit</a></td></tr
+              >{:else}<tr><td colspan={columns.length + 1}>No tickets found.</td></tr>{/each}</tbody
+          >
+        </table>
+      </div>{/if}
+    {#if offset > 0 || offset + rows.length < data.totals.count}<div class="pages">
+        <button
+          class="v2-btn"
+          disabled={offset === 0}
+          onclick={() => filter('offset', String(Math.max(0, offset - 100)))}>Previous</button
+        ><button
+          class="v2-btn"
+          disabled={offset + rows.length >= data.totals.count}
+          onclick={() => filter('offset', String(offset + rows.length))}>Next</button
+        >
+      </div>{/if}
+  </div>
+  {#if resolving}<dialog
+      use:modal
+      onclose={() => (resolving = null)}
+      aria-labelledby="resolve-title"
+    >
+      <h2 id="resolve-title">Resolve ticket</h2>
+      <label
+        >Resolution note<textarea class="v2-input" rows="4" bind:value={resolution}
+        ></textarea></label
+      >{#if error}<p class="v2-error" role="alert">{error}</p>{/if}
+      <div class="pages">
+        <button class="v2-btn" onclick={() => (resolving = null)}>Cancel</button><button
+          class="v2-btn v2-btn-primary"
+          disabled={moving || !resolution.trim()}
+          onclick={() => move(resolving, 'Resolved')}>Resolve</button
+        >
+      </div>
+    </dialog>{/if}
+{/if}
+
+<style>
+  .workspace {
+    padding: 16px 22px;
+    min-height: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .filters select {
+    max-width: 180px;
+  }
+  .search {
+    min-width: 180px;
+    flex: 1;
+  }
+  .views {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
+  .overdue-filter {
+    font-size: 12px;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+  .table-scroll {
+    overflow: auto;
+    flex: 1;
+    border-radius: 10px;
+    background: var(--v2-bg);
+  }
+  table {
+    border-collapse: collapse;
+    min-width: 100%;
+    width: max-content;
+  }
+  th,
+  td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--v2-line);
+    white-space: nowrap;
+    font-size: 13px;
+  }
+  th {
+    position: sticky;
+    top: 0;
+    background: var(--v2-bg);
+  }
+  th button {
+    border: 0;
+    background: none;
+    color: var(--v2-muted);
+    font: inherit;
+    cursor: pointer;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  a.v2-btn-primary {
+    color: #fff;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  .status {
+    padding: 4px 8px;
+    background: var(--v2-paper);
+    border-radius: 5px;
+  }
+  .pipeline {
+    display: flex;
+    gap: 12px;
+    overflow: auto;
+    flex: 1;
+  }
+  .pipeline > section {
+    flex: 0 0 260px;
+    background: var(--v2-paper);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    padding: 12px;
+    overflow: auto;
+  }
+  .pipeline .target {
+    border-color: #5583bb;
+  }
+  h2 {
+    font-size: 13px;
+    margin: 0 0 16px;
+    display: flex;
+    justify-content: space-between;
+  }
+  small {
+    color: var(--v2-muted);
+  }
+  article {
+    background: var(--v2-bg);
+    border-radius: 8px;
+    padding: 14px;
+    margin: 10px 0;
+    cursor: grab;
+  }
+  .dragging {
+    opacity: 0.5;
+  }
+  article a,
+  article small {
+    display: block;
+  }
+  article small {
+    font-size: 10px;
+    margin-bottom: 7px;
+  }
+  article a {
+    font-size: 14px;
+  }
+  article p {
+    font-size: 12px;
+    margin: 8px 0;
+    color: var(--v2-muted);
+  }
+  article select {
+    width: 100%;
+    border: 0;
+    background: var(--v2-paper);
+    font-size: 11px;
+    padding: 6px;
+    border-radius: 4px;
+  }
+  .overdue,
+  article p.overdue {
+    color: var(--v2-rust);
+  }
+  .pages {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  dialog::backdrop {
+    background: #0005;
+  }
+  dialog {
+    border: 0;
+    background: var(--v2-bg);
+    padding: 24px;
+    width: min(440px, 100%);
+    border-radius: 12px;
+  }
+  dialog textarea {
+    width: 100%;
+    margin: 10px 0;
+  }
+  @media (max-width: 700px) {
+    .workspace {
+      padding: 12px;
+    }
+    .search {
+      flex-basis: 100%;
+    }
+  }
+</style>

@@ -1,3 +1,5 @@
+import { getTicketForEdit } from '$lib/server/v2/tickets.js';
+import { readTicketForm } from '$lib/server/v2/ticket-form.js';
 import { fail } from '@sveltejs/kit';
 import {
   getTicket,
@@ -15,7 +17,7 @@ import {
   setEntryBillable,
   deleteEntry
 } from '$lib/server/v2/timesheet.js';
-import { readableError } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 import { openDescendants, subtreeTruncated, cascadedCount, closeResultMessage } from './close.js';
 
 /**
@@ -39,9 +41,10 @@ import { openDescendants, subtreeTruncated, cascadedCount, closeResultMessage } 
  * @type {import('./$types').PageServerLoad}
  */
 export async function load({ cookies, params, locals }) {
-  const [data, timeEntries] = await Promise.all([
+  const [data, timeEntries, editOptions] = await Promise.all([
     getTicket({ cookies }, params.id),
-    listTicketTime({ cookies }, params.id).catch(() => null)
+    listTicketTime({ cookies }, params.id).catch(() => null),
+    getTicketForEdit({ cookies }, params.id)
   ]);
 
   const time = {
@@ -60,7 +63,7 @@ export async function load({ cookies, params, locals }) {
   // `child_count` sits on the ticket itself here. The `server` block with a
   // `child_count` of its own belongs to the EDIT page's loader, and reading it
   // from this one is silently always-undefined, so the panel never appeared.
-  if (!data.ticket?.child_count) return { ...data, time };
+  if (!data.ticket?.child_count) return { ...data, time, editOptions };
 
   const [tree, settings] = await Promise.all([
     getTicketTree({ cookies }, params.id).catch(() => null),
@@ -70,6 +73,7 @@ export async function load({ cookies, params, locals }) {
   return {
     ...data,
     time,
+    editOptions,
     close: {
       descendants: openDescendants(tree?.root, params.id),
       truncated: subtreeTruncated(tree?.root, params.id),
@@ -84,6 +88,49 @@ export async function load({ cookies, params, locals }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  attach: async ({ cookies, params, request }) => {
+    const file = (await request.formData()).get('attachment');
+    if (!file || typeof file === 'string' || !file.size)
+      return fail(400, { message: 'Choose a file.' });
+    try {
+      await replyToTicket({ cookies }, params.id, { body: '', internal: true, file });
+    } catch (err) {
+      return fail(400, { message: readableError(err, 'Could not attach file.') });
+    }
+    return { attached: true };
+  },
+  properties: async ({ cookies, params, request }) => {
+    const { values, error } = readTicketForm(await request.formData());
+    if (error) return fail(400, { error });
+    try {
+      const current = await getTicketForEdit({ cookies }, params.id);
+      const changes = Object.fromEntries(
+        Object.entries(values).filter(([key, value]) => {
+          if (key === 'closed_on' && current.ticket.status === 'Closed') return false;
+          const previous = current.form[key];
+          if (Array.isArray(value))
+            return (
+              JSON.stringify([...value].sort()) !== JSON.stringify([...(previous ?? [])].sort())
+            );
+          return String(value ?? '') !== String(previous ?? '');
+        })
+      );
+      if (Object.keys(changes).length) await updateTicket({ cookies }, params.id, changes);
+    } catch (err) {
+      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save properties.') });
+    }
+    return { saved: true };
+  },
+  resolve: async ({ cookies, params, request }) => {
+    const resolution_note = String((await request.formData()).get('resolution_note') ?? '').trim();
+    if (!resolution_note) return fail(400, { error: 'Add a resolution note.' });
+    try {
+      await updateTicket({ cookies }, params.id, { status: 'Resolved', resolution_note });
+    } catch (err) {
+      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not resolve ticket.') });
+    }
+    return { resolved: true };
+  },
   /**
    * Post a reply, or an internal note.
    *
@@ -116,7 +163,7 @@ export const actions = {
     try {
       await replyToTicket({ cookies }, params.id, { body, internal, file });
     } catch (/** @type {any} */ err) {
-      return fail(400, { body, internal, error: readableError(err, 'Could not post this reply.') });
+      return fail(400, { body, internal, stageRequirements: stageRequirements(err), error: readableError(err, 'Could not post this reply.') });
     }
 
     if (status) {
@@ -125,7 +172,7 @@ export const actions = {
       } catch (/** @type {any} */ err) {
         return fail(400, {
           sent: true,
-          error: readableError(err, `Reply posted, but the status stayed put.`)
+          stageRequirements: stageRequirements(err), error: readableError(err, `Reply posted, but the status stayed put.`)
         });
       }
     }
@@ -153,7 +200,7 @@ export const actions = {
     try {
       await updateTicket({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { error: readableError(err, 'Could not change the status.') });
+      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not change the status.') });
     }
 
     return { moved: status };
@@ -192,7 +239,7 @@ export const actions = {
         resolution_comment: comment
       });
     } catch (/** @type {any} */ err) {
-      return fail(400, { error: readableError(err, 'Could not close this ticket.') });
+      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not close this ticket.') });
     }
 
     return {

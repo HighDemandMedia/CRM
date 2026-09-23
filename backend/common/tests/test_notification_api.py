@@ -92,6 +92,27 @@ class TestList(NotificationAPIBase):
         assert data["count"] == 2
         assert data["unread_count"] == 2
 
+    def test_paginated_history_includes_read_and_unread(self):
+        rows = self._bulk(self.profile_a, 5)
+        rows[0].read_at = timezone.now()
+        rows[0].save(update_fields=["read_at"])
+        self._bulk(self.profile_b, 2)
+        pages = [self.client.get(f"/api/notifications/?limit=2&offset={offset}").json()
+                 for offset in (0, 2, 4)]
+        ids = [row["id"] for page in pages for row in page["results"]]
+        assert len(set(ids)) == 5
+        assert all(page["count"] == 5 and page["unread_count"] == 4 for page in pages)
+        assert any(row["read_at"] for page in pages for row in page["results"])
+
+    def test_read_filter_and_invalid_offset(self):
+        self._bulk(self.profile_a, 2)
+        read = self._bulk(self.profile_a, 1, read_at=timezone.now())[0]
+        data = self.client.get("/api/notifications/?read=true&offset=-2").json()
+        assert data["count"] == 1
+        assert data["unread_count"] == 2
+        assert data["results"][0]["id"] == str(read.id)
+        assert self.client.get("/api/notifications/?offset=100").json()["results"] == []
+
     def test_since_filter(self):
         n1 = Notification.objects.create(
             org=self.org_a, recipient=self.profile_a, verb="old"

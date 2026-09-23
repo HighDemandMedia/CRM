@@ -1,11 +1,18 @@
 <script>
+  import StageRuleNotice from "$lib/components/pipelines/StageRuleNotice.svelte";
+  import { configuredStages } from '$lib/v2/pipeline-config.js';
+  import { page } from '$app/state';
+
+  import { creationEnhance } from '$lib/components/creation/enhance.js';
+  const enhance = creationEnhance();
   import TagPicker from '$lib/v2/components/TagPicker.svelte';
   import AppointmentInput from '$lib/v2/components/AppointmentInput.svelte';
   import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
-  import { companyStages } from '$lib/v2/company-stages.js';
-  import { enhance, deserialize } from '$app/forms';
+  import { companyStages as defaultCompanyStages } from '$lib/v2/company-stages.js';
+  import { deserialize } from '$app/forms';
   import { resolve } from '$app/paths';
   import { untrack, onMount, onDestroy } from 'svelte';
+  let companyStages = $derived(configuredStages(page.data.pipelineConfig, 'Account', defaultCompanyStages));
   /** @type {{data:any, result?:any, editing?:boolean, autoSave?:boolean, inline?:boolean, onCancel?:()=>void, onSaved?:()=>Promise<void>}} */
   let {
     data,
@@ -78,6 +85,7 @@
   let autoReady = $state(false);
   let autoStatus = $state('');
   let autoError = $state('');
+  let autoIssue = $state(null);
   let autoBusy = false;
   /** @type {Record<string, any>} */
   let baseline = {};
@@ -99,6 +107,7 @@
     autoBusy = true;
     autoStatus = 'Saving…';
     autoError = '';
+    autoIssue = null;
     let saved = false;
     try {
       const body = new FormData();
@@ -110,6 +119,7 @@
       });
       const result = deserialize(await response.text());
       if (result.type !== 'success') {
+        autoIssue = result.type === 'failure' ? result.data?.stageRequirements : null;
         autoError =
           result.type === 'failure'
             ? String(result.data?.error ?? 'Could not save changes.')
@@ -198,9 +208,10 @@
     };
   }}
 >
-  {#if result?.error}<p class="v2-error" role="alert">{result.error}</p>{/if}
+  <StageRuleNotice issue={autoIssue || result?.stageRequirements}/>
+  {#if result?.error && !result?.stageRequirements}<p class="v2-error" role="alert">{result.error}</p>{/if}
   {#if autoSave}<div role="status">{autoStatus}</div>
-    {#if autoError}<div class="v2-error" role="alert">
+    {#if autoError && !autoIssue}<div class="v2-error" role="alert">
         {autoError}<button
           type="button"
           class="v2-btn"
@@ -225,8 +236,7 @@
     <label
       >Name *<input
         class="v2-input"
-        name="name"
-        required
+        name="name" required
         maxlength="255"
         bind:value={values.name}
       /></label
@@ -359,7 +369,7 @@
       /></label
     >
     <label
-      >Stage *<select class="v2-input" name="stage" required bind:value={values.stage}
+      >Stage<select class="v2-input" name="stage" bind:value={values.stage}
         >{#each companyStages as stage}<option value={stage.value}>{stage.label}</option
           >{/each}</select
       ></label

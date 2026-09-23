@@ -73,7 +73,8 @@ class HasOrgContext(permissions.BasePermission):
         if not request.profile.is_active:
             return False
 
-        return True
+        from common.rbac import check_request
+        return check_request(request)
 
 
 class IsOrgAdmin(permissions.BasePermission):

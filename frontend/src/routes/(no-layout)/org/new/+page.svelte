@@ -1,10 +1,9 @@
 <script>
-  import { resolve } from '$app/paths';
+  import { resolve, base } from '$app/paths';
   import '../../../../app.css';
   import '$lib/v2/styles/v2.css';
   import { enhance } from '$app/forms';
   import { goto } from '$app/navigation';
-  import imgLogo from '$lib/assets/images/logo.png';
   import { ArrowLeft, Check, AlertCircle } from '@lucide/svelte';
 
   let { data, form } = $props();
@@ -41,14 +40,14 @@
 </script>
 
 <svelte:head>
-  <title>Create organisation · BottleCRM</title>
+  <title>Create organisation · High Demand Media CRM</title>
 </svelte:head>
 
 <div class="v2-root v2-auth">
   <div class="v2-auth-box">
     <a href={resolve('/')} class="v2-auth-brand">
-      <img src={imgLogo} alt="" />
-      <b>BottleCRM</b>
+      <img src={`${base}/brand/hdm-symbol.png`} alt="" />
+      <b>High Demand Media CRM</b>
     </a>
 
     <div class="v2-auth-card">
@@ -79,7 +78,7 @@
             required
             disabled={isSubmitting || !!form?.data}
           />
-          <p class="v2-hint">This becomes your workspace name in BottleCRM.</p>
+          <p class="v2-hint">This becomes your workspace name in High Demand Media CRM.</p>
         </div>
 
         <div class="v2-field">

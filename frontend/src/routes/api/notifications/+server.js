@@ -14,5 +14,5 @@ export async function GET({ url, cookies, locals }) {
     {},
     { cookies, org: locals?.org }
   );
-  return json(data);
+  return json(data, { headers: { 'Cache-Control': 'private, no-store' } });
 }

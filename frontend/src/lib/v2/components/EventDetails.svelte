@@ -127,6 +127,7 @@
     {@const attendee =
       event.attendee ??
       (event.recordId ? { id: event.recordId, type: event.type, name: event.title } : null)}
+    {@const attendees = event.attendees?.length ? event.attendees : attendee ? [attendee] : []}
     <div class="popup-heading">
       <div class="calendar-icon"><CalendarDays size={21} /></div>
       <div class="heading-text">
@@ -157,32 +158,24 @@
           <UserRound size={18} />
           <div><span class="field-label">Host</span><strong>{event.host}</strong></div>
         </div>{/if}
-      {#if attendee}<div class="person-row">
-          <Users size={18} />
-          <div>
-            <span class="field-label"
-              >{attendee.type === 'company' ? 'Company' : 'Contact'} · Attendee</span
-            ><a
-              class="attendee-name"
-              onclick={close}
-              data-sveltekit-reload
-              href={attendee.type === 'company'
-                ? resolve(`/accounts/${attendee.id}`)
-                : resolve(`/contacts/${attendee.id}`)}>{attendee.name}<ArrowUpRight size={15} /></a
-            >
-          </div>
+      {#each attendees as person}
+        <div class="person-row"><Users size={18} /><div>
+          <span class="field-label">{person.type === 'user' ? 'User' : person.type === 'company' ? 'Company' : 'Contact'} · Attendee</span>
+          {#if person.type === 'user'}<strong>{person.name}</strong>
+          {:else}<a class="attendee-name" onclick={close} data-sveltekit-reload href={person.type === 'company' ? resolve(`/accounts/${person.id}`) : resolve(`/contacts/${person.id}`)}>{person.name}<ArrowUpRight size={15}/></a>{/if}
+        </div></div>
+        {#if person.language || person.phone || person.email}<div class="contact-info">
+          {#if person.language}<div><Languages size={15}/><span>{person.language}</span></div>{/if}
+          {#if person.phone}<div><Phone size={15}/><span>{person.phone}</span></div>{/if}
+          {#if person.email}<div><Mail size={15}/><span>{person.email}</span></div>{/if}
         </div>{/if}
-      {#if event.language || event.phone || event.email}<div class="contact-info">
-          {#if event.language}<div><Languages size={15} /><span>{event.language}</span></div>{/if}
-          {#if event.phone}<div><Phone size={15} /><span>{event.phone}</span></div>{/if}
-          {#if event.email}<div><Mail size={15} /><span>{event.email}</span></div>{/if}
-        </div>{/if}
+      {/each}
     </div>
     {#if event.type === 'appointment'}<section class="notes">
         <h3><FileText size={16} />Internal notes</h3>
         <p>{event.notes || 'No notes.'}</p>
       </section>{/if}
-    <div class="event-actions">
+    {#if event.canManage !== false}<div class="event-actions">
       {#if mode === 'details'}
         <button
           class="v2-btn"
@@ -260,7 +253,7 @@
         </div>
       {/if}
       {#if failure}<p class="v2-error" role="alert">{failure}</p>{/if}
-    </div>
+    </div>{/if}
   {/if}
 </div>
 

@@ -1,10 +1,17 @@
 <script>
+  import StageRuleNotice from "$lib/components/pipelines/StageRuleNotice.svelte";
+  import { configuredStages } from '$lib/v2/pipeline-config.js';
+  import { page } from '$app/state';
+
+  import { creationEnhance } from '$lib/components/creation/enhance.js';
+  const enhance = creationEnhance();
   import TagPicker from '$lib/v2/components/TagPicker.svelte';
   import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
-  import { enhance, deserialize } from '$app/forms';
+  import { deserialize } from '$app/forms';
   import { resolve } from '$app/paths';
   import { untrack, onMount, onDestroy } from 'svelte';
   import { STAGES, STAGE_LABEL } from '$lib/v2/enums.js';
+  let stageOptions = $derived(configuredStages(page.data.pipelineConfig, 'Opportunity', STAGES.map(value => ({value,label:STAGE_LABEL[value]}))));
   /** @type {{data:any,result?:any,editing?:boolean, autoSave?:boolean, inline?:boolean, onCancel?:()=>void, showNotes?:boolean, onSaved?:()=>Promise<void>}} */
   let {
     data,
@@ -47,7 +54,6 @@
   );
   let contacts = $state(/** @type {string[]} */ (untrack(() => [...(values.contacts ?? [])])));
   let saving = $state(false);
-  let associationError = $state('');
   const sources = [
     ['META', 'Meta'],
     ['GOOGLE', 'Google'],
@@ -67,6 +73,7 @@
   let autoReady = $state(false);
   let autoStatus = $state('');
   let autoError = $state('');
+  let autoIssue = $state(null);
   let autoBusy = false;
   /** @type {Record<string, any>} */
   let baseline = {};
@@ -88,6 +95,7 @@
     autoBusy = true;
     autoStatus = 'Saving…';
     autoError = '';
+    autoIssue = null;
     let saved = false;
     try {
       const body = new FormData();
@@ -99,6 +107,7 @@
       });
       const result = deserialize(await response.text());
       if (result.type !== 'success') {
+        autoIssue = result.type === 'failure' ? result.data?.stageRequirements : null;
         autoError =
           result.type === 'failure'
             ? String(result.data?.error ?? 'Could not save changes.')
@@ -174,12 +183,6 @@
       void flushAutoSave();
       return;
     }
-    associationError = '';
-    if (!values.account && !contacts.length) {
-      cancel();
-      associationError = 'Associate at least one contact or company.';
-      return;
-    }
     saving = true;
     return async ({ result: actionResult, update }) => {
       try {
@@ -191,10 +194,11 @@
     };
   }}
 >
-  {#if result?.error}<p class="v2-error" role="alert">{result.error}</p>{/if}
+  <StageRuleNotice issue={autoIssue || result?.stageRequirements}/>
+  {#if result?.error && !result?.stageRequirements}<p class="v2-error" role="alert">{result.error}</p>{/if}
   {#if result?.saved}<p role="status">Saved</p>{/if}
   {#if autoSave}<div class="save-status" role="status">{autoStatus}</div>
-    {#if autoError}<div class="v2-error" role="alert">
+    {#if autoError && !autoIssue}<div class="v2-error" role="alert">
         {autoError}<button
           type="button"
           class="v2-btn"
@@ -209,8 +213,7 @@
     <label
       >Name *<input
         class="v2-input"
-        name="name"
-        required
+        name="name" required
         maxlength="255"
         bind:value={values.name}
       /></label
@@ -248,8 +251,8 @@
       /></label
     >
     <label
-      >Stage *<select class="v2-input" name="stage" required bind:value={values.stage}
-        >{#each STAGES as stage}<option value={stage}>{STAGE_LABEL[stage]}</option>{/each}</select
+      >Stage<select class="v2-input" name="stage" bind:value={values.stage}
+        >{#each stageOptions as stage}<option value={stage.value}>{stage.label}</option>{/each}</select
       ></label
     >
     <label
@@ -261,10 +264,9 @@
       /></label
     >
     <label
-      >Deal Owner *<select
+      >Deal Owner<select
         class="v2-input"
         name="assigned_to"
-        required
         bind:value={values.assigned_to}
         ><option value="">Select user</option>{#each data.owners as owner}<option value={owner.id}
             >{owner.name}</option
@@ -273,14 +275,14 @@
     >
     <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
     <label
-      >Priority *<select class="v2-input" name="priority" required bind:value={values.priority}
+      >Priority<select class="v2-input" name="priority" bind:value={values.priority}
         ><option value="">Select priority</option>{#each ['Low', 'Medium', 'High'] as label}<option
             value={label.toUpperCase()}>{label}</option
           >{/each}</select
       ></label
     >
     <label
-      >Source *<select class="v2-input" name="lead_source" required bind:value={values.lead_source}
+      >Source<select class="v2-input" name="lead_source" bind:value={values.lead_source}
         ><option value="">Select source</option>{#each sources as [value, label]}<option {value}
             >{label}</option
           >{/each}</select
@@ -298,7 +300,7 @@
     >
   </div>
   <fieldset>
-    <legend>Associate *</legend>
+    <legend>Associate</legend>
     <label
       >Company<select class="v2-input" name="account" bind:value={values.account}
         ><option value="">Select company</option>{#each data.accounts as company}<option
@@ -332,7 +334,6 @@
       value={JSON.stringify([...(data.form?.contacts ?? [])].sort())}
     />
     {#each contacts as id}<input type="hidden" name="contacts" value={id} />{/each}
-    {#if associationError}<p class="v2-error" role="alert">{associationError}</p>{/if}
   </fieldset>
   {#if showNotes}<label class="notes-field"
       >Notes<textarea class="v2-input" name="description" rows="4" bind:value={values.description}

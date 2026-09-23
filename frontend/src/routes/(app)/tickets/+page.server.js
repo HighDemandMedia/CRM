@@ -1,3 +1,6 @@
+import { configuredStages } from '$lib/v2/pipeline-config.js';
+import { updateTicket } from '$lib/server/v2/tickets.js';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 import { fail } from '@sveltejs/kit';
 import {
   listTickets,
@@ -26,20 +29,27 @@ import { parseBulkForm } from '$lib/server/v2/bulk-form.js';
  *
  * @type {import('./$types').PageServerLoad}
  */
-export async function load({ cookies, url, locals }) {
+export async function load({ cookies, url, locals, parent }) {
   const params = buildFilterQuery(FILTER_FIELDS, readFilters(url, 'tickets'));
 
+  params.set('limit', '100');
+  for (const key of ['assigned_to', 'priority', 'category', 'overdue', 'offset']) {
+    const value = url.searchParams.get(key);
+    if (value) params.set(key, value);
+  }
   const search = url.searchParams.get('search');
   if (search) params.set('search', search);
   const limit = url.searchParams.get('limit');
   if (limit) params.set('limit', limit);
 
   const status = url.searchParams.get('status') ?? '';
-  const showAll = url.searchParams.get('all') === '1';
+  const showAll = url.searchParams.get('all') !== '0';
   if (status) {
     params.set('status', status);
   } else if (!showAll) {
-    for (const open of OPEN_STATUSES) params.append('status', open);
+    for (const stage of configuredStages((await parent()).pipelineConfig, 'Case', OPEN_STATUSES.map(value => ({value})))) {
+      if (!['Resolved', 'Closed', 'Rejected', 'Duplicate'].includes(stage.value)) params.append('status', stage.value);
+    }
   }
 
   const [{ results, totals }, orgPeople, tagList] = await Promise.all([
@@ -67,6 +77,21 @@ export async function load({ cookies, url, locals }) {
 }
 
 export const actions = {
+  move: async ({ cookies, request }) => {
+    const form = await request.formData();
+    const id = String(form.get('id') ?? '');
+    const status = String(form.get('status') ?? '');
+    const values = { status };
+    if (status === 'Closed') values.closed_on = new Date().toISOString().slice(0, 10);
+    if (status === 'Resolved')
+      values.resolution_note = String(form.get('resolution_note') ?? '').trim();
+    try {
+      await updateTicket({ cookies }, id, values);
+    } catch (err) {
+      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not move ticket.') });
+    }
+    return { moved: true };
+  },
   bulkUpdate: async ({ request, cookies }) => {
     const { ids, fields } = parseBulkForm(await request.formData());
     if (ids.length === 0) return fail(400, { message: 'Select at least one ticket.' });

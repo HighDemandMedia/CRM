@@ -402,7 +402,15 @@ export const FIELD_TYPE_LABEL = {
   number: 'Number',
   dropdown: 'Dropdown',
   date: 'Date',
-  checkbox: 'Checkbox'
+  checkbox: 'Checkbox',
+  email: 'Email',
+  phone: 'Phone',
+  url: 'Link',
+  integer: 'Whole number',
+  percentage: 'Percentage',
+  money: 'Monetary amount',
+  time: 'Time',
+  multi_select: 'Multiple selection'
 };
 
 /** The statuses a reopened ticket may come back as.

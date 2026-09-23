@@ -1,8 +1,8 @@
 <script>
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
-  /** @type {{kind:'contact'|'company'|'deal',id:string}} */
-  let { kind, id } = $props();
+  /** @type {{kind:'contact'|'company'|'deal',id:string,inFlow?:boolean}} */
+  let { kind, id, inFlow = false } = $props();
   let dialog;
   let loading = $state(false),
     busy = $state(false),
@@ -58,7 +58,7 @@
   }
 </script>
 
-<button class="v2-btn delete-trigger" type="button" onclick={open}>Delete</button>
+<button class="v2-btn delete-trigger" class:in-flow={inFlow} type="button" onclick={open}>Delete</button>
 <dialog
   bind:this={dialog}
   aria-labelledby={`delete-${kind}-title`}
@@ -203,4 +203,8 @@
   .error {
     color: #b42318;
   }
+  @media (max-width: 767px) {
+    .delete-trigger { bottom: 76px; right: 82px; }
+  }
+  .delete-trigger.in-flow { position: static; display: flex; margin: 28px 0 0 auto; width: fit-content; }
 </style>

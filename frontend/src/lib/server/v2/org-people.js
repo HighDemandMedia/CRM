@@ -18,8 +18,7 @@
  * This exists because four modules had grown their own private copy of the
  * same fetch. `documents.js` and `goals.js` were byte-identical in behaviour
  * and now import this. `deals.js` and `leads.js` keep theirs: they label a
- * person by email rather than name, and changing what their owner select
- * displays is not a refactor.
+ * person through their module-specific lookup payloads.
  *
  * A failed fetch resolves to empty lists rather than throwing. The pickers
  * are one part of a settings page, and taking the whole page down to a 500

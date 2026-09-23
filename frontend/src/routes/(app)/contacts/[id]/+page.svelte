@@ -1,4 +1,9 @@
 <script>
+  import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
+  import { configuredLabel } from '$lib/v2/pipeline-config.js';
+  import { page } from '$app/state';
+
+  import RecordTabs from '$lib/v2/components/RecordTabs.svelte';
   import DeleteRecord from '$lib/v2/components/DeleteRecord.svelte';
   import ContactAssociations from '$lib/v2/components/ContactAssociations.svelte';
   import ContactForm from '$lib/components/contacts/ContactForm.svelte';
@@ -9,7 +14,7 @@
   import { enhance } from '$app/forms';
   import CreateAppointment from '$lib/v2/components/CreateAppointment.svelte';
   import TagBadge from '$lib/v2/components/TagBadge.svelte';
-  import { Pencil } from '@lucide/svelte';
+  import ContactActions from '$lib/components/contacts/ContactActions.svelte';
   let scheduled = $state(false);
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { exactTime } from '$lib/v2/contact-time.js';
@@ -27,10 +32,10 @@
   let noteError = $state('');
 </script>
 
-<PageHeader title={contact.name}>
+<PageHeader title={contact.name || `Contact · ${contact.id.slice(0, 8)}`} record>
+  {#snippet sub()}{[contact.email, contact.phone].filter(Boolean).join(' · ')}{/snippet}
   {#snippet crumb()}<a href={resolve('/contacts')}>Contacts</a>{/snippet}
   {#snippet actions()}
-
     <CreateAppointment
       hosts={data.hosts}
       defaultHost={data.defaultHost}
@@ -53,23 +58,13 @@
 {#if scheduled}<div class="scheduled-message" role="status">
     Event scheduled. <a href={resolve('/calendar')}>View calendar</a>
   </div>{/if}
-<div class="contact-profile">
-  <section class="properties" aria-label="Contact properties">
+<div class="contact-profile hdm-profile">
+  <section class="properties hdm-panel" aria-label="Contact properties">
     <div class="properties-heading">
       <h2>Properties</h2>
-      <button
-        class="v2-btn"
-        type="button"
-        disabled={editingProperties}
-        onclick={() => (editingProperties = true)}><Pencil size={13} />Edit</button
-      >
+      <ContactActions {contact} disabled={editingProperties} onEdit={() => editingProperties = true}/>
     </div>
-    <dl class="creation-info">
-      <dt>Created</dt>
-      <dd>{exactTime(contact.created_at)}</dd>
-      <dt>Created by</dt>
-      <dd>{contact.created_by_email || 'Not recorded'}</dd>
-    </dl>
+
     {#if editingProperties}
       <ContactForm
         data={data.editor}
@@ -83,82 +78,70 @@
         }}
       />
     {:else}
-      <dl class="property-values">
-        {#each [['Name', contact.name], ['Contact owner', data.owners?.join(', ')], ['Phone', contact.phone], ['Email', contact.email], ['Language', contact.language], ['Source', contact.source_label], ['Stage', contact.stage_label], ['Preferred communication channel', contact.preferred_communication_channel_label], ['Appointment', contact.appointment_at ? exactTime(contact.appointment_at) : ''], ['Address', contact.address_line], ['City', contact.city], ['State', contact.state], ['Zip Code', contact.postcode], ['Country', contact.country]] as [label, value]}
-          <div>
-            <dt>{label}</dt>
-            <dd>
-              {#if label === 'Stage' && value}<span class="stage-value">{value}</span
-                >{:else}{value || '—'}{/if}
-            </dd>
-          </div>
-        {/each}
-        <div>
-          <dt>Tags</dt>
-          <dd class="property-tags">
-            {#each contact.tags as tag (tag.id)}<TagBadge {tag} />{:else}—{/each}
-          </dd>
-        </div>
-      </dl>
+      <PropertySummary target="Contact" record={contact} tags={contact.tags} entries={[['Name', contact.name], ['Contact owner', data.owners?.join(', ')], ['Phone', contact.phone], ['Email', contact.email], ['Language', contact.language], ['Source', contact.source_label], ['Stage', configuredLabel(page.data.pipelineConfig, 'Contact', contact.stage, contact.stage_label)], ['Preferred communication channel', contact.preferred_communication_channel_label], ['Appointment', contact.appointment_at ? exactTime(contact.appointment_at) : ''], ['Address', contact.address_line], ['City', contact.city], ['State', contact.state], ['Zip Code', contact.postcode], ['Country', contact.country], ['Tags', ''], ['Last Activity', exactTime(contact.last_activity_at)], ['Created', exactTime(contact.created_at)], ['Created by', contact.created_by_email || 'Not recorded']]}/>
     {/if}
   </section>
-  <main class="contact-center">
-    <section class="profile-section" aria-label="Contact notes">
-      <h2>Notes</h2>
-      {#if contact.description}<div class="history-entry history-body">
-          {contact.description}
-        </div>{/if}
-      <form
-        method="POST"
-        action="?/note"
-        use:enhance={() => {
-          noteBusy = true;
-          noteError = '';
-          return async ({ result, update }) => {
-            noteBusy = false;
-            if (result.type === 'success') {
-              note = '';
-              await update({ reset: false });
-            } else
-              noteError =
-                result.type === 'failure'
-                  ? String(result.data?.message ?? 'Could not save note.')
-                  : 'Could not save note.';
-          };
-        }}
-      >
-        <textarea
-          class="v2-input"
-          name="comment"
-          aria-label="New note"
-          rows="3"
-          placeholder="Write a note…"
-          bind:value={note}></textarea>
-        <button type="submit" class="v2-btn add-note" disabled={noteBusy || !note.trim()}
-          >{noteBusy ? 'Saving…' : 'Add note'}</button
-        >
-        {#if noteError}<p class="v2-error" role="alert">{noteError}</p>{/if}
-      </form>
-      {#each data.notes as entry (entry.id)}
-        <article class="history-entry">
-          <div class="history-body">{entry.body}</div>
-          <div class="entry-meta">{entry.by || 'Not recorded'} · {exactTime(entry.at)}</div>
-        </article>
-      {:else}<p class="v2-sub">No notes.</p>{/each}
-    </section>
-    <section class="profile-section activity" aria-label="Contact activity">
-      <h2>Activity</h2>
-      <div class="activity-feed">
-        {#each data.activity as event (event.id)}
-          <article class="history-entry">
-            <div class="history-body">{event.body}</div>
-            <div class="entry-meta">{event.by || 'Not recorded'} · {exactTime(event.at)}</div>
-          </article>
-        {:else}<p class="v2-sub">No activity.</p>{/each}
-      </div>
-    </section>
+  <main class="contact-center hdm-panel">
+    <RecordTabs>
+      {#snippet notes()}
+        <section class="profile-section" aria-label="Contact notes">
+          {#if contact.description}<div class="history-entry history-body">
+              {contact.description}
+            </div>{/if}
+          <form
+            method="POST"
+            action="?/note"
+            use:enhance={() => {
+              noteBusy = true;
+              noteError = '';
+              return async ({ result, update }) => {
+                noteBusy = false;
+                if (result.type === 'success') {
+                  note = '';
+                  await update({ reset: false });
+                } else
+                  noteError =
+                    result.type === 'failure'
+                      ? String(result.data?.message ?? 'Could not save note.')
+                      : 'Could not save note.';
+              };
+            }}
+          >
+            <textarea
+              class="v2-input"
+              name="comment"
+              aria-label="New note"
+              rows="3"
+              placeholder="Write a note…"
+              bind:value={note}></textarea>
+            <button type="submit" class="v2-btn add-note" disabled={noteBusy || !note.trim()}
+              >{noteBusy ? 'Saving…' : 'Add note'}</button
+            >
+            {#if noteError}<p class="v2-error" role="alert">{noteError}</p>{/if}
+          </form>
+          {#each data.notes as entry (entry.id)}
+            <article class="history-entry">
+              <div class="history-body">{entry.body}</div>
+              <div class="entry-meta">{entry.by || 'Not recorded'} · {exactTime(entry.at)}</div>
+            </article>
+          {:else}<p class="v2-sub">No notes.</p>{/each}
+        </section>
+      {/snippet}
+      {#snippet activity()}
+        <section class="profile-section activity" aria-label="Contact activity">
+          <div class="activity-feed">
+            {#each data.activity as event (event.id)}
+              <article class="history-entry">
+                <div class="history-body">{event.body}</div>
+                <div class="entry-meta">{event.by || 'Not recorded'} · {exactTime(event.at)}</div>
+              </article>
+            {:else}<p class="v2-sub">No activity.</p>{/each}
+          </div>
+        </section>
+      {/snippet}
+    </RecordTabs>
   </main>
-  <aside class="contact-relations">
+  <aside class="contact-relations hdm-panel hdm-relations">
     <div class="profile-section">
       <ContactAssociations contactId={contact.id} kind="company" items={companies} />
     </div>
@@ -166,29 +149,11 @@
       <ContactAssociations contactId={contact.id} kind="deal" items={data.deals} />
     </div>
     <section class="profile-section">
-      <h2>Attachments</h2>
       <Attachments attachments={data.attachments} action="?/note" />
     </section>
-    <details class="profile-section">
-      <summary
-        >Tasks ({data.tasks.length})
-        <span class="review-badge" title="Pending review">Review</span></summary
-      >
-      {#each data.tasks as task (task.id)}<a
-          class="related-item"
-          href={resolve(`/tasks/${task.id}`)}>{task.title}</a
-        >{/each}
-    </details>
-    <details class="profile-section">
-      <summary
-        >Tickets ({data.tickets.length})
-        <span class="review-badge" title="Pending review">Review</span></summary
-      >
-      {#each data.tickets as ticket (ticket.id)}<a
-          class="related-item"
-          href={resolve(`/tickets/${ticket.id}`)}>{ticket.name}</a
-        >{/each}
-    </details>
+    <div class="profile-section">
+      <ContactAssociations contactId={contact.id} kind="ticket" items={data.tickets} />
+    </div>
   </aside>
 </div>
 
@@ -205,38 +170,9 @@
   .properties-heading h2 {
     margin: 0;
   }
-  .property-values {
-    display: grid;
-    gap: 19px;
-    margin: 22px 0 0;
-  }
-  .property-values dt {
-    font-size: 11px;
-    color: var(--v2-slate);
-    margin-bottom: 6px;
-  }
-  .property-values dd {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-  }
-  .property-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-  }
-  .stage-value {
-    display: inline-block;
-    padding: 3px 9px;
-    border-radius: 5px;
-    background: #eff6ff;
-    color: #1d4ed8;
-    font-size: 12px;
-  }
   .scheduled-message {
     padding: 8px 22px;
-    font-size: 13px;
+    font-size: 14px;
     background: #f0fdf4;
     color: #166534;
   }
@@ -280,12 +216,8 @@
     margin-bottom: 24px;
   }
   .activity-feed {
-    max-height: 420px;
     min-height: 180px;
-    overflow-y: auto;
-    border: 1px solid var(--v2-line);
-    border-radius: 8px;
-    padding: 0 12px;
+    padding: 0;
   }
   .history-entry {
     padding: 12px 0;
@@ -294,28 +226,14 @@
   .history-body {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    font-size: 13px;
+    font-size: 14px;
   }
-  .entry-meta,
-  .creation-info {
-    font-size: 11px;
+  .entry-meta {
+    font-size: 12px;
     color: var(--v2-slate);
     margin-top: 6px;
   }
-  .creation-info dd {
-    margin: 3px 0 10px;
-  }
-  .related-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 10px 0;
-    color: inherit;
-    text-decoration: none;
-    border-bottom: 1px solid var(--v2-line-soft);
-    overflow-wrap: anywhere;
-    font-size: 13px;
-  }
+
   form {
     display: grid;
     gap: 8px;
@@ -325,20 +243,7 @@
     justify-self: start;
     width: auto;
   }
-  .review-badge {
-    display: inline-block;
-    margin-left: 6px;
-    font-size: 9px;
-    line-height: 1.3;
-    font-weight: 500;
-    padding: 2px 4px;
-    color: #805b19;
-    background: #fff3d6;
-    border-radius: 4px;
-  }
-  summary {
-    cursor: pointer;
-  }
+
   @media (max-width: 700px) {
     .properties,
     .contact-center,

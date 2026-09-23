@@ -55,18 +55,24 @@ function toRow(/** @type {any} */ n) {
   };
 }
 
-const FEED_LIMIT = 50;
+const FEED_LIMIT = 20;
 
 /**
  * The recipient's feed, shaped for the page.
  *
- * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
+ * @param {{ cookies: import('@sveltejs/kit').Cookies, url?: URL }} event
  */
-export async function getNotifications({ cookies }) {
-  const resp = await apiRequest(`/notifications/?limit=${FEED_LIMIT}`, {}, { cookies });
+export async function getNotifications({ cookies, url }) {
+  const requested = Number(url?.searchParams.get('page') || 1);
+  const page = Number.isSafeInteger(requested) && requested > 0 ? Math.min(requested, 1000000) : 1;
+  const status = ['read', 'unread'].includes(url?.searchParams.get('status') || '') ? url.searchParams.get('status') : 'all';
+  const params = new URLSearchParams({limit: String(FEED_LIMIT), offset: String((page - 1) * FEED_LIMIT)});
+  if (status !== 'all') params.set(status, 'true');
+  const resp = await apiRequest(`/notifications/?${params}`, {}, { cookies });
   const results = (resp.results || []).map(toRow);
   return {
     results,
+    pagination: { page, size: FEED_LIMIT, status, pages: Math.max(1, Math.ceil((resp.count || 0) / FEED_LIMIT)) },
     totals: {
       count: resp.count ?? results.length,
       unread: resp.unread_count ?? results.filter((n) => n.read_at === null).length,

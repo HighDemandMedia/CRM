@@ -64,28 +64,40 @@
     return Number.isFinite(d.getTime()) ? d.toISOString() : '';
   };
 
-  let attendee = $state(''),
-    search = $state('');
+  let attendees = $state(/** @type {any[]} */ ([]));
+  let search = $state('');
+  let external = $derived(attendees.find(a => a.type === 'contact') || attendees.find(a => a.type === 'company'));
   let showResults = $state(false);
   function chooseAttendee(kind, record) {
-    attendee = `${kind}:${record.id}`;
-    search = record.name;
-    dealName = `${record.name} - Deal`;
-    dealSource = '';
+    if (attendees.some(a => a.type === kind && a.id === record.id)) return;
+    const previous = external;
+    attendees = [...attendees, { ...record, type: kind }];
+    updateDealName(previous);
+    search = '';
     showResults = false;
   }
+  function updateDealName(previous) {
+    if (!dealName || dealName === `${previous?.name} - Deal`)
+      dealName = external ? `${external.name} - Deal` : '';
+  }
+  function removeAttendee(record) {
+    const previous = external;
+    attendees = attendees.filter(a => a !== record);
+    updateDealName(previous);
+  }
+
   let open = $state(false),
     loadingAttendees = $state(false),
     attendeeError = $state('');
   let choices = $state(
-    /** @type {{contacts:any[],companies:any[]}} */ ({ contacts: [], companies: [] })
+    /** @type {{contacts:any[],companies:any[],users:any[]}} */ ({ contacts: [], companies: [], users: [] })
   );
   $effect(() => {
     if (!open || !showResults) return;
     const term = search;
     const controller = new AbortController();
     loadingAttendees = true;
-    choices = { contacts: [], companies: [] };
+    choices = { contacts: [], companies: [], users: [] };
     attendeeError = '';
     const timer = setTimeout(async () => {
       try {
@@ -118,13 +130,13 @@
   onclick={() => {
     date = dateKey(selected);
     if (defaultAttendee) {
-      attendee = `${defaultAttendee.type}:${defaultAttendee.id}`;
-      search = defaultAttendee.name;
+      attendees = [{ ...defaultAttendee }];
+      search = '';
     }
     host = defaultHost || hosts[0]?.id || '';
     error = '';
     createDeal = true;
-    dealName = attendee ? `${search} - Deal` : '';
+    dealName = external ? `${external.name} - Deal` : '';
     dealSource = '';
     open = true;
     dialog.showModal();
@@ -150,12 +162,7 @@
         cancel();
         return;
       }
-      if (createDeal && !attendee) {
-        error = 'Select an attendee to create a deal, or uncheck Create a deal.';
-        cancel();
-        return;
-      }
-      if (search.trim() && !attendee) {
+      if (search.trim()) {
         error = 'Select an attendee from the results or clear the search.';
         cancel();
         return;
@@ -178,7 +185,7 @@
       return async ({ result, update }) => {
         busy = false;
         if (result.type === 'success') {
-          attendee = '';
+          attendees = [];
           search = '';
           title = '';
           notes = '';
@@ -224,17 +231,16 @@
           }}
         >
           <label
-            >Attendee
+            >Attendees
             <input
               class="v2-input"
               type="search"
-              placeholder="Search contacts or companies"
+              placeholder="Search contacts, companies or users"
               aria-label="Search attendees"
               autocomplete="off"
               bind:value={search}
               onfocus={() => (showResults = true)}
               oninput={() => {
-                attendee = '';
                 showResults = true;
               }}
               onkeydown={(event) => {
@@ -245,7 +251,12 @@
               }}
             />
           </label>
-          <input type="hidden" name="attendee" value={attendee} />
+          <div class="selected-attendees">
+            {#each attendees as person (`${person.type}:${person.id}`)}
+              <input type="hidden" name="attendees" value={`${person.type}:${person.id}`} />
+              <span class="attendee-chip"><span>{person.name}<small>{person.type === 'user' ? 'User' : person.type === 'company' ? 'Company' : 'Contact'}</small></span><button type="button" aria-label={`Remove ${person.name}`} onclick={() => removeAttendee(person)}>×</button></span>
+            {/each}
+          </div>
           {#if showResults}
             <div class="attendee-results" aria-label="Attendee search results">
               {#if loadingAttendees}<p class="v2-sub" role="status">Searching…</p>
@@ -255,6 +266,7 @@
                   {#each choices.contacts as contact}<button
                       type="button"
                       class="attendee-result"
+                      disabled={attendees.some(a => a.type === 'contact' && a.id === contact.id)}
                       onclick={() => chooseAttendee('contact', contact)}>{contact.name}</button
                     >{/each}
                 {/if}
@@ -262,10 +274,16 @@
                   {#each choices.companies as company}<button
                       type="button"
                       class="attendee-result"
+                      disabled={attendees.some(a => a.type === 'company' && a.id === company.id)}
                       onclick={() => chooseAttendee('company', company)}>{company.name}</button
                     >{/each}
                 {/if}
-                {#if !choices.contacts.length && !choices.companies.length}<p
+                {#if choices.users.length}<h3>Users</h3>
+                  {#each choices.users as user}<button type="button" class="attendee-result"
+                    disabled={attendees.some(a => a.type === 'user' && a.id === user.id)}
+                    onclick={() => chooseAttendee('user', user)}>{user.name}{#if user.email !== user.name}<small>{user.email}</small>{/if}</button>{/each}
+                {/if}
+                {#if !choices.contacts.length && !choices.companies.length && !choices.users.length}<p
                     class="v2-sub"
                     role="status"
                   >
@@ -310,11 +328,12 @@
             maxlength="10000"
             bind:value={notes}></textarea></label
         >
-        <label class="create-deal-toggle"
+        {#if external}<label class="create-deal-toggle"
           ><input type="checkbox" name="create_deal" bind:checked={createDeal} />Create a deal for
           this event</label
         >
-        {#if createDeal}
+        {/if}
+        {#if createDeal && external}
           <label
             >Deal name<input
               class="v2-input"
@@ -386,6 +405,13 @@
 </dialog>
 
 <style>
+  .selected-attendees { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .attendee-chip { display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--v2-line); border-radius:8px; font-size:12px; max-width:100%; }
+  .attendee-chip > span { min-width:0; overflow-wrap:anywhere; }
+  .attendee-chip small, .attendee-result small { display:block; color:var(--v2-slate); font-size:10px; }
+  .attendee-chip button { border:0; background:transparent; color:var(--v2-slate); font-size:18px; cursor:pointer; }
+  .attendee-result:disabled { opacity:.45; cursor:default; }
+
   .create-deal-toggle {
     display: flex;
     align-items: center;

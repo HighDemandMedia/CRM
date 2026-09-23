@@ -1,72 +1,81 @@
-import { fail } from '@sveltejs/kit';
-import { getOrgSettings } from '$lib/server/v2/organization.js';
-import { listPacks, applyPack, clearSampleData } from '$lib/server/packs.js';
+import { apiRequest } from '$lib/api-helpers.js';
+import { fail, redirect } from '@sveltejs/kit';
+import { getOrgSettings, listTimezones, updateOrgSettings, EDITABLE_FIELDS } from '$lib/server/v2/organization.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/**
- * Organization settings (read) + the "Vertical pack" section.
- *
- * Server load, so the JWT cookie stays server-side. GET is open to any member;
- * `can_edit` (from the JWT role claim) decides whether the page shows the edit
- * affordance, and the edit route + the backend PATCH are what actually enforce
- * admin-only. The same `can_edit` flag is reused below to decide whether the
- * pack list and its actions render at all. Vertical packs are admin-only for
- * the identical reason (`PackApplyView`/`PackSampleDataView` both 403 a
- * non-admin server-side), so there is no second admin check to invent.
- *
- * @type {import('./$types').PageServerLoad}
- */
+/** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies }) {
-  const settings = await getOrgSettings({ cookies });
-
-  // GET /api/packs/ needs IsAuthenticated only, no org context, but a
-  // reload of this page must never break over a transient failure here, so
-  // this follows the same "empty list on error" fallback the org-creation
-  // page already established for the identical call.
-  let packs = [];
-  try {
-    packs = await listPacks(cookies);
-  } catch (/** @type {any} */ err) {
-    console.error('Could not load vertical packs:', err?.message, err?.status);
-  }
-
-  return { ...settings, packs };
+  const [settings, timezones] = await Promise.all([getOrgSettings({cookies}), listTimezones(cookies)]);
+  return {...settings, timezones};
 }
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-  // Applying is additive-only and safe to repeat, a pack already applied
-  // just reports everything as skipped. There is deliberately no guard here
-  // against re-submitting the currently-applied pack.
-  apply: async ({ cookies, request }) => {
-    const packId = (await request.formData()).get('pack_id')?.toString();
-    if (!packId) return fail(400, { error: 'Choose a pack to apply.' });
-
-    try {
-      const { report } = await applyPack(cookies, packId);
-      return { appliedPackId: packId, report };
-    } catch (/** @type {any} */ err) {
-      if (err?.status === 403) {
-        return fail(403, { error: 'Only an administrator can apply a vertical pack.' });
-      }
-      return fail(400, { error: readableError(err, 'Could not apply this pack.') });
+  save: async ({cookies, request}) => {
+    const form = await request.formData();
+    /** @type {Record<string, unknown>} */
+    const body = {};
+    for (const field of EDITABLE_FIELDS) {
+      if (form.has(field)) body[field] = form.get(field)?.toString().trim() ?? '';
     }
+    try { await updateOrgSettings({cookies}, body); }
+    catch (/** @type {any} */ err) { return fail(err?.status === 403 ? 403 : 400, {values:body, message:readableError(err, 'Could not save organization details.')}); }
+    return {saved:true};
   },
+  switchOrg: async ({ cookies, request }) => {
+    const form = await request.formData();
+    const orgId = form.get('org_id')?.toString() ?? '';
 
-  clearSampleData: async ({ cookies }) => {
-    try {
-      const { deleted, retained_by_type } = await clearSampleData(cookies);
-      // Retained records are not a failure. They are demo rows the user has
-      // since attached real work to, which the backend deliberately keeps.
-      // Passing the count through lets the page say so instead of reporting a
-      // smaller number than the user expected with no explanation.
-      const retained = Object.values(retained_by_type ?? {}).reduce((a, b) => a + b, 0);
-      return { cleared: deleted ?? 0, retained };
-    } catch (/** @type {any} */ err) {
-      if (err?.status === 403) {
-        return fail(403, { error: 'Only an administrator can clear sample data.' });
-      }
-      return fail(400, { error: readableError(err, 'Could not clear sample data.') });
+    if (!UUID_RE.test(orgId)) {
+      return fail(400, { scope: 'switch', message: 'Invalid organisation.' });
     }
+
+    // Sent so the backend retires the token we are replacing; it belongs to the
+    // caller (the API checks) or is ignored.
+    const outgoingRefresh = cookies.get('jwt_refresh');
+    const payload = outgoingRefresh
+      ? { org_id: orgId, refresh: outgoingRefresh }
+      : { org_id: orgId };
+
+    /** @type {any} */
+    let result;
+    try {
+      result = await apiRequest(
+        '/auth/switch-org/',
+        { method: 'POST', body: payload },
+        { cookies }
+      );
+    } catch (/** @type {any} */ err) {
+      // 403 is the honest one: you asked for an org you are not a member of.
+      const message =
+        err?.status === 403
+          ? 'You are not a member of that organisation.'
+          : readableError(err, 'Could not switch organisation.');
+      return fail(err?.status === 403 ? 403 : 500, { scope: 'switch', message });
+    }
+
+    const secure = process.env.NODE_ENV === 'production';
+    cookies.set('jwt_access', result.access_token, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure,
+      maxAge: 60 * 60 * 24
+    });
+    cookies.set('jwt_refresh', result.refresh_token, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure,
+      maxAge: 60 * 60 * 24 * 365
+    });
+    cookies.set('org', orgId, {
+      path: '/',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 365
+    });
+
+    throw redirect(303, '/settings/organization');
   }
 };

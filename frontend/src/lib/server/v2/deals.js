@@ -1,3 +1,4 @@
+import { userName } from '$lib/utils/user-name.js';
 import { getTags } from './tags.js';
 /**
  * Pipeline: the second v2 module wired to the real API.
@@ -44,8 +45,8 @@ function num(value) {
  */
 function ownerName(deal) {
   const assigned = deal.assigned_to?.[0];
-  const email = assigned?.user_details?.email || assigned?.user?.email;
-  return email || deal.created_by?.email || '';
+  const email = assigned ? userName(assigned, '') : '';
+  return email || userName(deal.created_by, '');
 }
 
 /**
@@ -60,19 +61,21 @@ function ownerName(deal) {
 function toRow(deal) {
   return {
     id: deal.id,
+    custom_fields: deal.custom_fields ?? {},
     name: deal.name ?? '',
     account: {
       id: deal.account?.id ?? null,
       name: deal.account?.name ?? 'No account'
     },
     stage: deal.stage,
-    stage_label: STAGE_LABEL[deal.stage] ?? deal.stage,
+    stage_label: deal.stage_label ?? STAGE_LABEL[deal.stage] ?? deal.stage,
     stage_entered_at: deal.stage_changed_at,
     owner: ownerName(deal),
     owner_count: deal.assigned_to?.length ?? 0,
     contacts: deal.contacts ?? [],
     priority_label: deal.priority ? deal.priority[0] + deal.priority.slice(1).toLowerCase() : '',
     updated_at: deal.updated_at,
+    last_activity_at: deal.last_activity_at ?? deal.created_at ?? null,
     amount: num(deal.amount) ?? 0,
     currency: deal.currency || 'USD',
     probability: deal.probability ?? 0,
@@ -148,6 +151,7 @@ function normaliseTotals(totals, rows) {
     // An older API without the aggregate. Say what is true of the rows we
     // hold rather than inventing a pipeline-wide figure.
     return {
+      money_totals: [],
       count: rows.length,
       amount_sum: rows.reduce((sum, row) => sum + row.amount, 0),
       weighted_sum: 0,
@@ -155,6 +159,7 @@ function normaliseTotals(totals, rows) {
     };
   }
   return {
+    money_totals: totals.money_totals ?? [],
     count: totals.count,
     amount_sum: num(totals.amount_sum) ?? 0,
     // Rounded for the header. The API returns the exact figure, but eleven
@@ -388,7 +393,7 @@ async function listOwners(cookies) {
     const response = await apiRequest('/users/get-teams-and-users/', {}, { cookies });
     return (response.profiles ?? []).map((/** @type {any} */ profile) => ({
       id: profile.id,
-      name: profile.user_details?.email || profile.user?.email || 'Unknown'
+      name: userName(profile)
     }));
   } catch {
     return [];

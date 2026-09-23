@@ -52,6 +52,7 @@ describe('the activity feed', () => {
         action: 'TIME_LOGGED',
         label: 'Time Logged',
         at: '2026-08-16T09:00:00Z',
+        changes: {},
         by: 'agent@example.com'
       }
     ]);

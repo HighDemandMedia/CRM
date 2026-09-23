@@ -1,3 +1,4 @@
+from common.member_access import assert_member_management
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Count, ProtectedError, Q
@@ -106,6 +107,7 @@ class UsersListView(APIView, LimitOffsetPagination):
                 status=status.HTTP_403_FORBIDDEN,
             )
         params = request.data
+        assert_member_management(request.profile, new_role=params.get('role'))
         if params:
             user_serializer = CreateUserSerializer(data=params, org=request.profile.org)
             address_serializer = BillingAddressSerializer(data=params)
@@ -147,7 +149,9 @@ class UsersListView(APIView, LimitOffsetPagination):
                     # gets a profile in their own org and no say over that
                     # person's account.
 
+                    from common.rbac import ensure_default_roles
                     Profile.objects.create(
+                        access_role=ensure_default_roles(request.profile.org)[0] if profile_serializer.validated_data["role"] == "USER" else None,
                         user=user,
                         date_of_joining=timezone.now(),
                         role=profile_serializer.validated_data["role"],
@@ -200,7 +204,7 @@ class UsersListView(APIView, LimitOffsetPagination):
                 {"error": True, "errors": "Permission Denied"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        queryset = Profile.objects.filter(org=request.profile.org).order_by("-id")
+        queryset = Profile.objects.filter(org=request.profile.org, removed_at__isnull=True).order_by("-id")
         params = request.query_params
         if params:
             if params.get("email"):
@@ -280,7 +284,13 @@ class UserDetailView(APIView):
     def get_object(self, pk):
         # Security fix: Filter by org to prevent cross-org enumeration
         # Lookup by user ID since frontend sends user.id, not profile.id
-        return get_object_or_404(Profile, user__id=pk, org=self.request.profile.org)
+        profile = get_object_or_404(Profile, user__id=pk, org=self.request.profile.org)
+        if self.request.method not in ('GET', 'HEAD', 'OPTIONS') and profile.is_super_admin and profile.user_id != self.request.user.pk:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only the organization creator can edit their own account.')
+        if self.request.method not in ('GET', 'HEAD', 'OPTIONS') and profile.user_id != self.request.user.pk:
+            assert_member_management(self.request.profile, profile, self.request.data.get('role'))
+        return profile
 
     @staticmethod
     def _may_grant_privileges(request, target_profile):
@@ -298,7 +308,7 @@ class UserDetailView(APIView):
         """
         actor_is_admin = is_org_admin(request.profile) or request.user.is_superuser
         editing_self = request.profile.id == target_profile.id
-        return actor_is_admin and not editing_self
+        return actor_is_admin and not editing_self and not target_profile.is_super_admin
 
     @extend_schema(
         tags=["users"],
@@ -519,26 +529,8 @@ class UserDetailView(APIView):
                 {"error": True, "errors": "Permission Denied"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        deleted_by = self.request.profile.user.email
-        recipient = self.object.user.email
-        try:
-            self.object.delete()
-        except ProtectedError:
-            # TimeEntry.profile, Approval.requested_by and Approval.approver all
-            # point here with on_delete=PROTECT, so a member who has logged time
-            # or touched an approval cannot be removed. Unguarded this was a 500,
-            # and the notice below had already gone out by then: the user was
-            # told they had been removed from an org they were still in.
-            return Response(
-                {
-                    "error": True,
-                    "errors": "This user can't be deleted while they still have "
-                    "time entries or approvals linked to them.",
-                },
-                status=status.HTTP_409_CONFLICT,
-            )
-        send_email_user_delete.delay(recipient, deleted_by=deleted_by)
-        return Response({"status": "success"}, status=status.HTTP_200_OK)
+        return Response({'error': 'Use Remove from organization and confirm the email address.'}, status=405)
+
 
 
 class UserStatusView(APIView):
@@ -575,7 +567,8 @@ class UserStatusView(APIView):
         profiles = Profile.objects.filter(org=request.profile.org)
         # Lookup by user ID since frontend sends user.id, not profile.id.
         # get_object_or_404 (a 404), not .get() (a 500), on an unknown id.
-        profile = get_object_or_404(profiles, user__id=pk)
+        profile = get_object_or_404(profiles, user__id=pk, removed_at__isnull=True)
+        assert_member_management(request.profile, profile)
 
         if params.get("status"):
             user_status = params.get("status")
@@ -608,6 +601,8 @@ class UserStatusView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             profile.save()
+            if not profile.is_active:
+                PersonalAccessToken.objects.filter(profile=profile, revoked_at__isnull=True).update(revoked_at=timezone.now())
 
         context = {}
         active_profiles = profiles.filter(is_active=True)

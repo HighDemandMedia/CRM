@@ -21,6 +21,9 @@ def contact_account_ids(contact):
 
 
 def has_contact_access(profile, contact):
+    from common.rbac import configured, permitted
+    if configured(profile):
+        return permitted(profile, contact, 'view')
     """Who may work on this person's record.
 
     One predicate for every verb, because the divergence was the bug. The list

@@ -1,3 +1,4 @@
+import { userName } from '$lib/utils/user-name.js';
 /**
  * Contacts: the fourth v2 module wired to the real API.
  *
@@ -18,12 +19,8 @@
  * - `relationship` ("Champion", "Blocker") is gone for the fourth time. Contact
  *   has `title` and `department`. It was a table column, a rail row, a subtitle
  *   under every colleague and part of the headline sentence.
- * - `last_activity_at` is gone. Nothing records when anyone last spoke to a
- *   contact: Lead has `last_contacted`, Contact has nothing like it, and there
- *   is no activity table to derive one from. The list sorted by it, coloured a
- *   column by it, and the detail page built its whole "gone quiet" argument on
- *   it. What is real is `updated_at`, when the record was last edited, and
- *   that is what the pages show, under a label that says so.
+ * - `last_activity_at` comes from the latest recorded property change.
+ *   Reading a record does not advance it; creation is the fallback.
  * - `account_id` was a single account. A contact is joined to an account twice
  *   over (`Contact.account`, the model's "primary", and membership of
  *   `Account.contacts`) and the second is many-to-many: people here belong to
@@ -58,7 +55,7 @@ function num(value) {
  * @param {any} profile
  */
 function profileName(profile) {
-  return profile?.user_details?.email || profile?.user?.email || 'Unknown';
+  return userName(profile, 'Unknown');
 }
 
 /**
@@ -124,6 +121,7 @@ function toRow(contact) {
     tags: contact.tag_details ?? [],
     deal_values: contact.deal_values ?? [],
     created_at: contact.created_at,
+    custom_fields: contact.custom_fields ?? {},
     created_by_email: contact.created_by_email ?? null,
     stage_entered_at: contact.stage_entered_at ?? null,
     last_activity_at: contact.last_activity_at ?? null,
@@ -160,6 +158,7 @@ export async function listContacts({ cookies }, params) {
       label: pair[1]
     })),
     totals: {
+      money_totals: response.money_totals ?? [],
       count: response.count ?? rows.length,
       active: response.active_count ?? rows.length,
       inactive: response.inactive_count ?? 0,
@@ -330,7 +329,6 @@ export const EDITABLE_FIELDS = [
   'department',
   'organization',
   'linkedin_url',
-  'do_not_call',
   'address_line',
   'language',
   'city',
@@ -383,7 +381,8 @@ async function listChoices(cookies) {
     })),
     owners: (contactsResponse.users ?? []).map((/** @type {any} */ user) => ({
       id: user.id,
-      name: user.user__email
+      name: userName(user),
+      email: user.user__email || ''
     })),
     accounts,
     account_total: active.open_accounts_count ?? accounts.length

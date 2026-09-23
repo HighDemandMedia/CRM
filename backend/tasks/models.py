@@ -1,4 +1,6 @@
+from common.rbac import CRMRecordManager
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -297,6 +299,7 @@ class TaskStage(BaseModel):
 
 
 class Task(AssignableMixin, BaseModel):
+    objects = CRMRecordManager()
     STATUS_CHOICES = (
         ("New", "New"),
         ("In Progress", "In Progress"),
@@ -306,9 +309,10 @@ class Task(AssignableMixin, BaseModel):
     PRIORITY_CHOICES = (("Low", "Low"), ("Medium", "Medium"), ("High", "High"))
 
     title = models.CharField(_("title"), max_length=200)
-    status = models.CharField(_("status"), max_length=50, choices=STATUS_CHOICES)
-    priority = models.CharField(_("priority"), max_length=50, choices=PRIORITY_CHOICES)
+    status = models.CharField(_("status"), max_length=50, choices=STATUS_CHOICES, default="New")
+    priority = models.CharField(_("priority"), max_length=50, choices=PRIORITY_CHOICES, blank=True)
     due_date = models.DateField(blank=True, null=True)
+    reminder_days = models.PositiveSmallIntegerField(null=True, blank=True, validators=[MaxValueValidator(365)])
     description = models.TextField(_("Notes"), blank=True, null=True)
     custom_fields = models.JSONField(
         default=dict,
@@ -388,6 +392,8 @@ class Task(AssignableMixin, BaseModel):
     def clean(self):
         """Validate that task has at most one parent entity."""
         super().clean()
+        if self.reminder_days is not None and not self.due_date:
+            raise ValidationError({"due_date": "Set a due date to enable a reminder."})
         parent_fields = ["account", "opportunity", "case", "lead"]
         set_parents = [
             field for field in parent_fields if getattr(self, f"{field}_id", None)
@@ -404,7 +410,10 @@ class Task(AssignableMixin, BaseModel):
             )
 
     def save(self, *args, **kwargs):
-        self.full_clean()
+        from common.pipeline_settings import stages_for
+        if self.org_id and self.status not in {s['key'] for s in stages_for(self.org, 'Task')}:
+            raise ValidationError({'status': 'Choose an available pipeline stage.'})
+        self.full_clean(exclude=['status'])
         super().save(*args, **kwargs)
 
     @property

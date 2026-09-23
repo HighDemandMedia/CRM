@@ -1,3 +1,6 @@
+from common.last_activity import with_last_activity
+from common.pipeline_settings import stages_for
+from common.rbac import configured, permitted
 from common.calendar_filters import filter_calendar
 import json
 
@@ -46,7 +49,7 @@ from contacts.serializer import (
     CreateContactSerializer,
 )
 from contacts.services.account_link import link_primary_account
-from contacts.services.deal_values import contact_deal_values
+from contacts.services.deal_values import contact_deal_values, contact_pipeline_totals
 from contacts.sorting import order_contacts
 from contacts.tasks import send_email_to_assigned_user
 from tasks.serializer import TaskSerializer
@@ -67,20 +70,8 @@ class ContactsListView(APIView, LimitOffsetPagination):
             .select_related("account", "created_by")
             .prefetch_related("account_contacts", "assigned_to__user", "teams", "tags")
         )
-        latest_activity = (
-            Activity.objects.filter(
-                org=self.request.profile.org,
-                entity_type="Contact",
-                entity_id=OuterRef("pk"),
-                action__in=["UPDATE", "ASSIGN"],
-            )
-            .order_by("-created_at")
-            .values("created_at")[:1]
-        )
-        queryset = queryset.annotate(
-            last_activity_at=Coalesce(Subquery(latest_activity), "created_at")
-        )
-        if not is_org_admin(self.request.profile):
+        queryset = with_last_activity(queryset)
+        if not configured(self.request.profile) and not is_org_admin(self.request.profile):
             queryset = queryset.filter(
                 Q(assigned_to__in=[self.request.profile])
                 | Q(created_by=self.request.profile.user)
@@ -96,7 +87,7 @@ class ContactsListView(APIView, LimitOffsetPagination):
                 if params.get(field):
                     if field == "stage" and params[field] == "UNASSIGNED":
                         queryset = queryset.exclude(
-                            stage__in=[value for value, _ in CONTACT_STAGES]
+                            stage__in=[s['key'] for s in stages_for(self.request.profile.org, 'Contact')]
                         )
                     else:
                         queryset = queryset.filter(**{field: params[field]})
@@ -228,8 +219,13 @@ class ContactsListView(APIView, LimitOffsetPagination):
 
         queryset = filter_calendar(queryset, params)
         queryset = order_contacts(
-            queryset, params.get("sort"), params.get("direction") == "desc"
+            queryset, params.get("sort"), params.get("direction") == "desc", org=self.request.profile.org
         )
+
+        if params.get("include_pipeline_totals") == "true":
+            context["money_totals"] = contact_pipeline_totals(
+                self.request.profile, self.request.user, queryset.order_by().values("pk")
+            )
 
         results_contact = self.paginate_queryset(
             queryset.distinct(), self.request, view=self
@@ -261,11 +257,11 @@ class ContactsListView(APIView, LimitOffsetPagination):
         context["contact_obj_list"] = contacts
         context["countries"] = COUNTRIES
         context["sources"] = CONTACT_SOURCES
-        context["stages"] = CONTACT_STAGES
+        context["stages"] = [(s["key"], s["label"]) for s in stages_for(self.request.profile.org, "Contact")]
         context["communication_channels"] = COMMUNICATION_CHANNELS
         users = Profile.objects.filter(
             is_active=True, org=self.request.profile.org
-        ).values("id", "user__email")
+        ).values("id", "user__email", "user__name")
         context["users"] = users
 
         return context
@@ -607,6 +603,16 @@ class ContactDetailView(APIView):
         },
     )
     def get(self, request, pk, format=None):
+        # Old links resolve to the surviving contact; writes to archived IDs remain blocked.
+        visited = set()
+        while pk not in visited:
+            visited.add(pk)
+            archived = Contact._base_manager.filter(pk=pk, org=request.profile.org, merged_at__isnull=False).first()
+            if not archived:
+                break
+            if not archived.merged_into_id:
+                raise Http404("This contact is no longer available.")
+            pk = archived.merged_into_id
         context = {}
         contact_obj = self.get_object(pk)
         self.assert_contact_access(contact_obj)
@@ -672,7 +678,7 @@ class ContactDetailView(APIView):
         }
         context["countries"] = COUNTRIES
         context["sources"] = CONTACT_SOURCES
-        context["stages"] = CONTACT_STAGES
+        context["stages"] = [(s["key"], s["label"]) for s in stages_for(request.profile.org, "Contact")]
         context["communication_channels"] = COMMUNICATION_CHANNELS
         contact_content_type = ContentType.objects.get_for_model(Contact)
         comments = Comment.objects.filter(
@@ -742,7 +748,7 @@ class ContactDetailView(APIView):
         # work on a contact, only an admin or the person who entered it may
         # destroy the record. This comparison was already the right one.
         if (
-            not is_org_admin(self.request.profile)
+            not configured(self.request.profile) and not is_org_admin(self.request.profile)
             and self.request.profile.user_id != self.object.created_by_id
         ):
             return Response(

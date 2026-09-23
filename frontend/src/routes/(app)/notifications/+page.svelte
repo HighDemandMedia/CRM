@@ -1,368 +1,147 @@
 <script>
   import { resolve } from '$app/paths';
-  /**
-   * Notifications, as a page rather than a 360px dropdown.
-   *
-   * v1 has a bell and a panel and no page, which is fine for two items and
-   * useless for twenty: you cannot scan a backlog through a letterbox, and
-   * the panel's only bulk control is "mark all read", which is the control
-   * you press when you have given up. A page can be worked through.
-   *
-   * Two things the real feed does that shaped this:
-   *
-   *   1. THE LINKS USED TO BE BROKEN. `cases/notifications.py` wrote
-   *      `link=f"/cases/{case.id}"` and no client has ever served `/cases`.
-   *      Tickets are at `/tickets/<id>`, so v1's panel, which assigns
-   *      `n.link` straight to `window.location.href`, sent every notification
-   *      to a 404. Fixed at the producer (`case_link()`), which is the only
-   *      place it could be fixed once: the web panel, this page and the
-   *      Flutter client all read the same rows. `api.js` still rewrites the
-   *      dead prefix defensively, because rows written before the fix are
-   *      still in the database.
-   *
-   *   2. ONLY TWO VERBS ARE EVER PRODUCED, `case.mentioned` and
-   *      `case.commented`. v1's panel carries labels for five more that
-   *      nothing dispatches, which reads as a rich notification system and is
-   *      one comment hook. Anything unrecognised is rendered as a plain,
-   *      readable sentence rather than falling through to a raw dotted
-   *      identifier, because a new producer will ship before its copy does.
-   *
-   * `data.comment_excerpt` is somebody's comment body, truncated server-side.
-   * It is interpolated as text and never as markup.
-   */
-  import { untrack } from 'svelte';
-  import { deserialize } from '$app/forms';
+  import { goto } from '$app/navigation';
+  import { enhance, deserialize } from '$app/forms';
+  import { page } from '$app/state';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import EmptyState from '$lib/v2/components/EmptyState.svelte';
-  import Avatar from '$lib/v2/components/Avatar.svelte';
   import { relativeTime } from '$lib/v2/format.js';
-  import { BellOff, AtSign, MessageSquare, Bell, Check, LifeBuoy } from '@lucide/svelte';
+  import { Bell, Check, ChevronLeft, ChevronRight } from '@lucide/svelte';
 
-  /** @type {{ data: any }} */
-  let { data } = $props();
-
-  /* Local copy: marking read is a real state change in this page's terms even
-     though nothing is persisted yet. It is not derived from `data`, or every
-     revalidation would resurrect what you just cleared. */
-  let rows = $state(untrack(() => data.results.map((n) => ({ ...n }))));
-  let filter = $state(/** @type {'unread' | 'all'} */ ('unread'));
-
-  let unread = $derived(rows.filter((n) => n.read_at === null));
-  let visible = $derived(filter === 'unread' ? unread : rows);
-
-  const ICON = {
-    'case.mentioned': AtSign,
-    'case.commented': MessageSquare,
-    'support.replied': LifeBuoy,
-    'support.status_changed': LifeBuoy
+  /** @type {{data:any, form:any}} */
+  let { data, form } = $props();
+  let preferencesOpen = $derived(page.url.searchParams.get('tab') === 'preferences');
+  let busy = $state(false);
+  const submit = () => {
+    busy = true;
+    return async ({update}) => { try { await update({reset:false}); } finally { busy = false; } };
   };
-
-  /**
-   * "mentioned you" / "commented" for the verbs that exist; a readable
-   * fallback for the ones that do not. `case.sla_breached` becomes
-   * "sla breached" and not `case.sla_breached`.
-   */
-  function verbPhrase(n) {
-    if (n.verb === 'case.mentioned') return 'mentioned you on';
-    if (n.verb === 'case.commented') return 'commented on';
-    if (n.verb === 'support.replied') return 'replied to';
-    if (n.verb === 'support.status_changed') return 'updated';
-    return `${n.verb.replace(/^[^.]+\./, '').replace(/_/g, ' ')}, `;
+  /** @returns {`/notifications?${string}`} */
+  function historyLink(status = data.pagination.status, number = 1) {
+    return `/notifications?${new URLSearchParams({status, page:String(number)})}`;
   }
-
-  function isSupportNotification(n) {
-    return n.verb?.startsWith('support.');
-  }
-
-  /* Persist to a page action. `keepalive` so the write survives the navigation
-     that a link click starts, clicking a notification both opens the ticket
-     AND marks it read, and the read must not be cancelled mid-flight. */
-  async function post(/** @type {string} */ action, /** @type {FormData} */ body) {
-    const res = await fetch(action, { method: 'POST', body, keepalive: true });
-    return deserialize(await res.text());
-  }
-
-  /* Marking read is optimistic, the dot clears immediately, then persisted.
-     If the API refuses (or the network fails) the change is put back, so the
-     page never shows a state the server did not accept. */
-  async function markRead(/** @type {any} */ n) {
-    if (n.read_at !== null) return;
-    n.read_at = new Date().toISOString();
-    const body = new FormData();
-    body.set('id', n.id);
+  let error = $state('');
+  async function openNotification(event, n) {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || n.read_at) return;
+    event.preventDefault();
+    if (busy) return;
+    busy = true;
+    error = '';
     try {
-      const result = await post('?/read', body);
-      if (result.type !== 'success') n.read_at = null;
-    } catch {
-      n.read_at = null;
-    }
+      const body = new FormData(); body.set('id', n.id);
+      const response = await fetch('?/read', {method:'POST', body});
+      const result = deserialize(await response.text());
+      if (result.type !== 'success') throw new Error();
+      await goto(resolve(n.resolved_link));
+    } catch { error = 'Could not open this notification. Please try again.'; }
+    finally { busy = false; }
   }
-
-  async function markAllRead() {
-    const wasUnread = rows.filter((n) => n.read_at === null);
-    if (wasUnread.length === 0) return;
-    const now = new Date().toISOString();
-    for (const n of wasUnread) n.read_at = now;
-    try {
-      const result = await post('?/readAll', new FormData());
-      if (result.type !== 'success') for (const n of wasUnread) n.read_at = null;
-    } catch {
-      for (const n of wasUnread) n.read_at = null;
-    }
+  function phrase(verb) {
+    return {'case.mentioned':'mentioned you on', 'case.commented':'commented on', 'support.replied':'replied to', 'support.status_changed':'updated'}[verb] || 'updated';
   }
 </script>
 
 <PageHeader title="Notifications">
-  {#snippet sub()}
-    {#if unread.length}
-      <span class="v2-num">{unread.length}</span> unread
-    {:else}
-      Nothing unread
+  {#snippet sub()}{data.totals.unread} unread{/snippet}
+  {#snippet actions()}
+    {#if !preferencesOpen}
+      <form method="POST" action="?/readAll" use:enhance={submit}>
+        <button class="v2-btn v2-btn-sm" disabled={busy || !data.totals.unread}><Check size={15}/>Mark all read</button>
+      </form>
     {/if}
   {/snippet}
-  {#snippet actions()}
-    <button
-      class="v2-btn"
-      type="button"
-      onclick={() => (filter = filter === 'unread' ? 'all' : 'unread')}
-    >
-      {filter === 'unread' ? 'Show read too' : 'Unread only'}
-    </button>
-    <button class="v2-btn" type="button" disabled={!unread.length} onclick={markAllRead}>
-      <Check />Mark all read
-    </button>
-  {/snippet}
 </PageHeader>
-
+<nav class="tabs" aria-label="Notification sections">
+  <a href={resolve('/notifications')} class:active={!preferencesOpen} aria-current={!preferencesOpen ? 'page' : undefined}>History</a>
+  <a href={resolve('/notifications?tab=preferences')} class:active={preferencesOpen} aria-current={preferencesOpen ? 'page' : undefined}>Preferences</a>
+</nav>
 <div class="v2-scroll">
-  <div class="v2-pad" style="padding-top:16px;padding-bottom:32px">
-    {#if visible.length === 0}
-      <EmptyState
-        title={filter === 'unread' ? 'Nothing unread' : 'No notifications'}
-        body={filter === 'unread'
-          ? 'Everything here has been read. Notifications arrive for CRM ticket activity and updates from BottleCRM Support.'
-          : 'Notifications arrive for CRM ticket activity and updates from BottleCRM Support.'}
-      >
-        {#snippet icon()}<BellOff size={21} />{/snippet}
-        {#snippet actions()}
-          {#if filter === 'unread' && rows.length}
-            <button class="v2-btn" type="button" onclick={() => (filter = 'all')}>
-              Show read too
-            </button>
-          {/if}
-          <a class="v2-btn" href={resolve('/tickets')}>Go to tickets</a>
-          <a class="v2-btn" href={resolve('/help')}>Get help</a>
-        {/snippet}
-      </EmptyState>
-    {:else}
-      <ul class="feed">
-        {#each visible as n (n.id)}
-          {@const Icon = ICON[n.verb] ?? Bell}
-          <li class="row" class:read={n.read_at !== null}>
-            <span class="mark" aria-hidden="true">
-              {#if n.read_at === null}<i class="dot"></i>{/if}
-            </span>
-
-            <span class="icon"><Icon size={14} /></span>
-
-            <div class="body">
-              <p class="line">
-                {#if isSupportNotification(n)}
-                  <b class="system">BottleCRM Support</b>
-                {:else if n.actor}
-                  <Avatar name={n.actor.name} size={17} />
-                  <b>{n.actor.name}</b>
-                {:else}
-                  <b class="system">The system</b>
-                {/if}
-                {verbPhrase(n)}
-                {#if n.entity_name}
-                  {#if n.resolved_link}
-                    <a href={resolve(n.resolved_link)} onclick={() => markRead(n)}
-                      >{n.entity_name}</a
-                    >
-                  {:else}
-                    <span class="entity">{n.entity_name}</span>
-                  {/if}
-                {:else}
-                  <span class="entity v2-muted">a ticket that no longer has a name</span>
-                {/if}
-              </p>
-
-              {#if n.data.comment_excerpt}
-                <!-- Quoted, not restyled as a card: it is somebody else's
-                     words and should read like a quotation. -->
-                <p class="excerpt">{n.data.comment_excerpt}</p>
-              {/if}
-
-              <p class="meta">
-                <span>{relativeTime(n.created_at)}</span>
-                {#if !n.known_verb}
-                  <!-- A verb the backend does not produce today. Worth saying
-                       once, quietly, rather than rendering a raw identifier and
-                       letting somebody assume the feature exists.
-
-                       The broken link is NOT flagged per row: it is true of
-                       every row, so a badge on each one is a badge that says
-                       nothing. It is counted once, below the list. -->
-                  <span class="tag"><code>{n.verb}</code> has no producer</span>
-                {/if}
-              </p>
-            </div>
-
-            {#if n.read_at === null}
-              <button class="v2-btn v2-btn-sm read-btn" type="button" onclick={() => markRead(n)}>
-                Mark read
-              </button>
-            {/if}
-          </li>
+  <div class="content">
+    {#if preferencesOpen}
+      <h2>Notification preferences</h2>
+      <p class="muted">Choose the notifications you receive in this organization.</p>
+      <form class="preferences" method="POST" action="?/preferences&tab=preferences" use:enhance={submit}>
+        {#each [
+          ['notify_in_app', 'In-app notifications', 'Receive notifications inside the CRM.'],
+          ['notify_mentions', 'Mentions', 'When someone mentions you in a ticket.'],
+          ['notify_comments', 'Ticket comments', 'New comments on tickets you follow.']
+        ] as [key, label, description]}
+          <label class="preference"><span><strong>{label}</strong><small>{description}</small></span><input type="checkbox" name={key} checked={data.preferences[key] ?? true}/></label>
         {/each}
-      </ul>
-
-      {#if data.totals.broken_links}
-        <!--
-          The count, once, at the bottom, not repeated per row where it would
-          become the loudest thing on a page about other people's messages.
-        -->
-        <p class="footnote">
-          <span class="v2-num">{data.totals.broken_links}</span> of these were written before the
-          producer was fixed and still carry a <code>/cases/…</code> link, which no client serves.
-          They open as <code>/v2/tickets/…</code> here. New ones are written correctly at source by
-          <code>cases/notifications.py</code>.
-        </p>
+        <button class="v2-btn save" disabled={busy}>{busy ? 'Saving…' : 'Save preferences'}</button>
+        {#if form?.scope === 'preferences'}<p role="status" class:error={form.message}>{form.message || 'Preferences saved.'}</p>{/if}
+      </form>
+    {:else}
+      <nav class="filters" aria-label="Filter notifications">
+        {#each [['all','All'], ['unread','Unread'], ['read','Read']] as [value,label]}
+          <a href={resolve(historyLink(value))} class:selected={data.pagination.status === value} aria-current={data.pagination.status === value ? 'page' : undefined}>{label}</a>
+        {/each}
+      </nav>
+      {#if error}<p class="error" role="alert">{error}</p>{/if}
+      {#if form?.error}<p class="error" role="alert">{form.error}</p>{/if}
+      {#if data.results.length}
+        <ul class="feed">
+          {#each data.results as n (n.id)}
+            <li class:unread={!n.read_at}>
+              <span class="indicator" class:dot={!n.read_at} aria-label={n.read_at ? 'Read' : 'Unread'}></span>
+              <div class="message">
+                <p><strong>{n.actor?.name || 'The system'}</strong> {phrase(n.verb)}
+                  {#if n.resolved_link}<a href={resolve(n.resolved_link)} onclick={(event) => openNotification(event, n)}>{n.entity_name || 'a ticket'}</a>{:else}{n.entity_name || 'a ticket'}{/if}
+                </p>
+                {#if n.data?.comment_excerpt}<p class="excerpt">{n.data.comment_excerpt}</p>{/if}
+                <time datetime={n.created_at} title={new Date(n.created_at).toLocaleString()}>{relativeTime(n.created_at)} · {n.read_at ? 'Read' : 'Unread'}</time>
+              </div>
+              {#if !n.read_at}
+                <form method="POST" action="?/read" use:enhance={submit}>
+                  <input type="hidden" name="id" value={n.id}/>
+                  <button class="read-button" disabled={busy} aria-label="Mark notification read" title="Mark read"><Check size={16}/></button>
+                </form>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <div class="empty"><Bell size={26}/><h2>{data.pagination.status === 'unread' ? 'You’re all caught up' : 'No notifications here'}</h2><p>New notifications will appear here as they arrive.</p></div>
+      {/if}
+      {#if data.pagination.pages > 1 || data.pagination.page > 1}
+        <nav class="pagination" aria-label="Notification pages">
+          {#if data.pagination.page > 1}<a class="v2-btn v2-btn-sm" href={resolve(historyLink(data.pagination.status, data.pagination.page - 1))}><ChevronLeft size={14}/>Previous</a>{/if}
+          <span>Page {data.pagination.page} · {data.totals.count} notifications</span>
+          {#if data.pagination.page < data.pagination.pages}<a class="v2-btn v2-btn-sm" href={resolve(historyLink(data.pagination.status, data.pagination.page + 1))}>Next<ChevronRight size={14}/></a>{/if}
+        </nav>
       {/if}
     {/if}
   </div>
 </div>
 
 <style>
-  .feed {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    border-top: 1px solid var(--v2-line);
-  }
-  .row {
-    display: grid;
-    grid-template-columns: 14px 22px 1fr auto;
-    gap: 10px;
-    align-items: start;
-    padding: 13px 0;
-    border-bottom: 1px solid var(--v2-line);
-  }
-
-  /* Unread is carried by a dot in its own column, so every row's text starts
-     on the same x. A bold-vs-regular treatment makes read rows look like a
-     different kind of thing rather than the same thing, already seen. */
-  .mark {
-    display: flex;
-    justify-content: center;
-    padding-top: 6px;
-  }
-  /* Ink, not ember. Ember is the action token, and on a page where every row
-     is unread by default an ember dot on all of them would say "urgent" about
-     the whole list and therefore about nothing. */
-  .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--v2-ink);
-  }
-  .icon {
-    display: flex;
-    justify-content: center;
-    padding-top: 2px;
-    color: var(--v2-slate);
-  }
-  .row.read .icon {
-    opacity: 0.55;
-  }
-
-  .body {
-    min-width: 0;
-  }
-  .line {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.5;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 5px;
-  }
-  .line b {
-    font-weight: 600;
-  }
-  .system {
-    color: var(--v2-slate);
-  }
-  .line a {
-    color: inherit;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    text-decoration-color: var(--v2-line);
-  }
-  .line a:hover {
-    text-decoration-color: currentColor;
-  }
-  .entity {
-    font-weight: 500;
-  }
-
-  .excerpt {
-    margin: 5px 0 0;
-    padding-left: 10px;
-    border-left: 2px solid var(--v2-line);
-    font-size: 13px;
-    color: var(--v2-slate);
-    max-width: 72ch;
-    line-height: 1.55;
-  }
-
-  .meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin: 5px 0 0;
-    font-size: 11.5px;
-    color: var(--v2-slate);
-  }
-  .tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-  }
-  .meta code,
-  .footnote code {
-    font-family: var(--v2-mono);
-    font-size: 10.5px;
-  }
-
-  /* Appears on hover or keyboard focus, but is always in the accessibility
-     tree. A control you can only reach with a mouse is not a control. */
-  .read-btn {
-    opacity: 0;
-    transition: opacity 0.1s;
-  }
-  .row:hover .read-btn,
-  .read-btn:focus-visible {
-    opacity: 1;
-  }
-
-  .footnote {
-    margin: 16px 0 0;
-    font-size: 12px;
-    color: var(--v2-slate);
-    max-width: 76ch;
-    line-height: 1.6;
-  }
-
-  @media (max-width: 640px) {
-    .row {
-      grid-template-columns: 10px 18px 1fr;
-    }
-    .read-btn {
-      display: none;
-    }
-  }
+  .tabs { display:flex; gap:26px; padding:0 24px; border-bottom:1px solid var(--v2-line); }
+  .tabs a { padding:14px 0; color:var(--v2-slate); text-decoration:none; border-bottom:2px solid transparent; font-size:13px; }
+  .tabs a.active { color:var(--v2-ink); border-color:var(--v2-ink); font-weight:600; }
+  .content { padding:24px; max-width:1040px; }
+  .filters { display:flex; gap:4px; margin-bottom:20px; }
+  .filters a { padding:7px 14px; border-radius:7px; text-decoration:none; color:var(--v2-slate); font-size:12px; }
+  .filters a.selected { background:var(--v2-line-soft); color:var(--v2-ink); font-weight:600; }
+  .feed { list-style:none; margin:0; padding:0; }
+  li { display:flex; align-items:flex-start; gap:12px; padding:16px 12px; border-bottom:1px solid var(--v2-line-soft); }
+  li.unread { background:var(--v2-line-soft); border-radius:8px; }
+  .indicator { width:6px; height:6px; flex:none; margin-top:7px; border-radius:50%; }
+  .dot { background:var(--v2-ink); }
+  .message { flex:1; min-width:0; }
+  .message p { margin:0; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
+  .message a { color:inherit; text-decoration:underline; text-underline-offset:3px; }
+  .message .excerpt { color:var(--v2-slate); margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  time { display:block; margin-top:7px; font-size:11px; color:var(--v2-slate); }
+  .read-button { display:grid; place-items:center; border:1px solid var(--v2-line); background:transparent; color:var(--v2-slate); border-radius:6px; width:30px; height:30px; cursor:pointer; }
+  .pagination { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:14px; margin-top:20px; font-size:12px; color:var(--v2-slate); }
+  .empty { display:flex; flex-direction:column; align-items:center; text-align:center; padding:64px 16px; color:var(--v2-slate); }
+  h2 { font-size:16px; color:var(--v2-ink); }
+  .empty p,.muted { font-size:13px; color:var(--v2-slate); }
+  .preferences { max-width:640px; }
+  .preference { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:18px 0; border-bottom:1px solid var(--v2-line-soft); }
+  .preference strong { font-size:13px; font-weight:500; }
+  .preference small { display:block; color:var(--v2-slate); margin-top:5px; font-size:12px; }
+  .preference input { accent-color:var(--v2-ink); width:17px; height:17px; }
+  .save { margin-top:20px; }
+  .error { color:var(--v2-rust); }
+  @media(max-width:600px) { .content { padding:16px; } .tabs { padding-inline:16px; } }
 </style>

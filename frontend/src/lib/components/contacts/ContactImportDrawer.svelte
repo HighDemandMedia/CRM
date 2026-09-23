@@ -46,7 +46,6 @@
     'organization',
     'title',
     'department',
-    'do_not_call',
     'linkedin_url',
     'address_line',
     'city',
@@ -263,11 +262,11 @@
         >
           <p class="font-medium">CSV format</p>
           <p class="mt-1 text-[var(--text-secondary)]">
-            Required headers: <code class="rounded bg-[var(--surface-default)] px-1"
+            Required header: <code class="rounded bg-[var(--surface-default)] px-1"
               >first_name</code
-            >,
-            <code class="rounded bg-[var(--surface-default)] px-1">last_name</code>. Optional:
-            email, phone, organization, title, department, do_not_call (yes/no), linkedin_url,
+            >. Optional:
+            <code class="rounded bg-[var(--surface-default)] px-1">last_name</code>,
+            email, phone, organization, title, department, linkedin_url,
             address_line, city, state, postcode, country (2-letter code), description, account_name,
             assigned_emails, team_names, tags (semicolon-separated for the last three).
           </p>

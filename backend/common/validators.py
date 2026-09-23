@@ -253,3 +253,9 @@ def validate_iana_timezone(value: str) -> None:
     """
     if value not in available_timezones():
         raise DjangoValidationError(f"{value!r} is not a valid IANA timezone.")
+
+
+def contact_phone_key(value):
+    """Remove presentation separators, preserving the entire country code."""
+    digits = re.sub(r"[^0-9]", "", str(value or ""))
+    return digits[2:] if digits.startswith("00") else digits

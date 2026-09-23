@@ -1,3 +1,4 @@
+import { apiRequest } from '$lib/api-helpers.js';
 import { listLeads } from '$lib/server/v2/leads.js';
 import { listDeals } from '$lib/server/v2/deals.js';
 import { listTickets, OPEN_STATUSES } from '$lib/server/v2/tickets.js';
@@ -118,6 +119,8 @@ const LIVE_COUNTS = {
  */
 export async function load(event) {
   const shell = {
+    accountUser: event.locals.user || { name: '', email: '' },
+    accountId: event.locals.org?.id || '',
     counts: /** @type {Record<string, number>} */ ({}),
     org: {
       name: event.locals.org?.name || 'BottleCRM',
@@ -141,7 +144,9 @@ export async function load(event) {
     // shell hide destinations a member can only reach to be turned away. The
     // backend still enforces every one of those gates, so this is UX, not a
     // security control. Defaults to the non-admin view when the claim is absent.
-    role: event.locals.profile?.role ?? 'USER'
+    role: event.locals.profile?.role ?? 'USER',
+    isSuperAdmin: !!event.locals.profile?.is_super_admin,
+    demoMode: !!event.locals.profile?.is_demo
   };
 
   // countKeys' fetches and the terminology fetch are pushed into ONE
@@ -149,10 +154,12 @@ export async function load(event) {
   // terminology lookup is not a second round trip, it rides the wave that was
   // already here for the badges. `results` is indexed by position: the count
   // keys first (in `countKeys` order), terminology last.
-  const countKeys = Object.keys(LIVE_COUNTS);
+  const countKeys = Object.keys(LIVE_COUNTS).filter(key => !shell.demoMode || ['pipeline', 'tickets', 'tasks', 'notifications'].includes(key));
   const results = await Promise.allSettled([
     ...countKeys.map((key) => LIVE_COUNTS[/** @type {keyof typeof LIVE_COUNTS} */ (key)](event)),
-    getOrgTerminology(event)
+    getOrgTerminology(event),
+    apiRequest('/pipeline-settings/?include_rules=false', {}, {cookies: event.cookies}),
+    apiRequest('/property-layout/', {}, {cookies: event.cookies})
   ]);
 
   countKeys.forEach((key, index) => {
@@ -163,7 +170,11 @@ export async function load(event) {
   const terminologyResult = results[countKeys.length];
   if (terminologyResult.status === 'fulfilled') {
     shell.org.terminology = terminologyResult.value.terminology;
+    shell.isSuperAdmin = !!terminologyResult.value.isSuperAdmin;
   }
 
-  return shell;
+  const pipelineResult = results[countKeys.length + 1];
+  const propertyResult = results[countKeys.length + 2];
+  const propertyLayout = propertyResult?.status === 'fulfilled' ? propertyResult.value : {objects: {}};
+  return {...shell, propertyLayout: propertyLayout.objects, pipelineConfig: pipelineResult?.status === 'fulfilled' ? pipelineResult.value.pipelines : {}};
 }

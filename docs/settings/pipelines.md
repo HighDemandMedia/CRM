@@ -1,0 +1,16 @@
+# Pipelines
+
+Organization-specific configuration at `/settings/pipelines`, for Contacts, Companies, Deals, Tasks and Tickets. Admin/Super Admin may save; members receive the configuration for rendering. Each object currently has its existing single pipeline.
+
+- Display names and order are editable. Admins add stages in a side panel; stable `custom_…` internal keys are generated once. Saved keys cannot be renamed.
+- Remove stage offers a destination for its records. Confirming removal reassigns records through the existing serializers in one transaction; missing destination requirements reject the whole change. Records are never deleted. All system default stages are protected against removal; only custom stages can be removed.
+- Removed stages are removed from source-rule references. Empty source selections mean unrestricted entry, as shown in the removal notice. Names and percentages save on field change (after editing), reordering saves immediately, and entry-rule selections save automatically. Add/remove side panels retain explicit confirmation; no page-level Save/Discard is needed. Failed writes show an error and retain the saved configuration.
+- Stage catalogs, write serializers, kanban endpoints and task model validation accept the organization's custom stages. The configuration API accepts explicit additions/removals and rejects stale revisions.
+- Deal percentage is close probability. Saving applies it to existing deals in each stage; subsequent saves use it. Weighted forecast is amount × probability / 100. For other objects it represents progress, not revenue.
+- Every stage percentage is editable from 0 to 100, including system and terminal stages. Default successful stages start at 100% and unsuccessful ones at 0%. Changing the percentage does not change the stage’s open/closed meaning.
+- Entry requirements check filled system/custom properties and allowed source stages. Empty source selection permits any source, including creation. Values 0 and false count as filled. Rules are checked on entry, not on unrelated edits within the same stage; existing records are not moved or retroactively rejected.
+- Rules run through record write serializers, kanban move APIs, ticket bulk updates, and calendar deal creation. Errors leave the attempted transition unchanged. Legacy seed/import/direct ORM utilities are not rule-enforced by the model.
+- A blocked pipeline move opens a side panel with the missing fields. Save and move sends the property values and destination stage together through the existing record API; cancel leaves the record unchanged. Source-stage restrictions show an explanation without a save action.
+- Record editors show a shared warning listing missing properties and highlight their visible inputs. Properties absent from an editor remain listed in the warning; adding every custom property to all adapted record forms remains the separately documented Properties follow-up.
+- Custom fields use `custom_fields.<internal_key>`. The pipeline completion panel supports these fields along with system properties.
+- Configuration lives in Org.pipeline_settings (migration common.0058). Updates use revision checks and row locking to avoid overwriting another administrator's changes.

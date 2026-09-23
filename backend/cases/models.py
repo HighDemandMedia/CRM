@@ -1,8 +1,9 @@
+from common.rbac import CRMRecordManager
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import pgettext_lazy
@@ -20,10 +21,41 @@ from .workflow import MAX_SLA_HOURS, SLA_AT_RISK_FRACTION
 # - Fixed case_type default from "" to None (empty string is bad default for nullable field)
 
 
+class TicketSequence(models.Model):
+    org = models.OneToOneField(Org, on_delete=models.CASCADE, primary_key=True)
+    last_number = models.PositiveBigIntegerField(default=0)
+
+
 class Case(AssignableMixin, BaseModel):
+    objects = CRMRecordManager()
+    ticket_number = models.PositiveBigIntegerField(null=True, editable=False)
+    category = models.CharField(max_length=20, default="General", choices=[(x, x) for x in ("Support", "Billing", "Service", "General")])
+    source = models.CharField(max_length=20, default="Internal", choices=[(x, x) for x in ("Email", "Call", "SMS", "Website", "Internal")])
+    due_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    waiting_reason = models.CharField(max_length=20, blank=True, default="", choices=[("", "Not set"), ("Customer", "Customer"), ("Internal", "Internal")])
+    resolution_note = models.TextField(blank=True, default="")
+    # Legacy links are retained; new ticket forms and API writes do not expose them.
+    deal = models.ForeignKey("opportunity.Opportunity", on_delete=models.SET_NULL, null=True, blank=True, related_name="tickets")
+    deal = models.ForeignKey("opportunity.Opportunity", on_delete=models.SET_NULL, null=True, blank=True, related_name="tickets")
+
+    @property
+    def ticket_code(self):
+        return f"TKT-{self.ticket_number:04d}" if self.ticket_number else f"TKT-{str(self.pk)[:8].upper()}"
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.ticket_number is None and self.org_id:
+            with transaction.atomic():
+                Org.objects.select_for_update().get(pk=self.org_id)
+                sequence, _ = TicketSequence.objects.get_or_create(org_id=self.org_id)
+                sequence.last_number += 1
+                sequence.save(update_fields=["last_number"])
+                self.ticket_number = sequence.last_number
+                return super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)
+
     name = models.CharField(pgettext_lazy("Name of the case", "Name"), max_length=64)
-    status = models.CharField(choices=STATUS_CHOICE, max_length=64)
-    priority = models.CharField(choices=PRIORITY_CHOICE, max_length=64)
+    status = models.CharField(choices=STATUS_CHOICE, max_length=64, default="New")
+    priority = models.CharField(choices=PRIORITY_CHOICE, max_length=64, blank=True)
     case_type = models.CharField(
         choices=CASE_TYPE, max_length=255, blank=True, null=True, default=None
     )

@@ -1,15 +1,22 @@
-import { fail } from '@sveltejs/kit';
+import { apiRequest } from '$lib/api-helpers.js';
+import { error, fail } from '@sveltejs/kit';
 import {
-  getCustomFields,
+  getPropertyCatalog,
   createCustomField,
   updateCustomField,
-  deactivateCustomField
+  deactivateCustomField,
+  deleteCustomField
 } from '$lib/server/v2/custom-fields.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies }) {
-  return getCustomFields({ cookies });
+export async function load({ cookies, url }) {
+  try {
+    return await getPropertyCatalog({ cookies }, url.searchParams.get('object') || 'Contact');
+  } catch (err) {
+    if (err?.status === 403) error(403, 'Only an administrator can manage properties.');
+    throw err;
+  }
 }
 
 /**
@@ -36,7 +43,7 @@ function readValues(form) {
     key: form.get('key')?.toString().trim() ?? '',
     label: form.get('label')?.toString().trim() ?? '',
     field_type: form.get('field_type')?.toString() ?? '',
-    is_required: form.get('is_required') === 'true',
+    is_required: false,
     is_filterable: form.get('is_filterable') === 'true',
     display_order: form.get('display_order')?.toString() ?? '0',
     options: readOptions(form)
@@ -45,6 +52,23 @@ function readValues(form) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  async delete(event) {
+    const form = await event.request.formData();
+    try {
+      await deleteCustomField(event, String(form.get('id') || ''), String(form.get('confirmation') || ''));
+      return { deleted: true };
+    } catch (err) {
+      return fail(err?.status === 403 ? 403 : 400, { delete: { error: readableError(err, 'Could not delete the property.') } });
+    }
+  },
+  async reorder({cookies, request}) {
+    const form = await request.formData();
+    try {
+      return await apiRequest('/property-layout/', {method: 'PUT', body: {
+        target_model: form.get('target_model'), revision: form.get('revision'), order: JSON.parse(String(form.get('order')))
+      }}, {cookies});
+    } catch (err) { return fail(400, {error: readableError(err, 'Could not save the order.')}); }
+  },
   // Admin-only server-side (`CustomFieldDefinitionListCreateView.post` calls
   // `_is_admin` first). `can_edit` only hides the control.
   async create(event) {

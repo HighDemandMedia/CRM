@@ -48,21 +48,22 @@ def test_create_deal_properties(admin_client, admin_profile, org_a, association)
 
 
 @pytest.mark.parametrize(
-    "field", ["name", "stage", "priority", "lead_source", "assigned_to"]
+    "field", ["stage", "priority", "lead_source", "assigned_to"]
 )
-def test_required_fields(admin_client, admin_profile, org_a, field):
+def test_optional_fields(admin_client, admin_profile, org_a, field):
     body = payload(admin_profile)
     body["account"] = str(Account.objects.create(name="Company", org=org_a).pk)
     body.pop(field)
     response = admin_client.post("/api/opportunities/", body, format="json")
-    assert response.status_code == 400, response.data
+    assert response.status_code == 200, response.data
 
 
 def test_associations_and_owner_scope(admin_client, admin_profile, org_a, org_b):
     body = payload(admin_profile)
     assert (
-        admin_client.post("/api/opportunities/", body, format="json").status_code == 400
+        admin_client.post("/api/opportunities/", body, format="json").status_code == 200
     )
+    body["name"] = "Scope validation"
     foreign = Contact.objects.create(first_name="Foreign", org=org_b)
     body["contacts"] = [str(foreign.pk)]
     assert (

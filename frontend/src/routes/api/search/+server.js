@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { demoPageAllowed } from '$lib/v2/demo-view.js';
 import { search } from '$lib/server/v2/search.js';
 
 /**
@@ -8,10 +9,12 @@ import { search } from '$lib/server/v2/search.js';
  *
  * @type {import('./$types').RequestHandler}
  */
-export async function GET({ url, cookies }) {
+export async function GET({ url, cookies, locals }) {
   const q = url.searchParams.get('q') || '';
   try {
-    return json(await search({ cookies }, q));
+    const result = await search({ cookies }, q);
+    if (locals.profile?.is_demo) result.results = result.results.filter(row => demoPageAllowed(row.href));
+    return json(result);
   } catch (/** @type {any} */ err) {
     return json({ results: [], error: err?.message || 'Search failed' }, { status: 400 });
   }

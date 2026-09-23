@@ -1,0 +1,194 @@
+/* Common list treatment; fixed column widths and existing table interactions remain intact. */
+.v2-scroll.list-scroll {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+.hdm-list.hdm-list.hdm-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: linear-gradient(to bottom, #f5f3f6 0 44px, #e3dde7 44px 45px, var(--v2-bg) 45px);
+  border: 1px solid #e6e1e7;
+  border-radius: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #c9c2cd transparent;
+}
+.list-scroll .hdm-list {
+  margin: 10px 22px 0;
+}
+.hdm-list.hdm-list table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.hdm-list.hdm-list th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 45px;
+  background: #f5f3f6;
+  color: #827789;
+  font-size: 11px;
+  font-weight: 650;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e3dde7;
+  border-right: 1px solid transparent;
+}
+.hdm-list.hdm-list th[aria-sort='ascending'],
+.hdm-list.hdm-list th[aria-sort='descending'] {
+  color: #45404e;
+  background: #ece8f0;
+}
+.hdm-list.hdm-list th button:not(.resize-handle) {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  min-height: 24px;
+}
+.hdm-list.hdm-list td {
+  height: 54px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0ecf2;
+  border-right: 1px solid transparent;
+  vertical-align: middle;
+  color: #716778;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.hdm-list.hdm-list tbody tr:nth-child(even) {
+  background: #fcfbfd;
+}
+.hdm-list.hdm-list tbody tr:hover,
+.hdm-list.hdm-list tbody tr:focus-within {
+  background: #f3eff7;
+}
+.hdm-list.hdm-list td[data-field='name'] a {
+  color: #332d3a;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.hdm-list.hdm-list td[data-field='name'] a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.hdm-list.hdm-list td[data-field='ticket_code'] a {
+  font-size: 11px;
+  color: #948899;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.hdm-list.hdm-list [data-field='amount'],
+.hdm-list.hdm-list [data-field='annual_revenue'],
+.hdm-list.hdm-list [data-field='number_of_employees'] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.hdm-list.hdm-list th[data-field='amount'] button,
+.hdm-list.hdm-list th[data-field='annual_revenue'] button,
+.hdm-list.hdm-list th[data-field='number_of_employees'] button {
+  text-align: right;
+}
+.hdm-list.hdm-list td[data-field='amount'],
+.hdm-list.hdm-list td[data-field='annual_revenue'] {
+  color: #403748;
+  font-weight: 600;
+}
+.hdm-list.hdm-list td[data-field='email'] a {
+  color: #87778f;
+  text-decoration: none;
+}
+.hdm-list.hdm-list td[data-field='email'] a:hover {
+  text-decoration: underline;
+}
+.hdm-list.hdm-list .list-row-actions {
+  white-space: nowrap;
+}
+.hdm-list.hdm-list .list-row-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: #786784;
+  text-decoration: none;
+}
+.hdm-list.hdm-list .list-row-actions a:hover,
+.hdm-list.hdm-list .list-row-actions a:focus-visible {
+  background: #e7dfed;
+  color: #564263;
+}
+.hdm-list.hdm-list .list-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: #eeeaf2;
+  color: #82708f;
+  font-size: 11px;
+  font-weight: 500;
+}
+.hdm-list.hdm-list .list-badge[data-priority='High'] {
+  background: #faf0e3;
+  color: #9b7645;
+}
+.hdm-list.hdm-list .list-badge[data-priority='Urgent'] {
+  background: #f7e8e6;
+  color: #a2615a;
+}
+.hdm-list.hdm-list .list-badge[data-tone='success'] {
+  background: #eaf1ed;
+  color: #668675;
+}
+.hdm-list.hdm-list .list-badge[data-tone='waiting'] {
+  background: #f8f0e5;
+  color: #9f8659;
+}
+.hdm-list.hdm-list .list-badge[data-tone='muted'] {
+  background: #f0eaee;
+  color: #93818b;
+}
+.hdm-list.hdm-list td.overdue {
+  color: var(--v2-rust);
+}
+.hdm-list.hdm-list .resize-handle {
+  width: 8px;
+  background: transparent;
+}
+.hdm-list.hdm-list .resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 13px;
+  bottom: 13px;
+  left: 3px;
+  width: 1px;
+  background: #dcd4e2;
+}
+.hdm-list.hdm-list .resize-handle:hover,
+.hdm-list.hdm-list .resize-handle:focus-visible {
+  background: #d8cde3;
+  opacity: 1;
+}
+.list-scroll > .pagination {
+  flex: none;
+  justify-content: flex-end;
+  padding: 12px 22px;
+}
+.list-scroll > .pagination:empty {
+  padding: 0;
+  height: 18px;
+}
+@media (max-width: 700px) {
+  .list-scroll .hdm-list {
+    margin: 8px 12px 0;
+  }
+  .hdm-list.hdm-list td {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    height: 50px;
+  }
+}

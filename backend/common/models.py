@@ -40,6 +40,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_("email address"), blank=True, unique=True)
     name = models.CharField(_("name"), max_length=255, blank=True, default="")
     profile_pic = models.CharField(max_length=1000, null=True, blank=True)
+    profile_image = models.ImageField(upload_to="profile-photos/", blank=True)
     activation_key = models.CharField(max_length=150, null=True, blank=True)
     key_expires = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
@@ -100,6 +101,9 @@ def generate_unique_key():
 
 
 class Org(BaseModel):
+    property_order = models.JSONField(default=dict, blank=True)
+    pipeline_settings = models.JSONField(default=dict, blank=True)
+    owner = models.ForeignKey('User', null=True, blank=True, editable=False, on_delete=models.PROTECT, related_name='owned_organizations')
     name = models.CharField(max_length=100, blank=True, null=True)
     api_key = models.TextField(default=generate_unique_key, unique=True, editable=False)
     is_active = models.BooleanField(default=True)
@@ -175,6 +179,18 @@ class Org(BaseModel):
         db_table = "organization"
         ordering = ("-created_at",)
 
+    def save(self, *args, **kwargs):
+        from crum import get_current_user
+        from rest_framework.exceptions import PermissionDenied
+        if self._state.adding and not self.owner_id:
+            actor = get_current_user()
+            self.owner_id = actor.pk if actor and actor.is_authenticated else self.created_by_id
+        elif not self._state.adding:
+            previous = type(self).objects.filter(pk=self.pk).values_list('owner_id', flat=True).first()
+            if previous != self.owner_id:
+                raise PermissionDenied('Organization ownership cannot be changed here.')
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return str(self.name)
 
@@ -229,7 +245,29 @@ class Tags(BaseModel):
         super().save(*args, **kwargs)
 
 
+class CRMRole(BaseModel):
+    scope = models.CharField(max_length=20, default="own", choices=[("own", "Personal"), ("team", "Team"), ("organization", "Organization")])
+    org = models.ForeignKey(Org, on_delete=models.CASCADE, related_name="crm_roles")
+    name = models.CharField(max_length=80)
+    description = models.CharField(max_length=255, blank=True, default="")
+    rules = models.JSONField(default=dict)
+
+    class Meta:
+        db_table = "crm_role"
+        constraints = [models.UniqueConstraint(fields=["org", "name"], name="unique_crm_role_name")]
+
+
 class Profile(BaseModel):
+    is_demo = models.BooleanField(default=False, editable=False)
+    removed_at = models.DateTimeField(null=True, blank=True, editable=False)
+    access_role = models.ForeignKey(CRMRole, null=True, blank=True, on_delete=models.PROTECT, related_name="members")
+    timezone = models.CharField(max_length=64, blank=True, default="", validators=[validate_iana_timezone])
+    notify_in_app = models.BooleanField(default=True)
+    notify_mentions = models.BooleanField(default=True)
+    notify_comments = models.BooleanField(default=True)
+    email_integration_mode = models.CharField(max_length=20, blank=True, default="", choices=[("send", "Send only"), ("read_send", "Read and send")])
+
+    language = models.CharField(max_length=50, blank=True, default="")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="profiles")
     org = models.ForeignKey(Org, on_delete=models.CASCADE, related_name="profiles")
     phone = models.CharField(max_length=20, null=True, blank=True)
@@ -258,7 +296,26 @@ class Profile(BaseModel):
     def __str__(self):
         return f"{self.user.email} <{self.org.name}>"
 
+    @property
+    def is_super_admin(self):
+        return bool(self.org_id and self.user_id and self.org.owner_id == self.user_id)
+
+    def delete(self, *args, **kwargs):
+        if self.is_super_admin:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('The organization creator cannot be removed.')
+        return super().delete(*args, **kwargs)
+
     def save(self, *args, **kwargs):
+        if self.is_super_admin:
+            if self._state.adding:
+                self.role = 'ADMIN'
+                self.is_active = True
+            elif self.role != 'ADMIN' or not self.is_active:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied('The organization creator must retain Super Admin access.')
+            self.access_role = None
+
         # `role` and `is_organization_admin` are two columns for one binary
         # fact (`ROLES` is ADMIN/USER and nothing else), and they used to be
         # settable independently, which let an admin mint a colleague the UI
@@ -266,6 +323,8 @@ class Profile(BaseModel):
         # surface displays and what `common.permissions.is_org_admin` reads;
         # the column is kept because it is in API responses, so it is derived
         # here rather than left to drift.
+        if self.removed_at:
+            self.is_active = False
         self.is_organization_admin = self.role == "ADMIN"
         super().save(*args, **kwargs)
 
@@ -928,6 +987,14 @@ class CustomFieldDefinition(BaseModel):
         ("dropdown", "Dropdown"),
         ("date", "Date"),
         ("checkbox", "Checkbox"),
+        ("email", "Email"),
+        ("phone", "Phone"),
+        ("url", "Link"),
+        ("integer", "Whole number"),
+        ("percentage", "Percentage"),
+        ("money", "Monetary amount"),
+        ("time", "Time"),
+        ("multi_select", "Multiple selection"),
     ]
 
     org = models.ForeignKey(
@@ -1127,6 +1194,9 @@ class PackApplication(BaseOrgModel):
 
 
 class SalesAppointment(models.Model):
+    contacts = models.ManyToManyField('contacts.Contact', blank=True, related_name='attended_sales_events')
+    companies = models.ManyToManyField('accounts.Account', blank=True, related_name='attended_sales_events')
+    attendee_users = models.ManyToManyField(Profile, blank=True, related_name='invited_sales_events')
     deal = models.ForeignKey("opportunity.Opportunity", null=True, blank=True, on_delete=models.SET_NULL, related_name="sales_appointments")
     cancelled_at = models.DateTimeField(null=True, blank=True)
     cancelled_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='cancelled_sales_appointments')
@@ -1147,3 +1217,21 @@ class SalesAppointment(models.Model):
         db_table = 'sales_appointment'
         indexes = [models.Index(fields=['org', 'starts_at'], name='sales_appt_org_start')]
         constraints = [models.CheckConstraint(condition=models.Q(ends_at__gt=models.F('starts_at')), name='sales_appt_end_after_start')]
+
+
+class OrganizationInvitation(models.Model):
+    access_role = models.ForeignKey(CRMRole, null=True, blank=True, on_delete=models.PROTECT, related_name="invitations")
+    """Pending membership; accepting requires an authenticated matching email."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    org = models.ForeignKey(Org, on_delete=models.CASCADE, related_name='invitations')
+    email = models.EmailField()
+    role = models.CharField(max_length=50, choices=ROLES, default='USER')
+    token_hash = models.CharField(max_length=64, unique=True)
+    invited_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['org', 'email'], name='unique_org_invitation_email')]

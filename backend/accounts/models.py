@@ -1,3 +1,4 @@
+from common.rbac import CRMRecordManager
 from common.languages import LANGUAGES
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
@@ -20,6 +21,7 @@ from contacts.models import Contact
 
 
 class Account(AssignableMixin, BaseModel):
+    objects = CRMRecordManager()
     """
     Account model for CRM - Streamlined for modern sales workflow
     Based on Twenty CRM and Salesforce patterns
@@ -114,6 +116,7 @@ class Account(AssignableMixin, BaseModel):
                 Lower("name"),
                 "org",
                 name="unique_account_name_per_org",
+                condition=~Q(name=""),
             ),
             # Annual revenue must be non-negative
             models.CheckConstraint(

@@ -1,5 +1,12 @@
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 import { fail } from '@sveltejs/kit';
-import { listTasks, setTaskDone, FILTER_FIELDS } from '$lib/server/v2/tasks.js';
+import {
+  listTasks,
+  setTaskDone,
+  updateTask,
+  TASK_STATUSES,
+  FILTER_FIELDS
+} from '$lib/server/v2/tasks.js';
 import { readFilters, buildFilterQuery } from '$lib/server/v2/filter-params.js';
 import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 
@@ -15,7 +22,7 @@ import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
  */
 export async function load(event) {
   const { url, locals } = event;
-  const showAll = url.searchParams.get('all') === '1';
+  const showAll = url.searchParams.get('all') !== '0';
 
   const filters = readFilters(url, 'tasks');
   const params = buildFilterQuery(FILTER_FIELDS, filters);
@@ -48,6 +55,18 @@ export async function load(event) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  move: async (event) => {
+    const fields = await event.request.formData();
+    const id = String(fields.get('id') ?? '');
+    const status = String(fields.get('status') ?? '');
+    if (!id || !status) return fail(400, { error: 'Invalid task status.' });
+    try {
+      await updateTask(event, id, { status });
+    } catch (err) {
+      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not move the task. Please try again.') });
+    }
+    return { saved: true };
+  },
   /**
    * Tick a row off, or put it back.
    *

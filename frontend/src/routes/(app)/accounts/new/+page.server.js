@@ -1,7 +1,7 @@
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { EDITABLE_FIELDS, createAccount, getAccountFormOptions } from '$lib/server/v2/accounts.js';
-import { readableError } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies }) {
@@ -31,7 +31,7 @@ export const actions = {
     try {
       created = await createAccount({ cookies }, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, error: readableError(err, 'Could not create this company.') });
+      return fail(400, { values, stageRequirements: stageRequirements(err), error: readableError(err, 'Could not create this company.') });
     }
 
     // The API returns the new id. Landing on the account is the point of

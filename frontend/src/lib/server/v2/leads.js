@@ -1,3 +1,4 @@
+import { userName } from '$lib/utils/user-name.js';
 /**
  * Leads: the first v2 module wired to the real API.
  *
@@ -44,7 +45,7 @@ export const FILTER_FIELDS = ['assigned_to', 'status', 'source', 'tags'];
  */
 function ownerName(lead) {
   const assigned = lead.assigned_to?.[0];
-  const email = assigned?.user_details?.email || assigned?.user?.email;
+  const email = assigned ? userName(assigned, '') : '';
   if (email) return email;
   return lead.created_by?.email || '';
 }
@@ -298,7 +299,7 @@ async function listOwners(cookies) {
     const response = await apiRequest('/users/get-teams-and-users/', {}, { cookies });
     return (response.profiles ?? []).map((/** @type {any} */ p) => ({
       id: p.id,
-      name: p.user_details?.email || p.user?.email || 'Unknown'
+      name: userName(p)
     }));
   } catch {
     return [];

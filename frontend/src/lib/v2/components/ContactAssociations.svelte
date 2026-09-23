@@ -1,12 +1,23 @@
 <script>
+  import { Plus, Ellipsis } from '@lucide/svelte';
   import { resolve } from '$app/paths';
   import { deserialize } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
-  import { money } from '$lib/v2/format.js';
+  import { money, shortDate } from '$lib/v2/format.js';
+  import { statusLabel, priorityLabel } from '$lib/components/tickets/options.js';
   import { STAGE_LABEL } from '$lib/v2/enums.js';
-  /** @type {{contactId:string,kind:'company'|'deal'|'contact',items:any[],parentKind?:'contact'|'company'|'deal'}} */
-  let { contactId, kind, items, parentKind = 'contact' } = $props();
-  const label = $derived(kind === 'company' ? 'Companies' : kind === 'deal' ? 'Deals' : 'Contacts');
+  /** @type {{contactId:string,kind:'company'|'deal'|'contact'|'ticket',items:any[],detailed?:boolean,summary?:import('svelte').Snippet,parentKind?:'contact'|'company'|'deal'}} */
+  let { contactId, kind, items, detailed = false, summary, parentKind = 'contact' } = $props();
+  const label = $derived(
+    kind === 'company'
+      ? 'Companies'
+      : kind === 'deal'
+        ? 'Deals'
+        : kind === 'ticket'
+          ? 'Tickets'
+          : 'Contacts'
+  );
+  const editable = $derived(kind !== 'ticket');
   let adding = $state(false),
     search = $state(''),
     results = $state(/** @type {any[]} */ ([])),
@@ -15,7 +26,7 @@
     error = $state('');
   let menu = $state('');
   $effect(() => {
-    if (!adding) return;
+    if (!editable || !adding) return;
     const query = new URLSearchParams({ kind, search });
     const controller = new AbortController();
     loading = true;
@@ -43,7 +54,7 @@
     };
   });
   async function change(operation, target) {
-    if (busy) return;
+    if (!editable || busy) return;
     busy = true;
     error = '';
     menu = '';
@@ -77,20 +88,29 @@
 </script>
 
 <section class="relations" aria-label={`Associated ${label.toLowerCase()}`}>
-  <header>
+  <header class="association-heading">
     <h2>{label} <span>{items.length}</span></h2>
-    <button
-      class="add"
-      type="button"
-      disabled={busy}
-      aria-label={`Add ${kind} association`}
-      onclick={() => {
-        adding = !adding;
-        menu = '';
-      }}>+</button
-    >
+    {#if editable}<button
+        class="add association-icon"
+        type="button"
+        disabled={busy}
+        aria-label={`Add ${kind} association`}
+        onclick={() => {
+          adding = !adding;
+          menu = '';
+        }}><Plus size={16} /></button
+      >{:else if parentKind !== 'deal'}
+      <a
+        class="add association-icon"
+        aria-label="Create ticket"
+        title="Create ticket"
+        href={`${resolve('/tickets/new')}?${parentKind === 'company' ? 'account' : 'contact'}=${encodeURIComponent(contactId)}`}
+        ><Plus size={16} /></a
+      >
+    {/if}
   </header>
-  {#if adding}<div class="search-box">
+  {#if summary}<div class="association-summary">{@render summary()}</div>{/if}
+  {#if editable && adding}<div class="search-box">
       <input
         class="v2-input"
         aria-label={`Search ${label.toLowerCase()}`}
@@ -112,31 +132,43 @@
           ? resolve(`/accounts/${item.id}`)
           : kind === 'deal'
             ? resolve(`/pipeline/${item.id}`)
-            : resolve(`/contacts/${item.id}`)}
-        ><strong>{item.name}</strong>{#if kind === 'deal'}<small
+            : kind === 'ticket'
+              ? resolve(`/tickets/${item.id}`)
+              : resolve(`/contacts/${item.id}`)}
+        ><strong>{item.name}</strong>{#if detailed && kind === 'contact'}<small
+            >{[item.email, item.phone].filter(Boolean).join(' · ') || 'No contact details'}</small
+          >{/if}{#if detailed && kind === 'deal'}<span class="deal-details"
+            ><span><small>Amount</small>{money(item.amount, item.currency)}</span><span
+              ><small>Stage</small>{STAGE_LABEL[item.stage] ?? item.stage}</span
+            ><span><small>Close date</small>{item.closed_on ? shortDate(item.closed_on) : '—'}</span
+            ></span
+          >{:else if kind === 'deal'}<small
             >{STAGE_LABEL[item.stage] ?? item.stage} · {money(item.amount, item.currency)}</small
+          >{:else if kind === 'ticket'}<small
+            >{statusLabel(item.status)}{#if item.priority}
+              · {priorityLabel(item.priority)}{/if}</small
           >{/if}</a
       >
-      <div
-        class="record-actions"
-        onfocusout={(e) => {
-          if (!e.currentTarget.contains(/** @type {Node|null} */ (e.relatedTarget))) menu = '';
-        }}
-      >
-        <button
-          class="more"
-          type="button"
-          aria-label={`Actions for ${item.name}`}
-          aria-expanded={menu === item.id}
-          disabled={busy}
-          onclick={() => (menu = menu === item.id ? '' : item.id)}>…</button
-        >{#if menu === item.id}<button
-            class="remove"
+      {#if editable}<div
+          class="record-actions"
+          onfocusout={(e) => {
+            if (!e.currentTarget.contains(/** @type {Node|null} */ (e.relatedTarget))) menu = '';
+          }}
+        >
+          <button
+            class="more association-icon"
             type="button"
+            aria-label={`Actions for ${item.name}`}
+            aria-expanded={menu === item.id}
             disabled={busy}
-            onclick={() => change('remove', item.id)}>Remove association</button
-          >{/if}
-      </div>
+            onclick={() => (menu = menu === item.id ? '' : item.id)}><Ellipsis size={16} /></button
+          >{#if menu === item.id}<button
+              class="remove"
+              type="button"
+              disabled={busy}
+              onclick={() => change('remove', item.id)}>Remove association</button
+            >{/if}
+        </div>{/if}
     </div>{:else}<p class="empty">
       No associated {label.toLowerCase()}.
     </p>{/each}
@@ -144,11 +176,29 @@
 </section>
 
 <style>
+  .deal-details {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 16px;
+    margin-top: 6px;
+    font-size: 12px;
+  }
+  .deal-details small {
+    margin: 0 0 3px;
+  }
+  @media (max-width: 500px) {
+    .deal-details {
+      grid-template-columns: 1fr;
+    }
+  }
+  .association-summary {
+    margin: 0 0 12px;
+  }
   header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
   }
   h2 {
     font-size: 14px;
@@ -174,14 +224,13 @@
   }
   .record {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-left: 3px solid #64748b;
+    background: var(--v2-paper);
+    border: 1px solid transparent;
     border-radius: 7px;
     padding: 10px;
-    margin-top: 7px;
+    margin-top: 6px;
   }
   .record a {
     flex: 1;
@@ -254,6 +303,6 @@
     cursor: pointer;
   }
   .record:hover {
-    border-color: #94a3b8;
+    border-color: var(--v2-line);
   }
 </style>

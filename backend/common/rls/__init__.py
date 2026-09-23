@@ -32,6 +32,7 @@ INSERT_POLICY = "org_insert_check"
 # NOTE: Only include tables that have an org_id column directly
 # Table names must match actual PostgreSQL table names (check via \dt)
 ORG_SCOPED_TABLES = [
+    "crm_role",
     # Core business entities
     "lead",
     "accounts",  # Note: plural

@@ -46,6 +46,7 @@ export const actions = {
   },
   create: async ({ cookies, request }) => {
     const form = await request.formData();
+    /** @type {Record<string, any>} */
     const body = Object.fromEntries(
       ['title', 'host', 'starts_at', 'ends_at', 'internal_notes', 'allow_overlap'].map((key) => [
         key,
@@ -56,12 +57,15 @@ export const actions = {
     body.deal_name = String(form.get('deal_name') ?? '');
     body.deal_source = String(form.get('deal_source') ?? '');
     body.allow_overlap = form.get('allow_overlap') === 'true' ? 'true' : 'false';
-    const attendee = String(form.get('attendee') ?? '');
-    if (attendee) {
-      const [kind, id] = attendee.split(':');
-      if (!['contact', 'company'].includes(kind) || !id)
+    const selected = form.getAll('attendees');
+    if (!selected.length && form.get('attendee')) selected.push(form.get('attendee'));
+    body.contacts = []; body.companies = []; body.users = [];
+    for (const value of selected) {
+      const [kind, id] = String(value).split(':');
+      if (!['contact', 'company', 'user'].includes(kind) || !/^[0-9a-f-]{36}$/i.test(id ?? ''))
         return fail(400, { message: 'Select a valid attendee.' });
-      body[kind] = id;
+      const key = kind === 'contact' ? 'contacts' : kind === 'company' ? 'companies' : 'users';
+      if (!body[key].includes(id)) body[key].push(id);
     }
     try {
       await apiRequest('/sales-appointments/', { method: 'POST', body }, { cookies });

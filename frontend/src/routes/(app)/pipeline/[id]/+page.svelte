@@ -1,4 +1,10 @@
 <script>
+  import { exactTime } from '$lib/v2/contact-time.js';
+  import { configuredStages } from '$lib/v2/pipeline-config.js';
+  import { page } from '$app/state';
+
+  import RecordTabs from '$lib/v2/components/RecordTabs.svelte';
+  import StageProgress from '$lib/v2/components/StageProgress.svelte';
   import DeleteRecord from '$lib/v2/components/DeleteRecord.svelte';
   import ContactAssociations from '$lib/v2/components/ContactAssociations.svelte';
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
@@ -11,17 +17,15 @@
   import { resolve } from '$app/paths';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import Timeline from '$lib/v2/components/Timeline.svelte';
-  import Pill from '$lib/v2/components/Pill.svelte';
-  import Avatar from '$lib/v2/components/Avatar.svelte';
   import { money, longDate } from '$lib/v2/format.js';
-  import { OPEN_STAGES, STAGE_LABEL, AGING_TONE, AGING_LABEL } from '$lib/v2/enums.js';
-  import { Check, ChevronRight } from '@lucide/svelte';
+  import { STAGES, STAGE_LABEL } from '$lib/v2/enums.js';
+  import { ChevronRight } from '@lucide/svelte';
 
   /** @type {{ data: any, form?:any }} */
   let { data, form } = $props();
 
-  let { deal, activity, lineItems, contacts } = $derived(data);
-  let stageIndex = $derived(OPEN_STAGES.indexOf(deal.stage));
+  let { deal, lineItems, contacts } = $derived(data);
+  let stageOptions = $derived(configuredStages(page.data.pipelineConfig, 'Opportunity', STAGES.map(value => ({value,label:STAGE_LABEL[value]}))));
 
   /**
    * The discount is per line item: `OpportunityLineItem.save()` computes
@@ -35,104 +39,102 @@
   let discount = $derived(lineItems.reduce((a, li) => a + li.discount_amount, 0));
 </script>
 
-<PageHeader title={deal.name} record>
+<PageHeader title={deal.name || `Deal · ${deal.id.slice(0, 8)}`} record>
   {#snippet crumb()}
     <a href={resolve('/pipeline')}>Deals</a>
     <ChevronRight size={12} />
     {#if deal.account.id}<a href={resolve(`/accounts/${deal.account.id}`)}>{deal.account.name}</a
       >{/if}
   {/snippet}
-
 </PageHeader>
 
 <div class="deal-layout">
   <div class="v2-main">
-    <!-- Stage stepper. Closed stages are not on the path; they end it. -->
-    <div
-      class="v2-pad"
-      style="padding-top:14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;flex:none"
-    >
-      {#each OPEN_STAGES as stage, i (stage)}
-        {#if i > 0}<ChevronRight size={12} style="color:var(--v2-slate)" />{/if}
-        <span
-          class="v2-pill"
-          style={i <= stageIndex
-            ? 'color:var(--v2-ink);background:color-mix(in srgb, var(--v2-ink) 9%, transparent)'
-            : 'color:var(--v2-slate);background:var(--v2-line-soft)'}
+    <section class="deal-overview" aria-label="Deal overview">
+      <div class="deal-value">
+        <span>Amount</span><strong>{money(deal.amount, deal.currency)}</strong>
+      </div>
+      <div>
+        <span class="overview-label">Stage</span><StageProgress
+          stage={deal.stage}
+          stages={stageOptions}
+        />
+      </div>
+      <div>
+        <span class="overview-label">Close date</span><strong
+          >{deal.closed_on ? longDate(deal.closed_on) : '—'}</strong
         >
-          {#if i < stageIndex}<Check size={11} />{/if}
-          {STAGE_LABEL[stage]}
-        </span>
-      {/each}
-      <span style="margin-left:auto">
-        <Pill tone={AGING_TONE[deal.aging_status]} dot>
-          {`${AGING_LABEL[deal.aging_status]} · ${deal.days_in_current_stage} days in ${STAGE_LABEL[deal.stage]}`}
-        </Pill>
-      </span>
-    </div>
+      </div>
+      <div><span class="overview-label">Deal owner</span><strong>{deal.owner || '—'}</strong></div>
+      {#if deal.days_in_current_stage > 0}<p class="stage-age">
+          {deal.days_in_current_stage}
+          {deal.days_in_current_stage === 1 ? 'day' : 'days'} in stage
+        </p>{/if}
+    </section>
 
     <div class="v2-scroll">
       <div class="v2-pad" style="padding-top:14px;padding-bottom:32px">
-        <!--
-          The "next action" card that used to sit here was a fixture string.
-          Opportunity has no such field and nothing derives one, so there is
-          nothing to render. A suggestion the system invented is worse than no
-          suggestion, because people act on it.
-        -->
-        <section aria-label="Deal notes" style="margin-bottom:20px">
-          <h2 class="v2-label" style="margin-bottom:10px">Notes</h2>
-          {#key deal.id}<DealNotes notes={data.notes} />{/key}
+        <section class="v2-card deal-journal" aria-label="Deal notes and activity">
+          <RecordTabs>
+            {#snippet notes()}{#key deal.id}<DealNotes notes={data.notes} />{/key}{/snippet}
+            {#snippet activity()}<div class="deal-history">
+                <Timeline events={data.activity} />
+              </div>{/snippet}
+          </RecordTabs>
         </section>
-        <section class="v2-card deal-attachments">
-          <h2>Attachments</h2>
-          <Attachments attachments={data.attachments} />
-        </section>
-        <div class="v2-label" style="margin-bottom:12px">Activity</div>
-        <Timeline events={activity} />
+        <details class="v2-card deal-secondary">
+          <summary>Attachments <span>{data.attachments.length}</span></summary>
+          <div class="secondary-content"><Attachments attachments={data.attachments} /></div>
+        </details>
 
         {#if lineItems.length}
-          <div class="v2-label" style="margin:22px 0 10px">Line items</div>
-          <div class="v2-card" style="overflow:hidden">
-            <table class="v2-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th class="v2-r">Qty</th>
-                  <th class="v2-r">Unit price</th>
-                  <th class="v2-r">Discount</th>
-                  <th class="v2-r">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each lineItems as li (li.id)}
+          <details class="v2-card deal-secondary">
+            <summary>Line items <span>{lineItems.length}</span></summary>
+            <div class="line-items-scroll">
+              <table class="v2-table">
+                <thead>
                   <tr>
-                    <td>{li.name}</td>
-                    <td class="v2-r v2-num">{li.quantity}</td>
-                    <td class="v2-r v2-num">{money(li.unit_price, deal.currency)}</td>
-                    <!-- Blank, not "0", where there is no discount. A column of
-                         zeroes reads as a discount that happened to be nothing. -->
-                    <td class="v2-r v2-num v2-muted">
-                      {li.discount_amount > 0 ? `−${money(li.discount_amount, deal.currency)}` : ''}
-                    </td>
-                    <td class="v2-r v2-num">{money(li.total, deal.currency)}</td>
+                    <th>Product</th>
+                    <th class="v2-r">Qty</th>
+                    <th class="v2-r">Unit price</th>
+                    <th class="v2-r">Discount</th>
+                    <th class="v2-r">Total</th>
                   </tr>
-                {/each}
-              </tbody>
-            </table>
-            <div
-              style="display:flex;justify-content:flex-end;gap:24px;padding:11px 14px;border-top:1px solid var(--v2-line);font-size:13px"
-            >
-              {#if discount > 0}
-                <span class="v2-muted">Subtotal</span>
-                <span class="v2-num v2-muted">{money(subtotal, deal.currency)}</span>
-                <span class="v2-muted">Discounts</span>
-                <span class="v2-num v2-muted">−{money(discount, deal.currency)}</span>
-              {/if}
-              <span style="font-weight:650">Total</span>
-              <span class="v2-num" style="font-weight:650">{money(deal.amount, deal.currency)}</span
+                </thead>
+                <tbody>
+                  {#each lineItems as li (li.id)}
+                    <tr>
+                      <td>{li.name}</td>
+                      <td class="v2-r v2-num">{li.quantity}</td>
+                      <td class="v2-r v2-num">{money(li.unit_price, deal.currency)}</td>
+                      <!-- Blank, not "0", where there is no discount. A column of
+                         zeroes reads as a discount that happened to be nothing. -->
+                      <td class="v2-r v2-num v2-muted">
+                        {li.discount_amount > 0
+                          ? `−${money(li.discount_amount, deal.currency)}`
+                          : ''}
+                      </td>
+                      <td class="v2-r v2-num">{money(li.total, deal.currency)}</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+              <div
+                style="display:flex;justify-content:flex-end;gap:24px;padding:11px 14px;border-top:1px solid var(--v2-line);font-size:13px"
               >
+                {#if discount > 0}
+                  <span class="v2-muted">Subtotal</span>
+                  <span class="v2-num v2-muted">{money(subtotal, deal.currency)}</span>
+                  <span class="v2-muted">Discounts</span>
+                  <span class="v2-num v2-muted">−{money(discount, deal.currency)}</span>
+                {/if}
+                <span style="font-weight:650">Total</span>
+                <span class="v2-num" style="font-weight:650"
+                  >{money(deal.amount, deal.currency)}</span
+                >
+              </div>
             </div>
-          </div>
+          </details>
         {/if}
       </div>
     </div>
@@ -144,6 +146,7 @@
         contactId={deal.id}
         parentKind="deal"
         kind="contact"
+        detailed
         items={contacts.map((c) => ({
           ...c,
           name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.name || c.email
@@ -182,15 +185,17 @@
         }}
       />
     {:else}
-      <PropertySummary
+      <PropertySummary target="Opportunity" record={deal}
+        tags={deal.tags}
         entries={[
           ['Name', deal.name],
+          ['Last Activity', exactTime(deal.last_activity_at)],
           ['Phone', deal.phone || '—'],
           ['Email', deal.email || '—'],
           ['Tags', deal.tags?.map((t) => t.name).join(', ') || '—'],
           ['Amount', deal.amount != null ? money(deal.amount, deal.currency) : '—'],
           ['Language', deal.language || '—'],
-          ['Stage', STAGE_LABEL[deal.stage] || '—'],
+          ['Stage', stageOptions.find(s => s.value === deal.stage)?.label || '—'],
           ['Close date', deal.closed_on ? longDate(deal.closed_on) : '—'],
           ['Deal owner', deal.owner || '—'],
           ['Priority', deal.priority_label || '—'],
@@ -214,10 +219,9 @@
       response. Filling it means two more cross-module requests per page load
       for a rail nobody asked for. Add it back deliberately if it earns them.
     -->
+    <DeleteRecord kind="deal" id={deal.id} inFlow />
   </aside>
 </div>
-
-<DeleteRecord kind="deal" id={deal.id} />
 
 <style>
   .properties-heading {
@@ -233,14 +237,73 @@
     font-weight: 600;
   }
 
-  .deal-attachments {
-    padding: 16px;
-    margin-bottom: 20px;
+  .deal-overview {
+    margin: 14px 22px 0;
+    padding: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 18px 30px;
+    background: var(--v2-card);
+    border-radius: 12px;
   }
-  .deal-attachments h2 {
+  .deal-overview > div {
+    min-width: 110px;
+  }
+  .deal-overview strong {
+    display: block;
     font-size: 14px;
-    margin: 0 0 12px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
   }
+  .overview-label,
+  .deal-value > span {
+    display: block;
+    font-size: 11px;
+    color: var(--v2-slate);
+    margin-bottom: 6px;
+  }
+  .deal-value strong {
+    font-size: 26px;
+    font-weight: 650;
+    letter-spacing: -0.5px;
+  }
+  .stage-age {
+    margin: 0;
+    flex-basis: 100%;
+    font-size: 12px;
+    color: var(--v2-slate);
+  }
+  .deal-journal {
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+  .deal-history {
+    max-height: 420px;
+    overflow-y: auto;
+  }
+  .deal-secondary {
+    margin-bottom: 14px;
+  }
+  .deal-secondary > summary {
+    padding: 14px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .deal-secondary > summary span {
+    margin-left: 8px;
+    font-size: 12px;
+    color: var(--v2-slate);
+    font-weight: 400;
+  }
+  .secondary-content {
+    padding: 0 16px 16px;
+  }
+  .line-items-scroll {
+    overflow-x: auto;
+  }
+
   .deal-layout {
     display: flex;
     flex: 1;
@@ -252,8 +315,36 @@
   }
   .deal-properties {
     display: block !important;
-    width: 300px;
+    width: 320px;
+    flex-shrink: 0;
+    padding: 20px;
+    margin: 14px 22px 20px 0;
+    background: var(--v2-card);
+    border: 0;
+    border-radius: 12px;
     min-height: 0;
     overflow-y: auto;
+  }
+  @media (max-width: 800px) {
+    .deal-layout {
+      display: block;
+      overflow-y: auto;
+    }
+    .deal-layout > .v2-main {
+      overflow: visible;
+      min-width: 0;
+    }
+    .deal-layout :global(.v2-scroll) {
+      overflow: visible;
+    }
+    .deal-properties {
+      width: auto;
+      margin: 0 15px 20px;
+      overflow: visible;
+    }
+    .deal-overview {
+      margin: 12px 15px 0;
+      gap: 16px 24px;
+    }
   }
 </style>

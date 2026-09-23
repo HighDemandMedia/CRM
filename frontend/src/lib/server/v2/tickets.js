@@ -1,48 +1,5 @@
-/**
- * Tickets: the fifth v2 module wired to the real API.
- *
- * Same rules as `leads.js`, `deals.js`, `accounts.js` and `contacts.js`: this
- * file lives under `$lib/server` because SvelteKit refuses to bundle that
- * directory into client code and the access token is an httpOnly cookie. The
- * org is never a parameter; it is a claim inside the JWT and the backend reads
- * it from there.
- *
- * WHY THIS MODULE, AND WHY NOW
- * `/tickets` is the most-linked unwired prefix in the app. The account page
- * and the contact page both list a customer's tickets, and both had to render
- * them as plain text because `/tickets/<uuid>` answered 404. The fixtures
- * were keyed on `'421'`. Timesheet rows, the approvals queue and every
- * notification about a case point here too.
- *
- * WHAT CHANGED WHEN THE FIXTURES CAME OFF
- * - `#421` is gone. There is no ticket number. `Case` has a UUID and nothing
- *   else to call itself by, so the "#" column, the crumb and the "also open
- *   here" rail were all printing a field that does not exist. The subject is
- *   the identifier; the pages say so instead of numbering them.
- * - `first_response_target_minutes` is gone, and the fixture's note that it
- *   "models the escalation policy" had the schema backwards:
- *   `EscalationPolicy.first_response_target` is a **Profile** to notify on a
- *   breach, not a duration. The target lives on the case itself as
- *   `sla_first_response_hours`, and the deadline the backend computes from it
- *   (`first_response_sla_deadline`) walks the org's business calendar and
- *   pushes forward by any time the ticket sat in Pending. That is a better
- *   number than the wall-clock arithmetic the mock page was doing, so the
- *   deadline is taken from the server and not recomputed here.
- * - `next_action` is gone for the fifth time. Nothing on Case suggests what to
- *   do next; the page says what is true: unanswered, waiting on the customer,
- *   nobody assigned, and leaves the advice out.
- * - `contact` (one name) is really `contacts`, a many-to-many. A ticket can be
- *   raised by nobody, or name three people.
- * - The mock's "Suggested articles" rail is now the articles actually **linked**
- *   to this ticket (`Case.solutions`). Suggestions are a different endpoint
- *   (`/<id>/solution-suggestions/`) doing keyword matching, and calling
- *   something a suggestion when it is a filed link would misread the rail.
- *
- * WHAT THE FIXTURE GOT RIGHT
- * That the queue's job is to say what to open next, and that a first-reply
- * clock is the thing that decides it. It just measured it against a field
- * nothing in the codebase ever wrote. See `cases/signals.py`.
- */
+import { userName } from '$lib/utils/user-name.js';
+/** Server-side ticket API adapter. Tenant and access checks remain in the API. */
 import { error, redirect } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
 import { attachmentHref } from '$lib/server/v2/files.js';
@@ -54,7 +11,7 @@ export const OPEN_STATUSES = ['New', 'Assigned', 'Pending'];
  * @param {any} profile
  */
 function profileName(profile) {
-  return profile?.user_details?.email || profile?.user?.email || 'Unknown';
+  return userName(profile, 'Unknown');
 }
 
 /**
@@ -78,6 +35,16 @@ function toRow(row) {
   const assignees = row.assigned_to ?? [];
   return {
     id: row.id,
+    custom_fields: row.custom_fields ?? {},
+    ticket_code: row.ticket_code ?? '',
+    category: row.category ?? 'General',
+    source: row.source ?? 'Internal',
+    due_at: row.due_at ?? null,
+    waiting_reason: row.waiting_reason ?? '',
+    resolution_note: row.resolution_note ?? '',
+    deal: row.deal ?? null,
+    last_activity: row.last_activity_at ?? row.created_at,
+    last_activity_at: row.last_activity_at ?? row.created_at,
     name: row.name ?? '',
     status: row.status,
     priority: row.priority,
@@ -117,7 +84,7 @@ function toRow(row) {
     // the ticket had taken a third of the time it had. Absent on the list
     // endpoint (`slim=true`), hence the null.
     time_summary: row.time_summary ?? null,
-    is_open: OPEN_STATUSES.includes(row.status)
+    is_open: !['Resolved', 'Closed', 'Rejected', 'Duplicate'].includes(row.status)
   };
 }
 
@@ -285,6 +252,7 @@ export async function getTicket({ cookies }, id) {
       action: row.action,
       label: row.action_display || row.action,
       at: row.created_at,
+      changes: row.metadata ?? {},
       by: row.user?.user_details?.email ?? null
     })),
     // The API's own answer about whether this person may reply, rather than a
@@ -295,6 +263,12 @@ export async function getTicket({ cookies }, id) {
 
 /** Scalar fields the ticket forms own. Everything else is server-derived. */
 export const EDITABLE_FIELDS = [
+  'category',
+  'source',
+  'due_at',
+  'waiting_reason',
+  'resolution_note',
+  'deal',
   'name',
   'status',
   'priority',
@@ -313,7 +287,10 @@ export const EDITABLE_FIELDS = [
  * @param {import('@sveltejs/kit').Cookies} cookies
  */
 async function listChoices(cookies) {
-  const response = await apiRequest('/cases/?limit=1', {}, { cookies });
+  const [response, deals] = await Promise.all([
+    apiRequest('/cases/?limit=1', {}, { cookies }),
+    apiRequest('/opportunities/?limit=100', {}, { cookies }).catch(() => ({ opportunities: [] }))
+  ]);
 
   /** @param {any[]} pairs */
   const choices = (pairs) => (pairs ?? []).map((pair) => ({ value: pair[0], label: pair[1] }));
@@ -331,6 +308,7 @@ async function listChoices(cookies) {
   contacts.sort((/** @type {any} */ a, /** @type {any} */ b) => a.name.localeCompare(b.name));
 
   return {
+    deals: (deals.opportunities ?? []).map((row) => ({ id: row.id, name: row.name })),
     statuses: choices(response.status),
     priorities: choices(response.priority),
     caseTypes: choices(response.type_of_case),
@@ -339,7 +317,8 @@ async function listChoices(cookies) {
     // `users` is new: the endpoint computed this list and then discarded it.
     owners: (response.users ?? []).map((/** @type {any} */ user) => ({
       id: user.id,
-      name: user.user__email
+      name: userName(user),
+      email: user.user__email || ''
     }))
   };
 }
@@ -350,7 +329,7 @@ async function listChoices(cookies) {
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
  * @param {string | null} [accountId] account to preselect, when arriving from one
  */
-export async function getTicketFormOptions({ cookies }, accountId = null) {
+export async function getTicketFormOptions({ cookies }, accountId = null, contactId = null) {
   const choices = await listChoices(cookies);
   const known = choices.accounts.some((/** @type {any} */ row) => row.id === accountId);
   return {
@@ -359,17 +338,14 @@ export async function getTicketFormOptions({ cookies }, accountId = null) {
       status: 'New',
       priority: 'Normal',
       case_type: '',
-      account: known ? accountId : ''
+      account: known ? accountId : '',
+      contacts: choices.contacts.some((row) => row.id === contactId) ? [contactId] : []
     }
   };
 }
 
 /**
  * The ticket plus what the edit form needs in order to explain itself.
- *
- * `account` is deliberately absent from `form`: `CaseCreateSerializer` marks it
- * read-only as soon as there is an instance, so an account select on this form
- * would be a control that silently does nothing.
  *
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
  * @param {string} id
@@ -383,6 +359,13 @@ export async function getTicketForEdit({ cookies }, id) {
     ticket,
     ...choices,
     form: {
+      resolution_note: ticket.resolution_note,
+      category: ticket.category,
+      source: ticket.source,
+      due_at: ticket.due_at ?? '',
+      waiting_reason: ticket.waiting_reason,
+      deal: ticket.deal ?? '',
+      account: ticket.account?.id ?? '',
       name: ticket.name,
       status: ticket.status,
       priority: ticket.priority,
@@ -418,7 +401,8 @@ function toBody(values) {
   for (const field of EDITABLE_FIELDS) {
     if (!(field in values)) continue;
     const value = values[field];
-    body[field] = value === '' ? null : value;
+    body[field] =
+      value === '' && !['waiting_reason', 'resolution_note'].includes(field) ? null : value;
   }
   // Single-select owner, so the list is empty or one long. Only present when
   // the form decided it changed. See the action for why that matters.

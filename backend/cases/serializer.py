@@ -1,3 +1,7 @@
+from common.pipeline_settings import PipelineMoveChoicesMixin
+from common.last_activity import LastActivitySerializerMixin, ActivityListSerializer
+from common.pipeline_settings import PipelineRulesMixin
+from common.rbac import VisibleCRMSerializerMixin
 from django.db.models import Sum
 from rest_framework import serializers
 
@@ -31,7 +35,8 @@ from contacts.serializer import ContactSerializer
 # - created_on_arrow (frontend computes its own humanized timestamps)
 
 
-class CaseSerializer(serializers.ModelSerializer):
+class CaseSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer):
+    ticket_code = serializers.CharField(read_only=True)
     account = AccountSerializer()
     contacts = ContactSerializer(read_only=True, many=True)
     assigned_to = ProfileSerializer(read_only=True, many=True)
@@ -99,9 +104,11 @@ class CaseSerializer(serializers.ModelSerializer):
         }
 
     class Meta:
+        list_serializer_class = ActivityListSerializer
         model = Case
         fields = (
             "id",
+            "ticket_code", "category", "source", "due_at", "waiting_reason", "resolution_note", "deal", "updated_at",
             "name",
             "status",
             "priority",
@@ -142,7 +149,7 @@ class CaseSerializer(serializers.ModelSerializer):
         )
 
 
-class CaseCreateSerializer(serializers.ModelSerializer):
+class CaseCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
     closed_on = serializers.DateField(required=False, allow_null=True)
     org = serializers.PrimaryKeyRelatedField(read_only=True)
 
@@ -150,9 +157,12 @@ class CaseCreateSerializer(serializers.ModelSerializer):
         request_obj = kwargs.pop("request_obj", None)
         super().__init__(*args, **kwargs)
         self.org = request_obj.profile.org
-        # Make account read-only on updates (can only be set on creation)
-        if self.instance:
-            self.fields["account"].read_only = True
+
+
+    def validate_deal(self, deal):
+        if deal is not None and deal.org_id != self.org.id:
+            raise serializers.ValidationError("No such deal.")
+        return deal
 
     def validate_account(self, account):
         """An account belonging to another org is not a valid link.
@@ -188,8 +198,14 @@ class CaseCreateSerializer(serializers.ModelSerializer):
         at the incoming one.
         """
         attrs = super().validate(attrs)
+        if self.initial_data.get("deal"):
+            raise serializers.ValidationError({"deal": "Tickets can only associate with contacts or companies."})
 
         new_status = attrs.get("status", getattr(self.instance, "status", None))
+
+        if new_status == "Resolved" and getattr(self.instance, "status", None) != "Resolved":
+            if not attrs.get("resolution_note", "").strip():
+                raise serializers.ValidationError({"resolution_note": "Describe how this ticket was resolved."})
 
         # Parent linking, only when this request carries `parent`. Judging the
         # stored parent on every save would reject an ordinary rename of a case
@@ -248,6 +264,8 @@ class CaseCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def validate_name(self, name):
+        if not name:
+            return name
         if self.instance:
             if (
                 Case.objects.filter(name__iexact=name, org=self.org)
@@ -282,6 +300,7 @@ class CaseCreateSerializer(serializers.ModelSerializer):
         model = Case
         fields = (
             "name",
+            "category", "source", "due_at", "waiting_reason", "resolution_note", "deal",
             "status",
             "priority",
             "case_type",
@@ -937,7 +956,8 @@ class TimeEntryUpdateSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class CaseMoveSerializer(serializers.Serializer):
+class CaseMoveSerializer(PipelineMoveChoicesMixin, serializers.Serializer):
+    pipeline_target = "Case"
     """Serializer for moving cases in kanban."""
 
     stage_id = serializers.UUIDField(required=False, allow_null=True)

@@ -1,4 +1,5 @@
 <script>
+  import { userName } from '$lib/utils/user-name.js';
   import { Building2, Calendar, AlertTriangle } from '@lucide/svelte';
   import { formatDate, formatCurrency } from '$lib/utils/formatting.js';
 
@@ -43,7 +44,7 @@
 
   /** @param {any} assignee */
   function assigneeEmail(assignee) {
-    return assignee?.user_details?.email || assignee?.email || '';
+    return userName(assignee, '');
   }
   /** @param {any} assignee */
   function assigneeInitial(assignee) {

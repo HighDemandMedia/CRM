@@ -1,3 +1,6 @@
+from common.pipeline_settings import stages_for
+from copy import copy
+from common.pipeline_settings import validate_entry
 """
 Kanban views for case management.
 Supports both status-based (default) and custom pipeline-based kanban boards.
@@ -151,7 +154,8 @@ class CaseKanbanView(APIView):
         }
 
         columns = []
-        for status_value, label in STATUS_CHOICE:
+        for configured_stage in stages_for(self.request.profile.org, 'Case'):
+            status_value, label = configured_stage['key'], configured_stage['label']
             config = status_config.get(
                 status_value, {"order": 99, "color": "#6B7280", "type": "open"}
             )
@@ -163,7 +167,7 @@ class CaseKanbanView(APIView):
                 {
                     "id": status_value,
                     "name": label,
-                    "order": config["order"],
+                    "order": configured_stage["order"],
                     "color": config["color"],
                     "stage_type": config["type"],
                     "is_status_column": True,
@@ -249,7 +253,7 @@ class CaseMoveView(APIView):
                     {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
                 )
 
-        serializer = CaseMoveSerializer(data=request.data)
+        serializer = CaseMoveSerializer(data=request.data, context={"request": request})
         if not serializer.is_valid():
             return Response(
                 {"error": True, "errors": serializer.errors},
@@ -257,6 +261,7 @@ class CaseMoveView(APIView):
             )
 
         data = serializer.validated_data
+        previous = copy(case)
 
         # Handle stage change
         if "stage_id" in data:
@@ -289,6 +294,7 @@ class CaseMoveView(APIView):
         # Calculate new order
         # `case.stage`/`case.status` are already the destination by this
         # point, so the column queryset describes where the card is landing.
+        validate_entry(org, 'Case', previous, {'status': case.status})
         case.kanban_order = place_in_column(
             self._column_qs(case, org),
             above_id=data.get("above_case_id"),

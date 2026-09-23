@@ -1,5 +1,15 @@
+import { apiRequest } from '$lib/api-helpers.js';
 import { fail } from '@sveltejs/kit';
-import { listTeam, inviteUser, setRole, setStatus, ROLES } from '$lib/server/v2/team.js';
+import {
+  listTeam,
+  inviteUser,
+  setRole,
+  setStatus,
+  ROLES,
+  saveTeam,
+  deleteTeam,
+  cancelInvitation
+} from '$lib/server/v2/team.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
 
 /**
@@ -18,6 +28,42 @@ export async function load({ cookies }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  assignRole: async ({cookies, request}) => {
+    const form=await request.formData();
+    try { await apiRequest(`/roles/members/${form.get('profileId')}/`, {method:'POST',body:{role_id:form.get('role_id')}}, {cookies}); return {roleChanged:true}; }
+    catch(err) { return fail(400,{error:readableError(err,'Could not assign role.')}); }
+  },
+  saveTeam: async ({ cookies, request }) => {
+    const form = await request.formData();
+    try {
+      await saveTeam({ cookies }, String(form.get('id') || ''), {
+        name: String(form.get('name') || '').trim(),
+        description: String(form.get('description') || ''),
+        assign_users: form.getAll('members').map(String)
+      });
+    } catch (err) {
+      return fail(400, { error: readableError(err, 'Could not save team.') });
+    }
+    return { teamSaved: true };
+  },
+  deleteTeam: async ({ cookies, request }) => {
+    const form = await request.formData();
+    try {
+      await deleteTeam({ cookies }, String(form.get('id')));
+    } catch (err) {
+      return fail(400, { error: readableError(err, 'Could not delete team.') });
+    }
+    return { teamDeleted: true };
+  },
+  cancelInvite: async ({ cookies, request }) => {
+    const form = await request.formData();
+    try {
+      await cancelInvitation({ cookies }, String(form.get('id')));
+    } catch (err) {
+      return fail(400, { error: readableError(err, 'Could not cancel invitation.') });
+    }
+    return { inviteCancelled: true };
+  },
   /**
    * Invite a new member: email + role. The server is the boundary. It gates
    * this to admins, rejects a duplicate within the org with a 400, and reuses
@@ -31,14 +77,12 @@ export const actions = {
     if (!ROLES.includes(role)) return fail(400, { invite: { error: 'Pick a valid role.' } });
 
     try {
-      await inviteUser({ cookies }, { email, role });
+      await inviteUser({ cookies }, { email, role, access_role_id: String(form.get('access_role_id') || '') || null });
     } catch (/** @type {any} */ err) {
       return fail(err?.status === 403 ? 403 : 400, {
         invite: {
           error:
-            err?.status === 403
-              ? 'Only an admin can invite people.'
-              : readableError(err, 'Could not send that invite.')
+            readableError(err, 'Could not send that invite.')
         }
       });
     }

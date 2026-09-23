@@ -7,13 +7,17 @@ See docs/cases/tier1/custom-fields.md.
 """
 
 from django.apps import apps
+from django.db import connection, transaction
+from django.db.models import F, Func, JSONField, Value
+from django.db.models.expressions import CombinedExpression
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from common.models import CustomFieldDefinition
+from common.property_catalog import TARGETS, properties_for
+from common.models import CustomFieldDefinition, Org
 from common.permissions import HasOrgContext, is_org_admin
 from common.serializer import CustomFieldDefinitionSerializer
 
@@ -115,6 +119,14 @@ class CustomFieldDefinitionListCreateView(APIView):
             qs = qs.filter(target_model=target_model)
         if request.query_params.get("active_only") == "true":
             qs = qs.filter(is_active=True)
+
+        if request.query_params.get("catalog") == "true":
+            if not is_org_admin(request.profile):
+                return _admin_required()
+            if target_model not in TARGETS:
+                return Response({"errors": "Choose a supported object."}, status=400)
+            rows = CustomFieldDefinitionSerializer(qs, many=True).data
+            return Response(properties_for(org, target_model, rows))
 
         rows = CustomFieldDefinitionSerializer(qs, many=True).data
 
@@ -228,6 +240,8 @@ class CustomFieldDefinitionDetailView(APIView):
     def delete(self, request, pk, *args, **kwargs):
         if not is_org_admin(request.profile):
             return _admin_required()
+        if request.query_params.get('permanent') == 'true':
+            return self._delete_permanently(request, pk)
         obj = self._get_object(pk, request.profile.org)
         if not obj:
             return Response(
@@ -242,3 +256,32 @@ class CustomFieldDefinitionDetailView(APIView):
             {"error": False, "message": "Custom field deactivated"},
             status=status.HTTP_200_OK,
         )
+
+    @transaction.atomic
+    def _delete_permanently(self, request, pk):
+        # Share the organization lock with pipeline rules and property ordering.
+        org = Org.objects.select_for_update().get(pk=request.profile.org_id)
+        obj = CustomFieldDefinition.objects.select_for_update().filter(pk=pk, org=org).first()
+        if obj is None:
+            return Response({'errors': 'Custom property not found.'}, status=404)
+        if str(request.data.get('confirmation', '')).strip() != obj.key:
+            return Response({'errors': 'Type the internal name to confirm deletion.'}, status=400)
+        model = _resolve_target_model(obj.target_model)
+        if model is None:
+            return Response({'errors': 'This property type cannot be deleted.'}, status=400)
+
+        # Remove only this JSON key, preserving concurrent changes to other keys.
+        records = model._base_manager.filter(org=org, custom_fields__has_key=obj.key)
+        if connection.vendor == 'postgresql':
+            expression = CombinedExpression(F('custom_fields'), '-', Value(obj.key), output_field=JSONField())
+        else:
+            expression = Func(F('custom_fields'), Value(f'$."{obj.key}"'), function='json_remove', output_field=JSONField())
+        affected = records.update(custom_fields=expression)
+        reference = 'custom_fields.' + obj.key
+        if obj.target_model in (org.property_order or {}):
+            org.property_order[obj.target_model] = [key for key in org.property_order[obj.target_model] if key != reference]
+        for stage in (org.pipeline_settings or {}).get(obj.target_model, []):
+            stage['required_fields'] = [key for key in stage.get('required_fields', []) if key != reference]
+        org.save(update_fields=['property_order', 'pipeline_settings', 'updated_at'])
+        obj.delete()
+        return Response({'error': False, 'message': 'Custom property deleted.', 'records_updated': affected})

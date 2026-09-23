@@ -76,6 +76,8 @@ class NotificationListView(APIView):
         unread_only = params.get("unread", "").lower() == "true"
         if unread_only:
             qs = qs.filter(read_at__isnull=True)
+        elif params.get("read", "").lower() == "true":
+            qs = qs.filter(read_at__isnull=False)
         if params.get("since"):
             since_dt = parse_datetime(params.get("since"))
             if since_dt is not None:
@@ -85,7 +87,10 @@ class NotificationListView(APIView):
         unread_count = _user_qs(request).filter(read_at__isnull=True).count()
 
         limit = _parse_int(params.get("limit"), DEFAULT_LIMIT)
-        results = NotificationSerializer(qs[:limit], many=True).data
+        offset = _parse_int(params.get("offset"), 0, lo=0, hi=2147483647)
+        results = NotificationSerializer(
+            qs.order_by("-created_at", "-id")[offset:offset + limit], many=True
+        ).data
 
         return Response(
             {

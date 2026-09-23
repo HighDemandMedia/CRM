@@ -1,6 +1,7 @@
+import { getTaskEditor, saveTaskEditor } from '$lib/server/v2/task-editor.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { getTask, setTaskDone, updateTask, deleteTask, addTaskNote } from '$lib/server/v2/tasks.js';
-import { readableError } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 
 /**
  * One task.
@@ -11,10 +12,12 @@ import { readableError } from '$lib/server/v2/form-errors.js';
  *
  * @type {import('./$types').PageServerLoad}
  */
-export async function load({ cookies, locals, params }) {
+export async function load(event) {
+  const { cookies, locals, params } = event;
   const detail = await getTask({ cookies }, params.id);
   return {
     ...detail,
+    editor: await getTaskEditor(event, detail.task),
     // Decides what renders, never what is allowed. The API refuses a delete
     // from an assignee with a 403 whatever this says.
     canDelete: /** @type {any} */ (locals).profile?.role === 'ADMIN'
@@ -23,6 +26,7 @@ export async function load({ cookies, locals, params }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  properties: saveTaskEditor,
   /** Tick it off, or reopen it. Same one-field PATCH as the list row. */
   toggle: async ({ cookies, params, request }) => {
     const form = await request.formData();
@@ -30,7 +34,7 @@ export const actions = {
     try {
       await setTaskDone({ cookies }, params.id, done);
     } catch (/** @type {any} */ err) {
-      return fail(400, { error: readableError(err, 'Could not change the status.') });
+      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not change the status.') });
     }
     return { done };
   },
@@ -60,7 +64,7 @@ export const actions = {
     try {
       await addTaskNote({ cookies }, params.id, body, file);
     } catch (/** @type {any} */ err) {
-      return fail(400, { error: readableError(err, 'Could not post that comment.') });
+      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not post that comment.') });
     }
     return { commented: true };
   },
@@ -82,7 +86,7 @@ export const actions = {
     try {
       await updateTask({ cookies }, params.id, { assigned_to: ids });
     } catch (/** @type {any} */ err) {
-      return fail(400, { error: readableError(err, 'Could not reassign this task.') });
+      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not reassign this task.') });
     }
     return { assigned: true };
   },

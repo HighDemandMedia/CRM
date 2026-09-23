@@ -1,40 +1,6 @@
 /**
- * Team and access: the ninth v2 module wired to the real API.
- *
- * Lives under `$lib/server` for the same reason as the eight before it:
- * SvelteKit refuses to bundle this directory into client code, and the access
- * token is an httpOnly cookie the browser must never see. Org is a JWT claim,
- * never a parameter.
- *
- * WHY THIS MODULE
- * This is the access-control page: who is an admin, who has been deactivated,
- * and whose API tokens still authenticate after their login was pulled. Wiring
- * it meant driving `/api/users/` and `/api/user/<id>/` for real, and those are
- * the endpoints where a plain member could PATCH their own profile to
- * role="ADMIN" and become an org admin. The page's own header comment claimed
- * "the server refuses to let anyone change their own role"; it did not. Fixing
- * that (in common/views/user_views.py + CreateProfileSerializer) is the point
- * of this migration; the wiring is what proved it end to end.
- *
- * WHAT THE MOCK ASSUMED THAT THE API DID NOT
- * - **Names.** The fixture split every person into `first_name`/`last_name`.
- *   `User` has a single `name`; the real `user_details` carries `name` (and
- *   `email`, `last_login`), so that is what the page shows, falling back to the
- *   email when someone was invited and has no name yet.
- * - **Per-member teams.** `ProfileSerializer` does not list a person's teams.
- *   They are derived here from `/api/teams/`, whose serializer nests each
- *   team's members, one source of truth, not a second field that could drift.
- * - **Token counts.** The one genuinely urgent thing this page surfaces. A
- *   live token on a deactivated account. Needs a real count, so the users list
- *   now returns `active_token_count` per profile (computed once server-side,
- *   not on the shared serializer). No count is invented.
- *
- * WHAT STAYED FIXTURES, ON PURPOSE
- * The People/access half is wired: list, invite, role change, activate and
- * deactivate. Team CRUD (create/edit membership) is a separate write surface
- * with its own picker UI and is left for later, exactly as estimates were left
- * beside invoices. The teams list still renders, read-only, because the
- * people rows need it to show who is on what.
+ * Organization-scoped member access, pending email invitations, and team membership.
+ * All mutations are authorized by the backend; cookies stay server-side.
  */
 import { apiRequest } from '$lib/api-helpers.js';
 
@@ -88,6 +54,9 @@ function toMember(p, teamsByProfile, viewerId) {
     name: details.name || details.email || 'Unnamed',
     email: details.email,
     role: p.role,
+    is_super_admin: !!p.is_super_admin,
+    access_role_id:p.access_role_id,
+    access_role_name:p.access_role_name,
     is_active: p.is_active,
     teams: teamsByProfile[p.id] ?? [],
     last_login: details.last_login ?? null,
@@ -107,11 +76,13 @@ function toMember(p, teamsByProfile, viewerId) {
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
  */
 export async function listTeam({ cookies }) {
-  let usersResp, teamsResp;
+  let usersResp, teamsResp, invitationsResp, rolesResp;
   try {
-    [usersResp, teamsResp] = await Promise.all([
-      apiRequest('/users/', {}, { cookies }),
-      apiRequest('/teams/', {}, { cookies })
+    [usersResp, teamsResp, invitationsResp, rolesResp] = await Promise.all([
+      apiRequest('/users/?limit=1000', {}, { cookies }),
+      apiRequest('/teams/?limit=1000', {}, { cookies }),
+      apiRequest('/invitations/', {}, { cookies }),
+      apiRequest('/roles/', {}, { cookies })
     ]);
   } catch (/** @type {any} */ err) {
     if (err?.status === 403) return { forbidden: true };
@@ -141,6 +112,7 @@ export async function listTeam({ cookies }) {
     id: t.id,
     name: t.name,
     description: t.description || '',
+    members: (t.users ?? []).map((u) => u.id),
     member_count: (t.users ?? []).length
   }));
 
@@ -148,10 +120,13 @@ export async function listTeam({ cookies }) {
 
   return {
     forbidden: false,
+    isSuperAdmin: active.some(m => m.is_you && m.is_super_admin),
     active,
     inactive,
     teams,
+    invitations: invitationsResp?.invitations ?? [],
     roles: ROLES,
+    accessRoles: rolesResp.roles,
     totals: {
       count: active.length,
       admins: admins.length,
@@ -175,10 +150,10 @@ export async function listTeam({ cookies }) {
  * member's role), unlike a member setting their own.
  *
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
- * @param {{ email: string, role: string }} body
+ * @param {{ email: string, role: string, access_role_id?: string|null }} body
  */
 export function inviteUser({ cookies }, body) {
-  return apiRequest('/users/', { method: 'POST', body }, { cookies });
+  return apiRequest('/invitations/', { method: 'POST', body }, { cookies });
 }
 
 /**
@@ -204,4 +179,18 @@ export function setRole({ cookies }, userId, role) {
  */
 export function setStatus({ cookies }, userId, status) {
   return apiRequest(`/user/${userId}/status/`, { method: 'POST', body: { status } }, { cookies });
+}
+
+export function cancelInvitation({ cookies }, id) {
+  return apiRequest(`/invitations/${id}/`, { method: 'DELETE' }, { cookies });
+}
+export function saveTeam({ cookies }, id, body) {
+  return apiRequest(
+    id ? `/teams/${id}/` : '/teams/',
+    { method: id ? 'PATCH' : 'POST', body },
+    { cookies }
+  );
+}
+export function deleteTeam({ cookies }, id) {
+  return apiRequest(`/teams/${id}/`, { method: 'DELETE' }, { cookies });
 }

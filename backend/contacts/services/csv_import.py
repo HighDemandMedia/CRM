@@ -27,7 +27,7 @@ from __future__ import annotations
 import csv
 import io
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Any, Iterable
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -41,10 +41,13 @@ from common.models import Profile, Tags, Teams
 from common.utils import COUNTRIES
 from common.validators import normalize_phone
 from contacts.models import Contact
+from common.pipeline_settings import validate_entry
+from rest_framework.exceptions import ValidationError as APIValidationError
 from contacts.services.account_link import link_primary_account
 
-REQUIRED_HEADERS = ("first_name", "last_name")
+REQUIRED_HEADERS = ("first_name",)
 OPTIONAL_HEADERS = (
+    "last_name",
     "email",
     "phone",
     "organization",
@@ -280,6 +283,13 @@ def parse_and_validate(file_bytes: bytes, org) -> ImportResult:
         if row_errors:
             errors.extend(row_errors)
             continue
+        values = {**asdict(validated), 'account': validated.account_id,
+                  'assigned_to': validated.assigned_ids, 'tags': validated.tag_names}
+        try:
+            validate_entry(org, 'Contact', None, values)
+        except APIValidationError as exc:
+            errors.append(RowError(idx, 'stage', str(exc.detail)))
+            continue
         valid.append(validated)
         if validated.email:
             seen_emails[validated.email.lower()] = idx
@@ -428,14 +438,12 @@ def _validate_and_build(
     first_name = record.get("first_name", "")
     last_name = record.get("last_name", "")
     if not first_name:
-        errors.append(RowError(idx, "first_name", "First name is required"))
+        errors.append(RowError(idx, "first_name", "Name is required"))
     elif len(first_name) > NAME_MAX_LEN:
         errors.append(
             RowError(idx, "first_name", f"First name exceeds {NAME_MAX_LEN} characters")
         )
-    if not last_name:
-        errors.append(RowError(idx, "last_name", "Last name is required"))
-    elif len(last_name) > NAME_MAX_LEN:
+    if len(last_name) > NAME_MAX_LEN:
         errors.append(
             RowError(idx, "last_name", f"Last name exceeds {NAME_MAX_LEN} characters")
         )

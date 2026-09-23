@@ -13,7 +13,6 @@ export const contactColumns = [
   ['preferred_communication_channel_label', 'Preferred Communication Channel'],
   ['description', 'Notes'],
   ['account', 'Company'],
-  ['do_not_call', 'Marketing Opt-Out'],
   ['created_at', 'Created'],
   ['last_activity_at', 'Last Activity'],
 ];

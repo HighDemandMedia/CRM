@@ -216,4 +216,6 @@ class GlobalSearchView(APIView):
                 }
             )
 
+        if profile.is_demo:
+            results = [item for item in results if item['type'] in ('contact', 'account', 'deal', 'ticket')]
         return Response({"query": q, "results": results})

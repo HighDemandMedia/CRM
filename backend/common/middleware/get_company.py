@@ -40,6 +40,10 @@ class GetProfileAndOrg:
         if denial is not None:
             return denial
 
+        from common.demo_access import unavailable_in_demo
+        if getattr(getattr(request, 'profile', None), 'is_demo', False) and unavailable_in_demo(request.path):
+            return _denied('This module is not available in the customer demo.')
+
         # The org's day, for the rest of this request. Everything downstream
         # asks the framework what "today" is (`timezone.localdate()`), so
         # activating here is what makes one org's midnight different from
@@ -58,6 +62,7 @@ class GetProfileAndOrg:
     def process_request(self, request):
         # Skip JWT validation for authentication endpoints that don't need org context
         auth_skip_paths = [
+            "/api/auth/accept-invitation/",
             "/api/auth/google/",
             "/api/auth/refresh-token/",
             "/api/auth/me/",

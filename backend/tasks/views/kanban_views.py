@@ -1,3 +1,7 @@
+from common.pipeline_settings import stages_for
+from copy import copy
+from common.pipeline_settings import validate_entry
+from common.rbac import configured
 """
 Kanban views for task management.
 Supports both status-based (default) and custom pipeline-based kanban boards.
@@ -118,7 +122,7 @@ class TaskKanbanView(APIView):
         )
 
         # Apply permission filtering
-        if not is_org_admin(request.profile) and not request.user.is_superuser:
+        if not configured(request.profile) and not is_org_admin(request.profile) and not request.user.is_superuser:
             queryset = queryset.filter(
                 Q(assigned_to=request.profile) | Q(created_by=request.profile.user)
             )
@@ -169,7 +173,8 @@ class TaskKanbanView(APIView):
         }
 
         columns = []
-        for status_value, label in Task.STATUS_CHOICES:
+        for configured_stage in stages_for(self.request.profile.org, 'Task'):
+            status_value, label = configured_stage['key'], configured_stage['label']
             config = status_config.get(
                 status_value, {"order": 99, "color": "#6B7280", "type": "open"}
             )
@@ -181,7 +186,7 @@ class TaskKanbanView(APIView):
                 {
                     "id": status_value,  # Use status as column ID
                     "name": label,
-                    "order": config["order"],
+                    "order": configured_stage["order"],
                     "color": config["color"],
                     "stage_type": config["type"],
                     "is_status_column": True,
@@ -259,7 +264,7 @@ class TaskMoveView(APIView):
         task = get_object_or_404(Task.objects.select_for_update(), pk=pk, org=org)
 
         # Permission check
-        if not is_org_admin(request.profile) and not request.user.is_superuser:
+        if not configured(request.profile) and not is_org_admin(request.profile) and not request.user.is_superuser:
             if not (
                 request.profile.user == task.created_by
                 or request.profile in task.assigned_to.all()
@@ -268,7 +273,7 @@ class TaskMoveView(APIView):
                     {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
                 )
 
-        serializer = TaskMoveSerializer(data=request.data)
+        serializer = TaskMoveSerializer(data=request.data, context={"request": request})
         if not serializer.is_valid():
             return Response(
                 {"error": True, "errors": serializer.errors},
@@ -276,6 +281,7 @@ class TaskMoveView(APIView):
             )
 
         data = serializer.validated_data
+        previous = copy(task)
 
         # Handle stage change
         if "stage_id" in data:
@@ -308,6 +314,7 @@ class TaskMoveView(APIView):
         # Calculate new order
         # `task.stage`/`task.status` are already the destination by this
         # point, so the column queryset describes where the card is landing.
+        validate_entry(org, 'Task', previous, {'status': task.status})
         task.kanban_order = place_in_column(
             self._column_qs(task, org),
             above_id=data.get("above_task_id"),

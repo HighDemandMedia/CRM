@@ -95,15 +95,14 @@ class TestOpportunityCreateWithCustomFields:
         opp = Opportunity.objects.get(name="Unknown Key Deal", org=org_a)
         assert opp.custom_fields == {"deal_tier": "strategic"}
 
-    def test_create_required_missing_returns_400(self, admin_client, org_a):
+    def test_create_legacy_required_missing_is_optional(self, admin_client, org_a):
         _make_tier_def(org_a, is_required=True)
         response = admin_client.post(
             OPPORTUNITIES_LIST_URL,
             {"name": "No CF Deal"},
             format="json",
         )
-        assert response.status_code == 400
-        assert "deal_tier" in response.json()["errors"]["custom_fields"]
+        assert response.status_code == 200, response.data
 
 
 @pytest.mark.django_db

@@ -1,5 +1,6 @@
+import { configuredStages } from '$lib/v2/pipeline-config.js';
 import { fail } from '@sveltejs/kit';
-import { readableError } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 import { listContacts, updateContact } from '$lib/server/v2/contacts.js';
 import { contactQuery } from '$lib/server/v2/contact-query.js';
 import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
@@ -21,7 +22,7 @@ import { getTags } from '$lib/server/v2/tags.js';
  *
  * @type {import('./$types').PageServerLoad}
  */
-export async function load({ cookies, url, locals }) {
+export async function load({ cookies, url, locals, parent }) {
   const params = contactQuery(url);
   const includeInactive = url.searchParams.get('inactive') === '1';
 
@@ -30,6 +31,7 @@ export async function load({ cookies, url, locals }) {
     params.set('sort', url.searchParams.get('sort') ?? '');
     params.set('direction', url.searchParams.get('direction') === 'desc' ? 'desc' : 'asc');
   }
+  if (view === 'pipeline') params.set('include_pipeline_totals', 'true');
   const pageSize = 25;
   const offset = Math.max(
     0,
@@ -37,7 +39,7 @@ export async function load({ cookies, url, locals }) {
   );
   params.set('limit', view === 'pipeline' ? '1' : String(pageSize));
   params.set('offset', view === 'pipeline' ? '0' : String(offset));
-  const [{ results, totals, stages }, orgPeople, tagList] = await Promise.all([
+  const [{ results, totals, stages: defaultStages }, orgPeople, tagList] = await Promise.all([
     listContacts({ cookies }, params),
     getOrgPeopleAndTeams(cookies),
     // A failed tag fetch should cost the Tag dropdown in the filter bar, not
@@ -45,6 +47,7 @@ export async function load({ cookies, url, locals }) {
     getTags({ cookies }).catch(() => ({ tags: [] }))
   ]);
 
+  const stages = configuredStages((await parent()).pipelineConfig, 'Contact', defaultStages);
   const board =
     view === 'pipeline'
       ? await Promise.all(
@@ -68,6 +71,7 @@ export async function load({ cookies, url, locals }) {
                 ...stage,
                 contacts: response.results,
                 count: response.totals.count,
+                moneyTotals: response.totals.money_totals,
                 offset: stageOffset
               };
             })
@@ -98,7 +102,7 @@ export const actions = {
     const stage = String(form.get('stage') ?? '');
     if (
       !/^[0-9a-f-]{36}$/i.test(id) ||
-      !['LEAD', 'FOLLOW_UP', 'QUALIFIED', 'NOT_QUALIFIED', 'LOST'].includes(stage)
+      !stage
     ) {
       return fail(400, { error: 'Choose a valid contact and stage.' });
     }
@@ -107,7 +111,7 @@ export const actions = {
       return { moved: true };
     } catch (/** @type {any} */ err) {
       return fail(400, {
-        error: readableError(err, 'Could not move this contact. Please try again.')
+        stageRequirements: stageRequirements(err), error: readableError(err, 'Could not move this contact. Please try again.')
       });
     }
   }

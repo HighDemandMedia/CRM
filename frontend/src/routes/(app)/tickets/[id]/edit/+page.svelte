@@ -1,4 +1,5 @@
 <script>
+  import StageRuleNotice from "$lib/components/pipelines/StageRuleNotice.svelte";
   import { resolve } from '$app/paths';
   /**
    * Editing a ticket.
@@ -13,7 +14,8 @@
    *   alone. The counts are shown so it is clear what is being preserved.
    */
   import { tick, untrack } from 'svelte';
-  import { enhance } from '$app/forms';
+  import { creationEnhance } from '$lib/components/creation/enhance.js';
+  const enhance = creationEnhance();
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { ChevronRight, TriangleAlert } from '@lucide/svelte';
 
@@ -76,7 +78,8 @@
 
 <div class="v2-scroll v2-pad" style="padding-top:18px">
   <form class="v2-form" method="POST" action="?/save" use:enhance={check} novalidate>
-    {#if result?.error}
+    <StageRuleNotice issue={result?.stageRequirements}/>
+{#if result?.error && !result?.stageRequirements}
       <div
         class="v2-next"
         style="background:color-mix(in srgb, var(--v2-rust) 9%, transparent);border-color:color-mix(in srgb, var(--v2-rust) 28%, transparent);margin-bottom:18px"

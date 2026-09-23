@@ -1,3 +1,4 @@
+from common.rbac import configured
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -16,7 +17,7 @@ class ContactAssociationView(ContactDetailView):
         if not model:
             raise serializers.ValidationError('Invalid association type.')
         rows = model.objects.filter(org=self.request.profile.org, is_active=True)
-        if not is_org_admin(self.request.profile):
+        if not configured(self.request.profile) and not is_org_admin(self.request.profile):
             rows = rows.filter(Q(assigned_to=self.request.profile) | Q(created_by=self.request.user)).distinct()
         return rows
 

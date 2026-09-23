@@ -1,3 +1,4 @@
+from common.rbac import configured, permitted, scoped, MODEL_MODULES
 from django.core import signing
 from django.db import transaction
 from django.db.models import Q
@@ -48,7 +49,9 @@ class RecordDeleteView(APIView):
         rows=MODELS[kind].objects.filter(org=self.request.profile.org)
         if lock: rows=rows.select_for_update()
         record=get_object_or_404(rows,pk=pk)
-        if not is_org_admin(self.request.profile) and record.created_by_id!=self.request.user.pk:
+        if configured(self.request.profile):
+            if not permitted(self.request.profile, record, 'delete'): raise PermissionDenied('Your role cannot delete this record.')
+        elif not is_org_admin(self.request.profile) and record.created_by_id!=self.request.user.pk:
             raise PermissionDenied('Only an administrator or the record creator can delete this record.')
         return record
 
@@ -71,7 +74,7 @@ class RecordDeleteView(APIView):
     def impact(self, record, include_associated=False):
         associated = self.associated(record)
         selected = [record] + (associated if include_associated else [])
-        if any(not is_org_admin(self.request.profile) and obj.created_by_id != self.request.user.pk for obj in selected):
+        if any((not permitted(self.request.profile, obj, 'delete')) if configured(self.request.profile) else (not is_org_admin(self.request.profile) and obj.created_by_id != self.request.user.pk) for obj in selected):
             return None, {'blocked': True, 'message': 'You do not have permission to delete all associated records.'}
         collector = ExplicitRecordCollector(using=record._state.db, selected_deals=[obj.pk for obj in selected if isinstance(obj, Opportunity)])
         try:
@@ -86,6 +89,12 @@ class RecordDeleteView(APIView):
             groups.setdefault(model,set()).update(str(obj.pk) for obj in objects)
         for query in collector.fast_deletes:
             groups.setdefault(query.model,set()).update(str(pk) for pk in query.values_list('pk',flat=True))
+        if configured(self.request.profile):
+            for model, ids in groups.items():
+                if model._meta.label_lower in MODEL_MODULES:
+                    allowed = scoped(model._base_manager.filter(pk__in=ids), self.request.profile, 'delete')
+                    if allowed.count() != len(ids):
+                        return None, {'blocked': True, 'message': 'Your role cannot delete every record affected by this selection.'}
         # Internal join rows are links, not separate customer records.
         labels={'accounts.account':'Companies','contacts.contact':'Contacts','opportunity.opportunity':'Deals','common.comment':'Notes','common.attachments':'Attachments'}
         counts=[{'label':labels.get(model._meta.label_lower,str(model._meta.verbose_name_plural).capitalize()),'count':len(ids)} for model,ids in groups.items() if not model._meta.auto_created and ids]

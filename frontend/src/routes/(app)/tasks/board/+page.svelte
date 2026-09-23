@@ -246,27 +246,10 @@
     </div>
   {/if}
 
-  <div class="v2-pad" style="padding-top:16px;flex:none">
-    <div class="v2-stats">
-      <StatCard label="Open cards" value={count(totals.open)} tone="ink" />
-      <StatCard
-        label="Overdue"
-        value={count(totals.overdue)}
-        tone={totals.overdue > 0 ? 'rust' : 'slate'}
-        detail="Past due and not marked done"
-      />
-      <StatCard
-        label="Unassigned"
-        value={count(totals.unassigned)}
-        tone={totals.unassigned > 0 ? 'clay' : 'slate'}
-      />
-      <StatCard
-        label="Columns over limit"
-        value={count(totals.over_limit)}
-        tone={totals.over_limit > 0 ? 'clay' : 'slate'}
-        detail="More cards than the column allows"
-      />
-    </div>
+  <div class="board-totals">
+    <span>{count(totals.open)} open</span><span>{count(totals.overdue)} overdue</span><span
+      >{count(totals.unassigned)} unassigned</span
+    >{#if totals.over_limit}<span>{totals.over_limit} columns over limit</span>{/if}
   </div>
 
   <div class="v2-board" style="padding-top:16px">
@@ -517,6 +500,35 @@
 </p>
 
 <style>
+  .board-totals {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 14px 22px 0;
+    color: var(--v2-slate);
+    font-size: 12px;
+  }
+  .v2-board {
+    gap: 14px;
+  }
+  .v2-lane {
+    background: var(--v2-paper);
+    border: 1px solid var(--v2-line-soft);
+    border-radius: 12px;
+    padding: 12px;
+    min-width: 270px;
+  }
+  .v2-lane-head {
+    padding: 4px 2px 12px;
+  }
+  .v2-deal-card {
+    background: var(--v2-card);
+    border: 1px solid var(--v2-line);
+    border-radius: 9px;
+    padding: 14px;
+    box-shadow: none;
+  }
+
   .v2-board-form {
     display: contents;
   }

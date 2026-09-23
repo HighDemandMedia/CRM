@@ -50,6 +50,9 @@ THE DENY-LIST IS NOT A SCOPE
 # `test_api_resources_covers_the_live_urlconf`, which walks the real URLconf.
 API_RESOURCES = frozenset(
     {
+        "members",
+        "roles",
+        "invitations",
         "accounts",
         "activities",
         "api-settings",
@@ -115,6 +118,9 @@ SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 # Read or write access to a credential, from a credential. See the module
 # docstring: no scope opens these, and neither does an empty scope list.
 CREDENTIAL_PATHS = (
+    "/api/members/",
+    "/api/roles/",
+    "/api/invitations/",
     "/api/profile/tokens/",
     "/api/org/tokens/",
     "/api/org/api-key/",

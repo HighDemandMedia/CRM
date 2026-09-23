@@ -1,11 +1,25 @@
 <script>
-  import { untrack } from 'svelte';
+  import { untrack, getContext } from 'svelte';
   import { deserialize } from '$app/forms';
   import TagBadge from './TagBadge.svelte';
   import { tagColors } from '$lib/v2/tag-colors.js';
-  /** @type {{options?:any[],selected?:string[],original?:string[],canCreate?:boolean,creating?:boolean}} */
-  let { options = [], selected = $bindable([]), original = [], creating = $bindable(false), canCreate = false } = $props();
+  /** @type {{options?:any[],selected?:string[],original?:string[],canCreate?:boolean,creating?:boolean,onSearch?:(query:string)=>void,inputId?:string}} */
+  let {
+    options = [],
+    selected = $bindable([]),
+    original = [],
+    creating = $bindable(false),
+    canCreate = false,
+    onSearch = () => {},
+    inputId = undefined
+  } = $props();
+  const creation = getContext('creation-panel');
   let available = $state(untrack(() => [...options]));
+  $effect(() => {
+    const incoming = options;
+    // Keep selected tag labels while later search results arrive.
+    available = [...new Map([...untrack(() => available), ...incoming].map(tag => [String(tag.id), tag])).values()];
+  });
   const originalValue = untrack(() => JSON.stringify([...original].map(String).sort()));
   let search = $state(''),
     open = $state(false),
@@ -15,6 +29,7 @@
     available.filter(
       (t) =>
         (t.is_active !== false || selected.includes(String(t.id))) &&
+        !selected.includes(String(t.id)) &&
         t.name.toLowerCase().includes(search.trim().toLowerCase())
     )
   );
@@ -25,6 +40,7 @@
   function choose(tag) {
     selected = [...new Set([...selected, String(tag.id)])];
     search = '';
+    onSearch('');
     error = '';
     open = false;
   }
@@ -40,11 +56,14 @@
       const body = new FormData();
       body.set('name', search.trim());
       body.set('color', color);
-      const response = await fetch('?/createTag', {
-        method: 'POST',
-        body,
-        headers: { 'x-sveltekit-action': 'true' }
-      });
+      const response = await fetch(
+        creation ? new URL('?/createTag', creation.url) : '?/createTag',
+        {
+          method: 'POST',
+          body,
+          headers: { 'x-sveltekit-action': 'true' }
+        }
+      );
       const result = deserialize(await response.text());
       if (result.type !== 'success' || !result.data?.tag) {
         error =
@@ -64,7 +83,7 @@
   }
 </script>
 
-<div
+<div data-stage-field="tags"
   class="picker"
   onfocusout={(e) => {
     if (!e.currentTarget.contains(/** @type {Node|null} */ (e.relatedTarget))) open = false;
@@ -83,8 +102,9 @@
         ></span
       >{/each}
     <input
-      aria-label="Search or create tag"
-      placeholder="Search or create tag…"
+      id={inputId}
+      aria-label={canCreate ? 'Search or create tag' : 'Search tags'}
+      placeholder={canCreate ? 'Search or create tag…' : 'Search tags…'}
       maxlength="50"
       autocomplete="off"
       bind:value={search}
@@ -93,6 +113,7 @@
       oninput={() => {
         open = true;
         error = '';
+        onSearch(search);
       }}
       onkeydown={(e) => {
         if (e.key === 'Escape') {
@@ -114,9 +135,7 @@
             class="option"
             disabled={creating}
             onclick={() => choose(tag)}
-            ><TagBadge {tag} />{#if selected.includes(String(tag.id))}<span aria-label="Selected"
-                >✓</span
-              >{/if}</button
+            ><TagBadge {tag} /></button
           >{/each}
       </div>
       {#if search.trim() && !exact && canCreate}

@@ -1,3 +1,4 @@
+from common.pipeline_settings import stages_for
 import json
 from datetime import timedelta
 
@@ -99,7 +100,7 @@ class TaskListView(APIView, LimitOffsetPagination):
             # Due Today counts mean. A single `?status=New` behaves exactly as
             # it did, so no existing caller changes.
             statuses = choice_list_param(
-                params, "status", [value for value, _label in Task.STATUS_CHOICES]
+                params, "status", [s['key'] for s in stages_for(self.request.profile.org, 'Task')]
             )
             if statuses:
                 queryset = queryset.filter(status__in=statuses)

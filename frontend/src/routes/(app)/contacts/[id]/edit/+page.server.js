@@ -1,10 +1,10 @@
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { EDITABLE_FIELDS, getContactForEdit, updateContact } from '$lib/server/v2/contacts.js';
-import { readableError } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 
 /** Fields the form submits as checkboxes: absent means false, not "unchanged". */
-const FLAGS = ['do_not_call', 'is_active'];
+const FLAGS = ['is_active'];
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies, params }) {
@@ -30,8 +30,7 @@ export const actions = {
 
     /*
      * A cleared checkbox submits nothing at all, so "absent means leave alone"
-     * is exactly wrong for these two: it would make "do not call" impossible to
-     * switch off. Each one is paired with a hidden field that is always sent,
+     * is wrong for boolean controls that need to be switched off. Each one is paired with a hidden field that is always sent,
      * so the form can distinguish an unticked box from a field it does not own.
      */
     for (const flag of FLAGS) {
@@ -54,7 +53,7 @@ export const actions = {
     try {
       await updateContact({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, error: readableError(err, 'Could not save this contact.') });
+      return fail(400, { values, stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this contact.') });
     }
 
     redirect(303, `/contacts/${params.id}`);

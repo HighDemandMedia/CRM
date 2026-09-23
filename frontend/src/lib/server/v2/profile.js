@@ -1,22 +1,5 @@
-/**
- * Your own account: the wiring behind /v2/profile.
- *
- * Server-only. Read in three calls, none of which reaches past the caller:
- *   - `GET /profile/`         the current profile (own; request.profile),
- *                             extended with the caller's team names.
- *   - `GET /org/`             every org the caller is a member of, scoped to
- *                             `Profile.objects.filter(user=request.user)`, so it
- *                             is their memberships, never a directory of orgs.
- *   - `GET /profile/tokens/`  the caller's personal access tokens, counted here
- *                             into the "active" number the page shows.
- *
- * The one field the page lets you change is name + phone, over
- * `PATCH /profile/`. Role, org and the access flags are shown but never posted:
- * they decide permissions and are an admin's to set (the endpoint refuses them
- * regardless. See ProfileSelfUpdateSerializer). Switching org is a real action
- * and re-issues the JWT rather than editing a field; that lives in the page's
- * `switchOrg` action, not here.
- */
+import { env } from '$env/dynamic/public';
+/** Loads personal profile details and the current organization name. */
 import { apiRequest } from '$lib/api-helpers.js';
 
 /** Split a single display name into first/last for the page's header.
@@ -32,13 +15,6 @@ function splitName(/** @type {string} */ name, /** @type {string} */ email) {
   return { first_name: trimmed.slice(0, sp), last_name: trimmed.slice(sp + 1) };
 }
 
-/** A personal access token is "active" when it is neither revoked nor expired. */
-function isActiveToken(/** @type {any} */ t) {
-  if (t.revoked_at) return false;
-  if (t.expires_at && new Date(t.expires_at).getTime() <= Date.now()) return false;
-  return true;
-}
-
 /**
  * The current user's account, shaped for the page.
  *
@@ -48,10 +24,9 @@ function isActiveToken(/** @type {any} */ t) {
 export async function getProfile({ cookies }) {
   const currentOrgId = cookies.get('org') || '';
 
-  const [me, orgResp, tokenResp] = await Promise.all([
+  const [me, orgResp] = await Promise.all([
     apiRequest('/profile/', {}, { cookies }),
-    apiRequest('/org/', {}, { cookies }),
-    apiRequest('/profile/tokens/', {}, { cookies })
+    apiRequest('/org/', {}, { cookies })
   ]);
 
   const u = me.user_obj || {};
@@ -72,9 +47,6 @@ export async function getProfile({ cookies }) {
   // first one so the header is never blank if the `org` cookie is missing.
   const current = orgs.find((o) => o.is_current) || orgs[0] || null;
 
-  const tokens = tokenResp.tokens || [];
-  const active_token_count = tokens.filter(isActiveToken).length;
-
   return {
     profile: {
       id: u.id,
@@ -85,11 +57,19 @@ export async function getProfile({ cookies }) {
       },
       role: u.role,
       phone: u.phone || '',
+      language: u.language || '',
+      timezone: u.timezone || '',
+      organization_timezone: u.organization_timezone || 'UTC',
+      notify_in_app: u.notify_in_app !== false,
+      notify_mentions: u.notify_mentions !== false,
+      notify_comments: u.notify_comments !== false,
+      email_integration_mode: u.email_integration_mode || '',
+      integrations: u.integrations,
+      photo_url: u.photo_url ? new URL(u.photo_url, env.PUBLIC_DJANGO_API_URL).href : '',
       teams: u.teams || [],
       joined_at: u.date_of_joining || u.created_at || null,
       last_login: ud.last_login || null,
-      orgs,
-      active_token_count
+      orgs
     },
     org: { name: current?.name || '' }
   };
