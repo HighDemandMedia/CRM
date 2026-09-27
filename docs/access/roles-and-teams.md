@@ -16,10 +16,27 @@ Admin is protected. Manager and Member permissions can be edited; their names
 remain fixed. Custom permission sets can be created from scratch or duplicated from a role, edited and assigned in Users & Teams. Each user has one effective permission set; sets are not additive. Changes apply to all
 members assigned to that role on their next request.
 
-Permissions cover Contacts, Companies, Deals, Tasks and Tickets independently.
-Create is allowed/denied. View, edit, delete and export support no access,
-own records, team records and entire organization. Edit/delete/export/reassignment cannot
-exceed view access. Organization administration remains Admin-only.
+Permissions cover Contacts, Companies, Deals, Tasks and Tickets independently:
+view, create, edit properties, move stage, manage notes, manage attachments,
+manage associations, delete, export and reassign owners. Calendar and Reports
+have their own panels. Create and booking conflict overrides are boolean;
+other enabled actions use the permission set's single access level. Actions
+cannot exceed View. Stage, notes, files, associations and reassignment also
+require Edit. Existing note-author restrictions still apply.
+
+Calendar separates View, Schedule, Reschedule, Cancel, Choose another host,
+Override booking conflicts, and Export. Personal access means hosted events;
+being an invited CRM user also permits viewing that invitation without granting
+management access. Team access includes hosts in the member's teams. Attendee
+contact/company details respect the corresponding object's View permission.
+Reports respects both its own scope and each object's scope. Exporting a report
+requires Export for Reports and for its underlying object.
+
+Member and Manager default to viewing, scheduling and rescheduling within their
+scope. Calendar cancellation, delegation, conflict overrides and export start
+disabled. Reports viewing is enabled within scope; export is disabled.
+Administrators can explicitly enable these capabilities. Organization
+administration remains Admin-only.
 
 Own means currently assigned to the organization profile. Historical creation does not grant access after reassignment. New records default to the creating member when no assignee is supplied.
 Team includes own records, records explicitly assigned to their teams, and
@@ -50,8 +67,13 @@ on a custom set or Manager afterward. Owner assignment has its own per-module
 scope. Existing assignments are preserved; unassigned records need assignment
 by an admin (or are visible to a manager through an explicitly assigned team).
 
-Separate permissions for imports, bulk operations, deduplication, calendar
-delegation and email access are not part of this CRM object matrix.
+Imports, bulk operations and contact merge/unmerge remain Admin-only.
+Organization configuration (including property definitions, pipeline entry rules
+and tag administration) remains Admin-only. Personal profile, notification
+preferences/history and Help remain available to active members. Today, search
+and the activity feed follow record visibility. Google integrations retain their
+existing user-specific connection controls; this work does not add a shared
+mailbox or field-level security model.
 
 ## Single access level per set
 
@@ -93,3 +115,33 @@ It retains the global user, audit authorship, notes and meetings. Other
 organizations are unaffected. The old direct deletion route no longer deletes
 profiles. Returning requires a fresh invitation and acceptance; reactivation
 alone cannot restore a removed membership. No users are removed by deployment.
+
+## September 2026 expansion and audit
+
+Migration 0064 preserves existing object grants and derives the new stage,
+notes, attachments and association grants from existing Edit. Newly introduced
+Calendar and Reports permissions start disabled for custom sets; built-in
+Member/Manager receive the scoped defaults above. Ordinary memberships lacking
+a permission set receive Member. Migration 0065 adds a security audit event for
+permission-set changes, with actor, organization and before/after configuration.
+The migrations do not remove CRM records or reassign existing owners.
+
+The interface hides unavailable primary actions, while backend authorization
+is authoritative on every request, including exports and indirect writes.
+Module controls in the interface do not replace record-level checks. Existing
+legacy modules marked Review retain their existing policies and are outside this
+expanded matrix; this is not a full pre-deployment security audit.
+
+Validation includes expanded permissions, roles, reports, calendar, associations,
+Super Admin protections, invitations, membership removal and Today/activity
+visibility in isolated tests. See `common/tests/test_expanded_permissions.py`.
+
+## Public CRM references
+
+Design reviewed against official documentation on September 23, 2026:
+
+- [HubSpot user permissions](https://knowledge.hubspot.com/user-management/hubspot-user-permissions-guide): separate object actions, record scopes and export/merge capabilities.
+- [Pipedrive visibility and permissions](https://support.pipedrive.com/en/article/visibility-and-permissions-overview): separate which records a user sees from which actions they can perform.
+- [Salesforce record access](https://trailhead.salesforce.com/content/learn/modules/data_security/data_security_records): restrict access first, then grant what each role needs.
+
+These are design references, not a claim of feature parity with those products.

@@ -123,7 +123,7 @@ export async function load(event) {
     accountId: event.locals.org?.id || '',
     counts: /** @type {Record<string, number>} */ ({}),
     org: {
-      name: event.locals.org?.name || 'BottleCRM',
+      name: event.locals.org?.name || 'High Demand Media CRM',
       terminology: /** @type {Record<string, string> | undefined} */ (undefined),
       // The currency for figures that are sums rather than one record: pipeline
       // totals, invoice ageing, goal progress. A per-record currency cannot
@@ -159,7 +159,8 @@ export async function load(event) {
     ...countKeys.map((key) => LIVE_COUNTS[/** @type {keyof typeof LIVE_COUNTS} */ (key)](event)),
     getOrgTerminology(event),
     apiRequest('/pipeline-settings/?include_rules=false', {}, {cookies: event.cookies}),
-    apiRequest('/property-layout/', {}, {cookies: event.cookies})
+    apiRequest('/property-layout/', {}, {cookies: event.cookies}),
+    apiRequest('/permissions/me/', {}, {cookies:event.cookies})
   ]);
 
   countKeys.forEach((key, index) => {
@@ -176,5 +177,7 @@ export async function load(event) {
   const pipelineResult = results[countKeys.length + 1];
   const propertyResult = results[countKeys.length + 2];
   const propertyLayout = propertyResult?.status === 'fulfilled' ? propertyResult.value : {objects: {}};
-  return {...shell, propertyLayout: propertyLayout.objects, pipelineConfig: pipelineResult?.status === 'fulfilled' ? pipelineResult.value.pipelines : {}};
+  const permissionsResult = results[countKeys.length + 3];
+  const permissions = permissionsResult?.status === 'fulfilled' ? permissionsResult.value : {rules:{},calendar_host_ids:[]};
+  return {...shell, permissions, propertyLayout: propertyLayout.objects, pipelineConfig: pipelineResult?.status === 'fulfilled' ? pipelineResult.value.pipelines : {}};
 }

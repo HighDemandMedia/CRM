@@ -104,6 +104,15 @@
           {#if dirty}<button class="v2-btn" type="button" disabled={saving} onclick={resetDetails}>Cancel</button>{/if}
         </div>
       </form>
+      <form class="details-form" method="POST" action="?/password" use:enhance>
+        <fieldset><h3>{data.hasPassword ? 'Change password' : 'Set your password'}</h3>
+          {#if data.hasPassword}<label>Current password<input class="v2-input" type="password" name="current_password" required autocomplete="current-password" maxlength="128"/></label>{/if}
+          <label>New password<input class="v2-input" type="password" name="password" required minlength="10" maxlength="128" autocomplete="new-password"/></label>
+          <label>Confirm password<input class="v2-input" type="password" name="confirm_password" required minlength="10" maxlength="128" autocomplete="new-password"/></label>
+        </fieldset>
+        {#if form?.scope === 'password'}<p class="feedback" class:failure={form.message} role="status">{form.message || 'Password saved.'}</p>{/if}
+        <div class="form-actions"><button class="v2-btn v2-btn-primary">Save password</button></div>
+      </form>
     </div>
       <div id="profile-panel-integrations" role="tabpanel" aria-labelledby="profile-tab-integrations" hidden={activeTab !== 'integrations'} tabindex="0" class="profile-panel">
         <div class="section-heading"><h2 id="integration-title"><Link2 size={17}/>Connected accounts</h2><span class="subtle-badge">Per user</span></div>

@@ -1,3 +1,4 @@
+import { savePasswordSession, passwordError } from '$lib/server/password-session.js';
 /**
  * Login Page - Secure OAuth Implementation
  *
@@ -68,7 +69,10 @@ export async function load({ url, cookies }) {
   }
 
   // Generate OAuth parameters and return login URL
-  return await generateOAuthUrl(cookies);
+  return {
+    ...(await generateOAuthUrl(cookies)),
+    recovery: url.searchParams.get('recover') === '1'
+  };
 }
 
 /**
@@ -194,12 +198,34 @@ async function generateOAuthUrl(cookies) {
 
 /** @type {import('@sveltejs/kit').Actions} */
 export const actions = {
-  default: async ({ request }) => {
+  password: async ({ request, cookies }) => {
+    const form = await request.formData();
+    let data;
+    try {
+      const response = await axios.post(
+        `${publicEnv.PUBLIC_DJANGO_API_URL}/api/auth/password/login/`,
+        {
+          email: String(form.get('email') || '').trim(),
+          password: String(form.get('password') || '')
+        },
+        { timeout: 15000 }
+      );
+      data = response.data;
+    } catch (error) {
+      return fail(error.response?.status === 429 ? 429 : 400, {
+        error: passwordError(error, 'Sign-in is unavailable. Please try again.'),
+        email: String(form.get('email') || '')
+      });
+    }
+    savePasswordSession(cookies, data);
+    redirect(303, cookies.get('crm_invitation') ? '/invite' : data.current_org ? '/' : '/org');
+  },
+  recovery: async ({ request }) => {
     const formData = await request.formData();
     const email = formData.get('email');
 
     if (!email) {
-      return fail(400, { error: 'Email is required' });
+      return fail(400, { error: 'Email is required', recovery: true });
     }
 
     try {
@@ -209,9 +235,13 @@ export const actions = {
         { email },
         { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
       );
-      return { success: true };
+      return { success: true, recovery: true, email: String(email) };
     } catch {
-      return fail(503, { error: 'Email could not be sent. Please try again shortly.' });
+      return fail(503, {
+        error: 'Email could not be sent. Please try again shortly.',
+        recovery: true,
+        email: String(email)
+      });
     }
   }
 };

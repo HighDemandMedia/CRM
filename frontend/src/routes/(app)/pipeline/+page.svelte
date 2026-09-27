@@ -1,4 +1,5 @@
 <script>
+  import { can } from '$lib/v2/permissions.js';
   import { showStageRequirements } from "$lib/components/pipelines/feedback.js";
   import PipelineTotal from '$lib/v2/components/PipelineTotal.svelte';
   import PipelineCardSummary from '$lib/v2/components/PipelineCardSummary.svelte';
@@ -487,7 +488,7 @@
         label="Total deal amount"
       />{/if}{/snippet}
   {#snippet actions()}
-    <a class="v2-btn v2-btn-primary" href={resolve('/pipeline/new')}><Plus />New deal</a>
+    {#if can(page.data.permissions, 'deals', 'create')}<a class="v2-btn v2-btn-primary" href={resolve('/pipeline/new')}><Plus />New deal</a>{/if}
   {/snippet}
 </PageHeader>
 
@@ -613,7 +614,7 @@
     </div>
   </details>
   {#if data.view === 'list'}
-    <a
+    {#if can(page.data.permissions, 'deals', 'export')}<a
       class="v2-btn"
       data-sveltekit-reload
       href={resolve('/pipeline/export') +
@@ -623,7 +624,7 @@
             .filter(([key]) => key !== 'columns')
             .concat([['columns', selected.join(',')]])
         ).toString()}>Export CSV</a
-    >
+    >{/if}
   {/if}
   <div class="view-actions">
     <nav class="view-toggle" aria-label="Deal views">
@@ -691,7 +692,7 @@
                 class:card-dragging={draggedContact === contact.id}
                 class:card-saving={movingContact === contact.id}
                 aria-busy={movingContact === contact.id}
-                draggable={!movingContact}
+                draggable={!movingContact && can(page.data.permissions, 'deals', 'stage')}
                 ondragstart={(event) => startContactDrag(event, contact.id, stage.value)}
                 ondragend={endContactDrag}
               >
@@ -841,10 +842,10 @@
                 ><a aria-label={`Open ${contact.name}`} href={resolve(`/pipeline/${contact.id}`)}
                   >Open</a
                 >
-                <a
+                {#if can(page.data.permissions, 'deals', 'edit')}<a
                   aria-label={`Edit ${contact.name}`}
                   href={resolve(`/pipeline/${contact.id}/edit`)}>Edit</a
-                ></td
+                >{/if}</td
               >
             </tr>
           {:else}<tr><td colspan={selected.length + 1}>No deals on this page.</td></tr>{/each}

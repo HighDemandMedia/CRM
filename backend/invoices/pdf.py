@@ -14,7 +14,9 @@ from django.conf import settings
 from django.template.loader import render_to_string
 
 try:
-    from weasyprint import CSS, HTML, default_url_fetcher
+    from weasyprint import CSS, HTML, URLFetcher
+
+    default_url_fetcher = URLFetcher(allow_redirects=False, allowed_protocols=("data", "file", "https"))
     from weasyprint.text.fonts import FontConfiguration
 
     WEASYPRINT_AVAILABLE = True
@@ -90,7 +92,7 @@ def _allowed_media_file(parsed):
     return None
 
 
-def safe_pdf_url_fetcher(url):
+def _fetch_safe_pdf_url(url):
     """Restrict what WeasyPrint may fetch while rendering an invoice/estimate.
 
     Invoice templates carry org-authored HTML/CSS (``template_html`` /
@@ -121,11 +123,8 @@ def safe_pdf_url_fetcher(url):
     if scheme in ("http", "https") or (scheme == "" and parsed.netloc):
         s3_host = (getattr(settings, "AWS_S3_CUSTOM_DOMAIN", "") or "").lower()
         host = (parsed.hostname or "").lower()
-        if s3_host and host == s3_host:
-            # Residual: default_url_fetcher follows 30x, and only the first hop
-            # is host-checked. Low risk. The S3 host is trusted and fixed, and
-            # only serves the org's own logo object; urllib refuses redirects to
-            # non-http(s)/ftp, so no redirect->file://.
+        if scheme == "https" and s3_host and host == s3_host:
+            # Redirects are disabled so an allowed host cannot redirect to internal URLs.
             return default_url_fetcher(url)
         raise ValueError(f"Blocked non-allowlisted host in PDF template: {url!r}")
 
@@ -138,6 +137,16 @@ def safe_pdf_url_fetcher(url):
 
     # ftp:, gopher:, jar:, dict: .... Deny by default.
     raise ValueError(f"Blocked disallowed URL scheme in PDF template: {url!r}")
+
+
+if WEASYPRINT_AVAILABLE:
+    class SafePDFURLFetcher(URLFetcher):
+        def fetch(self, url, headers=None):
+            return _fetch_safe_pdf_url(url)
+
+    safe_pdf_url_fetcher = SafePDFURLFetcher(allow_redirects=False)
+else:
+    safe_pdf_url_fetcher = _fetch_safe_pdf_url
 
 
 def get_default_css():

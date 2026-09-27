@@ -17,7 +17,7 @@ on:
       - '.coveragerc'
       - '.github/workflows/tests.yml'
   pull_request:
-    branches: [master]
+    branches: [main, master]
     paths:
       - 'backend/**'
       - 'frontend/**'

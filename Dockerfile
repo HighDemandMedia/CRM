@@ -29,6 +29,7 @@ RUN uv sync --frozen --no-install-project
 
 # Copy backend source
 COPY backend/ .
+COPY LICENSE /app/LICENSE
 
 # Put the venv's binaries on PATH so `python`, `gunicorn`, `celery` etc. resolve.
 ENV PATH="/opt/venv/bin:$PATH"

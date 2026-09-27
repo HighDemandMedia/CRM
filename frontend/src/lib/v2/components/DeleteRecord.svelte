@@ -1,4 +1,6 @@
 <script>
+  import { page } from '$app/state';
+  import { can } from '$lib/v2/permissions.js';
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   /** @type {{kind:'contact'|'company'|'deal',id:string,inFlow?:boolean}} */
@@ -58,7 +60,7 @@
   }
 </script>
 
-<button class="v2-btn delete-trigger" class:in-flow={inFlow} type="button" onclick={open}>Delete</button>
+{#if can(page.data.permissions,{contact:'contacts',company:'companies',deal:'deals'}[kind],'delete')}<button class="v2-btn delete-trigger" class:in-flow={inFlow} type="button" onclick={open}>Delete</button>{/if}
 <dialog
   bind:this={dialog}
   aria-labelledby={`delete-${kind}-title`}

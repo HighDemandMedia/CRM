@@ -19,7 +19,7 @@
   --v2-hover: rgba(28, 25, 23, 0.025);
 
   /* ── type ───────────────────────────────────────────────────────────── */
-  --v2-sans: Manrope, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --v2-sans: 'Manrope Variable', Manrope, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --v2-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'DejaVu Sans Mono', Menlo, monospace;
   --v2-fs: 14.4px; /* the base everything else is derived from */
 

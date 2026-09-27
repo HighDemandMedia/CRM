@@ -1,3 +1,5 @@
+> Mobile cleanup is pending a Flutter build. The email/password access delivered in this update is for the web CRM.
+
 # BottleCRM Mobile
 
 <div align="center">
@@ -8,7 +10,6 @@
 ![iOS](https://img.shields.io/badge/iOS-11.0+-000000?style=for-the-badge&logo=ios&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-[![Get it on Google Play](https://img.shields.io/badge/Get%20it%20on-Google%20Play-black?style=for-the-badge&logo=google-play&logoColor=white)](https://play.google.com/store/apps/details?id=io.bottlecrm)
 
 </div>
 
@@ -78,7 +79,6 @@ BottleCRM Mobile is designed to streamline your sales and customer management pr
 
 <div align="center">
 
-[![Get it on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=io.bottlecrm)
 
 *Package ID: `io.bottlecrm`*
 
@@ -90,7 +90,7 @@ BottleCRM Mobile is designed to streamline your sales and customer management pr
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/bottlecrm_mobile_v2.git
+   git clone https://github.com/correahumberto98/CRM.git
    cd bottlecrm_mobile_v2
    ```
 
@@ -136,7 +136,7 @@ BottleCRM Mobile is designed to streamline your sales and customer management pr
 #### Environment Configuration
 With no build flags, the app switches on build mode:
 - **Debug builds**: development API
-- **Release builds**: production API (bottlecrm.io)
+- **Release builds**: your configured HTTPS API (`API_BASE_URL` is required)
 
 Self-hosting points a build at your own server without editing source:
 
@@ -241,7 +241,7 @@ flutter build ios --debug --simulator
 
 The app uses different API endpoints based on build type:
 - **Debug builds**: Development server (ngrok tunnel)
-- **Release builds**: Production API (`https://api.bottlecrm.io`)
+- **Release builds**: Configured HTTPS API (`API_BASE_URL` is required)
 
 Build configurations are managed in:
 - `lib/config/api_config.dart` - API endpoint configuration
@@ -335,7 +335,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
 ```
 
 With no `API_BASE_URL`, the host comes from `kDebugMode`: the development server
-in debug, `https://api.bottlecrm.io` in release. See
+in debug; release requires an explicit HTTPS `API_BASE_URL`. See
 [Environment Configuration](#environment-configuration) above for the release
 build flags and the plain-HTTP rule.
 
@@ -562,8 +562,8 @@ SOFTWARE.
 ## 🌟 Support
 
 - ** Documentation**: [CLAUDE.md](CLAUDE.md) for detailed architecture information
-- **🐛 Issues**: [GitHub Issues](https://github.com/your-username/bottlecrm_mobile_v2/issues) for bug reports
-- **💬 Discussions**: [GitHub Discussions](https://github.com/your-username/bottlecrm_mobile_v2/discussions) for questions
+- **🐛 Issues**: [GitHub Issues](https://github.com/correahumberto98/CRM/issues) for bug reports
+- **💬 Discussions**: [GitHub Discussions](https://github.com/correahumberto98/CRM/discussions) for questions
 - **🔥 Firebase Setup**: [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for Firebase configuration
 
 ---

@@ -1,3 +1,4 @@
+from common.rbac import calendar_scoped, permitted
 from datetime import datetime, time, timedelta
 from django.db.models import Q, F, Value, ExpressionWrapper, DateField, DurationField, IntegerField
 from django.db.models.functions import Cast
@@ -44,6 +45,7 @@ class TodaySummaryView(APIView):
         deals = Opportunity.objects.filter(org=org, is_active=True, closed_on__lte=today).exclude(stage__in=['CLOSED_WON', 'CLOSED_LOST'])
         tickets = Case.objects.filter(org=org, is_active=True, due_at__lt=end).exclude(status__in=['Resolved','Closed','Rejected','Duplicate'])
         events = SalesAppointment.objects.filter(org=org, cancelled_at__isnull=True, starts_at__lt=end, ends_at__gt=start)
+        events = calendar_scoped(events,request.profile)
         if selected:
             def mine(rows):
                 return rows.filter(Q(assigned_to=selected) | Q(assigned_to__isnull=True, created_by=selected.user)).distinct()
@@ -56,6 +58,7 @@ class TodaySummaryView(APIView):
         agenda = []
         for event in events.select_related('contact', 'company', 'host__user').order_by('starts_at','pk')[:20]:
             attendee = event.contact or event.company
+            if attendee is not None and not permitted(request.profile,attendee): attendee = None
             attendee_type = 'contact' if event.contact_id else 'company'
             agenda.append({'id':f'appointment:{event.pk}', 'type':'appointment', 'title':event.title, 'start':event.starts_at.isoformat(), 'end':event.ends_at.isoformat(), 'host':event.host.user.name or event.host.user.email, 'hostId':str(event.host_id), 'notes':event.internal_notes, 'attendee':{'id':str(attendee.pk), 'name':attendee.name, 'type':attendee_type} if attendee else None, 'phone':attendee.phone if attendee else '', 'email':attendee.email if attendee else '', 'language':attendee.language if attendee else ''})
         return Response({

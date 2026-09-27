@@ -13,7 +13,7 @@ import '../../widgets/common/menu_row.dart';
 
 /// Help, in two tiers. See the web page at `routes/(app)/help/+page.svelte`.
 ///
-/// The queue of tickets with the BottleCRM team is an enterprise feature, so a
+/// The queue of tickets with the High Demand Media CRM team is an enterprise feature, so a
 /// community deployment has none and the provider raises [SupportUnavailable].
 /// That is not an error state: it is the whole of what this deployment can
 /// offer, so the screen shows the self-serve routes and how to reach a person.
@@ -193,7 +193,7 @@ class _EmptyState extends StatelessWidget {
       ),
       const SizedBox(height: 7),
       Text(
-        'Open a ticket when you need help with BottleCRM. Replies and status changes stay attached to it.',
+        'Open a ticket when you need help with High Demand Media CRM. Replies and status changes stay attached to it.',
         textAlign: TextAlign.center,
         style: AppTypography.body.copyWith(color: AppColors.textSecondary),
       ),
@@ -201,12 +201,12 @@ class _EmptyState extends StatelessWidget {
   );
 }
 
-/// What Help is on a deployment with no BottleCRM support queue.
+/// What Help is on a deployment with no High Demand Media CRM support queue.
 class _SelfServeHelp extends StatelessWidget {
   const _SelfServeHelp();
 
-  static const _issues = 'https://github.com/django-crm/Django-CRM/issues';
-  static const _email = 'mailto:support@bottlecrm.io';
+  static const _issues = 'mailto:info@highdemandmedia.com?subject=CRM%20bug%20report';
+  static const _email = 'mailto:info@highdemandmedia.com';
 
   Future<void> _open(BuildContext context, String url) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -249,13 +249,12 @@ class _SelfServeHelp extends StatelessWidget {
         icon: LucideIcons.bug,
         label: 'Report a bug',
         description:
-            'Public issue tracker, fastest route for anything '
-            'reproducible',
+            'Send a bug report to High Demand Media',
         onTap: () => _open(context, _issues),
       ),
       MenuRow(
         icon: LucideIcons.mail,
-        label: 'Email support@bottlecrm.io',
+        label: 'Email info@highdemandmedia.com',
         description:
             'For anything involving your data, billing or an account '
             'you cannot get into',

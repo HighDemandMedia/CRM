@@ -41,6 +41,7 @@ class SecurityAuditLog(BaseModel):
         ("TOKEN_REFRESH", "Token Refresh"),
         ("TOKEN_REVOKED", "Token Revoked"),
         ("PERMISSION_DENIED", "Permission Denied"),
+        ("PERMISSION_SET_CHANGED", "Permission Set Changed"),
         ("CROSS_ORG_ATTEMPT", "Cross-Org Access Attempt"),
         ("API_KEY_USED", "API Key Used"),
         ("API_KEY_INVALID", "Invalid API Key"),

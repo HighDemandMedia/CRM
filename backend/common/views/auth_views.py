@@ -423,6 +423,11 @@ class OrgAwareTokenRefreshView(APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
+            from rest_framework_simplejwt.settings import api_settings
+            from rest_framework_simplejwt.utils import get_md5_hash_password
+            if api_settings.CHECK_REVOKE_TOKEN and token.get(api_settings.REVOKE_TOKEN_CLAIM) != get_md5_hash_password(user.password):
+                return Response({"error": "Password changed. Please sign in again."}, status=401)
+
             # If token has org context, validate membership
             org = None
             profile = None
@@ -454,6 +459,8 @@ class OrgAwareTokenRefreshView(APIView):
             with transaction.atomic():
                 token.blacklist()
                 new_token = OrgAwareRefreshToken.for_user_and_org(user, org, profile)
+                if token.get("password_reset_until", 0) > timezone.now().timestamp():
+                    new_token["password_reset_until"] = token["password_reset_until"]
 
             audit_log.token_refresh(user, org, request)
 
@@ -673,6 +680,8 @@ class OrgSwitchView(APIView):
             token = OrgAwareRefreshToken.for_user_and_org(
                 request.user, profile.org, profile
             )
+            if request.auth and request.auth.get("password_reset_until", 0) > timezone.now().timestamp():
+                token["password_reset_until"] = request.auth["password_reset_until"]
 
         # Audit log the org switch
         audit_log.org_switch(request.user, from_org, profile.org, request)
@@ -861,6 +870,7 @@ class MagicLinkVerifyView(APIView):
         else:
             token = OrgAwareRefreshToken.for_user_and_org(user, None)
 
+        token["password_reset_until"] = int(timezone.now().timestamp()) + 600
         audit_log.login_success(user, default_org, request)
 
         user_serializer = serializer.UserDetailSerializer(user)
@@ -1002,6 +1012,7 @@ class MagicLinkVerifyCodeView(APIView):
 
         token = OrgAwareRefreshToken.for_user_and_org(user, default_org, profile)
 
+        token["password_reset_until"] = int(timezone.now().timestamp()) + 600
         audit_log.login_success(user, default_org, request)
 
         user_serializer = serializer.UserDetailSerializer(user)

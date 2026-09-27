@@ -60,7 +60,7 @@
    */
 
   /** @type {Props} */
-  let { user = {}, org_name = 'BottleCRM', org_settings = {} } = $props();
+  let { user = {}, org_name = 'High Demand Media CRM', org_settings = {} } = $props();
 
   // Tier badge. Hidden when JWT doesn't carry one (spec §8 "No tier in JWT")
   const tier = $derived(org_settings?.tier ?? null);
@@ -1197,40 +1197,7 @@
 
   <Sidebar.Footer class="border-t border-[color:var(--sidebar-border)] px-2 py-2">
     <Sidebar.Menu class="space-y-px">
-      <!-- Download mobile app -->
-      <Sidebar.MenuItem>
-        <Sidebar.MenuButton
-          tooltipContent="Download mobile app"
-          class="h-[30px] rounded-md pr-[10px] pl-[18px] text-[color:var(--sidebar-muted)] transition-colors duration-150 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:rounded-md
-            group-data-[collapsible=icon]:px-0 hover:bg-[color:var(--sidebar-accent)] hover:text-[color:var(--sidebar-foreground)]"
-        >
-          {#snippet child({ props })}
-            <a
-              {...props}
-              href="https://play.google.com/store/apps/details?id=io.bottlecrm&hl=en"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span class="relative inline-flex shrink-0">
-                <Smartphone
-                  class="size-[15px] text-[color:var(--sidebar-subtle)]"
-                  strokeWidth={1.6}
-                  aria-hidden="true"
-                />
-                <span class="pointer-events-none absolute -top-0.5 -right-0.5 inline-flex size-1.5">
-                  <span
-                    class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
-                  ></span>
-                  <span class="relative inline-flex size-1.5 rounded-full bg-emerald-500"></span>
-                </span>
-              </span>
-              <span class="flex-1 text-[13px] font-medium group-data-[collapsible=icon]:hidden">
-                Download app
-              </span>
-            </a>
-          {/snippet}
-        </Sidebar.MenuButton>
-      </Sidebar.MenuItem>
+
 
       <!-- Collapse/Expand Toggle -->
       <Sidebar.MenuItem>

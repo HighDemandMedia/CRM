@@ -1,4 +1,6 @@
 <script>
+  import { page } from '$app/state';
+  import { can, recordModule } from '$lib/v2/permissions.js';
   import { enhance } from '$app/forms';
   import { resolve } from '$app/paths';
   import { Paperclip, FileText } from '@lucide/svelte';
@@ -9,13 +11,13 @@
   let fileError = $state('');
   let uploadStatus = $state('');
   /** @type {HTMLInputElement} */
-  let fileInput;
+  let fileInput = $state();
 </script>
 
 <div class="attachment-section">
   <header class="association-heading">
     <h2>Attachments</h2>
-    <form
+    {#if !recordModule(page.url.pathname) || can(page.data.permissions,recordModule(page.url.pathname),'attachments')}<form
       method="POST"
       {action}
       enctype="multipart/form-data"
@@ -59,7 +61,7 @@
       >
         <Paperclip size={16} />
       </button>
-    </form>
+    </form>{/if}
   </header>
   {#if fileBusy || uploadStatus}<p class="v2-sub" role="status">
       {fileBusy ? `Uploading ${fileName}…` : uploadStatus}

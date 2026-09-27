@@ -1,3 +1,4 @@
+import '../../config/api_config.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -302,13 +303,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           TextSpan(
             text: 'Terms',
             style: linkStyle,
-            recognizer: _recognizerFor('https://bottlecrm.io/terms-of-service'),
+            recognizer: ApiConfig.marketingSite.isEmpty ? null : _recognizerFor('${ApiConfig.marketingSite}/terms-of-service'),
           ),
           const TextSpan(text: ' and '),
           TextSpan(
             text: 'Privacy Policy',
             style: linkStyle,
-            recognizer: _recognizerFor('https://bottlecrm.io/privacy-policy'),
+            recognizer: ApiConfig.marketingSite.isEmpty ? null : _recognizerFor('${ApiConfig.marketingSite}/privacy-policy'),
           ),
         ],
       ),

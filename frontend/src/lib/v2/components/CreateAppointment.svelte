@@ -3,6 +3,7 @@
   let unavailable = $state(true);
   let conflicting = $state(false),
     availabilityRefresh = $state(0);
+  import { page } from '$app/state';
   import { resolve } from '$app/paths';
   import { enhance } from '$app/forms';
   const dealSources = [
@@ -20,7 +21,9 @@
     dealSource = $state('');
   import { dateKey } from '$lib/v2/calendar.js';
   /** @type {{hosts:any[],defaultHost?:string|null,selected:Date,onCreated:()=>void, action?:string, defaultAttendee?:{id:string,name:string,type:string}}} */
-  let { hosts, defaultHost, selected, onCreated, action = '?/create', defaultAttendee } = $props();
+  let { hosts: allHosts, defaultHost, selected, onCreated, action = '?/create', defaultAttendee } = $props();
+  let hosts = $derived(allHosts.filter(person => page.data.permissions?.calendar_host_ids?.includes(person.id)));
+  let canCreateDeal = $derived(page.data.permissions?.rules?.deals?.create === true && page.data.permissions?.rules?.deals?.associations !== 'none');
   /** @type {HTMLDialogElement} */
   let dialog;
   /** @type {HTMLDialogElement} */
@@ -125,6 +128,7 @@
   });
 </script>
 
+{#if page.data.permissions?.rules?.calendar?.create === true}
 <button
   class="v2-btn v2-btn-primary"
   onclick={() => {
@@ -135,13 +139,14 @@
     }
     host = defaultHost || hosts[0]?.id || '';
     error = '';
-    createDeal = true;
+    createDeal = canCreateDeal;
     dealName = external ? `${external.name} - Deal` : '';
     dealSource = '';
     open = true;
     dialog.showModal();
   }}>Schedule event</button
 >
+{/if}
 <dialog
   onclose={() => {
     open = false;
@@ -329,7 +334,7 @@
             bind:value={notes}></textarea></label
         >
         {#if external}<label class="create-deal-toggle"
-          ><input type="checkbox" name="create_deal" bind:checked={createDeal} />Create a deal for
+          ><input type="checkbox" name="create_deal" disabled={!canCreateDeal} bind:checked={createDeal} />Create a deal for
           this event</label
         >
         {/if}

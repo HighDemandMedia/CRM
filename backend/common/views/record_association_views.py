@@ -1,3 +1,4 @@
+from common.rbac import configured, require_record
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -20,7 +21,7 @@ class RecordAssociationView(APIView):
         if kind not in MODELS:
             raise serializers.ValidationError('Invalid record type.')
         rows=MODELS[kind].objects.filter(org=self.request.profile.org,is_active=True)
-        if not is_org_admin(self.request.profile):
+        if not configured(self.request.profile) and not is_org_admin(self.request.profile):
             rows=rows.filter(Q(assigned_to=self.request.profile)|Q(created_by=self.request.user)).distinct()
         return rows
 
@@ -48,9 +49,11 @@ class RecordAssociationView(APIView):
     def post(self,request,kind,pk):
         target_kind=request.data.get('kind')
         parent=self.context(kind,pk,target_kind)
+        require_record(request.profile,parent,'associations')
         operation=request.data.get('operation')
         if operation not in ('add','remove'): raise serializers.ValidationError('Invalid action.')
         target=get_object_or_404(self.records(target_kind),pk=serializers.UUIDField().run_validation(request.data.get('target')))
+        require_record(request.profile,target,'associations')
         if target_kind=='contact':
             assert_contact_access(request.profile,target)
             target=Contact.objects.select_for_update().get(pk=target.pk)

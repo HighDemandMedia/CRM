@@ -1,3 +1,4 @@
+from common.rbac import activity_scoped
 from datetime import timedelta
 
 from django.db.models import DecimalField, F, Q, Sum
@@ -315,7 +316,7 @@ class ApiHomeView(APIView):
 
         # Include recent activities (avoid separate API call)
         activities = (
-            Activity.objects.filter(org=org)
+            activity_scoped(Activity.objects.all(),request.profile)
             .select_related("user", "user__user")
             .order_by("-created_at")[:10]
         )
@@ -651,7 +652,7 @@ class ActivityListView(APIView):
     Returns the last 10 activities by default
     """
 
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasOrgContext)
 
     @extend_schema(
         tags=["activities"],
@@ -684,7 +685,7 @@ class ActivityListView(APIView):
         entity_type = request.query_params.get("entity_type", None)
 
         # Query activities for this organization
-        queryset = Activity.objects.filter(org=request.profile.org)
+        queryset = activity_scoped(Activity.objects.all(),request.profile)
 
         # Filter by entity type if specified
         if entity_type:

@@ -177,20 +177,20 @@
       </section>{/if}
     {#if event.canManage !== false}<div class="event-actions">
       {#if mode === 'details'}
-        <button
+        {#if event.canReschedule !== false}<button
           class="v2-btn"
           onclick={() => {
             mode = 'reschedule';
             failure = '';
           }}>Reschedule</button
-        >
-        <button
+        >{/if}
+        {#if event.canCancel !== false}<button
           class="v2-btn danger"
           onclick={() => {
             mode = 'cancel';
             failure = '';
           }}>Cancel event</button
-        >
+        >{/if}
       {:else if mode === 'reschedule'}
         <form
           onsubmit={(submit) => {

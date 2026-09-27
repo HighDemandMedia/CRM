@@ -1,4 +1,4 @@
-from common.rbac import configured
+from common.rbac import configured, require_record
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -46,6 +46,7 @@ class ContactAssociationView(ContactDetailView):
             raise serializers.ValidationError('Invalid association action.')
         target_id = serializers.UUIDField().run_validation(request.data.get('target'))
         target = get_object_or_404(self.targets(kind), pk=target_id)
+        require_record(request.profile,target,'associations')
         if action == 'add':
             target.contacts.add(contact)
         else:

@@ -3,130 +3,218 @@
   import '../../../app.css';
   import '$lib/v2/styles/v2.css';
   import { enhance } from '$app/forms';
-
+  import { ArrowLeft, Check } from '@lucide/svelte';
   import imgGoogle from '$lib/assets/images/google.svg';
-  import { Mail, Check } from '@lucide/svelte';
-
-  let { data = {} } = $props();
-
-  let isLoading = $state(false);
-  let email = $state('');
-  let magicLinkSent = $state(false);
-  let isSendingLink = $state(false);
-  let magicLinkError = $state('');
-
-  function handleGoogleLogin() {
-    isLoading = true;
-  }
-
-  function handleMagicLink() {
-    isSendingLink = true;
-    magicLinkError = '';
-    return async ({ result }) => {
-      isSendingLink = false;
-      if (result?.type === 'success') {
-        magicLinkSent = true;
-      } else if (result?.type === 'failure') {
-        magicLinkError = result.data?.error || 'Something went wrong. Please try again.';
-      } else if (!result) {
-        magicLinkError = 'Something went wrong. Please try again.';
-      }
-    };
-  }
+  let { data = {}, form } = $props();
+  let busy = $state(false);
+  let recoveryBusy = $state(false);
+  const isRecovery = $derived(Boolean(data['recovery'] || form?.recovery));
 </script>
 
 <svelte:head>
-  <title>Sign in · High Demand Media CRM</title>
-  <meta
-    name="description"
-    content="Sign in to High Demand Media CRM to manage your contacts, deals, and grow your business."
-  />
+  <title>{isRecovery ? 'Recover access' : 'Sign in'} · High Demand Media CRM</title>
 </svelte:head>
-
 <div class="v2-root v2-auth">
   <div class="v2-auth-box">
     <a href={resolve('/')} class="v2-auth-brand">
-      <img src={`${base}/brand/hdm-symbol.png`} alt="" />
-      <b>High Demand Media CRM</b>
+      <img src={`${base}/brand/hdm-symbol.png`} alt="" /><b>High Demand Media CRM</b>
     </a>
-
     <div class="v2-auth-card">
-      <div class="v2-auth-head">
-        <h1>Sign in</h1>
-        <p>Welcome back. Choose how you'd like to continue.</p>
-      </div>
-
-      <!-- Primary path. Google's mark keeps a white tile so it stays legible on
-           Ember; the whole button is the one Ember action on this screen. -->
-      {#if data['google_url']}<a
-          href={data['google_url']}
-          rel="external"
-          onclick={handleGoogleLogin}
-          class="v2-btn v2-btn-primary v2-btn-block"
-          style:pointer-events={isLoading ? 'none' : null}
-          style:opacity={isLoading ? '0.85' : null}
-        >
-          {#if isLoading}
-            <span class="v2-spin"></span>
-            <span>Redirecting…</span>
-          {:else}
-            <img src={imgGoogle} alt="" class="v2-auth-gicon" />
-            <span>Continue with Google</span>
-          {/if}
-        </a>
-
-        <div class="v2-auth-divider">or</div>{/if}
-
-      {#if data['error']}<p role="alert" class="v2-error">
-          Sign-in could not be completed. Please try again.
-        </p>{/if}
-      {#if magicLinkSent}
-        <div class="v2-auth-note v2-auth-note-ok">
-          <Check />
-          <div>
-            <b>Check your email.</b>
-            <div style="font-weight:400;margin-top:2px">
-              We sent a sign-in link. It expires in 10 minutes.
-            </div>
-          </div>
+      {#if isRecovery}
+        <a href={resolve('/login')} class="back-link"><ArrowLeft size={16} />Back to sign in</a>
+        <div class="v2-auth-head">
+          <h1>{form?.success ? 'Check your email' : 'Forgot your password?'}</h1>
+          <p>
+            {form?.success
+              ? 'Your next step is in your inbox.'
+              : 'Enter your email to receive a secure sign-in link.'}
+          </p>
         </div>
+        {#if form?.success}
+          <div class="recovery-confirmation" role="status">
+            <Check size={18} />
+            <p>
+              If an account exists for <strong>{form.email}</strong>, we’ll send a link to recover
+              access.
+            </p>
+          </div>
+          <p class="recovery-guidance">After signing in, choose a new password in Profile.</p>
+          <a href={resolve('/login')} class="v2-btn v2-btn-primary v2-btn-block">Back to sign in</a>
+          <a href={`${resolve('/login')}?recover=1`} class="recovery-retry" data-sveltekit-reload
+            >Use a different email</a
+          >
+        {:else}
+          <form
+            method="POST"
+            action="?/recovery"
+            use:enhance={() => {
+              recoveryBusy = true;
+              return async ({ update }) => {
+                try {
+                  await update({ reset: false });
+                } finally {
+                  recoveryBusy = false;
+                }
+              };
+            }}
+          >
+            <fieldset disabled={recoveryBusy}>
+              <label for="recovery-email"
+                >Email
+                <input
+                  id="recovery-email"
+                  class="v2-input"
+                  type="email"
+                  name="email"
+                  required
+                  autocomplete="email"
+                  placeholder="you@company.com"
+                  value={form?.email || ''}
+                />
+              </label>
+              {#if form?.error}<p class="v2-error" role="alert">{form.error}</p>{/if}
+              <button class="v2-btn v2-btn-primary v2-btn-block"
+                >{recoveryBusy ? 'Sending…' : 'Send recovery link'}</button
+              >
+            </fieldset>
+          </form>
+        {/if}
       {:else}
+        <div class="v2-auth-head">
+          <h1>Welcome back</h1>
+          <p>Sign in to your CRM.</p>
+        </div>
         <form
           method="POST"
-          use:enhance={handleMagicLink}
-          style="display:flex;flex-direction:column;gap:9px"
+          action="?/password"
+          use:enhance={() => {
+            busy = true;
+            return async ({ update }) => {
+              try {
+                await update({ reset: false });
+              } finally {
+                busy = false;
+              }
+            };
+          }}
         >
-          <label for="email" class="v2-sr-only">Email address</label>
-          <input
-            id="email"
-            type="email"
-            name="email"
-            class="v2-input"
-            placeholder="you@company.com"
-            required
-            bind:value={email}
-            disabled={isSendingLink}
-          />
-          <button type="submit" class="v2-btn v2-btn-block" disabled={isSendingLink}>
-            {#if isSendingLink}
-              <span class="v2-spin"></span>
-              <span>Sending…</span>
-            {:else}
-              <Mail size={15} />
-              <span>Continue with email</span>
-            {/if}
-          </button>
+          <fieldset disabled={busy}>
+            <label for="login-email"
+              >Email
+              <input
+                id="login-email"
+                class="v2-input"
+                name="email"
+                type="email"
+                required
+                autocomplete="username"
+                placeholder="you@company.com"
+                value={form?.email || ''}
+              />
+            </label>
+            <div class="password-field">
+              <div class="password-label">
+                <label for="login-password">Password</label><a
+                  href={`${resolve('/login')}?recover=1`}>Forgot password?</a
+                >
+              </div>
+              <input
+                id="login-password"
+                class="v2-input"
+                name="password"
+                type="password"
+                required
+                maxlength="128"
+                autocomplete="current-password"
+              />
+            </div>
+            {#if form?.error || data['error']}<p class="v2-error" role="alert">
+                {form?.error || 'Sign-in could not be completed. Please try again.'}
+              </p>{/if}
+            <button class="v2-btn v2-btn-primary v2-btn-block"
+              >{busy ? 'Signing in…' : 'Sign in'}</button
+            >
+          </fieldset>
         </form>
-        {#if magicLinkError}
-          <div class="v2-auth-note v2-auth-note-bad" style="margin-top:11px">
-            <span>{magicLinkError}</span>
-          </div>
+        {#if data['google_url']}
+          <div class="v2-auth-divider">or</div>
+          <a href={data['google_url']} rel="external" class="v2-btn v2-btn-block"
+            ><img src={imgGoogle} alt="" class="v2-auth-gicon" />Continue with Google</a
+          >
         {/if}
       {/if}
     </div>
-
-    <p class="v2-sub" style="text-align:center;margin:14px 0 0">
-      New here? Enter your email above to get started.
-    </p>
   </div>
 </div>
+
+<style>
+  form,
+  fieldset {
+    display: grid;
+    gap: 20px;
+  }
+  fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+  label,
+  .password-field {
+    display: grid;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .password-label {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .password-label a,
+  .back-link,
+  .recovery-retry {
+    font-size: 12px;
+    color: var(--v2-slate);
+  }
+  .password-label a:hover,
+  .back-link:hover,
+  .recovery-retry:hover {
+    text-decoration: underline;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 28px;
+  }
+  .recovery-confirmation {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 16px;
+    border-radius: 10px;
+    background: var(--v2-paper);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .recovery-confirmation :global(svg) {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .recovery-confirmation p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .recovery-guidance {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--v2-slate);
+    margin: 16px 0 24px;
+  }
+  .recovery-retry {
+    display: block;
+    text-align: center;
+    margin-top: 18px;
+  }
+</style>

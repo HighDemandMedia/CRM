@@ -5,6 +5,8 @@ import { listAccounts } from '$lib/server/v2/accounts.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ cookies, url }) {
+  const permissions = await apiRequest('/permissions/me/', {}, {cookies});
+  if (!permissions.rules?.calendar?.view || permissions.rules.calendar.view === 'none') error(403,'Your permission set does not include Calendar.');
   const start = url.searchParams.get('start'),
     end = url.searchParams.get('end');
   const from = Date.parse(start ?? ''),
@@ -40,6 +42,7 @@ export async function GET({ cookies, url }) {
           language: record.language || contact?.language || '',
           phone: record.phone || contact?.phone || '',
           email: record.email || contact?.email || '',
+          canManage: permissions.rules[type === 'company' ? 'companies' : 'contacts'].edit !== 'none',
           href: `/${type === 'contact' ? 'contacts' : 'accounts'}/${record.id}`
         });
       }
@@ -49,8 +52,8 @@ export async function GET({ cookies, url }) {
     return events;
   }
   const [contacts, companies, appointments] = await Promise.all([
-    collect(listContacts, 'contact'),
-    collect(listAccounts, 'company'),
+    permissions.rules.contacts.view !== 'none' ? collect(listContacts, 'contact') : [],
+    permissions.rules.companies.view !== 'none' ? collect(listAccounts, 'company') : [],
     apiRequest(
       `/sales-appointments/?${new URLSearchParams({ start: new Date(from).toISOString(), end: new Date(to).toISOString() })}`,
       {},
@@ -84,6 +87,8 @@ export async function GET({ cookies, url }) {
           attendee: a.attendee,
           attendees: a.attendees,
           canManage: a.can_manage,
+          canReschedule: a.can_reschedule,
+          canCancel: a.can_cancel,
           contactName: a.attendee?.name ?? '',
           language: a.attendee?.language ?? '',
           phone: a.attendee?.phone ?? '',

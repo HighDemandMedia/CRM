@@ -23,7 +23,7 @@ from common.last_activity import with_last_activity
 from common.models import Profile, SalesAppointment
 from common.permissions import HasOrgContext, is_org_admin
 from common.pipeline_settings import stages_for
-from common.rbac import configured, scope_for, scoped
+from common.rbac import calendar_scoped, configured, require, scope_for, scoped
 from contacts.models import Contact
 from opportunity.models import Opportunity
 from tasks.models import Task
@@ -119,7 +119,8 @@ PAGE_SIZE = 20
 
 def available(profile, key):
     return (
-        key == "events" or not configured(profile) or scope_for(profile, key) != "none"
+        not configured(profile)
+        or scope_for(profile, "calendar" if key == "events" else key) != "none"
     )
 
 
@@ -128,14 +129,13 @@ def base_records(profile, key):
     # Build one outer row per record; role/owner M2M joins stay in subqueries.
     qs = model._base_manager.filter(org_id=profile.org_id)
     if key == "events":
-        if not is_org_admin(profile):
-            qs = qs.filter(
-                pk__in=qs.filter(
-                    Q(host=profile)
-                    | Q(created_by=profile.user)
-                    | Q(attendee_users=profile)
-                ).values("pk")
-            )
+        qs = calendar_scoped(
+            qs,
+            profile,
+            limit=scope_for(profile, "reports", "view")
+            if configured(profile)
+            else None,
+        )
         return qs.annotate(
             event_status=SQLCase(
                 When(cancelled_at__isnull=False, then=Value("cancelled")),
@@ -146,7 +146,11 @@ def base_records(profile, key):
     if key in ("contacts", "tickets"):
         qs = qs.filter(merged_at__isnull=True)
     if configured(profile):
-        qs = qs.filter(pk__in=scoped(qs, profile).values("pk"))
+        qs = qs.filter(
+            pk__in=scoped(
+                qs, profile, limit=scope_for(profile, "reports", "view")
+            ).values("pk")
+        )
     elif not is_org_admin(profile):
         qs = qs.filter(
             pk__in=qs.filter(
@@ -202,6 +206,7 @@ class CRMReportView(APIView):
 
     def get(self, request):
         profile = request.profile
+        require(profile, "reports", "view")
         org = profile.org
         params = request.query_params
         objects = [
@@ -214,6 +219,8 @@ class CRMReportView(APIView):
             for key, cfg in CONFIG.items()
             if available(profile, key)
         ]
+        if not objects:
+            raise PermissionDenied("Your permission set has no reportable objects.")
         key = params.get("object") or objects[0]["key"]
         if key not in CONFIG:
             raise ValidationError("Choose a report object.")
@@ -286,11 +293,15 @@ class CRMReportView(APIView):
             if state not in {s["key"] for s in states}:
                 raise ValidationError("Choose an available stage or status.")
             qs = qs.filter(**{state_field: state})
+        object_module = "calendar" if key == "events" else key
         export_allowed = is_org_admin(profile) or (
-            key != "events"
-            and configured(profile)
-            and scope_for(profile, key, "export") == scope_for(profile, key, "view")
-            and scope_for(profile, key, "export") != "none"
+            configured(profile)
+            and scope_for(profile, "reports", "export") != "none"
+            and scope_for(profile, "reports", "export")
+            == scope_for(profile, "reports", "view")
+            and scope_for(profile, object_module, "export")
+            == scope_for(profile, object_module, "view")
+            and scope_for(profile, object_module, "export") != "none"
         )
         if params.get("download") == "csv" and not export_allowed:
             raise PermissionDenied(

@@ -1,4 +1,5 @@
 <script>
+  import { can } from '$lib/v2/permissions.js';
   import { showStageRequirements } from "$lib/components/pipelines/feedback.js";
   import { configuredStages, configuredLabel } from "$lib/v2/pipeline-config.js";
   import { resolve } from '$app/paths';
@@ -82,7 +83,7 @@
     <span class="v2-num" style="color:var(--v2-rust)">{count(totals.overdue)}</span> overdue
   {/snippet}
   {#snippet actions()}
-    <a class="v2-btn v2-btn-primary" href={resolve('/tasks/new')}><Plus />New task</a>
+    {#if can(page.data.permissions, 'tasks', 'create')}<a class="v2-btn v2-btn-primary" href={resolve('/tasks/new')}><Plus />New task</a>{/if}
   {/snippet}
 </PageHeader>
 
@@ -135,7 +136,7 @@
             {#each tasks.filter((task) => task.status === status) as task (task.id)}
               <article
                 class="pipeline-card"
-                draggable={!moving}
+                draggable={!moving && can(page.data.permissions, 'tasks', 'stage')}
                 ondragstart={(event) => {
                   dragged = task.id;
                   event.dataTransfer?.setData('text/plain', task.id);
@@ -184,7 +185,7 @@
     >
       {#snippet icon()}<CircleCheck size={21} />{/snippet}
       {#snippet actions()}
-        <a class="v2-btn v2-btn-primary" href={resolve('/tasks/new')}>New task</a>
+        {#if can(page.data.permissions, 'tasks', 'create')}<a class="v2-btn v2-btn-primary" href={resolve('/tasks/new')}>New task</a>{/if}
         {#if !data.showAll}
           <a class="v2-btn" href={resolve('/tasks?all=1')}>Show completed</a>
         {/if}
@@ -284,7 +285,7 @@
                 {/if}
               </td>
               <td title={t.last_activity_at ? new Date(t.last_activity_at).toLocaleString() : undefined}>{t.last_activity_at ? relativeDays(t.last_activity_at) : '—'}</td>
-              <td class="list-row-actions"><a aria-label={`Edit ${t.title}`} href={resolve(`/tasks/${t.id}/edit`)}>Edit</a></td>
+              <td class="list-row-actions">{#if can(page.data.permissions, 'tasks', 'edit')}<a aria-label={`Edit ${t.title}`} href={resolve(`/tasks/${t.id}/edit`)}>Edit</a>{/if}</td>
             </tr>
           {/each}
         </tbody>

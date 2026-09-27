@@ -10,15 +10,14 @@ class ApiConfig {
   // ==========================================================================
 
   /// Development API URL
-  static const String _developmentUrl = 'https://pc-8004.rcdev.in';
+  static const String _developmentUrl = 'http://10.0.2.2:8000';
 
   /// Production API URL
-  static const String _productionUrl = 'https://api.bottlecrm.io';
 
   /// Public marketing site. Hosts the documents the app has to link to
   /// (`/terms-of-service`, `/privacy-policy`) rather than ship its own copies,
   /// which would drift the moment either is edited.
-  static const String marketingSite = 'https://bottlecrm.io';
+  static const String marketingSite = String.fromEnvironment('MARKETING_SITE');
 
   /// Build-time override, so somebody self-hosting points a build at their own
   /// server without editing this file:
@@ -40,8 +39,7 @@ class ApiConfig {
   /// whether an ID token is acceptable.
   static const String googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
-    defaultValue:
-        '1072513761792-p59rct7b1c3go7l58e51r3geuqff2tfl.apps.googleusercontent.com',
+
   );
 
   /// The API host this build talks to.
@@ -59,7 +57,8 @@ class ApiConfig {
     required bool isDebug,
   }) {
     if (override.isEmpty) {
-      return isDebug ? _developmentUrl : _productionUrl;
+      if (isDebug) return _developmentUrl;
+      throw StateError('Set API_BASE_URL to your own HTTPS server for a release build.');
     }
     // A trailing slash would produce `https://host//api`, and the resulting 404
     // on every request says nothing about the cause.

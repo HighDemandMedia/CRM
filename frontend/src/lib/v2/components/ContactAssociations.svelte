@@ -1,4 +1,6 @@
 <script>
+  import { page } from '$app/state';
+  import { can } from '$lib/v2/permissions.js';
   import { Plus, Ellipsis } from '@lucide/svelte';
   import { resolve } from '$app/paths';
   import { deserialize } from '$app/forms';
@@ -17,7 +19,7 @@
           ? 'Tickets'
           : 'Contacts'
   );
-  const editable = $derived(kind !== 'ticket');
+  const editable = $derived(kind !== 'ticket' && can(page.data.permissions,{contact:'contacts',company:'companies',deal:'deals'}[parentKind],'associations'));
   let adding = $state(false),
     search = $state(''),
     results = $state(/** @type {any[]} */ ([])),

@@ -11,7 +11,7 @@
 </script>
 
 <svelte:head>
-  <title>Signing you in · BottleCRM</title>
+  <title>Signing you in · High Demand Media CRM</title>
 </svelte:head>
 
 <div class="v2-root v2-auth">

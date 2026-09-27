@@ -1,4 +1,5 @@
 <script>
+  import { can } from '$lib/v2/permissions.js';
   import { showStageRequirements } from "$lib/components/pipelines/feedback.js";
   import { configuredStages, configuredLabel } from "$lib/v2/pipeline-config.js";
   import '$lib/v2/styles/pipeline.css';
@@ -147,7 +148,9 @@
       }
     };
   }
-  function exportCSV() {
+  async function exportCSV() {
+    const response = await fetch(resolve('/tickets/export-check'));
+    if (!response.ok) { error = 'Your permission set does not allow exporting tickets.'; return; }
     const safe = (v) => {
       let s = String(v ?? '');
       if (/^[=+@\-\t\r]/.test(s)) s = "'" + s;
@@ -174,12 +177,12 @@
   ><AdvancedQueue {data} />{:else}
   <PageHeader title="Tickets"
     >{#snippet sub()}{data.totals.count}
-      {data.totals.count === 1 ? 'ticket' : 'tickets'}{/snippet}{#snippet actions()}<button
+      {data.totals.count === 1 ? 'ticket' : 'tickets'}{/snippet}{#snippet actions()}{#if can(page.data.permissions, 'tickets', 'export')}<button
         class="v2-btn"
         onclick={exportCSV}><Download size={14} />Export CSV</button
-      ><a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}
+      >{/if}{#if can(page.data.permissions, 'tickets', 'create')}<a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}
         ><Plus size={14} />New ticket</a
-      >{/snippet}</PageHeader
+      >{/if}{/snippet}</PageHeader
   >
   <div class="workspace">
     <div class="filters">
@@ -274,7 +277,7 @@
             <div class="pipeline-cards">
               {#each rows.filter((t) => t.status === status) as ticket}<article
                   class="pipeline-card"
-                  draggable={!moving}
+                  draggable={!moving && can(page.data.permissions, 'tickets', 'stage')}
                   ondragstart={(e) => {
                     dragging = ticket.id;
                     e.dataTransfer?.setData('text/plain', ticket.id);
@@ -356,7 +359,7 @@
                         class="list-badge"
                         data-priority={ticket.priority}>{value(ticket, key)}</span
                       >{:else}{value(ticket, key)}{/if}</td
-                  >{/each}<td class="list-row-actions"><a aria-label={`Edit ${ticket.name}`} href={resolve(`/tickets/${ticket.id}/edit`)}>Edit</a></td></tr
+                  >{/each}<td class="list-row-actions">{#if can(page.data.permissions, 'tickets', 'edit')}<a aria-label={`Edit ${ticket.name}`} href={resolve(`/tickets/${ticket.id}/edit`)}>Edit</a>{/if}</td></tr
               >{:else}<tr><td colspan={columns.length + 1}>No tickets found.</td></tr>{/each}</tbody
           >
         </table>

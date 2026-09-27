@@ -51,9 +51,8 @@ def load(**overrides):
     """Import ``crm.server_settings`` fresh under a controlled environment."""
     env = {**BASE_ENV, **overrides}
     with mock.patch.dict(os.environ, env, clear=False):
-        with mock.patch("sentry_sdk.init"):
-            module = importlib.import_module("crm.server_settings")
-            return importlib.reload(module)
+        module = importlib.import_module("crm.server_settings")
+        return importlib.reload(module)
 
 
 def test_default_storage_is_s3_via_storages_dict():
@@ -112,6 +111,5 @@ def test_blank_bucket_name_fails_at_startup(blank):
 def test_missing_bucket_name_fails_at_startup():
     with mock.patch.dict(os.environ, BASE_ENV, clear=False):
         os.environ.pop("AWS_BUCKET_NAME", None)
-        with mock.patch("sentry_sdk.init"):
-            with pytest.raises(KeyError):
-                importlib.reload(importlib.import_module("crm.server_settings"))
+        with pytest.raises(KeyError):
+            importlib.reload(importlib.import_module("crm.server_settings"))

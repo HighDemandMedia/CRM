@@ -17,7 +17,6 @@
     Users,
     CircleCheck,
     LifeBuoy,
-    BookOpen,
     Receipt,
     Clock,
     CircleUser,
@@ -60,7 +59,7 @@
     accountId = '',
     collapsed = false,
     counts = {},
-    org = { name: 'BottleCRM' },
+    org = { name: 'High Demand Media CRM' },
     role = 'USER',
     isSuperAdmin = false,
     terminology = undefined,
@@ -137,7 +136,6 @@
         // not separate destinations, so they do not get separate nav entries,
         // one level of navigation, and the tab strip carries the rest.
         { href: '/tickets', label: 'Tickets', icon: LifeBuoy },
-        { href: '/solutions', label: 'Knowledge base', icon: BookOpen },
         { href: '/documents', label: 'Documents', icon: FileText }
       ]
     },
@@ -160,7 +158,7 @@
   let groups = $derived(
     GROUPS.map((group) => ({
       ...group,
-      items: group.items.filter(item => !page.data.demoMode || DEMO_MAIN.includes(item.href)).map((item) =>
+      items: group.items.filter(item => !page.data.demoMode || DEMO_MAIN.includes(item.href)).filter(item => { const module = {'/contacts':'contacts','/accounts':'companies','/pipeline':'deals','/tasks':'tasks','/tickets':'tickets','/calendar':'calendar','/reports':'reports'}[item.href]; return !module || !!page.data.permissions?.rules?.[module]?.view && page.data.permissions.rules[module].view !== 'none'; }).map((item) =>
         item.termKey ? { ...item, label: t(terminology, item.termKey, item.label) } : item
       )
     })).filter((group) => group.items.length > 0)
@@ -235,37 +233,12 @@
       {/if}
     {/each}
 
-    {#if !page.data.demoMode}
-    <div class="v2-nav-foot">
-      <a
-        class="v2-link"
-        href={resolve('/help')}
-        aria-label="Help"
-        title={collapsed ? 'Help · Review' : undefined}
-      >
-        <CircleHelp />
-        <span class="nav-text">Help</span>
-        <span class="review-badge" title="Pending review">Review</span>
-      </a>
-      <!-- The phone app for people on the hosted service. No pulsing dot. A
-         download link is not something that needs you right now, and v2 keeps
-         attention for the things that do. -->
-      <a
-        class="v2-link"
-        href="https://play.google.com/store/apps/details?id=io.bottlecrm&hl=en"
-        aria-label="Download app"
-        title={collapsed ? 'Download app · Review' : undefined}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <Smartphone />
-        <span class="nav-text">Download app</span>
-        <span class="review-badge" title="Pending review">Review</span>
-      </a>
-    </div>
-    {/if}
+
   </div>
   <div class="account-footer">
+    <a class="v2-link" href={resolve('/help')} aria-label="Help" title={collapsed ? 'Help' : undefined} aria-current={isActive('/help',false)?'page':undefined}>
+      <CircleHelp/><span class="nav-text">Help</span>
+    </a>
     {#key accountId + (user.email || '')}<NotificationBell {collapsed}/>{/key}
     <button
       type="button"
@@ -547,9 +520,6 @@
   }
   .v2-nav-group {
     color: #b1aab5;
-  }
-  .v2-nav-foot {
-    border-color: #48434c;
   }
   .v2-link .v2-count {
     color: #c4bdc9;

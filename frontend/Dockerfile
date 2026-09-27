@@ -14,7 +14,6 @@
 #
 #   PUBLIC_DJANGO_API_URL  required. The Django API origin, no trailing /api.
 #   ORIGIN                 required in production. See below.
-#   PUBLIC_SENTRY_DSN      optional. Unset disables Sentry (`enabled: !!dsn`).
 #   PORT                   defaults to 3000. HOST already defaults to 0.0.0.0.
 #
 # ORIGIN is the one that fails quietly. adapter-node compares the Origin header
@@ -29,9 +28,7 @@ RUN corepack enable && corepack prepare pnpm@11.17.0 --activate
 WORKDIR /app
 
 # Manifests only, so this layer caches on the lockfile rather than on source.
-# pnpm-workspace.yaml carries the install settings (onlyBuiltDependencies,
-# allowBuilds) that pnpm 10+ no longer reads from package.json. Without it
-# @sentry/cli's postinstall is silently skipped and its binary never lands.
+# pnpm-workspace.yaml carries dependency security overrides.
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
@@ -49,14 +46,7 @@ COPY . .
 RUN pnpm build
 
 
-# Runtime dependencies only. `build/` is NOT self-contained: SvelteKit keeps
-# instrumentation.server.js external so OpenTelemetry can hook the process
-# before anything else loads, and it imports @sentry/sveltekit by name. Without
-# this stage the server dies at boot on ERR_MODULE_NOT_FOUND.
-#
-# --ignore-scripts because the `prepare` script shells out to svelte-kit, which
-# is a devDependency and therefore absent here. package.json already tolerates
-# that with `|| echo ''`; skipping it outright keeps the failure out of the log.
+# Install runtime dependencies only, without lifecycle scripts.
 FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts
@@ -69,7 +59,7 @@ ENV NODE_ENV=production
 COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/build ./build
 # The server reads its own name and version from here on startup.
-COPY --chown=node:node package.json ./
+COPY --chown=node:node package.json LICENSE ./
 
 # Present in the node images already. The server binds 3000, so it needs no
 # privileged port and no reason to be root.

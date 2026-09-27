@@ -1,4 +1,5 @@
 <script>
+  import { can } from '$lib/v2/permissions.js';
   import ContactActions from '$lib/components/contacts/ContactActions.svelte';
   import { showStageRequirements } from "$lib/components/pipelines/feedback.js";
   import PipelineTotal from '$lib/v2/components/PipelineTotal.svelte';
@@ -467,7 +468,7 @@
         label="Associated deal total (each deal counted once)"
       />{/if}{/snippet}
   {#snippet actions()}
-    <a class="v2-btn v2-btn-primary" href={resolve('/contacts/new')}><Plus />New contact</a>
+    {#if can(page.data.permissions, 'contacts', 'create')}<a class="v2-btn v2-btn-primary" href={resolve('/contacts/new')}><Plus />New contact</a>{/if}
   {/snippet}
 </PageHeader>
 
@@ -596,7 +597,7 @@
     </div>
   </details>
   {#if data.view === 'list'}
-    <a
+    {#if can(page.data.permissions, 'contacts', 'export')}<a
       class="v2-btn"
       data-sveltekit-reload
       href={resolve('/contacts/export') +
@@ -606,7 +607,7 @@
             .filter(([key]) => key !== 'columns')
             .concat([['columns', selected.join(',')]])
         ).toString()}>Export CSV</a
-    >
+    >{/if}
   {/if}
   <div class="view-actions">
     <nav class="view-toggle" aria-label="Contact views">
@@ -674,7 +675,7 @@
                 class:card-dragging={draggedContact === contact.id}
                 class:card-saving={movingContact === contact.id}
                 aria-busy={movingContact === contact.id}
-                draggable={!movingContact}
+                draggable={!movingContact && can(page.data.permissions, 'contacts', 'stage')}
                 ondragstart={(event) => startContactDrag(event, contact.id, stage.value)}
                 ondragend={endContactDrag}
               >

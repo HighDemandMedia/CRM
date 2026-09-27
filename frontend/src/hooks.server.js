@@ -1,5 +1,3 @@
-import { sequence } from '@sveltejs/kit/hooks';
-import * as Sentry from '@sentry/sveltekit';
 /**
  * SvelteKit Server Hooks with JWT Authentication
  *
@@ -21,7 +19,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 /**
  * @typedef {{ default_currency?: string, currency_symbol?: string, default_country?: string|null }} OrgSettingsPayload
- * @typedef {{ org_id?: string, org_name?: string, role?: string, is_super_admin?: boolean, is_demo?: boolean, user_id?: string, user_name?: string, user_email?: string, user_profile_pic?: string, exp?: number, iat?: number, org_settings?: OrgSettingsPayload }} JWTPayload
+ * @typedef {{ org_id?: string, org_name?: string, role?: string, is_super_admin?: boolean, is_demo?: boolean, user_id?: string, hash_password?: string, user_name?: string, user_email?: string, user_profile_pic?: string, exp?: number, iat?: number, org_settings?: OrgSettingsPayload }} JWTPayload
  * @typedef {{ id: string, name: string }} OrgInfo
  * @typedef {{ org: OrgInfo, role?: string }} ProfileInfo
  * @typedef {{ id?: string, organizations?: Array<{ id: string, name: string }> }} UserInfo
@@ -66,7 +64,7 @@ function tokenHasOrgContext(token, orgId) {
  */
 function verifyTokenLocally(accessToken) {
   const payload = decodeJwtPayload(accessToken);
-  if (!payload) return null;
+  if (!payload || !payload.hash_password) return null;
 
   // Check if token is expired
   if (payload.exp && payload.exp * 1000 < Date.now()) {
@@ -173,9 +171,9 @@ async function switchOrg(accessToken, orgId, refreshToken) {
   }
 }
 
-export const handleError = Sentry.handleErrorWithSentry();
 
-export const handle = sequence(Sentry.sentryHandle(), async function _handle({ event, resolve }) {
+
+export const handle = async function handle({ event, resolve }) {
   // Get tokens from cookies
   /** @type {string | undefined} */
   let accessToken = event.cookies.get('jwt_access');
@@ -225,6 +223,12 @@ export const handle = sequence(Sentry.sentryHandle(), async function _handle({ e
         event.cookies.delete('org', { path: '/' });
       }
     }
+  }
+
+  if (!jwtPayload && accessToken) {
+    event.cookies.delete('jwt_access', { path: '/' });
+    event.cookies.delete('jwt_refresh', { path: '/' });
+    event.cookies.delete('org', { path: '/' });
   }
 
   // Set user in locals from JWT payload (no API call needed!)
@@ -323,7 +327,7 @@ export const handle = sequence(Sentry.sentryHandle(), async function _handle({ e
   // endpoints). Without them here the guard redirects every customer who clicks
   // a link to /login, so the portal is unreachable. Server-side token→org
   // resolution + RLS is what actually protects the data (see docs/PORTAL_RLS.md).
-  const PUBLIC_ROUTES = ['/login', '/logout', '/bounce', '/portal', '/csat', '/invite'];
+  const PUBLIC_ROUTES = ['/login', '/register', '/logout', '/bounce', '/portal', '/csat', '/invite'];
 
   // Define semi-protected routes (auth required, but no org)
   const AUTH_ONLY_ROUTES = ['/org'];
@@ -357,4 +361,4 @@ export const handle = sequence(Sentry.sentryHandle(), async function _handle({ e
     throw redirect(303, '/');
   }
   return resolve(event);
-});
+};

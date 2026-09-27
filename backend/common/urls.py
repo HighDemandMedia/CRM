@@ -1,5 +1,8 @@
+from common.views.password_auth_views import PasswordLoginView, PasswordRegisterView, PasswordChangeView
+from common.views.role_views import MyPermissionsView
 from common.views.property_layout_views import PropertyLayoutView
 from common.views.crm_report_views import CRMReportView
+from common.views.help_views import HelpRequestView
 from common.views.pipeline_settings_views import PipelineSettingsView
 from common.views.member_removal_views import MemberRemovalView
 from common.views.role_views import RolesView, RoleDetailView, MemberRoleView, RoleExportCheckView
@@ -73,11 +76,16 @@ app_name = "api_common"
 
 
 urlpatterns = [
+    path("auth/password/login/", PasswordLoginView.as_view()),
+    path("auth/password/register/", PasswordRegisterView.as_view()),
+    path("auth/password/change/", PasswordChangeView.as_view()),
+    path("help/requests/", HelpRequestView.as_view(), name="help_requests"),
     path("reports/crm/", CRMReportView.as_view(), name="crm_reports"),
     path("property-layout/", PropertyLayoutView.as_view()),
     path("pipeline-settings/", PipelineSettingsView.as_view()),
     path("members/<uuid:pk>/remove/", MemberRemovalView.as_view()),
     path("roles/export/<str:module>/", RoleExportCheckView.as_view()),
+    path("permissions/me/", MyPermissionsView.as_view()),
     path("roles/", RolesView.as_view()),
     path("roles/<uuid:pk>/", RoleDetailView.as_view()),
     path("roles/members/<uuid:pk>/", MemberRoleView.as_view()),

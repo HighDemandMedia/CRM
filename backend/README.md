@@ -146,8 +146,8 @@ DBHOST=localhost
 DBPORT=5432
 
 # Email
-DEFAULT_FROM_EMAIL=noreply@bottlecrm.com
-ADMIN_EMAIL=admin@bottlecrm.com
+DEFAULT_FROM_EMAIL=noreply@example.com
+ADMIN_EMAIL=admin@example.com
 
 # Celery
 CELERY_BROKER_URL=redis://localhost:6379/0

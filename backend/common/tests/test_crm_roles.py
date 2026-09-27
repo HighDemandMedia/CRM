@@ -138,7 +138,7 @@ def test_nested_company_cannot_bypass_its_own_module_scope(user_client, regular_
 def test_recommended_defaults_disable_delete_and_export():
     for scope in ('own', 'team'):
         for rules in default_rules(scope).values():
-            assert rules['delete'] == 'none'
+            assert rules.get('delete','none') == 'none'
             assert rules['export'] == 'none'
 
 
@@ -218,7 +218,7 @@ def test_custom_permission_set_has_one_scope(admin_client):
 
 
 def test_disabled_custom_permissions_retain_selected_scope(admin_client):
-    rules={module:{'view':'none','create':False,'edit':'none','delete':'none','export':'none','reassign':'none'} for module in default_rules()}
+    rules={module:{action:False if isinstance(value,bool) else 'none' for action,value in row.items()} for module,row in default_rules().items()}
     response=admin_client.post('/api/roles/', {'name':'Disabled organization set','scope':'organization','rules':rules},format='json')
     assert response.status_code==201, response.data
     assert response.data['scope']=='organization'

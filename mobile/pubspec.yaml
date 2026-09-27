@@ -22,8 +22,6 @@ dependencies:
   jwt_decoder: ^2.0.1
 
   # Firebase / Crashlytics (Android only, no iOS GoogleService-Info.plist yet)
-  firebase_core: ^4.12.1
-  firebase_crashlytics: ^5.2.6
   # Not referenced by name anywhere in lib/, but SwitchListTile.adaptive in
   # deals_list_screen.dart pulls in Flutter's Cupertino library, whose retained
   # CupertinoIcons constants need this font present. Dropping it builds fine and

@@ -21,7 +21,8 @@
       {:else if !data.signedIn}<p>
           Sign in or create an account using the email address that received this invitation.
         </p>
-        <a class="v2-btn v2-btn-primary" href={resolve('/login')}>Continue to sign in</a>
+        <a class="v2-btn v2-btn-primary" href={resolve('/login')}>Sign in</a>
+        <a class="v2-btn" href={resolve('/register')}>Create account</a>
       {:else if data.error}<p role="alert" class="v2-error">{data.error}</p>
         <a href={resolve('/logout')}>Sign in with a different account</a>
       {:else}<h2>{data.invitation?.name}</h2>

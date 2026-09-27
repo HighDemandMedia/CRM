@@ -77,8 +77,8 @@ BottleCRM is a free, open-source Customer Relationship Management solution desig
 1. **Clone the repository:**
 
 ```bash
-git clone https://github.com/micropyramid/svelte-crm.git
-cd svelte-crm
+git clone https://github.com/correahumberto98/CRM.git
+cd CRM/frontend
 ```
 
 2. **Set up Node.js version:**

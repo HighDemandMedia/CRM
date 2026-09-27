@@ -338,7 +338,7 @@ LOGGING = {
     },
 }
 
-APPLICATION_NAME = "bottlecrm"
+APPLICATION_NAME = "high-demand-media-crm"
 
 SETTINGS_EXPORT = ["APPLICATION_NAME"]
 
@@ -395,7 +395,7 @@ else:
 
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "BottleCRM API",
+    "TITLE": "High Demand Media CRM API",
     "DESCRIPTION": "Open source CRM application",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
@@ -483,6 +483,7 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
     # Security: Enable token rotation to invalidate old refresh tokens
     "ROTATE_REFRESH_TOKENS": True,
+    "CHECK_REVOKE_TOKEN": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": False,
     "ALGORITHM": "HS256",
@@ -559,3 +560,6 @@ EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "false").lower() == "true"
 EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() == "true"
 EMAIL_TIMEOUT = 10
+
+# Close self-service registration when onboarding is invitation-only.
+PASSWORD_REGISTRATION_ENABLED = os.environ.get("PASSWORD_REGISTRATION_ENABLED", "true").lower() == "true"
