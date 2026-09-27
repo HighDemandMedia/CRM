@@ -247,6 +247,12 @@ elif ENV_TYPE == "prod":
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@localhost")
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@localhost")
 
+# System sender, independent of each user's Google integrations.
+GMAIL_SYSTEM_CLIENT_ID = os.environ.get("GMAIL_SYSTEM_CLIENT_ID", "")
+GMAIL_SYSTEM_CLIENT_SECRET = os.environ.get("GMAIL_SYSTEM_CLIENT_SECRET", "")
+GMAIL_SYSTEM_REFRESH_TOKEN = os.environ.get("GMAIL_SYSTEM_REFRESH_TOKEN", "")
+GMAIL_SYSTEM_SENDER = os.environ.get("GMAIL_SYSTEM_SENDER", "")
+
 # AWS SES settings (loaded when EMAIL_BACKEND is django_ses.SESBackend)
 if "django_ses" in EMAIL_BACKEND:
     AWS_SES_REGION_NAME = os.environ.get("AWS_SES_REGION_NAME", "ap-south-1")

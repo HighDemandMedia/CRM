@@ -113,3 +113,14 @@ def test_missing_bucket_name_fails_at_startup():
         os.environ.pop("AWS_BUCKET_NAME", None)
         with pytest.raises(KeyError):
             importlib.reload(importlib.import_module("crm.server_settings"))
+
+
+def test_gmail_with_s3_does_not_require_ses_configuration():
+    env = {
+        key: value for key, value in BASE_ENV.items() if not key.startswith("AWS_SES_")
+    }
+    env["EMAIL_BACKEND"] = "common.gmail_backend.GmailEmailBackend"
+    with mock.patch.dict(os.environ, env, clear=True):
+        settings = importlib.reload(importlib.import_module("crm.server_settings"))
+        assert settings.EMAIL_BACKEND == "common.gmail_backend.GmailEmailBackend"
+        assert settings.AWS_S3_REGION_NAME == "us-east-1"

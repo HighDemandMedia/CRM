@@ -31,6 +31,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: development
     env_file:
       - .env.docker
       # Optional local overrides (gitignored); values here win over .env.docker.
@@ -52,6 +53,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: development
     env_file:
       - .env.docker
       # Optional local overrides (gitignored); values here win over .env.docker.
@@ -70,6 +72,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: development
     env_file:
       - .env.docker
       # Optional local overrides (gitignored); values here win over .env.docker.

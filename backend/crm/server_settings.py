@@ -24,8 +24,6 @@ if not AWS_BUCKET_NAME.strip():
 
 AWS_ACCESS_KEY_ID = os.environ["AWS_ACCESS_KEY_ID"]
 AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
-AWS_SES_REGION_NAME = os.environ["AWS_SES_REGION_NAME"]
-AWS_SES_REGION_ENDPOINT = os.environ["AWS_SES_REGION_ENDPOINT"]
 
 # No AWS_S3_CUSTOM_DOMAIN, deliberately.
 #
@@ -44,7 +42,9 @@ S3_DOMAIN = str(AWS_BUCKET_NAME) + ".s3.amazonaws.com"
 # into the signature, so boto3 guessing wrong produces URLs the bucket rejects.
 # Defaults to the SES region because a single-region deployment is the common
 # case; override when the bucket lives somewhere else.
-AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", AWS_SES_REGION_NAME)
+AWS_S3_REGION_NAME = os.environ.get(
+    "AWS_S3_REGION_NAME", os.environ.get("AWS_SES_REGION_NAME", "us-east-1")
+)
 
 # Required for any bucket outside us-east-1, and the failure is not obvious.
 #
@@ -127,7 +127,7 @@ AWS_IS_GZIPPED = True
 AWS_ENABLED = True
 AWS_S3_SECURE_URLS = True
 
-EMAIL_BACKEND = "django_ses.SESBackend"
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django_ses.SESBackend")
 
 SESSION_COOKIE_DOMAIN = os.environ.get("SESSION_COOKIE_DOMAIN") or None
 SESSION_COOKIE_SECURE = True  # Only send session cookie over HTTPS

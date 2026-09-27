@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm AS development
 
 # Prevent Python from buffering stdout/stderr (useful for Docker logs)
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -34,4 +34,12 @@ COPY LICENSE /app/LICENSE
 # Put the venv's binaries on PATH so `python`, `gunicorn`, `celery` etc. resolve.
 ENV PATH="/opt/venv/bin:$PATH"
 
+# Local Compose selects the development stage and its own entrypoint.
+# Hosted services run without root and never create default credentials.
+FROM development AS runtime
+RUN groupadd --gid 10001 crm && useradd --uid 10001 --gid crm --create-home crm \
+    && chown -R crm:crm /app
+USER crm
+
 EXPOSE 8000
+CMD ["sh", "bin/start-web.sh"]
