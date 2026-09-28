@@ -1,36 +1,24 @@
 import { apiRequest } from '$lib/api-helpers.js';
 import { listLeads } from '$lib/server/v2/leads.js';
-import { listDeals } from '$lib/server/v2/deals.js';
 import { listTickets, OPEN_STATUSES } from '$lib/server/v2/tickets.js';
-import { listTasks } from '$lib/server/v2/tasks.js';
 import { listInvoices } from '$lib/server/v2/invoices.js';
 import { countAwaitingApprovals } from '$lib/server/v2/approvals.js';
-import { countUnread } from '$lib/server/v2/notifications.js';
 import { getOrgTerminology } from '$lib/server/v2/organization.js';
 
 /**
- * Counts for migrated modules, fetched for real and merged over the fixtures.
+ * Counts actually rendered by Sidebar and SectionTabs.
  *
  * Leaving a migrated module on its fixture count puts "Leads 24" in the
  * sidebar beside "18 open" in the page, and a nav badge that disagrees with
  * the page it links to is worse than no badge.
  *
- * Add a line here in the same change that adds a prefix to `migrated.js`.
+ * Only fetch a count if the shell displays it. The notification bell fetches
+ * its own feed after mount; unused totals must not delay the initial render.
  */
 const LIVE_COUNTS = {
   /** @param {any} event */
   leads: async (event) =>
     (await listLeads(event, new URLSearchParams({ limit: '1' }))).totals.count,
-  /**
-   * Open deals only, same rule as tickets and tasks below: a badge counting
-   * closed deals would never go down. `listDeals` no longer assumes this on
-   * its own (`$lib/server/v2/deals.js`'s FILTER_FIELDS note), so it is spelled
-   * out here.
-   *
-   * @param {any} event
-   */
-  pipeline: async (event) =>
-    (await listDeals(event, new URLSearchParams({ open: 'true', limit: '1' }))).totals.count,
   /**
    * Open tickets only. A support badge counting closed ones would never go
    * down, which is the same objection as the accounts note below.
@@ -42,15 +30,6 @@ const LIVE_COUNTS = {
     for (const status of OPEN_STATUSES) params.append('status', status);
     return (await listTickets(event, params)).totals.open;
   },
-  /**
-   * Open tasks only, and the API already counts them per requester. An
-   * admin's badge covers the org, a member's covers their own list. Same
-   * argument as tickets: a badge counting completed tasks would only ever go
-   * up.
-   *
-   * @param {any} event
-   */
-  tasks: async (event) => (await listTasks(event, new URLSearchParams({ limit: '1' }))).totals.open,
   /**
    * Invoices waiting on this person: drafts to send plus anything overdue to
    * chase, counted by the API per requester. Not the total invoice count.
@@ -70,17 +49,7 @@ const LIVE_COUNTS = {
    *
    * @param {any} event
    */
-  approvals: async (event) => await countAwaitingApprovals(event),
-  /**
-   * Unread notifications waiting on this person; `GET /notifications/` scopes
-   * to `recipient=request.profile` and reports `unread_count` over the whole
-   * feed, so the badge matches the page it links to (which was the point of
-   * this map). This is work, not inventory: it goes to zero as you read, so it
-   * earns a badge. Was the fixture `notificationTotals.unread` until now.
-   *
-   * @param {any} event
-   */
-  notifications: async (event) => await countUnread(event)
+  approvals: async (event) => await countAwaitingApprovals(event)
   /*
    * No `accounts` entry, deliberately, even though the module is wired.
    *
@@ -156,7 +125,7 @@ export async function load(event) {
   // terminology lookup is not a second round trip, it rides the wave that was
   // already here for the badges. `results` is indexed by position: the count
   // keys first (in `countKeys` order), terminology last.
-  const countKeys = Object.keys(LIVE_COUNTS).filter(key => shell.canPreview || ['pipeline', 'tickets', 'tasks', 'notifications'].includes(key));
+  const countKeys = Object.keys(LIVE_COUNTS).filter(key => shell.canPreview || key === 'tickets');
   const results = await Promise.allSettled([
     ...countKeys.map((key) => LIVE_COUNTS[/** @type {keyof typeof LIVE_COUNTS} */ (key)](event)),
     getOrgTerminology(event),

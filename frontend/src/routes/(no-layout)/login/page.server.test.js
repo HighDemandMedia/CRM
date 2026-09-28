@@ -6,6 +6,7 @@ import { actions } from './+page.server.js';
 
 afterEach(() => vi.restoreAllMocks());
 
+/** @returns {any} */
 function input() {
   const form = new FormData();
   form.set('email', 'test@example.com');
@@ -23,7 +24,7 @@ describe('password sign-in action', () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
       vi.mocked(axios.post).mockResolvedValue({ data: body });
       const event = input();
-      const result = await actions.password(event);
+      const result = /** @type {any} */ (await actions.password(event));
       expect(result.status).toBe(400);
       expect(result.data.error).toBe('Sign-in is unavailable. Please try again.');
       expect(event.cookies.set).not.toHaveBeenCalled();
@@ -36,7 +37,7 @@ describe('password sign-in action', () => {
       code: 'ECONNABORTED',
       config: { data: { password: 'test-password-not-real' } }
     });
-    const result = await actions.password(input());
+    const result = /** @type {any} */ (await actions.password(input()));
     expect(result.data.email).toBe('test@example.com');
     expect(JSON.stringify(log.mock.calls)).not.toContain('test-password-not-real');
   });
