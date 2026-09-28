@@ -204,7 +204,7 @@ class UsersListView(APIView, LimitOffsetPagination):
                 {"error": True, "errors": "Permission Denied"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        queryset = Profile.objects.filter(org=request.profile.org, removed_at__isnull=True).order_by("-id")
+        queryset = Profile.objects.filter(org=request.profile.org, removed_at__isnull=True, is_platform_access=False).order_by("-id")
         params = request.query_params
         if params:
             if params.get("email"):
@@ -285,6 +285,9 @@ class UserDetailView(APIView):
         # Security fix: Filter by org to prevent cross-org enumeration
         # Lookup by user ID since frontend sends user.id, not profile.id
         profile = get_object_or_404(Profile, user__id=pk, org=self.request.profile.org)
+        if self.request.method not in ('GET', 'HEAD', 'OPTIONS') and (profile.user.is_superuser or profile.is_platform_access):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Use personal profile settings; platform access is managed privately.')
         if self.request.method not in ('GET', 'HEAD', 'OPTIONS') and profile.is_super_admin and profile.user_id != self.request.user.pk:
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('Only the organization creator can edit their own account.')

@@ -69,7 +69,7 @@
           </form>
         {/each}
 
-        {#if !data.demoMode}
+        {#if data.canCreateOrganization}
         <a href={resolve('/org/new')} class="v2-auth-add">
           <Plus />
           Create new organisation

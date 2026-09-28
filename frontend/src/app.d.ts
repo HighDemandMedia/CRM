@@ -17,6 +17,8 @@ declare global {
         is_organization_admin?: boolean;
         is_super_admin?: boolean;
         is_demo?: boolean;
+        can_preview?: boolean;
+        is_platform_owner?: boolean;
       };
     }
     // interface PageData {}

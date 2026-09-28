@@ -158,7 +158,7 @@
   let groups = $derived(
     GROUPS.map((group) => ({
       ...group,
-      items: group.items.filter(item => !page.data.demoMode || DEMO_MAIN.includes(item.href)).filter(item => { const module = {'/contacts':'contacts','/accounts':'companies','/pipeline':'deals','/tasks':'tasks','/tickets':'tickets','/calendar':'calendar','/reports':'reports'}[item.href]; return !module || !!page.data.permissions?.rules?.[module]?.view && page.data.permissions.rules[module].view !== 'none'; }).map((item) =>
+      items: group.items.filter(item => page.data.canPreview || DEMO_MAIN.includes(item.href)).filter(item => { const module = {'/contacts':'contacts','/accounts':'companies','/pipeline':'deals','/tasks':'tasks','/tickets':'tickets','/calendar':'calendar','/reports':'reports'}[item.href]; return !module || !!page.data.permissions?.rules?.[module]?.view && page.data.permissions.rules[module].view !== 'none'; }).map((item) =>
         item.termKey ? { ...item, label: t(terminology, item.termKey, item.label) } : item
       )
     })).filter((group) => group.items.length > 0)
@@ -297,7 +297,7 @@
         <ChevronDown size={14} aria-hidden="true" />
       </div>
       {#if accountId}<span class="account-id">ID: {accountId}</span>{/if}
-      <span>{isSuperAdmin ? 'Super Admin' : role === 'ADMIN' ? 'Admin' : 'Member'}</span>
+      <span>{page.data.isPlatformOwner ? 'Platform owner' : isSuperAdmin ? 'Super Admin' : role === 'ADMIN' ? 'Admin' : 'Member'}</span>
       {#if switchingOrganization}<small role="status">Switching organization…</small>{/if}
       {#if organizationError}<p class="organization-error" role="alert">{organizationError}</p><button class="account-action" type="button" onclick={loadOrganizations}>Try again</button>{/if}
     </form>

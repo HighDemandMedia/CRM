@@ -68,6 +68,7 @@ class OrgAwareRefreshToken(RefreshToken):
         # Add user info to token (avoids extra API calls for display)
         if user:
             token["user_email"] = user.email
+            token["is_platform_owner"] = bool(user.is_active and user.is_superuser)
             # Build display name from email (User model doesn't have first/last name)
             token["user_name"] = user.name or (user.email.split("@")[0] if user.email else "")
             token["user_profile_pic"] = user.profile_pic or ""
@@ -94,6 +95,8 @@ class OrgAwareRefreshToken(RefreshToken):
             token["role"] = profile.role
             token["is_super_admin"] = profile.is_super_admin
             token["is_demo"] = profile.is_demo
+            from common.platform_access import can_preview
+            token["can_preview"] = can_preview(profile)
 
         return token
 
@@ -1083,15 +1086,25 @@ class UserDetailSerializer(serializers.ModelSerializer):
     """Detailed user serializer with profile and organizations"""
 
     organizations = serializers.SerializerMethodField()
+    is_platform_owner = serializers.SerializerMethodField()
+
+    def get_is_platform_owner(self, obj):
+        from common.platform_access import is_platform_owner
+        return is_platform_owner(obj)
 
     class Meta:
         model = User
-        fields = ["id", "email", "profile_pic", "is_active", "organizations"]
+        fields = ["id", "email", "profile_pic", "is_active", "organizations", "is_platform_owner"]
 
     @extend_schema_field(list)
     def get_organizations(self, obj):
         """Get all organizations the user belongs to"""
-        profiles = Profile.objects.filter(user=obj, is_active=True)
+        from common.platform_access import accessible_profiles, available_organizations, is_platform_owner
+        if is_platform_owner(obj):
+            return [{"id": str(org.pk), "name": org.name, "role": "ADMIN",
+                     "is_organization_admin": True, "is_demo": False}
+                    for org in available_organizations(obj)]
+        profiles = accessible_profiles(obj)
         return [
             {
                 "id": str(profile.org.id),

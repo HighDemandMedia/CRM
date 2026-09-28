@@ -73,7 +73,7 @@
       items: [{ label: 'Invoice templates', href: '/invoices/templates', icon: Receipt }]
     }
   ];
-  let groups = $derived(allGroups.map(group => ({...group, items: group.items.filter(item => !page.data.demoMode || demoPageAllowed(item.href))})).filter(group => group.items.length));
+  let groups = $derived(allGroups.map(group => ({...group, items: group.items.filter(item => page.data.canPreview || demoPageAllowed(item.href))})).filter(group => group.items.length));
   const active = (href) => page.url.pathname === href || page.url.pathname.startsWith(`${href}/`);
   let selected = $derived(
     groups.flatMap((group) => group.items).find((item) => active(item.href))?.href || ''

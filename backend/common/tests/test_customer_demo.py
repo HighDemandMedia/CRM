@@ -61,10 +61,10 @@ def test_demo_can_edit_and_delete_fictional_records(demo, org_a):
     assert not Contact.objects.filter(pk=contact.pk).exists()
 
 
-def test_normal_user_is_unchanged(admin_profile, admin_client):
+def test_normal_user_also_has_customer_module_visibility(admin_profile, admin_client):
     token = OrgAwareRefreshToken.for_user_and_org(admin_profile.user, admin_profile.org, admin_profile)
     assert token['is_demo'] is False
-    assert admin_client.get('/api/leads/').status_code == 200
+    assert admin_client.get('/api/leads/').status_code == 403
 
 
 def test_setup_is_separate_and_preserves_repeat_edits(settings, admin_user, org_a):

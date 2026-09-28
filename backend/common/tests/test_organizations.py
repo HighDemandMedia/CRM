@@ -15,6 +15,12 @@ from common.models import Org, Profile, Teams
 class TestOrgProfileCreateView:
     """Tests for GET/POST /api/org/"""
 
+    @pytest.fixture(autouse=True)
+    def platform_creation_permission(self, request, admin_user):
+        if request.node.name.startswith("test_create_org"):
+            admin_user.is_superuser = True
+            admin_user.save()
+
     url = "/api/org/"
 
     def test_create_org(self, admin_client, admin_user):
@@ -619,6 +625,11 @@ class TestOrgSettingsView:
 
 @pytest.mark.django_db
 class TestOrgTimezone:
+    @pytest.fixture(autouse=True)
+    def platform_owner_for_creation(self, admin_user):
+        admin_user.is_superuser = True
+        admin_user.save()
+
     """An org carries the timezone its days are counted in.
 
     Optional at creation on purpose: a mobile build installed before this field

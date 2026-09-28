@@ -146,7 +146,9 @@ export async function load(event) {
     // security control. Defaults to the non-admin view when the claim is absent.
     role: event.locals.profile?.role ?? 'USER',
     isSuperAdmin: !!event.locals.profile?.is_super_admin,
-    demoMode: !!event.locals.profile?.is_demo
+    demoMode: !!event.locals.profile?.is_demo,
+    canPreview: !!event.locals.profile?.can_preview,
+    isPlatformOwner: !!event.locals.profile?.is_platform_owner
   };
 
   // countKeys' fetches and the terminology fetch are pushed into ONE
@@ -154,7 +156,7 @@ export async function load(event) {
   // terminology lookup is not a second round trip, it rides the wave that was
   // already here for the badges. `results` is indexed by position: the count
   // keys first (in `countKeys` order), terminology last.
-  const countKeys = Object.keys(LIVE_COUNTS).filter(key => !shell.demoMode || ['pipeline', 'tickets', 'tasks', 'notifications'].includes(key));
+  const countKeys = Object.keys(LIVE_COUNTS).filter(key => shell.canPreview || ['pipeline', 'tickets', 'tasks', 'notifications'].includes(key));
   const results = await Promise.allSettled([
     ...countKeys.map((key) => LIVE_COUNTS[/** @type {keyof typeof LIVE_COUNTS} */ (key)](event)),
     getOrgTerminology(event),

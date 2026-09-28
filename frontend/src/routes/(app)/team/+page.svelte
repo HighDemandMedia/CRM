@@ -189,13 +189,13 @@
                   <td class="row-actions"
                     >{#if m.is_super_admin}<span class="protected" title="Organization creator"
                         >Protected</span
-                      >{:else if m.role === 'ADMIN' && !data.isSuperAdmin}<span
+                      >{:else if m.role === 'ADMIN' && !(data.isSuperAdmin || data.isPlatformOwner)}<span
                         class="protected"
                         title="Managed by Super Admin">Protected</span
                       >{:else if m.is_you}<span class="muted">—</span>{:else}<MemberActions
                         member={m}
                         roles={data.accessRoles}
-                        isSuperAdmin={data.isSuperAdmin}
+                        isSuperAdmin={data.isSuperAdmin || data.isPlatformOwner}
                         isLastAdmin={m.user_id === data.last_admin_id}
                       />{/if}</td
                   >
@@ -289,7 +289,7 @@
                   ><td><span class="muted">{invite.status}</span></td>
                   <td
                     ><div class="invitation-actions">
-                      {#if data.isSuperAdmin || invite.role !== 'ADMIN'}
+                      {#if data.isPlatformOwner || data.isSuperAdmin || invite.role !== 'ADMIN'}
                         <form method="POST" action="?/invite" use:enhance={working}>
                           <input type="hidden" name="email" value={invite.email} /><input
                             type="hidden"
@@ -331,7 +331,7 @@
   </div>
   {#if inviting}<InviteMember
       roles={data.accessRoles}
-      isSuperAdmin={data.isSuperAdmin}
+      isSuperAdmin={data.isSuperAdmin || data.isPlatformOwner}
       onclose={() => (inviting = false)}
     />{/if}
   {#if editingTeam}{#key editingTeam}<TeamEditor

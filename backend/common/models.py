@@ -258,6 +258,7 @@ class CRMRole(BaseModel):
 
 
 class Profile(BaseModel):
+    is_platform_access = models.BooleanField(default=False, editable=False)
     is_demo = models.BooleanField(default=False, editable=False)
     removed_at = models.DateTimeField(null=True, blank=True, editable=False)
     access_role = models.ForeignKey(CRMRole, null=True, blank=True, on_delete=models.PROTECT, related_name="members")

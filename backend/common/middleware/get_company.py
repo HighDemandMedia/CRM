@@ -41,8 +41,16 @@ class GetProfileAndOrg:
             return denial
 
         from common.demo_access import unavailable_in_demo
-        if getattr(getattr(request, 'profile', None), 'is_demo', False) and unavailable_in_demo(request.path):
-            return _denied('This module is not available in the customer demo.')
+        from common.platform_access import can_preview, is_platform_owner
+        profile = getattr(request, "profile", None)
+        if profile and (not profile.user.is_active or not profile.org.is_active or
+                        profile.removed_at or
+                        (profile.is_platform_access and not is_platform_owner(profile.user))):
+            return _denied("Organization access is no longer available.")
+        if unavailable_in_demo(request.path) and not can_preview(profile):
+            message = ("This module is not available in the customer demo." if profile and profile.is_demo
+                       else "This module is in Preview and is only available to the platform owner.")
+            return _denied(message)
 
         # The org's day, for the rest of this request. Everything downstream
         # asks the framework what "today" is (`timezone.localdate()`), so
@@ -240,7 +248,7 @@ class GetProfileAndOrg:
 
             # Validate user membership in the org
             try:
-                profile = Profile.objects.select_related("org").get(
+                profile = Profile.objects.select_related("org", "user").get(
                     user_id=user_id, org_id=org_id, is_active=True
                 )
                 request.profile = profile
@@ -308,7 +316,8 @@ class GetProfileAndOrg:
 
             # Get an admin profile for this org
             profile = Profile.objects.filter(
-                org=organization, role="ADMIN", is_active=True
+                org=organization, role="ADMIN", is_active=True, user__is_active=True,
+                user__is_superuser=False, is_platform_access=False, removed_at__isnull=True
             ).first()
 
             if not profile:

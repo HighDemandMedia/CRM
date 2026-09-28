@@ -3,12 +3,12 @@ import { demoPageAllowed } from './demo-view.js';
 
 describe('customer demo routes', () => {
   it('allows ready record screens and reviewed settings', () => {
-    for (const route of ['/', '/contacts', '/contacts/123/edit', '/accounts/new', '/pipeline/123', '/calendar', '/tasks', '/tickets', '/help', '/help/knowledge/contacts', '/profile', '/settings/pipelines', '/team', '/settings/roles', '/settings/custom-fields']) {
+    for (const route of ['/', '/contacts', '/contacts/123/edit', '/accounts/new', '/pipeline/123', '/calendar', '/tasks', '/tickets', '/help', '/help/knowledge/contacts', '/profile', '/settings/pipelines', '/team', '/settings/roles', '/settings/custom-fields', '/settings/tags']) {
       expect(demoPageAllowed(route), route).toBe(true);
     }
   });
   it('excludes unfinished modules and similar prefixes', () => {
-    for (const route of ['/leads', '/invoices/123', '/documents', '/solutions', '/goals', '/settings/tags', '/settings/api-tokens', '/contacts-other']) {
+    for (const route of ['/leads', '/invoices/123', '/documents', '/solutions', '/goals', '/settings/api-tokens', '/contacts-other']) {
       expect(demoPageAllowed(route), route).toBe(false);
     }
   });

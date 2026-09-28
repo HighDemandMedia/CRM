@@ -19,7 +19,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 /**
  * @typedef {{ default_currency?: string, currency_symbol?: string, default_country?: string|null }} OrgSettingsPayload
- * @typedef {{ org_id?: string, org_name?: string, role?: string, is_super_admin?: boolean, is_demo?: boolean, user_id?: string, hash_password?: string, user_name?: string, user_email?: string, user_profile_pic?: string, exp?: number, iat?: number, org_settings?: OrgSettingsPayload }} JWTPayload
+ * @typedef {{ org_id?: string, org_name?: string, role?: string, is_super_admin?: boolean, is_demo?: boolean, can_preview?: boolean, is_platform_owner?: boolean, user_id?: string, hash_password?: string, user_name?: string, user_email?: string, user_profile_pic?: string, exp?: number, iat?: number, org_settings?: OrgSettingsPayload }} JWTPayload
  * @typedef {{ id: string, name: string }} OrgInfo
  * @typedef {{ org: OrgInfo, role?: string }} ProfileInfo
  * @typedef {{ id?: string, organizations?: Array<{ id: string, name: string }> }} UserInfo
@@ -238,6 +238,7 @@ export const handle = async function handle({ event, resolve }) {
       id: jwtPayload.user_id,
       name: jwtPayload.user_name || '',
       email: jwtPayload.user_email || '',
+      is_platform_owner: !!jwtPayload.is_platform_owner,
       profilePhoto: jwtPayload.user_profile_pic || ''
     };
 
@@ -258,7 +259,9 @@ export const handle = async function handle({ event, resolve }) {
           org: event.locals.org,
           role: jwtPayload.role || 'USER',
           is_super_admin: !!jwtPayload.is_super_admin,
-          is_demo: !!jwtPayload.is_demo
+          is_demo: !!jwtPayload.is_demo,
+          can_preview: !!jwtPayload.can_preview,
+          is_platform_owner: !!jwtPayload.is_platform_owner
         };
         event.locals.org_name = jwtPayload.org_name || 'Organization';
         // Extract org settings for currency/locale
@@ -298,7 +301,9 @@ export const handle = async function handle({ event, resolve }) {
             org: switchResult.current_org,
             role: newPayload?.role || 'USER',
             is_super_admin: !!newPayload?.is_super_admin,
-            is_demo: !!newPayload?.is_demo
+            is_demo: !!newPayload?.is_demo,
+            can_preview: !!newPayload?.can_preview,
+            is_platform_owner: !!newPayload?.is_platform_owner
           };
           event.locals.org_name = switchResult.current_org?.name || 'Organization';
           event.locals.org_settings = newPayload?.org_settings || {
@@ -357,7 +362,10 @@ export const handle = async function handle({ event, resolve }) {
     }
   }
 
-  if (event.locals.profile?.is_demo && !isPublicRoute && !isAuthOnlyRoute && !pathname.startsWith('/api/') && !demoPageAllowed(pathname)) {
+  if (pathname.startsWith('/org/new') && !event.locals.user?.is_platform_owner) {
+    throw redirect(303, '/org');
+  }
+  if (!event.locals.profile?.can_preview && !isPublicRoute && !isAuthOnlyRoute && !pathname.startsWith('/api/') && !demoPageAllowed(pathname)) {
     throw redirect(303, '/');
   }
   return resolve(event);

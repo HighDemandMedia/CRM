@@ -90,7 +90,7 @@ not using a superuser or BYPASSRLS role and that row_security is on. Migrations
 enable/force the policies; this check does not replace tenant-isolation tests.
 
 Do not use `create_default_admin` online. Provision the owner's organization
-privately before inviting testers; do not temporarily open public registration.
+privately before inviting testers using [private account provisioning](account-provisioning.md); do not temporarily open public registration.
 Local users, passwords, organizations and attachments are not uploaded by Git.
 
 Before inviting testers, verify login/recovery, a real Gmail delivery, private

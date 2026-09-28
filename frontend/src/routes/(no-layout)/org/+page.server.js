@@ -53,7 +53,7 @@ export async function load({ cookies, locals }) {
       }));
     }
 
-    return { orgs, demoMode: (response.data.organizations || []).some(org => org.is_demo) };
+    return { orgs, canCreateOrganization: !!response.data.is_platform_owner };
   } catch (error) {
     // Never log the raw error: its axios `config.headers` carries the JWT.
     console.error('Error fetching organizations:', describeError(error));

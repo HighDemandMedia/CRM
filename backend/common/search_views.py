@@ -216,6 +216,7 @@ class GlobalSearchView(APIView):
                 }
             )
 
-        if profile.is_demo:
+        from common.platform_access import can_preview
+        if not can_preview(profile):
             results = [item for item in results if item['type'] in ('contact', 'account', 'deal', 'ticket')]
         return Response({"query": q, "results": results})

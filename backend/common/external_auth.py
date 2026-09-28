@@ -53,7 +53,8 @@ class APIKeyAuthentication(BaseAuthentication):
 
             # Get an admin profile for this org to act as the authenticated user
             profile = Profile.objects.filter(
-                org=organization, role="ADMIN", is_active=True
+                org=organization, role="ADMIN", is_active=True, user__is_active=True,
+                user__is_superuser=False, is_platform_access=False, removed_at__isnull=True
             ).first()
 
             if not profile:

@@ -17,6 +17,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from common import serializer
 from common.models import Org, Profile, User
+from common.platform_access import accessible_profiles, select_organization
 from common.serializer import OrgAwareRefreshToken
 from common.utils import CURRENCY_SYMBOLS
 
@@ -322,7 +323,7 @@ class GoogleIdTokenView(APIView):
         # Get user's organizations. Active profiles only: `OrgSwitchView`
         # requires `is_active=True`, so listing a deactivated membership here
         # offered an org that answers 403 the moment it is chosen.
-        profiles = Profile.objects.filter(user=user, is_active=True).select_related(
+        profiles = accessible_profiles(user).select_related(
             "org"
         )
         organizations = [_org_payload(p.org, role=p.role) for p in profiles]
@@ -433,9 +434,7 @@ class OrgAwareTokenRefreshView(APIView):
             profile = None
             if org_id:
                 try:
-                    profile = Profile.objects.get(
-                        user=user, org_id=org_id, is_active=True
-                    )
+                    profile = accessible_profiles(user).get(org_id=org_id)
                     org = profile.org
                 except Profile.DoesNotExist:
                     # Membership revoked - user must login again
@@ -660,10 +659,8 @@ class OrgSwitchView(APIView):
 
         # Validate user has access to the target org
         try:
-            profile = Profile.objects.get(
-                user=request.user, org_id=org_id, is_active=True
-            )
-        except Profile.DoesNotExist:
+            profile = select_organization(request.user, org_id)
+        except (Profile.DoesNotExist, Org.DoesNotExist):
             audit_log.permission_denied(
                 request.user, from_org, "ORG_SWITCH", f"org:{org_id}", request
             )
@@ -857,7 +854,7 @@ class MagicLinkVerifyView(APIView):
         user.save(update_fields=["last_login"])
 
         # Get user's organizations
-        profiles = Profile.objects.filter(user=user, is_active=True)
+        profiles = accessible_profiles(user)
         default_org = None
         profile = None
 
@@ -990,7 +987,7 @@ class MagicLinkVerifyCodeView(APIView):
         user.save(update_fields=["last_login"])
 
         profiles = list(
-            Profile.objects.filter(user=user, is_active=True)
+            accessible_profiles(user)
             .select_related("org")
             .order_by("org__name")
         )

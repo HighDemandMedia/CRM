@@ -41,6 +41,8 @@ def test_creator_can_assign_normal_admin(creator, admin_client, user_client, reg
 
 
 def test_new_organization_creator_is_protected(admin_client, admin_user):
+    admin_user.is_superuser = True
+    admin_user.save()
     response=admin_client.post('/api/org/',{'name':'New owner organization'},format='json')
     assert response.status_code in (200,201), response.data
     org=Org.objects.get(name='New owner organization')

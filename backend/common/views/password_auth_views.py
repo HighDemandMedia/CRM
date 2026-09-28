@@ -22,6 +22,7 @@ from rest_framework_simplejwt.token_blacklist.models import (
 
 from common.audit_log import audit_log
 from common.models import OrganizationInvitation, Profile, User
+from common.platform_access import accessible_profiles
 from common.rbac import ensure_default_roles
 from common.serializer import OrgAwareRefreshToken, OrgProfileCreateSerializer
 from common.views.auth_views import _org_payload
@@ -97,9 +98,7 @@ class RegisterInput(LoginInput):
 
 def session_response(user, request, status=200):
     profiles = list(
-        Profile.objects.filter(
-            user=user, is_active=True, removed_at__isnull=True, org__is_active=True
-        )
+        accessible_profiles(user)
         .select_related("org")
         .order_by("org__name")
     )
