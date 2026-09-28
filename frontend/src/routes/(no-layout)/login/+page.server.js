@@ -211,7 +211,17 @@ export const actions = {
         { timeout: 15000 }
       );
       data = response.data;
+      if (
+        !data ||
+        typeof data.access_token !== 'string' ||
+        !data.access_token ||
+        typeof data.refresh_token !== 'string' ||
+        !data.refresh_token
+      ) {
+        throw new Error('Sign-in response did not contain session tokens');
+      }
     } catch (error) {
+      console.error('Password sign-in failed:', describeError(error));
       return fail(error.response?.status === 429 ? 429 : 400, {
         error: passwordError(error, 'Sign-in is unavailable. Please try again.'),
         email: String(form.get('email') || '')

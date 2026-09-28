@@ -2,12 +2,14 @@
   import { resolve, base } from '$app/paths';
   import '../../../app.css';
   import '$lib/v2/styles/v2.css';
-  import { enhance } from '$app/forms';
+  import { authForm } from '$lib/utils/auth-form.js';
   import { ArrowLeft, Check } from '@lucide/svelte';
   import imgGoogle from '$lib/assets/images/google.svg';
   let { data = {}, form } = $props();
   let busy = $state(false);
   let recoveryBusy = $state(false);
+  let transportError = $state('');
+  let recoveryTransportError = $state('');
   const isRecovery = $derived(Boolean(data['recovery'] || form?.recovery));
 </script>
 
@@ -47,15 +49,9 @@
           <form
             method="POST"
             action="?/recovery"
-            use:enhance={() => {
-              recoveryBusy = true;
-              return async ({ update }) => {
-                try {
-                  await update({ reset: false });
-                } finally {
-                  recoveryBusy = false;
-                }
-              };
+            use:authForm={{
+              setBusy: (value) => (recoveryBusy = value),
+              setError: (value) => (recoveryTransportError = value)
             }}
           >
             <fieldset disabled={recoveryBusy}>
@@ -72,7 +68,9 @@
                   value={form?.email || ''}
                 />
               </label>
-              {#if form?.error}<p class="v2-error" role="alert">{form.error}</p>{/if}
+              {#if recoveryTransportError || form?.error}<p class="v2-error" role="alert">
+                  {recoveryTransportError || form.error}
+                </p>{/if}
               <button class="v2-btn v2-btn-primary v2-btn-block"
                 >{recoveryBusy ? 'Sending…' : 'Send recovery link'}</button
               >
@@ -87,15 +85,9 @@
         <form
           method="POST"
           action="?/password"
-          use:enhance={() => {
-            busy = true;
-            return async ({ update }) => {
-              try {
-                await update({ reset: false });
-              } finally {
-                busy = false;
-              }
-            };
+          use:authForm={{
+            setBusy: (value) => (busy = value),
+            setError: (value) => (transportError = value)
           }}
         >
           <fieldset disabled={busy}>
@@ -128,8 +120,10 @@
                 autocomplete="current-password"
               />
             </div>
-            {#if form?.error || data['error']}<p class="v2-error" role="alert">
-                {form?.error || 'Sign-in could not be completed. Please try again.'}
+            {#if transportError || form?.error || data['error']}<p class="v2-error" role="alert">
+                {transportError ||
+                  form?.error ||
+                  'Sign-in could not be completed. Please try again.'}
               </p>{/if}
             <button class="v2-btn v2-btn-primary v2-btn-block"
               >{busy ? 'Signing in…' : 'Sign in'}</button
