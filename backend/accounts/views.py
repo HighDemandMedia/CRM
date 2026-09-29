@@ -1,3 +1,4 @@
+from common.pipeline_board import pipeline_board
 from common.pipeline_settings import stages_for
 from common.last_activity import with_last_activity
 from common.rbac import configured, permitted
@@ -406,6 +407,19 @@ class AccountsListView(APIView, LimitOffsetPagination):
         queryset_active = queryset.filter(is_active=True)
         if params.get("include_pipeline_totals") == "true":
             context["money_totals"] = money_totals(queryset_active, "annual_revenue")
+        if params.get("board") == "true":
+            contacts = Contact.objects.filter(org=self.request.profile.org)
+            if not configured(self.request.profile) and not is_org_admin(self.request.profile):
+                contacts = contacts.filter(Q(created_by=self.request.profile.user) | Q(assigned_to=self.request.profile)).distinct()
+            context.update({
+                "board": pipeline_board(queryset_active, self.request, AccountListSerializer,
+                                        lambda qs: money_totals(qs, "annual_revenue")),
+                "active_accounts": {"open_accounts": [], "open_accounts_count": queryset_active.distinct().count()},
+                "closed_accounts": {"close_accounts": [], "close_accounts_count": queryset.filter(is_active=False).distinct().count()},
+                "contacts": list(contacts.values("id", "first_name", "last_name", "email")) if params.get("include_choices") != "false" else [],
+                "countries": COUNTRIES, "industries": COMPANY_INDUSTRIES,
+            })
+            return context
         results_accounts_active = self.paginate_queryset(
             queryset_active.distinct(), self.request, view=self
         )

@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * CSV export proxy for the time report.
  *
@@ -13,9 +14,8 @@
  * this caller may see, which is where that decision belongs.
  */
 
-import { env } from '$env/dynamic/public';
 
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api`;
+const API_BASE_URL = `${API_ORIGIN}/api`;
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ cookies, request, url }) {

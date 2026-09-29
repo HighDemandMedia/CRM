@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * Server-side calls to /api/portal/, the customer self-service portal.
  *
@@ -13,9 +14,7 @@
  * surface entirely. See the design note in `common/portal_auth.py`.
  */
 
-import { env } from '$env/dynamic/public';
-
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api/portal`;
+const API_BASE_URL = `${API_ORIGIN}/api/portal`;
 
 export const ACCESS_COOKIE = 'portal_access';
 export const ORG_COOKIE = 'portal_org';

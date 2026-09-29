@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * Sign out.
  *
@@ -9,7 +10,6 @@
  */
 
 import { redirect } from '@sveltejs/kit';
-import { env } from '$env/dynamic/public';
 
 const AUTH_COOKIES = ['jwt_access', 'jwt_refresh', 'org', 'oauth_state', 'oauth_code_verifier'];
 
@@ -48,7 +48,7 @@ export async function load({ locals, cookies, fetch }) {
 async function revokeRefreshToken(refresh, fetch) {
   if (!refresh) return;
   try {
-    await fetch(`${env.PUBLIC_DJANGO_API_URL}/api/auth/logout/`, {
+    await fetch(`${API_ORIGIN}/api/auth/logout/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh })

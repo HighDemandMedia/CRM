@@ -133,6 +133,11 @@ export async function listDeals({ cookies }, params) {
   if (!query.has('sort')) rows.sort((a, b) => b.amount - a.amount);
 
   return {
+    board: response.board?.map((column) => {
+      const rows = (column.results ?? []).map(toRow);
+      if (!query.has('sort')) rows.sort((a, b) => b.amount - a.amount);
+      return { ...column, results: rows };
+    }),
     results: rows,
     totals: normaliseTotals(response.totals, rows),
     contacts: (response.contacts_list ?? []).map((c) => ({

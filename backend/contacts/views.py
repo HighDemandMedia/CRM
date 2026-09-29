@@ -1,3 +1,4 @@
+from common.pipeline_board import pipeline_board
 from contacts.serializer import ContactListSerializer
 from common.last_activity import with_last_activity
 from common.pipeline_settings import stages_for
@@ -67,7 +68,7 @@ class ContactsListView(APIView, LimitOffsetPagination):
             # `-id` is a random UUID, so "the list" was in no order at all --
             # a page that says "most recent first" was shuffling people. The
             # model's own Meta.ordering is `-created_at`; this now agrees.
-            .order_by("-created_at")
+            .order_by("-created_at", "pk")
             .select_related("account", "created_by", "org")
             .prefetch_related("account_contacts", "assigned_to__user", "teams", "tags")
         )
@@ -228,6 +229,19 @@ class ContactsListView(APIView, LimitOffsetPagination):
                 self.request.profile, self.request.user, queryset.order_by().values("pk")
             )
 
+        if params.get("board") == "true":
+            def enrich(rows):
+                values = contact_deal_values(self.request.profile, self.request.user, [row["id"] for row in rows])
+                for row in rows:
+                    row["deal_values"] = values.get(str(row["id"]), [])
+            context.update({
+                "board": pipeline_board(queryset, self.request, ContactListSerializer,
+                    lambda qs: contact_pipeline_totals(self.request.profile, self.request.user, qs.values("pk")),
+                    enrich=enrich),
+                "results": [], "count": queryset.distinct().count(),
+                "stages": [(s["key"], s["label"]) for s in stages_for(self.request.profile.org, "Contact")],
+            })
+            return context
         results_contact = self.paginate_queryset(
             queryset.distinct(), self.request, view=self
         )

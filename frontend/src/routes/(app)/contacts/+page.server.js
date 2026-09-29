@@ -1,3 +1,4 @@
+import { pipelineColumns } from '$lib/server/v2/pipeline-columns.js';
 import { configuredStages } from '$lib/v2/pipeline-config.js';
 import { fail } from '@sveltejs/kit';
 import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
@@ -31,50 +32,36 @@ export async function load({ cookies, url, locals, parent }) {
     params.set('sort', url.searchParams.get('sort') ?? '');
     params.set('direction', url.searchParams.get('direction') === 'desc' ? 'desc' : 'asc');
   }
-  if (view === 'pipeline') params.set('include_pipeline_totals', 'true');
+  if (view === 'pipeline') {
+    params.set('include_pipeline_totals', 'true');
+    params.set('board', 'true');
+    // The API validates/clamps offsets and only reads configured stages.
+    for (const [key, value] of url.searchParams) {
+      if (key.endsWith('_offset')) params.set(key, value);
+    }
+  }
   const pageSize = 25;
   const offset = Math.max(
     0,
     Math.min(10000000, Number.parseInt(url.searchParams.get('offset') ?? '0') || 0)
   );
-  params.set('limit', view === 'pipeline' ? '1' : String(pageSize));
+  params.set('limit', String(pageSize));
   params.set('offset', view === 'pipeline' ? '0' : String(offset));
-  const [{ results, totals, stages: defaultStages }, orgPeople, tagList] = await Promise.all([
+  const [response, orgPeople, tagList, shell] = await Promise.all([
     listContacts({ cookies }, params),
     getOrgPeopleAndTeams(cookies),
     // A failed tag fetch should cost the Tag dropdown in the filter bar, not
     // the whole list. Follows the tickets.js pattern; see the note there.
-    getTags({ cookies }).catch(() => ({ tags: [] }))
+    getTags({ cookies }).catch(() => ({ tags: [] })),
+    parent()
   ]);
 
-  const stages = configuredStages((await parent()).pipelineConfig, 'Contact', defaultStages);
+  const { results, totals, stages: defaultStages } = response;
+  const stages = configuredStages(shell.pipelineConfig, 'Contact', defaultStages);
   const board =
     view === 'pipeline'
-      ? await Promise.all(
-          stages
-            .filter((stage) => !params.get('stage') || params.get('stage') === stage.value)
-            .map(async (stage) => {
-              const stageOffset = Math.max(
-                0,
-                Math.min(
-                  10000000,
-                  Number.parseInt(url.searchParams.get(`${stage.value}_offset`) ?? '0') || 0
-                )
-              );
-              const query = new URLSearchParams(params);
-              query.set('stage', stage.value);
-              query.set('include_deal_values', 'true');
-              query.set('limit', String(pageSize));
-              query.set('offset', String(stageOffset));
-              const response = await listContacts({ cookies }, query);
-              return {
-                ...stage,
-                contacts: response.results,
-                count: response.totals.count,
-                moneyTotals: response.totals.money_totals,
-                offset: stageOffset
-              };
-            })
+      ? await pipelineColumns(response, stages, params, (params) =>
+          listContacts({ cookies }, params)
         )
       : [];
 
@@ -100,10 +87,7 @@ export const actions = {
     const form = await request.formData();
     const id = String(form.get('id') ?? '');
     const stage = String(form.get('stage') ?? '');
-    if (
-      !/^[0-9a-f-]{36}$/i.test(id) ||
-      !stage
-    ) {
+    if (!/^[0-9a-f-]{36}$/i.test(id) || !stage) {
       return fail(400, { error: 'Choose a valid contact and stage.' });
     }
     try {
@@ -111,7 +95,8 @@ export const actions = {
       return { moved: true };
     } catch (/** @type {any} */ err) {
       return fail(400, {
-        stageRequirements: stageRequirements(err), error: readableError(err, 'Could not move this contact. Please try again.')
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not move this contact. Please try again.')
       });
     }
   }

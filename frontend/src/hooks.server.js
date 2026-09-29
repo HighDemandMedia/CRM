@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * SvelteKit Server Hooks with JWT Authentication
  *
@@ -14,7 +15,7 @@ import axios from 'axios';
 import { env } from '$env/dynamic/public';
 import { describeError } from '$lib/server/log-safe.js';
 
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api`;
+const API_BASE_URL = `${API_ORIGIN}/api`;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**

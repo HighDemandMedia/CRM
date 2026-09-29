@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 import { savePasswordSession, passwordError } from '$lib/server/password-session.js';
 /**
  * Login Page - Secure OAuth Implementation
@@ -14,7 +15,6 @@ import { savePasswordSession, passwordError } from '$lib/server/password-session
 import axios from 'axios';
 import { redirect, fail } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
-import { env as publicEnv } from '$env/dynamic/public';
 import { generateCodeVerifier, generateCodeChallenge, generateState } from '$lib/utils/pkce.js';
 import { describeError } from '$lib/server/log-safe.js';
 
@@ -109,8 +109,7 @@ async function handleOAuthCallback(code, returnedState, cookies) {
   try {
     // Exchange code for tokens via Django backend
     // The backend handles the actual token exchange with Google using the client secret
-    const apiUrl = publicEnv.PUBLIC_DJANGO_API_URL;
-    console.log('Using API URL:', apiUrl);
+    const apiUrl = API_ORIGIN;
     const response = await axios.post(
       `${apiUrl}/api/auth/google/callback/`,
       {
@@ -203,7 +202,7 @@ export const actions = {
     let data;
     try {
       const response = await axios.post(
-        `${publicEnv.PUBLIC_DJANGO_API_URL}/api/auth/password/login/`,
+        `${API_ORIGIN}/api/auth/password/login/`,
         {
           email: String(form.get('email') || '').trim(),
           password: String(form.get('password') || '')
@@ -239,7 +238,7 @@ export const actions = {
     }
 
     try {
-      const apiUrl = publicEnv.PUBLIC_DJANGO_API_URL;
+      const apiUrl = API_ORIGIN;
       await axios.post(
         `${apiUrl}/api/auth/magic-link/request/`,
         { email },

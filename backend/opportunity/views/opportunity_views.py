@@ -1,3 +1,4 @@
+from common.pipeline_board import pipeline_board
 from common.rbac import configured, permitted
 from common.money_totals import money_totals
 import json
@@ -229,6 +230,15 @@ class OpportunityListView(APIView, LimitOffsetPagination):
         # Prefetch aging configs for serializer context (avoids N+1)
         org = self.request.profile.org
         aging_configs = {c.stage: c for c in StageAgingConfig.objects.filter(org=org)}
+        if params.get("board") == "true":
+            context.update({
+                "board": pipeline_board(queryset, self.request, OpportunityListSerializer, money_totals,
+                                        context={"aging_configs": aging_configs}),
+                "opportunities": [],
+                "accounts_list": list(accounts.values("id", "name")) if params.get("include_choices") != "false" else [],
+                "contacts_list": list(contacts.values("id", "first_name", "last_name", "email")) if params.get("include_choices") != "false" else [],
+            })
+            return context
         results_opportunities = self.paginate_queryset(
             queryset.distinct(), self.request, view=self
         )

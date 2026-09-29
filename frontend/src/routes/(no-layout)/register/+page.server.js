@@ -1,6 +1,6 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 import axios from 'axios';
 import { fail, redirect } from '@sveltejs/kit';
-import { env } from '$env/dynamic/public';
 import { passwordError, savePasswordSession } from '$lib/server/password-session.js';
 
 export function load({ locals, cookies }) {
@@ -23,7 +23,7 @@ export const actions = {
     let data;
     try {
       const response = await axios.post(
-        `${env.PUBLIC_DJANGO_API_URL}/api/auth/password/register/`,
+        `${API_ORIGIN}/api/auth/password/register/`,
         {
           ...values,
           timezone: values.timezone || 'UTC',

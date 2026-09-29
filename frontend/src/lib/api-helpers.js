@@ -1,13 +1,10 @@
+import { apiOriginFor } from '$lib/server/api-origin.js';
 /**
  * API Helper Functions
  *
  * Shared utilities for making API requests to Django backend.
  * Used by SvelteKit server files during migration from Prisma to API.
  */
-
-import { env } from '$env/dynamic/public';
-
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api`;
 
 /**
  * @typedef {import('@sveltejs/kit').Cookies} Cookies
@@ -68,7 +65,7 @@ export async function apiRequest(endpoint, options = {}, locals) {
     requestOptions.body = isFormData ? body : JSON.stringify(body);
   }
 
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${apiOriginFor(endpoint)}/api${endpoint}`;
 
   try {
     const response = await fetch(url, requestOptions);

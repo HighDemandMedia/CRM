@@ -225,6 +225,11 @@ export async function listAccounts({ cookies }, params) {
   const inactive = response.closed_accounts ?? {};
 
   return {
+    board: response.board?.map((column) => {
+      const rows = (column.results ?? []).map(toRow);
+      if (!query.has('sort')) rows.sort((a, b) => (b.won_amount ?? 0) - (a.won_amount ?? 0));
+      return { ...column, results: rows };
+    }),
     contacts: (response.contacts ?? []).map((c) => ({
       id: c.id,
       name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unnamed contact'

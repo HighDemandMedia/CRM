@@ -1,12 +1,12 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * CSV export proxy. Streams the upstream `text/csv` response straight through
  * to the browser so big windows don't get buffered. Uses `fmt` not `format`
  * because DRF's content negotiation eats `?format=`.
  */
 
-import { env } from '$env/dynamic/public';
 
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api`;
+const API_BASE_URL = `${API_ORIGIN}/api`;
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ cookies, request, url }) {

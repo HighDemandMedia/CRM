@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * Magic Link Verification Page
  *
@@ -13,7 +14,6 @@
 import axios from 'axios';
 import { redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
-import { env as publicEnv } from '$env/dynamic/public';
 
 /** @type {import('@sveltejs/kit').ServerLoad} */
 export async function load({ url, cookies }) {
@@ -24,7 +24,7 @@ export async function load({ url, cookies }) {
   }
 
   try {
-    const apiUrl = publicEnv.PUBLIC_DJANGO_API_URL;
+    const apiUrl = API_ORIGIN;
     const response = await axios.post(
       `${apiUrl}/api/auth/magic-link/verify/`,
       { token },

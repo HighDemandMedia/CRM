@@ -1,5 +1,5 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 import { error } from '@sveltejs/kit';
-import { env } from '$env/dynamic/public';
 
 /**
  * Stream an invoice PDF from the API.
@@ -17,7 +17,7 @@ export async function GET({ params, cookies }) {
   const token = cookies.get('jwt_access');
   if (!token) error(401, 'Not signed in.');
 
-  const upstream = await fetch(`${env.PUBLIC_DJANGO_API_URL}/api/invoices/${params.id}/pdf/`, {
+  const upstream = await fetch(`${API_ORIGIN}/api/invoices/${params.id}/pdf/`, {
     headers: { Authorization: `Bearer ${token}` }
   });
 

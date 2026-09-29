@@ -1,4 +1,4 @@
-import { env } from '$env/dynamic/public';
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 
 export async function GET({ cookies, url, request }) {
   const token = cookies.get('jwt_access');
@@ -6,7 +6,7 @@ export async function GET({ cookies, url, request }) {
   const params = new URLSearchParams(url.searchParams);
   params.set('download', 'csv');
   params.delete('page');
-  const response = await fetch(`${env.PUBLIC_DJANGO_API_URL}/api/reports/crm/?${params}`, {
+  const response = await fetch(`${API_ORIGIN}/api/reports/crm/?${params}`, {
     headers: { Authorization: `Bearer ${token}` },
     signal: request.signal
   });

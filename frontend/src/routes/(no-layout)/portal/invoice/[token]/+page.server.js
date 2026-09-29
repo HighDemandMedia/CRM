@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * Public Invoice Portal Page
  *
@@ -6,12 +7,11 @@
  */
 
 import { error } from '@sveltejs/kit';
-import { env } from '$env/dynamic/public';
 
 // The Django API, reached server-to-server. Absolute (not a relative `/api/...`
 // that only resolves behind a production reverse proxy) so the anonymous portal
 // works the same in dev and prod. The CSAT loader takes the same approach.
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api`;
+const API_BASE_URL = `${API_ORIGIN}/api`;
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ params, fetch }) {

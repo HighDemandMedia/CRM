@@ -1,3 +1,4 @@
+import { pipelineColumns } from '$lib/server/v2/pipeline-columns.js';
 import { configuredStages } from '$lib/v2/pipeline-config.js';
 import { companyStages as defaultCompanyStages } from '$lib/v2/company-stages.js';
 import { fail } from '@sveltejs/kit';
@@ -8,7 +9,14 @@ import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js'
 export async function load({ cookies, url, parent }) {
   const query = companyQuery(url),
     view = url.searchParams.get('view') === 'pipeline' ? 'pipeline' : 'list';
-  if (view === 'pipeline') query.set('include_pipeline_totals', 'true');
+  if (view === 'pipeline') {
+    query.set('include_pipeline_totals', 'true');
+    query.set('board', 'true');
+    // The API validates/clamps offsets and only reads configured stages.
+    for (const [key, value] of url.searchParams) {
+      if (key.endsWith('_offset')) query.set(key, value);
+    }
+  }
   const pageSize = 25,
     offset = Math.max(0, parseInt(url.searchParams.get('offset') ?? '0') || 0);
   query.set('limit', String(pageSize));
@@ -17,29 +25,11 @@ export async function load({ cookies, url, parent }) {
   const companyStages = configuredStages(shell.pipelineConfig, 'Account', defaultCompanyStages);
   const board =
     view === 'pipeline'
-      ? await Promise.all(
-          companyStages
-            .filter((source) => !query.get('stage') || source.value === query.get('stage'))
-            .map(async (source) => {
-              const offset = Math.max(
-                0,
-                parseInt(url.searchParams.get(`${source.value}_offset`) ?? '0') || 0
-              );
-              const params = new URLSearchParams(query);
-              params.set('include_choices', 'false');
-              params.set('stage', source.value);
-              params.set('offset', String(offset));
-              const rows = await listAccounts({ cookies }, params);
-              return {
-                ...source,
-                contacts: rows.results,
-                count: rows.totals.count,
-                moneyTotals: rows.totals.money_totals,
-                offset
-              };
-            })
+      ? await pipelineColumns(response, companyStages, query, (params) =>
+          listAccounts({ cookies }, params)
         )
       : [];
+
   return {
     view,
     companies: response.results,
@@ -66,7 +56,10 @@ export const actions = {
       await updateAccount({ cookies }, id, { stage: source });
       return { moved: true };
     } catch (/** @type {any} */ err) {
-      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not move company.') });
+      return fail(400, {
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not move company.')
+      });
     }
   }
 };

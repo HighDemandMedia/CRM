@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * Documents: the thirteenth v2 module wired to the real API.
  *
@@ -50,11 +51,10 @@
  *   endpoint gated by the same `_may_read` the detail view uses.
  */
 import { apiRequest } from '$lib/api-helpers.js';
-import { env } from '$env/dynamic/public';
 import { documentHref } from './files.js';
 import { getOrgPeopleAndTeams } from './org-people.js';
 
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api`;
+const API_BASE_URL = `${API_ORIGIN}/api`;
 
 /** The two document states the backend accepts (Document.DOCUMENT_STATUS_CHOICE). */
 export const STATUS_CHOICES = ['active', 'inactive'];

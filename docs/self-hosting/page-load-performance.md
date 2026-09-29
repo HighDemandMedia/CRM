@@ -36,3 +36,33 @@ The broader runs passed 299 backend tests and 686 frontend tests, with three bac
 No migration, new environment variable, S3 change, worker restart or scheduler restart is required by this change. If rollback is needed, roll back the web service first; the optimized API still supports the previous web build.
 
 Authenticated online navigation still needs verification after deployment. If it remains slow, correlate browser request timings with Render API latency, CPU/memory and database query timings before changing hosting plans. The public login page and API health endpoint alone do not represent authenticated list performance.
+
+## September 29: batched boards and private server requests
+
+The hosted audit confirmed that API and web run on 0.5 CPU / 512 MB paid instances, both deployed at `a2d5056`. Available CPU/memory graphs did not show sustained saturation. PostgreSQL remained Free; its CPU/connections telemetry was unavailable, so database saturation was not established. Point-in-time automated authenticated navigation measured about 1.4 s for Contacts and 0.7 s for Companies/Deals list views. These are not load-test results.
+
+### Batched board contract
+
+Contacts, companies and deals accept `board=true` on their existing list endpoint. Existing authentication, record scopes and all list filters run before building columns. `limit` (default 25, maximum 100) applies independently to every configured stage; `<stage>_offset` is clamped to 0–10,000,000. SQL selects only that page of IDs per column, followed by one shared serializer/prefetch batch. Empty columns remain present. Counts and currency-separated amounts cover all matching records, not just the page. Contact totals still count a shared visible deal only once per column/header.
+
+The frontend makes one board request instead of an initial list plus one request per stage. The previous read path is retained as a fallback only if an older API returns no `board` field during rollout. Tasks and tickets already use their existing board endpoints and are unchanged.
+
+Local regression data used three matching records per configured stage, one extra custom stage, limit 2, and an offset in one column. Compared with the previous per-column reads (excluding their additional initial header request):
+
+| Board | Admin SQL before → after | Own-record scope before → after |
+| --- | ---: | ---: |
+| Companies | 96 → 25 | 114 → 38 |
+| Contacts | 108 → 28 | 126 → 41 |
+| Deals | 126 → 30 | 147 → 45 |
+
+The ten board tests pass against SQLite and PostgreSQL under a non-superuser/non-BYPASSRLS role. They compare row payloads, custom stages, per-column pagination, filtered totals, own-record visibility, cross-organization isolation, empty columns and authentication. The 23-test SQLite run also includes existing UI-context and currency-total regressions. The frontend passes 25 targeted tests (board loads, rolling-deploy fallback, private/public origins, file streaming and sign-in/session handling), Svelte checks with zero errors/warnings, and the production build.
+
+### Private networking rollout
+
+1. Deploy the API commit. No migration is required.
+2. In the API service's `ALLOWED_HOSTS`, retain the existing public host and append `hdm-crm-staging-api` (no scheme or port).
+3. On **web only**, set `DJANGO_INTERNAL_API_URL=http://hdm-crm-staging-api:10000`, the Internal Address verified in Render's Connect menu. Keep `PUBLIC_DJANGO_API_URL=https://hdm-crm-staging-api.onrender.com` and the web's HTTPS `ORIGIN` unchanged.
+4. Deploy web, verify signed-in lists/boards and API logs. The browser still uses HTTPS. Server-only fetches, authentication and downloads use the private route; form-embed and organization-settings requests retain the public origin because their responses generate public absolute URLs.
+5. Compare with the same account/filters after deployment. SQL reductions do not promise a particular online response time. Revert the web's private variable (empty/unset) to fall back to the public route if necessary.
+
+No paid plan change, database connection-pool change, S3 change, worker or scheduler restart is needed. The private hostname is never included in page data or client bundles.

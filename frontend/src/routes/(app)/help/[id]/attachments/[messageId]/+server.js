@@ -1,5 +1,5 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 import { error } from '@sveltejs/kit';
-import { env } from '$env/dynamic/public';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -10,7 +10,7 @@ export async function GET({ cookies, params, fetch }) {
   if (!token) error(401, 'Sign in to download this attachment');
 
   const response = await fetch(
-    `${env.PUBLIC_DJANGO_API_URL}/api/support/messages/${params.messageId}/attachment/`,
+    `${API_ORIGIN}/api/support/messages/${params.messageId}/attachment/`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
   if (!response.ok || !response.body) {

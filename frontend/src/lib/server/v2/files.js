@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * Reaching an uploaded file, without handing the browser a `/media/` URL.
  *
@@ -13,9 +14,8 @@
  * which streams the file from an authenticated backend endpoint that checks
  * the record's own read predicate first.
  */
-import { env } from '$env/dynamic/public';
 
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api`;
+const API_BASE_URL = `${API_ORIGIN}/api`;
 
 /**
  * Where a page links to download one attachment.

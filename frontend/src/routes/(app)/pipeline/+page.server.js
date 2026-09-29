@@ -1,3 +1,4 @@
+import { pipelineColumns } from '$lib/server/v2/pipeline-columns.js';
 import { configuredStages } from '$lib/v2/pipeline-config.js';
 import { fail } from '@sveltejs/kit';
 import { listDeals, moveDeal } from '$lib/server/v2/deals.js';
@@ -12,40 +13,32 @@ export async function load({ cookies, url, parent }) {
     : 'list';
   const query = dealQuery(url),
     pageSize = 25;
-  if (view === 'pipeline') query.set('include_pipeline_totals', 'true');
+  if (view === 'pipeline') {
+    query.set('include_pipeline_totals', 'true');
+    query.set('board', 'true');
+    // The API validates/clamps offsets and only reads configured stages.
+    for (const [key, value] of url.searchParams) {
+      if (key.endsWith('_offset')) query.set(key, value);
+    }
+  }
   const offset = Math.max(0, parseInt(url.searchParams.get('offset') ?? '0') || 0);
   query.set('limit', String(pageSize));
   query.set('offset', String(view === 'list' ? offset : 0));
-  const [response, people] = await Promise.all([
+  const [response, people, shell] = await Promise.all([
     listDeals({ cookies }, query),
-    getOrgPeopleAndTeams(cookies)
+    getOrgPeopleAndTeams(cookies),
+    parent()
   ]);
-  const stages = configuredStages((await parent()).pipelineConfig, 'Opportunity', STAGES.map((value) => ({value, label:STAGE_LABEL[value]})));
+  const stages = configuredStages(
+    shell.pipelineConfig,
+    'Opportunity',
+    STAGES.map((value) => ({ value, label: STAGE_LABEL[value] }))
+  );
   const board =
     view === 'pipeline'
-      ? await Promise.all(
-          stages
-            .filter((s) => !query.get('stage') || query.get('stage') === s.value)
-            .map(async (stage) => {
-              const params = new URLSearchParams(query);
-              const offset = Math.max(
-                0,
-                parseInt(url.searchParams.get(`${stage.value}_offset`) ?? '0') || 0
-              );
-              params.set('include_choices', 'false');
-              params.set('stage', stage.value);
-              params.set('offset', String(offset));
-              const result = await listDeals({ cookies }, params);
-              return {
-                ...stage,
-                contacts: result.results,
-                count: result.totals.count,
-                moneyTotals: result.totals.money_totals,
-                offset
-              };
-            })
-        )
+      ? await pipelineColumns(response, stages, query, (params) => listDeals({ cookies }, params))
       : [];
+
   return {
     view,
     deals: response.results,
@@ -71,7 +64,10 @@ export const actions = {
       await moveDeal({ cookies }, id, { columnId: stage, aboveId: '', belowId: '' });
       return { moved: true };
     } catch (/** @type {any} */ err) {
-      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not move deal.') });
+      return fail(400, {
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not move deal.')
+      });
     }
   }
 };

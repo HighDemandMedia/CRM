@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * Organization Selection Page - API Version
  *
@@ -9,7 +10,6 @@
  *   mv +page.server.api.js +page.server.js
  */
 
-import { env as publicEnv } from '$env/dynamic/public';
 import { redirect, fail } from '@sveltejs/kit';
 import axios from 'axios';
 import { describeError } from '$lib/server/log-safe.js';
@@ -30,7 +30,7 @@ export async function load({ cookies, locals }) {
       return { orgs: [] };
     }
 
-    const apiUrl = publicEnv.PUBLIC_DJANGO_API_URL;
+    const apiUrl = API_ORIGIN;
 
     // Fetch current user with organization memberships
     // The /api/auth/me/ endpoint returns user data with organizations array
@@ -77,7 +77,7 @@ export const actions = {
       throw redirect(307, '/login');
     }
 
-    const apiUrl = publicEnv.PUBLIC_DJANGO_API_URL;
+    const apiUrl = API_ORIGIN;
     // Sent so the backend retires the token we are about to replace below;
     // otherwise it stays usable against the previous org until it expires.
     const outgoingRefresh = cookies.get('jwt_refresh');

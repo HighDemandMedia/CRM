@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * Public CSAT survey page.
  *
@@ -7,11 +8,10 @@
  */
 
 import { fail } from '@sveltejs/kit';
-import { env } from '$env/dynamic/public';
 
 import { preselectedRating } from '$lib/server/v2/csat.js';
 
-const API_BASE_URL = `${env.PUBLIC_DJANGO_API_URL}/api`;
+const API_BASE_URL = `${API_ORIGIN}/api`;
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ params, fetch, url }) {

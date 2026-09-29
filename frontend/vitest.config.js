@@ -14,8 +14,8 @@ import path from 'node:path';
  * own resolution.
  *
  * That is as far as this config goes. It resolves `$lib` and
- * `$env/dynamic/public` and nothing else: `$app/forms`, `$app/navigation`,
- * `$env/static/*`, and `$env/dynamic/private` are all still unresolvable
+ * `$env/dynamic/public` and `$env/dynamic/private`: `$app/forms`, `$app/navigation`,
+ * `$env/static/*` are still unresolvable
  * here, and there is no Svelte plugin, so `.svelte` files cannot be compiled
  * at all. `include: ['src/**\/*.test.js']` will happily pick up a test placed
  * anywhere under `src/`, including next to a route module or a component, but
@@ -48,7 +48,8 @@ export default defineConfig({
   resolve: {
     alias: {
       $lib: path.resolve('./src/lib'),
-      '$env/dynamic/public': path.resolve('./test/stubs/env-dynamic-public.js')
+      '$env/dynamic/public': path.resolve('./test/stubs/env-dynamic-public.js'),
+      '$env/dynamic/private': path.resolve('./test/stubs/env-dynamic-private.js')
     }
   }
 });

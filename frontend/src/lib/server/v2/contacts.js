@@ -153,6 +153,10 @@ export async function listContacts({ cookies }, params) {
   const rows = (response.results ?? []).map(toRow);
 
   return {
+    board: response.board?.map((column) => {
+      const rows = (column.results ?? []).map(toRow);
+      return { ...column, results: rows };
+    }),
     results: rows,
     stages: (response.stages ?? []).map((/** @type {any} */ pair) => ({
       value: pair[0],
