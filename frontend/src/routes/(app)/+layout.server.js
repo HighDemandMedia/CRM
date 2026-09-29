@@ -3,7 +3,6 @@ import { listLeads } from '$lib/server/v2/leads.js';
 import { listTickets, OPEN_STATUSES } from '$lib/server/v2/tickets.js';
 import { listInvoices } from '$lib/server/v2/invoices.js';
 import { countAwaitingApprovals } from '$lib/server/v2/approvals.js';
-import { getOrgTerminology } from '$lib/server/v2/organization.js';
 
 /**
  * Counts actually rendered by Sidebar and SectionTabs.
@@ -68,22 +67,9 @@ const LIVE_COUNTS = {
 };
 
 /**
- * The shell: nav counts, the org name, and vertical-pack terminology.
- *
- * The org name is display-only and comes from the JWT via `locals.org`, never
- * the client, never a fixture. Everything below runs concurrently (in sequence
- * it would add a round trip per module to every page) and starts empty: every
- * badge the sidebar renders is in LIVE_COUNTS, so a count that fails just shows
- * no badge rather than a stale number. `terminology` joins the same fan-out.
- * A failed fetch there just leaves the sidebar's hard-coded labels in place
- * (every consumer reads it through `$lib/terminology.js#t()`, which always
- * takes an explicit fallback), the same "missing, not stale or broken" contract
- * as a missing count badge.
- *
- * Still worth fixing: each count builds an entire page context: accounts,
- * tags, users, industries, to answer a question about one integer. One counts
- * endpoint covering every module is the right shape; N list calls is not.
- *
+ * Required shell settings share one authenticated request. Optional navigation
+ * badges stream afterwards so a slow counter cannot hold a page or parent().
+ * No shared cache: permissions and configuration stay specific to this session.
  * @type {import('./$types').LayoutServerLoad}
  */
 export async function load(event) {
@@ -120,35 +106,24 @@ export async function load(event) {
     isPlatformOwner: !!event.locals.profile?.is_platform_owner
   };
 
-  // countKeys' fetches and the terminology fetch are pushed into ONE
-  // Promise.allSettled call so they all fire in the same network wave. The
-  // terminology lookup is not a second round trip, it rides the wave that was
-  // already here for the badges. `results` is indexed by position: the count
-  // keys first (in `countKeys` order), terminology last.
+  const context = await apiRequest('/org/ui-context/', {}, { cookies: event.cookies });
+  shell.org.terminology = context.terminology;
+  shell.isSuperAdmin = !!context.is_super_admin;
   const countKeys = Object.keys(LIVE_COUNTS).filter(key => shell.canPreview || key === 'tickets');
-  const results = await Promise.allSettled([
-    ...countKeys.map((key) => LIVE_COUNTS[/** @type {keyof typeof LIVE_COUNTS} */ (key)](event)),
-    getOrgTerminology(event),
-    apiRequest('/pipeline-settings/?include_rules=false', {}, {cookies: event.cookies}),
-    apiRequest('/property-layout/', {}, {cookies: event.cookies}),
-    apiRequest('/permissions/me/', {}, {cookies:event.cookies})
-  ]);
-
-  countKeys.forEach((key, index) => {
-    const result = results[index];
-    if (result.status === 'fulfilled') shell.counts[key] = result.value;
+  const counts = Promise.allSettled(
+    countKeys.map(key => LIVE_COUNTS[/** @type {keyof typeof LIVE_COUNTS} */ (key)](event))
+  ).then(results => {
+    /** @type {Record<string, number>} */
+    const values = {};
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') values[countKeys[i]] = result.value;
+    });
+    return values;
   });
-
-  const terminologyResult = results[countKeys.length];
-  if (terminologyResult.status === 'fulfilled') {
-    shell.org.terminology = terminologyResult.value.terminology;
-    shell.isSuperAdmin = !!terminologyResult.value.isSuperAdmin;
-  }
-
-  const pipelineResult = results[countKeys.length + 1];
-  const propertyResult = results[countKeys.length + 2];
-  const propertyLayout = propertyResult?.status === 'fulfilled' ? propertyResult.value : {objects: {}};
-  const permissionsResult = results[countKeys.length + 3];
-  const permissions = permissionsResult?.status === 'fulfilled' ? permissionsResult.value : {rules:{},calendar_host_ids:[]};
-  return {...shell, permissions, propertyLayout: propertyLayout.objects, pipelineConfig: pipelineResult?.status === 'fulfilled' ? pipelineResult.value.pipelines : {}};
+  return {
+    ...shell, counts,
+    permissions: context.permissions,
+    propertyLayout: context.property_layout,
+    pipelineConfig: context.pipelines
+  };
 }

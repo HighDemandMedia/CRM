@@ -6,7 +6,6 @@ import { companyQuery } from '$lib/server/v2/company-query.js';
 import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies, url, parent }) {
-  const companyStages = configuredStages((await parent()).pipelineConfig, 'Account', defaultCompanyStages);
   const query = companyQuery(url),
     view = url.searchParams.get('view') === 'pipeline' ? 'pipeline' : 'list';
   if (view === 'pipeline') query.set('include_pipeline_totals', 'true');
@@ -14,7 +13,8 @@ export async function load({ cookies, url, parent }) {
     offset = Math.max(0, parseInt(url.searchParams.get('offset') ?? '0') || 0);
   query.set('limit', String(pageSize));
   query.set('offset', String(view === 'list' ? offset : 0));
-  const response = await listAccounts({ cookies }, query);
+  const [response, shell] = await Promise.all([listAccounts({ cookies }, query), parent()]);
+  const companyStages = configuredStages(shell.pipelineConfig, 'Account', defaultCompanyStages);
   const board =
     view === 'pipeline'
       ? await Promise.all(
@@ -26,6 +26,7 @@ export async function load({ cookies, url, parent }) {
                 parseInt(url.searchParams.get(`${source.value}_offset`) ?? '0') || 0
               );
               const params = new URLSearchParams(query);
+              params.set('include_choices', 'false');
               params.set('stage', source.value);
               params.set('offset', String(offset));
               const rows = await listAccounts({ cookies }, params);

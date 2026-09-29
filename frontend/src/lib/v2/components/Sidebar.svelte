@@ -46,7 +46,7 @@
    *   user?: { name?: string, email?: string },
    *   accountId?: string,
    *   collapsed?: boolean,
-   *   counts?: Record<string, number>,
+   *   counts?: Record<string, number> | Promise<Record<string, number>>,
    *   org?: { name: string },
    *   role?: string,
    *   isSuperAdmin?: boolean,
@@ -225,8 +225,10 @@
             {#if !['/', '/contacts', '/accounts', '/pipeline', '/calendar', '/tickets', '/tasks', '/reports'].includes(item.href)}
               <span class="review-badge" title="Pending review">Review</span>
             {/if}
-            {#if item.count && counts[item.count]}
-              <span class="v2-count">{counts[item.count]}</span>
+            {#if item.count}
+              {#await counts then readyCounts}
+                {#if readyCounts[item.count]}<span class="v2-count">{readyCounts[item.count]}</span>{/if}
+              {/await}
             {/if}
           </a>
         {/each}

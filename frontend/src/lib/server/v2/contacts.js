@@ -147,6 +147,7 @@ function toRow(contact) {
 export async function listContacts({ cookies }, params) {
   const query = new URLSearchParams(params ?? undefined);
   if (!query.has('limit')) query.set('limit', '25');
+  query.set('compact', 'true');
 
   const response = await apiRequest(`/contacts/?${query}`, {}, { cookies });
   const rows = (response.results ?? []).map(toRow);

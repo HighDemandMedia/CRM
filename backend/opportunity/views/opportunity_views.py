@@ -47,6 +47,7 @@ from contacts.serializer import ContactSerializer
 from opportunity import access, swagger_params
 from opportunity.list_properties import filter_and_sort, search_properties
 from opportunity.models import Opportunity, StageAgingConfig
+from opportunity.serializer import OpportunityListSerializer
 from opportunity.serializer import (
     OpportunityCreateSerializer,
     OpportunityCreateSwaggerSerializer,
@@ -136,6 +137,10 @@ class OpportunityListView(APIView, LimitOffsetPagination):
         queryset = self.model.objects.filter(org=self.request.profile.org).order_by(
             "-id"
         )
+        if params.get("compact") == "true":
+            queryset = queryset.select_related("org", "account", "created_by").prefetch_related(
+                "assigned_to__user", "contacts", "tags"
+            )
         accounts = Account.objects.filter(org=self.request.profile.org)
         contacts = Contact.objects.filter(org=self.request.profile.org)
         if (
@@ -227,7 +232,8 @@ class OpportunityListView(APIView, LimitOffsetPagination):
         results_opportunities = self.paginate_queryset(
             queryset.distinct(), self.request, view=self
         )
-        opportunities = OpportunitySerializer(
+        serializer_class = OpportunityListSerializer if params.get("compact") == "true" else OpportunitySerializer
+        opportunities = serializer_class(
             results_opportunities, many=True, context={"aging_configs": aging_configs}
         ).data
         if results_opportunities:
@@ -246,8 +252,14 @@ class OpportunityListView(APIView, LimitOffsetPagination):
             }
         )
         context["opportunities"] = opportunities
-        context["accounts_list"] = AccountSerializer(accounts, many=True).data
-        context["contacts_list"] = ContactSerializer(contacts, many=True).data
+        if params.get("compact") == "true" and params.get("include_choices") == "false":
+            return context
+        if params.get("compact") == "true":
+            context["accounts_list"] = list(accounts.values("id", "name"))
+            context["contacts_list"] = list(contacts.values("id", "first_name", "last_name", "email"))
+        else:
+            context["accounts_list"] = AccountSerializer(accounts, many=True).data
+            context["contacts_list"] = ContactSerializer(contacts, many=True).data
         context["tags"] = TagsSerializer(
             Tags.objects.filter(org=self.request.profile.org, is_active=True), many=True
         ).data

@@ -1,3 +1,4 @@
+from contacts.serializer import ContactListSerializer
 from common.last_activity import with_last_activity
 from common.pipeline_settings import stages_for
 from common.rbac import configured, permitted
@@ -67,7 +68,7 @@ class ContactsListView(APIView, LimitOffsetPagination):
             # a page that says "most recent first" was shuffling people. The
             # model's own Meta.ordering is `-created_at`; this now agrees.
             .order_by("-created_at")
-            .select_related("account", "created_by")
+            .select_related("account", "created_by", "org")
             .prefetch_related("account_contacts", "assigned_to__user", "teams", "tags")
         )
         queryset = with_last_activity(queryset)
@@ -230,7 +231,8 @@ class ContactsListView(APIView, LimitOffsetPagination):
         results_contact = self.paginate_queryset(
             queryset.distinct(), self.request, view=self
         )
-        contacts = ContactSerializer(results_contact, many=True).data
+        serializer_class = ContactListSerializer if params.get("compact") == "true" else ContactSerializer
+        contacts = serializer_class(results_contact, many=True).data
         if params.get("include_deal_values") == "true":
             values = contact_deal_values(
                 self.request.profile,

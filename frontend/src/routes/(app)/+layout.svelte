@@ -14,7 +14,7 @@
   import CommandPalette from '$lib/v2/components/CommandPalette.svelte';
   import { Search, Sun, Columns3, LifeBuoy, Receipt, Plus, Menu } from '@lucide/svelte';
 
-  /** @type {{ data: { accountUser: { name?: string, email?: string }, accountId: string, counts: Record<string, number>, org: { name: string, terminology?: Record<string, string> | null }, role: string, isSuperAdmin?: boolean }, children: import('svelte').Snippet }} */
+  /** @type {{ data: { accountUser: { name?: string, email?: string }, accountId: string, counts: Record<string, number> | Promise<Record<string, number>>, org: { name: string, terminology?: Record<string, string> | null }, role: string, isSuperAdmin?: boolean }, children: import('svelte').Snippet }} */
   let { data, children } = $props();
 
   let preferencesOpen = $derived(

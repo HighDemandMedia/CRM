@@ -32,6 +32,7 @@ export async function load({ cookies, url, parent }) {
                 0,
                 parseInt(url.searchParams.get(`${stage.value}_offset`) ?? '0') || 0
               );
+              params.set('include_choices', 'false');
               params.set('stage', stage.value);
               params.set('offset', String(offset));
               const result = await listDeals({ cookies }, params);

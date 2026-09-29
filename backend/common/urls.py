@@ -1,3 +1,4 @@
+from common.views.ui_context_views import UIContextView
 from common.views.password_auth_views import PasswordLoginView, PasswordRegisterView, PasswordChangeView
 from common.views.role_views import MyPermissionsView
 from common.views.property_layout_views import PropertyLayoutView
@@ -76,6 +77,7 @@ app_name = "api_common"
 
 
 urlpatterns = [
+    path("org/ui-context/", UIContextView.as_view()),
     path("auth/password/login/", PasswordLoginView.as_view()),
     path("auth/password/register/", PasswordRegisterView.as_view()),
     path("auth/password/change/", PasswordChangeView.as_view()),

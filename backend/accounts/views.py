@@ -42,6 +42,7 @@ from rest_framework.views import APIView
 from accounts import access, swagger_params
 from accounts.choices import COMPANY_INDUSTRIES
 from accounts.models import Account
+from accounts.serializer import AccountListSerializer
 from accounts.serializer import (
     AccountCommentEditSwaggerSerializer,
     AccountCreateSerializer,
@@ -216,6 +217,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
         queryset = (
             annotate_rollups(self.model.objects.filter(org=self.request.profile.org))
             .order_by("-created_at", "pk")
+            .select_related("org", "created_by")
             .prefetch_related("assigned_to__user", "contacts", "tags")
         )
         if not configured(self.request.profile) and not is_org_admin(self.request.profile):
@@ -415,7 +417,8 @@ class AccountsListView(APIView, LimitOffsetPagination):
                 offset = None
         else:
             offset = 0
-        accounts_active = AccountSerializer(results_accounts_active, many=True).data
+        serializer_class = AccountListSerializer if params.get("compact") == "true" else AccountSerializer
+        accounts_active = serializer_class(results_accounts_active, many=True).data
         context["per_page"] = 10
         page_number = int(self.offset / 10) + 1
         context["page_number"] = page_number
@@ -438,7 +441,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
                 offset = None
         else:
             offset = 0
-        accounts_inactive = AccountSerializer(results_accounts_inactive, many=True).data
+        accounts_inactive = serializer_class(results_accounts_inactive, many=True).data
 
         # The contact and lead catalogues below exist for the account *form*
         # (linking a contact, converting a lead). They are org-scoped, and for
@@ -463,6 +466,12 @@ class AccountsListView(APIView, LimitOffsetPagination):
             "close_accounts": accounts_inactive,
             "close_accounts_count": queryset_inactive.count(),
         }
+        context["countries"] = COUNTRIES
+        context["industries"] = COMPANY_INDUSTRIES
+        if params.get("compact") == "true":
+            if params.get("include_choices") == "false":
+                context.pop("contacts", None)
+            return context
         context["teams"] = TeamsSerializer(
             Teams.objects.filter(org=self.request.profile.org), many=True
         ).data

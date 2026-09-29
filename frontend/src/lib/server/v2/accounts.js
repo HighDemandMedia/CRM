@@ -215,6 +215,7 @@ export const FILTER_FIELDS = ['assigned_to', 'tags', 'industry', 'city'];
 export async function listAccounts({ cookies }, params) {
   const query = new URLSearchParams(params ?? undefined);
   if (!query.has('limit')) query.set('limit', '25');
+  query.set('compact', 'true');
 
   const response = await apiRequest(`/accounts/?${query}`, {}, { cookies });
   const active = response.active_accounts ?? {};

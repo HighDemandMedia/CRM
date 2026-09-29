@@ -138,6 +138,19 @@ class ContactSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, 
         )
 
 
+class ContactListSerializer(ContactSerializer):
+    """List/card fields without unrelated detail panels or nested full records."""
+    from common.list_serializers import OwnerLabelSerializer
+
+    assigned_to = OwnerLabelSerializer(read_only=True, many=True)
+
+    class Meta(ContactSerializer.Meta):
+        fields = tuple(
+            field for field in ContactSerializer.Meta.fields
+            if field not in ('org', 'contact_attachment')
+        )
+
+
 class CreateContactSerializer(PipelineRulesMixin, serializers.ModelSerializer):
     """Serializer for creating/updating Contact data"""
 

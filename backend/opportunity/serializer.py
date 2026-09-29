@@ -238,6 +238,21 @@ class OpportunitySerializer(VisibleCRMSerializerMixin, LastActivitySerializerMix
         )
 
 
+class OpportunityListSerializer(OpportunitySerializer):
+    """List/card fields without unrelated detail panels or nested full records."""
+    from common.list_serializers import OwnerLabelSerializer, ContactLabelSerializer, AccountLabelSerializer
+
+    assigned_to = OwnerLabelSerializer(read_only=True, many=True)
+    contacts = ContactLabelSerializer(read_only=True, many=True)
+    account = AccountLabelSerializer(read_only=True)
+
+    class Meta(OpportunitySerializer.Meta):
+        fields = tuple(
+            field for field in OpportunitySerializer.Meta.fields
+            if field not in ('org', 'teams', 'closed_by', 'line_items', 'line_items_total', 'created_on_arrow')
+        )
+
+
 class OpportunityCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
     """Serializer for creating/updating Opportunity data"""
 

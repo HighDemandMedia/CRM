@@ -37,8 +37,10 @@
       aria-current={isActive(tab.href, tab.exact) ? 'page' : undefined}
     >
       {tab.label}
-      {#if tab.count && counts[tab.count]}
-        <span class="v2-tab-count v2-num">{counts[tab.count]}</span>
+      {#if tab.count}
+        {#await counts then readyCounts}
+          {#if readyCounts[tab.count]}<span class="v2-tab-count v2-num">{readyCounts[tab.count]}</span>{/if}
+        {/await}
       {/if}
     </a>
   {/each}

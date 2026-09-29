@@ -254,30 +254,30 @@ class RoleExportCheckView(APIView):
         return Response({"allowed": True})
 
 
+def permissions_payload(profile):
+    """Fresh permissions shared by the standalone endpoint and UI bootstrap."""
+    from common.rbac import calendar_hosts, configured
+
+    rules = (
+        {
+            module: {action: scope_for(profile, module, action) for action in actions}
+            for module, actions in SCHEMA.items()
+        }
+        if profile.role == "ADMIN" or configured(profile)
+        else default_rules()
+    )
+    return {
+        "rules": rules,
+        "is_admin": profile.role == "ADMIN",
+        "calendar_host_ids": list(calendar_hosts(profile).values_list("pk", flat=True)),
+    }
+
+
 class MyPermissionsView(APIView):
     permission_classes = [IsAuthenticated, HasOrgContext]
 
     def get(self, request):
-        from common.rbac import calendar_hosts, configured
-
-        profile = request.profile
-        rules = (
-            {
-                module: {
-                    action: scope_for(profile, module, action) for action in actions
-                }
-                for module, actions in SCHEMA.items()
-            }
-            if profile.role == "ADMIN" or configured(profile)
-            else default_rules()
-        )
         return Response(
-            {
-                "rules": rules,
-                "is_admin": profile.role == "ADMIN",
-                "calendar_host_ids": list(
-                    calendar_hosts(profile).values_list("pk", flat=True)
-                ),
-            },
+            permissions_payload(request.profile),
             headers={"Cache-Control": "private, no-store"},
         )

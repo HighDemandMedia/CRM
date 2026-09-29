@@ -143,6 +143,20 @@ class AccountSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, 
         )
 
 
+class AccountListSerializer(AccountSerializer):
+    """List/card fields without unrelated detail panels or nested full records."""
+    from common.list_serializers import OwnerLabelSerializer, ContactLabelSerializer
+
+    assigned_to = OwnerLabelSerializer(read_only=True, many=True)
+    contacts = ContactLabelSerializer(read_only=True, many=True)
+
+    class Meta(AccountSerializer.Meta):
+        fields = tuple(
+            field for field in AccountSerializer.Meta.fields
+            if field not in ('org', 'teams', 'created_by', 'account_attachment', 'cases', 'tasks', 'opportunities')
+        )
+
+
 class EmailSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         # `AccountCreateMailView` passes `request_obj=request`, matching the
