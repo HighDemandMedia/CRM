@@ -1158,38 +1158,8 @@ class AccountAttachmentView(APIView):
 
     @extend_schema(tags=["Accounts"], parameters=swagger_params.organization_params)
     def delete(self, request, pk, format=None):
-        # Scoped to the caller's org. `Attachments` is one generic table shared
-        # by every module, and this looked the row up by primary key alone, so
-        # the endpoint would delete any attachment in the database, belonging to
-        # any organisation, hanging off any kind of record. RLS is the only
-        # thing that stood between that and a cross-tenant delete, and RLS is
-        # the safety net, not the check.
-        #
-        # `created_by` is a User FK, so the ownership branch compares against
-        # `profile.user_id`; comparing the Profile itself was never true, which
-        # made this admin-only by accident.
-        try:
-            self.object = get_object_or_404(
-                self.model, pk=pk, org=self.request.profile.org
-            )
-        except (DjangoValidationError, ValueError):
-            raise Http404("No such attachment.")
-        if (
-            is_org_admin(request.profile)
-            or request.profile.user_id == self.object.created_by_id
-        ):
-            self.object.delete()
-            return Response(
-                {"error": False, "message": "Attachment Deleted Successfully"},
-                status=status.HTTP_200_OK,
-            )
-        return Response(
-            {
-                "error": True,
-                "errors": "You don't have permission to delete this Attachment",
-            },
-            status=status.HTTP_403_FORBIDDEN,
-        )
+        from common.views.attachment_views import delete_attachment
+        return delete_attachment(request, pk, expected_model="account")
 
 
 class AccountCreateMailView(APIView):

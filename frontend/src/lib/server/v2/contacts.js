@@ -233,6 +233,7 @@ export async function getContact({ cookies }, id, withEditor = false) {
     })),
     attachments: (response.attachments ?? []).map((file) => ({
       id: file.id,
+      canDelete: file.can_delete === true,
       name: file.file_name ?? file.attachment ?? 'Attachment',
       href: attachmentHref(file.id),
       at: file.created_at

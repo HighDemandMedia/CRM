@@ -48,7 +48,7 @@ export const articles = [
       },
       {
         title: 'Notes, files and activity',
-        text: 'Use Notes for comments and Attachments for files. Activity records property changes with the time and user. Simply opening the contact is not recorded as an activity. Last Activity reflects the latest recorded property change, with creation as the fallback.'
+        text: 'Use Notes for comments and Attachments for files. To remove an attachment, use its delete button and confirm the file name shown. Deletion is permanent and requires Delete attachments permission for that object. Activity records property changes with the time and user. Simply opening the contact is not recorded as an activity. Last Activity reflects the latest recorded property change, with creation as the fallback.'
       },
       {
         title: 'Associate records',
@@ -322,7 +322,7 @@ export const articles = [
       },
       {
         title: 'Access levels',
-        text: 'Member uses Personal scope and Manager uses Team scope. Custom permission sets choose Personal, Team or Organization access and enable actions per object: view, create, edit properties, change stages, manage notes, attachments and associations, delete, export and owner assignment. Enabled actions must stay within view access.'
+        text: 'Member uses Personal scope and Manager uses Team scope. Custom permission sets choose Personal, Team or Organization access and enable actions per object: view, create, edit properties, change stages, manage notes, upload attachments, delete attachments, manage associations, delete records, export and owner assignment. Uploading and deleting attachments are separate permissions; deletion is off by default for Member, Manager and custom sets until an admin enables it. Enabled actions must stay within view access.'
       },
       {
         title: 'Calendar and Reports permissions',

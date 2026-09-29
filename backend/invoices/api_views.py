@@ -1897,29 +1897,8 @@ class InvoiceAttachmentDetailView(APIView):
 
     @extend_schema(tags=["Invoice Attachments"], operation_id="attachments_destroy")
     def delete(self, request, pk):
-        attachment = Attachments.objects.filter(id=pk, org=request.profile.org).first()
-        if not attachment:
-            return Response(
-                {"error": True, "message": "Attachment not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        # created_by is a User FK, so it must be compared against request.user --
-        # comparing it to request.profile is always unequal and locks the
-        # uploader out of their own attachment.
-        if attachment.created_by_id != request.user.id and not is_org_admin(
-            request.profile
-        ):
-            return Response(
-                {"error": True, "message": "Permission denied"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        attachment.delete()
-        return Response(
-            {"error": False, "message": "Attachment deleted"},
-            status=status.HTTP_200_OK,
-        )
+        from common.views.attachment_views import delete_attachment
+        return delete_attachment(request, pk, expected_model="invoice")
 
 
 # =============================================================================

@@ -15,6 +15,7 @@ ACTIONS = (
     "stage",
     "notes",
     "attachments",
+    "delete_attachments",
     "associations",
     "delete",
     "export",
@@ -49,7 +50,8 @@ ACTION_LABELS = dict(
     edit="Edit properties",
     stage="Change stage",
     notes="Manage notes",
-    attachments="Manage files",
+    attachments="Upload attachments",
+    delete_attachments="Delete attachments",
     associations="Manage associations",
     delete="Delete records",
     export="Export",
@@ -324,7 +326,11 @@ def check_request(request):
         and len(parts) > 2
         and parts[1] in ("comment", "attachment")
     ):
-        action = "notes" if parts[1] == "comment" else "attachments"
+        action = (
+            "notes" if parts[1] == "comment"
+            else "delete_attachments" if request.method == "DELETE"
+            else "attachments"
+        )
     require(profile, module, action)
     if action == "create" and not request.data.get("assigned_to"):
         # Default a new record to the creating member instead of leaving it invisible.

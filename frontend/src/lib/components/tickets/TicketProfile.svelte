@@ -157,15 +157,10 @@
           ></a
         >{/if}<button class="v2-btn" onclick={edit}>+ Association</button>{/if}
     <section class="attachments">
-      {#if data.canReply}<Attachments
-          attachments={data.attachments.map((file) => ({ ...file, href: file.url }))}
-        />{:else}<h2>Attachments</h2>
-        {#each data.attachments as file}<a
-            class="file"
-            href={file.url}
-            target="_blank"
-            rel="noreferrer">{file.name}</a
-          >{/each}{/if}
+      <Attachments
+        attachments={data.attachments.map((file) => ({ ...file, href: file.url }))}
+        allowUpload={data.canReply}
+      />
     </section>
   </aside>
 </div>
@@ -285,11 +280,6 @@
   }
   .attachments {
     margin-top: 30px;
-  }
-  .file {
-    display: block;
-    overflow-wrap: anywhere;
-    margin: 12px 0;
   }
   .resolution {
     margin: 20px 0;

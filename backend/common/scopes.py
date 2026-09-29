@@ -56,9 +56,8 @@ API_RESOURCES = frozenset(
         "accounts",
         "activities",
         "api-settings",
-        # Downloading a file attached to a record. Read-only in practice: the
-        # only view under this root is the download, and it is gated by the
-        # parent record's own read predicate.
+        # Downloads and deletion both check the parent record's permissions.
+        # Deletion additionally requires attachments:write on scoped tokens.
         "attachments",
         "auth",
         "boards",

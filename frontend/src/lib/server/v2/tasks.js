@@ -262,7 +262,7 @@ export async function getTask({ cookies }, id) {
  * @param {any} response
  */
 function buildTaskActivity(response) {
-  /** @type {Array<{id:string,type:'comment'|'file'|'status',at:string,by:string|null,body:string,href?:string|null}>} */
+  /** @type {Array<{id:string,type:'comment'|'file'|'status',at:string,by:string|null,body:string,href?:string|null,attachmentId?:string,canDelete?:boolean}>} */
   const events = (response.comments ?? []).map((/** @type {any} */ c) => ({
     id: `comment-${c.id}`,
     type: 'comment',
@@ -274,6 +274,8 @@ function buildTaskActivity(response) {
   for (const a of response.attachments ?? []) {
     events.push({
       id: `file-${a.id}`,
+      attachmentId: a.id,
+      canDelete: a.can_delete === true,
       type: 'file',
       at: a.created_at,
       by: null,

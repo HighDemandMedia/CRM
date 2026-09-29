@@ -17,12 +17,26 @@ remain fixed. Custom permission sets can be created from scratch or duplicated f
 members assigned to that role on their next request.
 
 Permissions cover Contacts, Companies, Deals, Tasks and Tickets independently:
-view, create, edit properties, move stage, manage notes, manage attachments,
+view, create, edit properties, move stage, manage notes, upload attachments, delete attachments,
 manage associations, delete, export and reassign owners. Calendar and Reports
 have their own panels. Create and booking conflict overrides are boolean;
 other enabled actions use the permission set's single access level. Actions
-cannot exceed View. Stage, notes, files, associations and reassignment also
+cannot exceed View. Stage, notes, uploads, associations and reassignment also
 require Edit. Existing note-author restrictions still apply.
+
+Attachment deletion has its own `delete_attachments` action per object. It is
+disabled by default for Member, Manager and existing custom sets; Admin and
+Super Admin retain organization-wide access. Admins enable it in Roles &
+Permissions and assign the set in Users & Teams. Uploading a file or deleting
+records does not grant attachment deletion. Its scope follows the parent
+record's current assignment, not who uploaded the file.
+
+An allowed user sees a trash icon beside each attachment. The confirmation
+names the file; Cancel leaves it unchanged. Confirming removes the stored file
+and attachment row, keeping the parent record. Storage errors preserve the row
+and show a retryable error. The shared DELETE endpoint and legacy object
+endpoints enforce the same tenant, parent type and permission checks. No new
+environment variable or migration is required; missing grants are read as off.
 
 Calendar separates View, Schedule, Reschedule, Cancel, Choose another host,
 Override booking conflicts, and Export. Personal access means hosted events;

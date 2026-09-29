@@ -231,6 +231,7 @@ export async function getTicket({ cookies }, id) {
     contacts: ticket.contacts,
     attachments: (response.attachments ?? []).map((/** @type {any} */ file) => ({
       id: file.id,
+      canDelete: file.can_delete === true,
       name: file.file_name ?? '',
       // Resolved to an absolute URL so the rail can offer it as a download; the
       // rail used to render the name as dead text even though the path was here.

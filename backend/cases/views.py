@@ -1064,50 +1064,8 @@ class CaseAttachmentView(APIView):
         },
     )
     def delete(self, request, pk, format=None):
-        """Delete one attachment hanging off a case.
-
-        Two defects, both proven live before the fix:
-
-        1. `objects.get(pk=pk)` had **no org filter**. `Attachments` is one
-           generic table shared by leads, accounts, contacts, deals, cases and
-           tasks, so this endpoint deleted any attachment in the database
-           belonging to any organisation, given only its UUID. RLS blocks that
-           in a correctly-configured deployment, but per CLAUDE.md the ORM
-           filter is the contract and RLS is the safety net, and the dev role
-           here is a superuser, so the probe went through.
-        2. `request.profile == self.object.created_by` compares a `Profile` to
-           a `User` FK and is therefore never true, which quietly made the
-           endpoint admin-only: the person who uploaded the file could not
-           remove it.
-
-        The same one-line lookup bug is still open in `leads`, `tasks` and
-        `opportunity`.
-        """
-        try:
-            self.object = self.model.objects.filter(
-                pk=pk, org=request.profile.org
-            ).first()
-        except (DjangoValidationError, ValueError):
-            raise Http404("No such attachment.")
-        if self.object is None:
-            raise Http404("No such attachment.")
-
-        if (
-            is_org_admin(request.profile)
-            or request.profile.user_id == self.object.created_by_id
-        ):
-            self.object.delete()
-            return Response(
-                {"error": False, "message": "Attachment Deleted Successfully"},
-                status=status.HTTP_200_OK,
-            )
-        return Response(
-            {
-                "error": True,
-                "errors": "You don't have permission to perform this action.",
-            },
-            status=status.HTTP_403_FORBIDDEN,
-        )
+        from common.views.attachment_views import delete_attachment
+        return delete_attachment(request, pk, expected_model="case")
 
 
 class CaseSolutionLinkView(APIView):

@@ -1100,36 +1100,5 @@ class ContactAttachmentView(APIView):
     )
     @transaction.atomic
     def delete(self, request, pk, format=None):
-        # Two defects in one line, both proven against a running server:
-        #
-        # `Attachments` is a single generic table shared by every module, and
-        # this lookup had no org filter -- so this endpoint deleted any
-        # attachment in the database, belonging to any org, hanging off any
-        # kind of record. As MicroPyramid's admin I deleted another org's file
-        # and got a 200. Row-level security blocks that in a deployment whose
-        # DB role is not a superuser, which the dev one is; the ORM filter is
-        # the contract, RLS is the net.
-        #
-        # And `request.profile == self.object.created_by` compares a Profile to
-        # a User, so it was always False: the person who uploaded a file could
-        # not delete it unless they were an admin.
-        try:
-            self.object = get_object_or_404(self.model, pk=pk, org=request.profile.org)
-        except (DjangoValidationError, ValueError):
-            raise Http404("No such attachment.")
-        if (
-            is_org_admin(request.profile)
-            or request.profile.user_id == self.object.created_by_id
-        ):
-            self.object.delete()
-            return Response(
-                {"error": False, "message": "Attachment Deleted Successfully"},
-                status=status.HTTP_200_OK,
-            )
-        return Response(
-            {
-                "error": True,
-                "errors": "You don't have permission to delete this Attachment",
-            },
-            status=status.HTTP_403_FORBIDDEN,
-        )
+        from common.views.attachment_views import delete_attachment
+        return delete_attachment(request, pk, expected_model="contact")

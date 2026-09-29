@@ -778,7 +778,24 @@ class AttachmentsSerializer(serializers.ModelSerializer):
     """Serializer for Attachments model using ContentType"""
 
     file_path = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
     content_type = serializers.SlugRelatedField(slug_field="model", read_only=True)
+
+    def get_can_delete(self, obj):
+        from crum import get_current_request
+        from common.views.attachment_views import may_delete_attachment
+
+        request = self.context.get("request") or get_current_request()
+        if not request or not getattr(request, "profile", None):
+            return False
+        # Attachments in a profile share one parent; resolve its permission once.
+        cache = getattr(request, "_attachment_delete_permissions", None)
+        if cache is None:
+            cache = request._attachment_delete_permissions = {}
+        key = (obj.org_id, obj.content_type_id, obj.object_id, obj.created_by_id)
+        if key not in cache:
+            cache[key] = may_delete_attachment(request, obj)
+        return cache[key]
 
     @extend_schema_field(str)
     def get_file_path(self, obj):
@@ -794,6 +811,7 @@ class AttachmentsSerializer(serializers.ModelSerializer):
             "file_name",
             "created_at",
             "file_path",
+            "can_delete",
             "content_type",
             "object_id",
             "org",

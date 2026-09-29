@@ -20,11 +20,16 @@ attachable model must opt in here deliberately, because the failure mode of
 the other default is handing out somebody's file.
 """
 
+import logging
+
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -32,6 +37,8 @@ from rest_framework.views import APIView
 from common import swagger_params
 from common.models import Attachments
 from common.permissions import HasOrgContext
+
+logger = logging.getLogger(__name__)
 
 
 def _readers():
@@ -83,6 +90,62 @@ def may_read_attachment(request, attachment):
     if getattr(parent, "org_id", None) != request.profile.org_id:
         return False
     return reader(request, parent)
+
+
+def may_delete_attachment(request, attachment):
+    """Deletion follows the parent's current scope, never the uploader alone."""
+    from common.rbac import MODEL_MODULES, configured, permitted
+
+    if not may_read_attachment(request, attachment):
+        return False
+    if request.profile.role == "ADMIN":
+        return True
+    parent = attachment.content_object
+    if parent._meta.label_lower in MODEL_MODULES:
+        return configured(request.profile) and permitted(
+            request.profile, parent, "delete_attachments"
+        )
+    # Preview modules keep their existing uploader restriction. Their endpoints
+    # cannot be used to delete files on another type of record.
+    return attachment.created_by_id == request.user.pk
+
+
+@transaction.atomic
+def delete_attachment(request, pk, expected_model=None):
+    try:
+        attachment = get_object_or_404(
+            Attachments.objects.select_related("content_type"),
+            pk=pk,
+            org_id=request.profile.org_id,
+        )
+    except (DjangoValidationError, ValueError):
+        raise Http404("No such attachment.")
+    if expected_model and attachment.content_type.model != expected_model:
+        raise Http404("No such attachment.")
+    if not may_delete_attachment(request, attachment):
+        raise PermissionDenied(
+            "Your permission set does not allow deleting this attachment."
+        )
+    # Keep the row available for retry if the storage provider refuses deletion.
+    # FileField does not delete the stored object when its database row is removed.
+    if attachment.attachment:
+        try:
+            attachment.attachment.storage.delete(attachment.attachment.name)
+        except Exception:
+            logger.exception("Attachment storage deletion failed: %s", attachment.pk)
+            failure = APIException("Could not delete the file. Please try again.")
+            failure.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+            raise failure
+    attachment.delete()
+    return Response({"error": False, "message": "Attachment deleted."})
+
+
+class AttachmentDeleteView(APIView):
+    permission_classes = (IsAuthenticated, HasOrgContext)
+
+    @extend_schema(tags=["Attachments"], operation_id="attachments_delete")
+    def delete(self, request, pk, format=None):
+        return delete_attachment(request, pk)
 
 
 class AttachmentDownloadView(APIView):

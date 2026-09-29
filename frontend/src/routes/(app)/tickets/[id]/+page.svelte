@@ -1,4 +1,5 @@
 <script>
+  import Attachments from '$lib/v2/components/Attachments.svelte';
   import StageRuleNotice from "$lib/components/pipelines/StageRuleNotice.svelte";
   import TicketProfile from '$lib/components/tickets/TicketProfile.svelte';
   let advanced = $state(false);
@@ -896,30 +897,7 @@
         {/each}
       {/if}
 
-      {#if attachments.length}
-        <div class="v2-label v2-rail-head">Attachments</div>
-        {#each attachments as f (f.id)}
-          {#if f.url}
-            <!-- A download now, not dead text: the path was always in the payload
-               and the rail simply never linked it. -->
-            <a
-              class="v2-rail-row att"
-              href={f.url}
-              target="_blank"
-              rel="external noreferrer noopener"
-              style="color:inherit;text-decoration:none"
-            >
-              <Paperclip size={13} />
-              <div style="font-size:12.5px;font-weight:550;overflow-wrap:anywhere">{f.name}</div>
-            </a>
-          {:else}
-            <div class="v2-rail-row">
-              <Paperclip size={13} />
-              <div style="font-size:12.5px;font-weight:550;overflow-wrap:anywhere">{f.name}</div>
-            </div>
-          {/if}
-        {/each}
-      {/if}
+      <Attachments attachments={attachments.map((file) => ({ ...file, href: file.url }))} allowUpload={false} />
 
       {#if alsoOpen.length}
         <div class="v2-label v2-rail-head">Also open here</div>
@@ -1054,10 +1032,6 @@
     background: var(--v2-hover);
   }
 
-  /* The whole attachment row lifts slightly on hover to read as a download. */
-  .att:hover {
-    background: var(--v2-hover);
-  }
 
   /* ── time panel ─────────────────────────────────────────────────────── */
   .time-panel {

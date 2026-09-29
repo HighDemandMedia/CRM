@@ -3,65 +3,95 @@
   import { can, recordModule } from '$lib/v2/permissions.js';
   import { enhance } from '$app/forms';
   import { resolve } from '$app/paths';
-  import { Paperclip, FileText } from '@lucide/svelte';
-  /** @type {{attachments: Array<{id:string,name:string,href:`/api/attachments/${string}/download`}>,action?:string}} */
-  let { attachments, action = '?/attach' } = $props();
+  import { invalidateAll } from '$app/navigation';
+  import { Paperclip, FileText, Trash2 } from '@lucide/svelte';
+  /** @typedef {{id:string,name:string,href:string|null,canDelete?:boolean}} Attachment */
+  /** @type {{attachments: Attachment[],action?:string,allowUpload?:boolean}} */
+  let { attachments, action = '?/attach', allowUpload = true } = $props();
   let fileBusy = $state(false);
   let fileName = $state('');
   let fileError = $state('');
   let uploadStatus = $state('');
   /** @type {HTMLInputElement} */
   let fileInput = $state();
+  let selected = $state(/** @type {Attachment|null} */ (null));
+  let deleting = $state(false);
+  let deleteError = $state('');
+  let removed = $state(/** @type {string[]} */ ([]));
+  function modal(/** @type {HTMLDialogElement} */ node) {
+    node.showModal();
+    return { destroy: () => node.close() };
+  }
+  async function remove() {
+    if (!selected || deleting) return;
+    deleting = true;
+    deleteError = '';
+    const file = selected;
+    try {
+      const response = await fetch(resolve(`/api/attachments/${file.id}`), { method: 'DELETE' });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || 'Could not delete this attachment.');
+      removed = [...removed, file.id];
+      selected = null;
+      uploadStatus = `${file.name} deleted`;
+      await invalidateAll();
+    } catch (/** @type {any} */ err) {
+      if (selected) deleteError = err.message || 'Could not delete this attachment.';
+      else fileError = 'Attachment deleted. Refresh the page to update its activity.';
+    } finally {
+      deleting = false;
+    }
+  }
 </script>
 
 <div class="attachment-section">
   <header class="association-heading">
     <h2>Attachments</h2>
-    {#if !recordModule(page.url.pathname) || can(page.data.permissions,recordModule(page.url.pathname),'attachments')}<form
-      method="POST"
-      {action}
-      enctype="multipart/form-data"
-      use:enhance={() => {
-        fileBusy = true;
-        fileError = '';
-        uploadStatus = '';
-        return async ({ result, update }) => {
-          fileBusy = false;
-          if (result.type === 'success') {
-            fileName = '';
-            uploadStatus = 'File uploaded';
-            await update();
-          } else
-            fileError =
-              result.type === 'failure'
-                ? String(result.data?.message ?? 'Could not attach file.')
-                : 'Could not attach file.';
-        };
-      }}
-    >
-      <input
-        bind:this={fileInput}
-        type="file"
-        name="attachment"
-        aria-label="Choose attachment"
-        hidden
-        disabled={fileBusy}
-        onchange={(event) => {
-          fileName = event.currentTarget.files?.[0]?.name ?? '';
-          if (fileName) event.currentTarget.form?.requestSubmit();
+    {#if allowUpload && (!recordModule(page.url.pathname) || can(page.data.permissions, recordModule(page.url.pathname), 'attachments'))}<form
+        method="POST"
+        {action}
+        enctype="multipart/form-data"
+        use:enhance={() => {
+          fileBusy = true;
+          fileError = '';
+          uploadStatus = '';
+          return async ({ result, update }) => {
+            fileBusy = false;
+            if (result.type === 'success') {
+              fileName = '';
+              uploadStatus = 'File uploaded';
+              await update();
+            } else
+              fileError =
+                result.type === 'failure'
+                  ? String(result.data?.message ?? 'Could not attach file.')
+                  : 'Could not attach file.';
+          };
         }}
-      />
-      <button
-        type="button"
-        class="association-icon"
-        aria-label={fileBusy ? 'Uploading attachment' : 'Add attachment'}
-        title={fileBusy ? 'Uploading…' : 'Add attachment'}
-        disabled={fileBusy}
-        onclick={() => fileInput.click()}
       >
-        <Paperclip size={16} />
-      </button>
-    </form>{/if}
+        <input
+          bind:this={fileInput}
+          type="file"
+          name="attachment"
+          aria-label="Choose attachment"
+          hidden
+          disabled={fileBusy}
+          onchange={(event) => {
+            fileName = event.currentTarget.files?.[0]?.name ?? '';
+            if (fileName) event.currentTarget.form?.requestSubmit();
+          }}
+        />
+        <button
+          type="button"
+          class="association-icon"
+          aria-label={fileBusy ? 'Uploading attachment' : 'Add attachment'}
+          title={fileBusy ? 'Uploading…' : 'Add attachment'}
+          disabled={fileBusy}
+          onclick={() => fileInput.click()}
+        >
+          <Paperclip size={16} />
+        </button>
+      </form>{/if}
   </header>
   {#if fileBusy || uploadStatus}<p class="v2-sub" role="status">
       {fileBusy ? `Uploading ${fileName}…` : uploadStatus}
@@ -75,18 +105,115 @@
         onclick={() => fileInput.form?.requestSubmit()}>Retry upload</button
       >{/if}
   {/if}
-  {#each attachments as file (file.id)}
-    <a
-      class="related-item"
-      href={resolve(file.href)}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={`Open attachment ${file.name}`}><FileText size={15} /><span>{file.name}</span></a
-    >
+  {#each attachments.filter((file) => !removed.includes(file.id)) as file (file.id)}
+    <div class="attachment-row">
+      {#if file.href}
+        <a
+          class="related-item"
+          href={resolve(/** @type {`/api/attachments/${string}/download`} */ (file.href))}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Open attachment ${file.name}`}
+          ><FileText size={15} /><span>{file.name}</span></a
+        >
+      {:else}<span class="related-item"><FileText size={15} /><span>{file.name}</span></span>{/if}
+      {#if file.canDelete && can(page.data.permissions, recordModule(page.url.pathname), 'delete_attachments')}
+        <button
+          type="button"
+          class="association-icon delete-file"
+          aria-label={`Delete attachment ${file.name}`}
+          title="Delete attachment"
+          onclick={() => {
+            selected = file;
+            deleteError = '';
+          }}
+        >
+          <Trash2 size={15} />
+        </button>
+      {/if}
+    </div>
   {:else}<p class="v2-sub">No attachments.</p>{/each}
 </div>
 
+{#if selected}
+  <dialog
+    use:modal
+    class="delete-dialog"
+    aria-labelledby="delete-attachment-title"
+    aria-describedby="delete-attachment-description"
+    oncancel={(event) => {
+      if (deleting) event.preventDefault();
+    }}
+    onclose={() => {
+      if (!deleting) selected = null;
+    }}
+  >
+    <h2 id="delete-attachment-title">Delete attachment?</h2>
+    <p id="delete-attachment-description">
+      <strong>{selected.name}</strong> will be permanently removed from this record and file storage.
+      This cannot be undone.
+    </p>
+    {#if deleteError}<p class="v2-error" role="alert">{deleteError}</p>{/if}
+    <div class="dialog-actions">
+      <button class="v2-btn" type="button" disabled={deleting} onclick={() => (selected = null)}
+        >Cancel</button
+      >
+      <button class="v2-btn danger" type="button" disabled={deleting} onclick={remove}
+        >{deleting ? 'Deleting…' : 'Delete attachment'}</button
+      >
+    </div>
+  </dialog>
+{/if}
+
 <style>
+  .attachment-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .attachment-row .related-item {
+    flex: 1;
+    min-width: 0;
+  }
+  .delete-file {
+    flex-shrink: 0;
+  }
+  .delete-file:hover {
+    color: var(--v2-danger, #b42318);
+  }
+  .delete-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(440px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    padding: 24px;
+    border: 1px solid var(--v2-border, #ddd);
+    border-radius: 12px;
+  }
+  .delete-dialog::backdrop {
+    background: #0006;
+  }
+  .delete-dialog h2 {
+    margin: 0 0 12px;
+    font-size: 20px;
+  }
+  .delete-dialog p {
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+  }
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 24px;
+  }
+  .danger {
+    background: #b42318;
+    color: white;
+    border-color: #b42318;
+  }
   form {
     display: flex;
     align-items: center;

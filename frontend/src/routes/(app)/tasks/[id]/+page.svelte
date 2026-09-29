@@ -31,7 +31,8 @@
     data.activity
       .filter((entry) => entry.type === 'file' && entry.href)
       .map((entry) => ({
-        id: entry.id,
+        id: entry.attachmentId,
+        canDelete: entry.canDelete,
         name: entry.body,
         href: /** @type {`/api/attachments/${string}/download`} */ (entry.href)
       }))

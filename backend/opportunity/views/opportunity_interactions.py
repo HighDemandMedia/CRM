@@ -160,35 +160,5 @@ class OpportunityAttachmentView(APIView):
         },
     )
     def delete(self, request, pk, format=None):
-        # Two defects here, not one.
-        #
-        # `objects.get(pk=pk)` had no org filter, so an admin of any org could
-        # delete any attachment in the system by id, and a missing or malformed
-        # id raised out of the view as a 500 rather than answering 404. The
-        # comment view above already scopes its lookup.
-        #
-        # And `request.profile == self.object.created_by` compared a `Profile`
-        # to a `User`: `created_by` is a FK to `common.User` via
-        # `UserAuditModel`. That is never equal, so the uploader branch was dead
-        # and a non-admin could not delete the attachment they had just
-        # uploaded. The leads twin already spells it `request.profile.user`.
-        # Repairing the lookup without repairing the comparison would have left
-        # the fix looking complete while the branch stayed unreachable.
-        self.object = get_scoped_or_404(self.model, pk, request.profile.org)
-        if (
-            is_org_admin(request.profile)
-            or request.user.is_superuser
-            or request.profile.user == self.object.created_by
-        ):
-            self.object.delete()
-            return Response(
-                {"error": False, "message": "Attachment Deleted Successfully"},
-                status=status.HTTP_200_OK,
-            )
-        return Response(
-            {
-                "error": True,
-                "errors": "You don't have permission to perform this action.",
-            },
-            status=status.HTTP_403_FORBIDDEN,
-        )
+        from common.views.attachment_views import delete_attachment
+        return delete_attachment(request, pk, expected_model="opportunity")

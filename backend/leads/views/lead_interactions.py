@@ -249,29 +249,8 @@ class LeadAttachmentView(APIView):
         },
     )
     def delete(self, request, pk, format=None):
-        # Was `objects.get(pk=pk)`: no org filter, so an admin of any org could
-        # delete any attachment in the system by id, and a missing or malformed
-        # id raised out of the view as a 500 instead of answering 404. The
-        # comment view above already scopes its lookup, as do the accounts,
-        # contacts, cases, tasks, tags and teams equivalents.
-        self.object = get_scoped_or_404(self.model, pk, request.profile.org)
-        if (
-            is_org_admin(request.profile)
-            or request.user.is_superuser
-            or request.profile.user == self.object.created_by
-        ):
-            self.object.delete()
-            return Response(
-                {"error": False, "message": "Attachment Deleted Successfully"},
-                status=status.HTTP_200_OK,
-            )
-        return Response(
-            {
-                "error": True,
-                "errors": "You don't have permission to perform this action",
-            },
-            status=status.HTTP_403_FORBIDDEN,
-        )
+        from common.views.attachment_views import delete_attachment
+        return delete_attachment(request, pk, expected_model="lead")
 
 
 class CreateLeadFromSite(APIView):

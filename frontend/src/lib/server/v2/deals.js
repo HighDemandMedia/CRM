@@ -261,6 +261,7 @@ export async function getDeal({ cookies }, id) {
     deal: toRow(raw),
     attachments: (response.attachments ?? []).map((file) => ({
       id: file.id,
+      canDelete: file.can_delete === true,
       name: file.file_name ?? 'Attachment',
       href: attachmentHref(file.id)
     })),

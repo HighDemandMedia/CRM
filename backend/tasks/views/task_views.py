@@ -904,37 +904,5 @@ class TaskAttachmentView(APIView):
         },
     )
     def delete(self, request, pk, format=None):
-        # `Attachments` is one generic table shared by every module, so a
-        # lookup by pk alone reaches every attachment in the database. Without
-        # `org=`, this endpoint was a "delete any attachment anywhere by UUID"
-        # primitive for any org admin: proven live, an admin of one org
-        # destroyed a file belonging to another org, and it was attached to a
-        # lead, not even to a task. The org filter is the fix; the uploader
-        # clause below is a separate bug in the same three lines.
-        try:
-            self.object = self.model.objects.filter(
-                pk=pk, org=request.profile.org
-            ).first()
-        except (DjangoValidationError, ValueError):
-            raise Http404("No such attachment.")
-        if self.object is None:
-            raise Http404("No such attachment.")
-        # `created_by` is a `User`; `request.profile` is a `Profile`. Comparing
-        # them is always False, so the person who uploaded the file could not
-        # remove it unless they were an admin.
-        if not (
-            is_org_admin(request.profile)
-            or request.profile.user_id == self.object.created_by_id
-        ):
-            return Response(
-                {
-                    "error": True,
-                    "errors": "You don't have Permission to perform this action",
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        self.object.delete()
-        return Response(
-            {"error": False, "message": "Attachment Deleted Successfully"},
-            status=status.HTTP_200_OK,
-        )
+        from common.views.attachment_views import delete_attachment
+        return delete_attachment(request, pk, expected_model="task")

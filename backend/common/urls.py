@@ -15,7 +15,7 @@ from common.views.record_association_views import RecordAssociationView
 from common.views.sales_appointment_views import SalesAppointmentView, AppointmentAttendeesView, SalesAppointmentManageView, AppointmentAvailabilityView
 from django.urls import path
 
-from common.views.attachment_views import AttachmentDownloadView
+from common.views.attachment_views import AttachmentDownloadView, AttachmentDeleteView
 from common.views.auth_views import (
     GoogleIdTokenView,
     GoogleOAuthCallbackView,
@@ -178,6 +178,7 @@ urlpatterns = [
     # Attachments. One generic download for every attachable record type; see
     # the view for why a /media/ URL is not an alternative to it.
     path("attachments/<uid:pk>/download/", AttachmentDownloadView.as_view()),
+    path("attachments/<uid:pk>/", AttachmentDeleteView.as_view()),
     # API Settings
     path("api-settings/", DomainList.as_view()),
     path("api-settings/<uid:pk>/", DomainDetailView.as_view()),
