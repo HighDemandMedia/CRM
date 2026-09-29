@@ -113,6 +113,7 @@ class RequireOrgContext:
     EXEMPT_PATHS = [
         "/api/auth/password/login/",
         "/api/auth/password/register/",
+        "/api/auth/password/invitation/",
         "/api/auth/password/change/",
         "/api/auth/accept-invitation/",
         "/api/auth/refresh-token/",

@@ -128,7 +128,8 @@ def test_multiple_memberships_require_selection_and_revoked_membership_is_exclud
     assert len(result.data["organizations"]) == 1
 
 
-def test_invitation_grants_only_the_invited_org_and_role():
+def test_invitation_grants_only_the_invited_org_and_role(settings):
+    settings.PASSWORD_REGISTRATION_ENABLED = False
     org = Org.objects.create(name="Inviting Organization")
     raw = "secure-invitation-test-token-982347"
     invitation = OrganizationInvitation.objects.create(
@@ -153,11 +154,84 @@ def test_invitation_grants_only_the_invited_org_and_role():
     invitation.refresh_from_db()
     assert invitation.accepted_at
     assert not Org.objects.filter(name="Ignored").exists()
+    assert User.objects.get(email="owner@example.com").check_password(PASSWORD)
+    assert APIClient().post(BASE + "invitation/", {"token": raw}, format="json").status_code == 400
 
 
 def test_invalid_invitation_never_creates_an_account():
     assert register(invitation="invalid-token").status_code == 400
     assert not User.objects.filter(email="owner@example.com").exists()
+
+
+@pytest.fixture
+def onboarding_invitation():
+    raw = "invitation-onboarding-token-982734"
+    row = OrganizationInvitation.objects.create(
+        org=Org.objects.create(name="Inviting Organization"),
+        email="owner@example.com",
+        token_hash=digest(raw),
+        expires_at=timezone.now() + timedelta(days=1),
+    )
+    return raw, row
+
+
+def test_invitation_preview_requires_token_and_does_not_accept(onboarding_invitation):
+    raw, row = onboarding_invitation
+    client = APIClient()
+    result = client.post(BASE + "invitation/", {"token": raw}, format="json")
+    assert result.status_code == 200
+    assert result.data == {"email": row.email, "organization": row.org.name, "existing_account": False}
+    assert result["Cache-Control"] == "no-store"
+    row.refresh_from_db()
+    assert row.accepted_at is None
+    assert not Profile.objects.filter(org=row.org).exists()
+    User.objects.create_user(row.email, PASSWORD)
+    assert client.post(BASE + "invitation/", {"token": raw}, format="json").data["existing_account"]
+
+
+@pytest.mark.parametrize("state", ["expired", "revoked", "accepted", "inactive_org", "wrong_token"])
+def test_unusable_invitation_cannot_be_previewed_or_registered(onboarding_invitation, state):
+    raw, row = onboarding_invitation
+    if state == "expired":
+        row.expires_at = timezone.now() - timedelta(seconds=1)
+    elif state == "revoked":
+        row.revoked_at = timezone.now()
+    elif state == "accepted":
+        row.accepted_at = timezone.now()
+    elif state == "inactive_org":
+        row.org.is_active = False
+        row.org.save()
+    else:
+        raw = "wrong-invitation-token-98723"
+    row.save()
+    result = APIClient().post(BASE + "invitation/", {"token": raw}, format="json")
+    assert result.status_code == 400
+    assert "email" not in result.data and "organization" not in result.data
+    assert register(invitation=raw).status_code == 400
+    assert not User.objects.filter(email=row.email).exists()
+
+
+def test_invitation_cannot_register_another_email(onboarding_invitation):
+    raw, row = onboarding_invitation
+    assert register(invitation=raw, email="attacker@example.com").status_code == 400
+    row.refresh_from_db()
+    assert row.accepted_at is None
+    assert not User.objects.filter(email="attacker@example.com").exists()
+
+
+def test_invitation_registration_without_organization_field(onboarding_invitation, settings):
+    settings.PASSWORD_REGISTRATION_ENABLED = False
+    raw, row = onboarding_invitation
+    response = APIClient().post(BASE + "register/", {
+        "email": row.email,
+        "name": "Invited User",
+        "password": PASSWORD,
+        "invitation": raw,
+        "timezone": "America/New_York",
+    }, format="json")
+    assert response.status_code == 201, response.data
+    assert response.data["current_org"]["id"] == str(row.org_id)
+    assert Org.objects.count() == 1
 
 
 def test_password_change_requires_old_password_and_retires_refresh_token():

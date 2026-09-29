@@ -1,6 +1,6 @@
 from common.views.google_integration_views import GoogleConnectView, GoogleCallbackView, GoogleConnectionView, GoogleCalendarListView, GoogleEventsView, GoogleMailBodyView
 from common.views.ui_context_views import UIContextView
-from common.views.password_auth_views import PasswordLoginView, PasswordRegisterView, PasswordChangeView
+from common.views.password_auth_views import PasswordLoginView, PasswordRegisterView, PasswordChangeView, InvitationPreviewView
 from common.views.role_views import MyPermissionsView
 from common.views.property_layout_views import PropertyLayoutView
 from common.views.crm_report_views import CRMReportView
@@ -88,6 +88,7 @@ urlpatterns = [
     path("org/ui-context/", UIContextView.as_view()),
     path("auth/password/login/", PasswordLoginView.as_view()),
     path("auth/password/register/", PasswordRegisterView.as_view()),
+    path("auth/password/invitation/", InvitationPreviewView.as_view()),
     path("auth/password/change/", PasswordChangeView.as_view()),
     path("help/requests/", HelpRequestView.as_view(), name="help_requests"),
     path("reports/crm/", CRMReportView.as_view(), name="crm_reports"),

@@ -321,6 +321,10 @@ export const articles = [
         text: 'Administrators use Users & Teams to invite users, change their permission set and organize team membership. Select people by name. Deactivation removes organization access while preserving records.'
       },
       {
+        title: 'Accept an invitation',
+        text: 'New users open the emailed invitation and enter their name, password and password confirmation. Their email and organization are already defined. Existing users sign in with their current account to accept. Invitations expire after seven days; ask an administrator to resend an expired or cancelled invitation.'
+      },
+      {
         title: 'Access levels',
         text: 'Member uses Personal scope and Manager uses Team scope. Custom permission sets choose Personal, Team or Organization access and enable actions per object: view, create, edit properties, change stages, manage notes, upload attachments, delete attachments, manage associations, delete records, export and owner assignment. Uploading and deleting attachments are separate permissions; deletion is off by default for Member, Manager and custom sets until an admin enables it. Enabled actions must stay within view access.'
       },

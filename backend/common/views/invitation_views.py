@@ -63,7 +63,7 @@ class InvitationsView(APIView):
         link = f'{settings.FRONTEND_URL.rstrip("/")}/invite?token={raw}'
         try:
             send_mail(f'Invitation to {org.name} · High Demand Media CRM',
-                f'You have been invited to {org.name}.\n\nOpen this link and sign in with {email} to accept:\n{link}\n\nThis invitation expires in 7 days. If you were not expecting it, you can ignore this email.',
+                f'You have been invited to {org.name}.\n\nOpen this link to join:\n{link}\n\nIf you are new to High Demand Media CRM, you will create your own password for {email}. If you already have an account, sign in with that email to accept.\n\nThis invitation expires in 7 days. If you were not expecting it, you can ignore this email.',
                 settings.DEFAULT_FROM_EMAIL, [email], fail_silently=False)
         except Exception:
             return Response({'error': 'Invitation saved, but email delivery failed. Use Resend after checking mail settings.'}, status=503)

@@ -18,13 +18,19 @@
     <div class="v2-auth-card">
       <h1>Join your team</h1>
       {#if !data.hasInvitation}<p>Open the invitation link from your email.</p>
-      {:else if !data.signedIn}<p>
-          Sign in or create an account using the email address that received this invitation.
+      {:else if data.error}<p role="alert" class="v2-error">{data.error}</p>
+        {#if data.signedIn}<a href={resolve('/logout')}>Sign in with a different account</a>{/if}
+      {:else if !data.signedIn}<h2>{data.invitation?.organization}</h2>
+        <p>
+          You already have a CRM account with {data.invitation?.email}. Sign in to join this
+          organization.
         </p>
         <a class="v2-btn v2-btn-primary" href={resolve('/login')}>Sign in</a>
-        <a class="v2-btn" href={resolve('/register')}>Create account</a>
-      {:else if data.error}<p role="alert" class="v2-error">{data.error}</p>
-        <a href={resolve('/logout')}>Sign in with a different account</a>
+        <p>
+          Need to set or recover your password? <a href={`${resolve('/login')}?recover=1`}
+            >Get a secure sign-in link</a
+          >.
+        </p>
       {:else}<h2>{data.invitation?.name}</h2>
         <p>{data.invitation?.email} · {data.invitation?.role === 'ADMIN' ? 'Admin' : 'Member'}</p>
         <p>

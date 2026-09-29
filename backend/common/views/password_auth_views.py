@@ -145,6 +145,40 @@ class PasswordLoginView(APIView):
         return session_response(user, request)
 
 
+class InvitationPreviewView(APIView):
+    """Expose onboarding details only to the holder of a valid invitation."""
+
+    authentication_classes = []
+    permission_classes = []
+    throttle_classes = [PasswordIPThrottle]
+
+    def post(self, request):
+        raw = request.data.get("token")
+        invitation = None
+        if isinstance(raw, str) and 20 <= len(raw) <= 128:
+            invitation = OrganizationInvitation.objects.select_related("org").filter(
+                token_hash=digest(raw),
+                accepted_at__isnull=True,
+                revoked_at__isnull=True,
+                expires_at__gt=timezone.now(),
+                org__is_active=True,
+            ).first()
+        if not invitation:
+            return Response(
+                {"error": "This invitation is invalid, expired, cancelled, or already accepted. Ask your administrator for a new invitation."},
+                status=400,
+                headers={"Cache-Control": "no-store"},
+            )
+        return Response(
+            {
+                "email": invitation.email,
+                "organization": invitation.org.name,
+                "existing_account": User.objects.filter(email__iexact=invitation.email).exists(),
+            },
+            headers={"Cache-Control": "no-store"},
+        )
+
+
 class PasswordRegisterView(APIView):
     authentication_classes = []
     permission_classes = []

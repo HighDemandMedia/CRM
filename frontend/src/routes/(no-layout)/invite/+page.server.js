@@ -2,6 +2,8 @@ import { fail, redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { apiRequest } from '$lib/api-helpers.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
+import { previewInvitation } from '$lib/server/invitation.js';
+import { passwordError } from '$lib/server/password-session.js';
 export async function load({ url, cookies, locals }) {
   const token = url.searchParams.get('token');
   if (token && /^[A-Za-z0-9_-]{20,128}$/.test(token)) {
@@ -16,6 +18,14 @@ export async function load({ url, cookies, locals }) {
   }
   let invitation = null,
     error = '';
+  if (!locals.user && cookies.get('crm_invitation')) {
+    try {
+      invitation = await previewInvitation(cookies.get('crm_invitation'));
+    } catch (err) {
+      error = passwordError(err, 'Could not open this invitation. Please try again.');
+    }
+    if (invitation && !invitation.existing_account) redirect(303, '/register');
+  }
   if (locals.user && cookies.get('crm_invitation')) {
     try {
       invitation = await apiRequest(

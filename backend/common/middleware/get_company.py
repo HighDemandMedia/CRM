@@ -72,6 +72,7 @@ class GetProfileAndOrg:
         auth_skip_paths = [
             "/api/auth/password/login/",
             "/api/auth/password/register/",
+            "/api/auth/password/invitation/",
             "/api/auth/password/change/",
             "/api/auth/accept-invitation/",
             "/api/auth/google/",

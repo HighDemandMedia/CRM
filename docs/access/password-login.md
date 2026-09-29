@@ -14,7 +14,9 @@ Por ahora el registro normal no exige un código enviado por email. Esto no debe
 
 En `/login` utiliza email y contraseña. Una sola organización activa se selecciona automáticamente; si perteneces a varias, eliges una. El formulario no concede acceso por escribir el nombre o ID de una organización.
 
-Los usuarios adicionales reciben una invitación. El enlace ofrece entrar con una cuenta existente o crear una cuenta nueva con contraseña. El nuevo usuario debe usar el email de la invitación y recibe exactamente la organización y el rol concedidos. El token se consume al registrarse; no se crea una organización adicional.
+Los usuarios adicionales reciben una invitación. Al abrir un enlace válido, un usuario nuevo llega directamente al formulario de nombre, contraseña y confirmación. El correo viene definido por la invitación y se muestra la organización a la que se unirá. El servidor vuelve a validar el token y el correo al guardar; recibe exactamente la organización y el rol concedidos. El token se consume al registrarse; no se crea una organización adicional. Funciona aunque el registro público esté cerrado. Los enlaces anteriores válidos también usan este flujo.
+
+Si el correo ya pertenece a una cuenta, el enlace pide iniciar sesión para aceptar sin cambiar su contraseña. Las cuentas que aún no tienen contraseña pueden obtener un enlace de acceso seguro y establecerla en Profile. Un enlace caducado, cancelado o aceptado muestra un aviso y no permite crear la cuenta con esa invitación.
 
 Un email existente no puede registrarse otra vez ni cambiar su contraseña desde el registro. No se sobrescriben cuentas anteriores ni se asigna una contraseña compartida a toda la organización.
 
