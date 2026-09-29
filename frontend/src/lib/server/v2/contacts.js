@@ -249,9 +249,20 @@ export async function getContact({ cookies }, id, withEditor = false) {
  * @param {any} response
  */
 function buildContactActivity(response) {
-  /** @type {Array<{id:string,type:'note'|'file'|'status',at:string,by:string|null,body:string,href?:string|null}>} */
+  /** @type {Array<{id:string,type:'note'|'file'|'status'|'email',at:string,by:string|null,body:string,href?:string|null,emailId?:string}>} */
   const events = [];
 
+  for (const mail of response.email_activity ?? []) {
+    events.push({
+      id: `email-${mail.id}`,
+      type: 'email',
+      at: mail.at,
+      by: mail.account,
+      body: `Email ${mail.direction}: ${mail.subject || '(No subject)'}`,
+      href: mail.href,
+      emailId: mail.id
+    });
+  }
   for (const entry of response.history ?? []) {
     if (
       !['UPDATE', 'ASSIGN'].includes(entry.action) ||

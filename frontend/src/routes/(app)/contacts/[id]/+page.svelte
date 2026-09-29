@@ -1,4 +1,5 @@
 <script>
+  import EmailActivity from '$lib/components/EmailActivity.svelte';
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
   import { configuredLabel } from '$lib/v2/pipeline-config.js';
   import { page } from '$app/state';
@@ -133,6 +134,7 @@
             {#each data.activity as event (event.id)}
               <article class="history-entry">
                 <div class="history-body">{event.body}</div>
+                {#if event.emailId}<EmailActivity id={event.emailId} href={event.href}/>{/if}
                 <div class="entry-meta">{event.by || 'Not recorded'} · {exactTime(event.at)}</div>
               </article>
             {:else}<p class="v2-sub">No activity.</p>{/each}

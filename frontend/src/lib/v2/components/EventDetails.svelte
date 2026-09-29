@@ -8,6 +8,8 @@
   let mode = $state('details'),
     busy = $state(false),
     failure = $state('');
+  let editTitle = $state(''),
+    editNotes = $state('');
   let date = $state(''),
     start = $state(''),
     end = $state('');
@@ -36,6 +38,8 @@
   export async function open(record, anchor) {
     if (busy) return;
     event = record;
+    editTitle = record.title || '';
+    editNotes = record.notes || '';
     mode = 'details';
     failure = '';
     const first = new Date(record.start),
@@ -71,7 +75,9 @@
     failure = '';
     if (
       operation === 'reschedule' &&
-      (!date || !start || (event.type === 'appointment' && (!end || end <= start)))
+      (!date ||
+        !start ||
+        (['appointment', 'google'].includes(event.type) && (!end || end <= start)))
     ) {
       failure = 'End time must be after start time.';
       return;
@@ -79,6 +85,10 @@
     const body = new FormData();
     body.set('event_id', event.id);
     body.set('operation', operation);
+    if (operation === 'details') {
+      body.set('title', editTitle);
+      body.set('internal_notes', editNotes);
+    }
     if (operation === 'reschedule') {
       const startsAt = new Date(`${date}T${start}`),
         endsAt = new Date(`${date}T${end || start}`);
@@ -148,8 +158,8 @@
             day: 'numeric'
           })}</strong
         ><span
-          >{time(event.start)}{#if event.end}
-            – {time(event.end)}{/if}</span
+          >{#if event.allDay}All day{:else}{time(event.start)}{#if event.end}
+              – {time(event.end)}{/if}{/if}</span
         >
       </div>
     </div>
@@ -159,101 +169,163 @@
           <div><span class="field-label">Host</span><strong>{event.host}</strong></div>
         </div>{/if}
       {#each attendees as person}
-        <div class="person-row"><Users size={18} /><div>
-          <span class="field-label">{person.type === 'user' ? 'User' : person.type === 'company' ? 'Company' : 'Contact'} · Attendee</span>
-          {#if person.type === 'user'}<strong>{person.name}</strong>
-          {:else}<a class="attendee-name" onclick={close} data-sveltekit-reload href={person.type === 'company' ? resolve(`/accounts/${person.id}`) : resolve(`/contacts/${person.id}`)}>{person.name}<ArrowUpRight size={15}/></a>{/if}
-        </div></div>
-        {#if person.language || person.phone || person.email}<div class="contact-info">
-          {#if person.language}<div><Languages size={15}/><span>{person.language}</span></div>{/if}
-          {#if person.phone}<div><Phone size={15}/><span>{person.phone}</span></div>{/if}
-          {#if person.email}<div><Mail size={15}/><span>{person.email}</span></div>{/if}
-        </div>{/if}
-      {/each}
-    </div>
-    {#if event.type === 'appointment'}<section class="notes">
-        <h3><FileText size={16} />Internal notes</h3>
-        <p>{event.notes || 'No notes.'}</p>
-      </section>{/if}
-    {#if event.canManage !== false}<div class="event-actions">
-      {#if mode === 'details'}
-        {#if event.canReschedule !== false}<button
-          class="v2-btn"
-          onclick={() => {
-            mode = 'reschedule';
-            failure = '';
-          }}>Reschedule</button
-        >{/if}
-        {#if event.canCancel !== false}<button
-          class="v2-btn danger"
-          onclick={() => {
-            mode = 'cancel';
-            failure = '';
-          }}>Cancel event</button
-        >{/if}
-      {:else if mode === 'reschedule'}
-        <form
-          onsubmit={(submit) => {
-            submit.preventDefault();
-            void manage('reschedule');
-          }}
-        >
-          <h3>Reschedule event</h3>
-          <fieldset disabled={busy}>
-            <label>Date<input class="v2-input" type="date" required bind:value={date} /></label>
-            <div class="time-fields">
-              <label
-                >Start time<input class="v2-input" type="time" required bind:value={start} /></label
-              >
-              {#if event.type === 'appointment'}<label
-                  >End time<input class="v2-input" type="time" required bind:value={end} /></label
-                >{/if}
-            </div>
-          </fieldset>
-          {#if event.type === 'appointment'}<HostAvailability
-              host={event.hostId}
-              {date}
-              {start}
-              {end}
-              exclude={event.id.split(':')[1]}
-              bind:blocked={unavailable}
-            />{/if}
-          <div class="action-buttons">
-            <button
-              type="button"
-              class="v2-btn"
-              disabled={busy}
-              onclick={() => {
-                mode = 'details';
-                failure = '';
-              }}>Back</button
-            ><button
-              class="v2-btn v2-btn-primary"
-              disabled={busy || (event.type === 'appointment' && unavailable)}
-              >{busy ? 'Saving…' : 'Save changes'}</button
+        <div class="person-row">
+          <Users size={18} />
+          <div>
+            <span class="field-label"
+              >{person.type === 'user' ? 'User' : person.type === 'company' ? 'Company' : 'Contact'} ·
+              Attendee</span
             >
-          </div>
-        </form>
-      {:else}
-        <div>
-          <h3>Cancel this event?</h3>
-          <p class="cancel-copy">It will be removed from the calendar.</p>
-          <div class="action-buttons">
-            <button
-              class="v2-btn"
-              disabled={busy}
-              onclick={() => {
-                mode = 'details';
-                failure = '';
-              }}>Keep event</button
-            ><button class="v2-btn danger" disabled={busy} onclick={() => manage('cancel')}
-              >{busy ? 'Cancelling…' : 'Yes, cancel event'}</button
-            >
+            {#if person.type === 'user'}<strong>{person.name}</strong>
+            {:else}<a
+                class="attendee-name"
+                onclick={close}
+                data-sveltekit-reload
+                href={person.type === 'company'
+                  ? resolve(`/accounts/${person.id}`)
+                  : resolve(`/contacts/${person.id}`)}>{person.name}<ArrowUpRight size={15} /></a
+              >{/if}
           </div>
         </div>
-      {/if}
-      {#if failure}<p class="v2-error" role="alert">{failure}</p>{/if}
-    </div>{/if}
+        {#if person.language || person.phone || person.email}<div class="contact-info">
+            {#if person.language}<div>
+                <Languages size={15} /><span>{person.language}</span>
+              </div>{/if}
+            {#if person.phone}<div><Phone size={15} /><span>{person.phone}</span></div>{/if}
+            {#if person.email}<div><Mail size={15} /><span>{person.email}</span></div>{/if}
+          </div>{/if}
+      {/each}
+    </div>
+    {#if ['appointment', 'google'].includes(event.type)}<section class="notes">
+        <h3><FileText size={16} />Meeting notes</h3>
+        <p>{event.notes || 'No notes.'}</p>
+      </section>{/if}
+    {#if event.type === 'google' && event.href}<a
+        class="v2-btn"
+        href={event.href}
+        target="_blank"
+        rel="noopener noreferrer">Open in Google Calendar</a
+      >{/if}
+    {#if event.canManage !== false}<div class="event-actions">
+        {#if mode === 'details'}
+          {#if ['appointment', 'google'].includes(event.type) && event.canReschedule !== false}<button
+              class="v2-btn"
+              onclick={() => (mode = 'edit-details')}>Edit details</button
+            >{/if}
+          {#if event.canReschedule !== false}<button
+              class="v2-btn"
+              onclick={() => {
+                mode = 'reschedule';
+                failure = '';
+              }}>Reschedule</button
+            >{/if}
+          {#if event.canCancel !== false}<button
+              class="v2-btn danger"
+              onclick={() => {
+                mode = 'cancel';
+                failure = '';
+              }}>Cancel event</button
+            >{/if}
+        {:else if mode === 'edit-details'}
+          <form
+            onsubmit={(submit) => {
+              submit.preventDefault();
+              void manage('details');
+            }}
+          >
+            <fieldset disabled={busy}>
+              <label
+                >Title<input
+                  class="v2-input"
+                  required
+                  maxlength="255"
+                  bind:value={editTitle}
+                /></label
+              >
+              <label
+                >Meeting notes<textarea
+                  class="v2-input"
+                  rows="5"
+                  maxlength="10000"
+                  bind:value={editNotes}></textarea></label
+              >
+            </fieldset>
+            <p class="v2-sub">
+              Meeting notes are shared as the Google Calendar description when connected.
+            </p>
+            <button class="v2-btn" type="button" onclick={() => (mode = 'details')}>Cancel</button>
+            <button class="v2-btn v2-btn-primary" disabled={busy}
+              >{busy ? 'Saving…' : 'Save changes'}</button
+            >
+          </form>
+        {:else if mode === 'reschedule'}
+          <form
+            onsubmit={(submit) => {
+              submit.preventDefault();
+              void manage('reschedule');
+            }}
+          >
+            <h3>Reschedule event</h3>
+            <fieldset disabled={busy}>
+              <label>Date<input class="v2-input" type="date" required bind:value={date} /></label>
+              <div class="time-fields">
+                <label
+                  >Start time<input
+                    class="v2-input"
+                    type="time"
+                    required
+                    bind:value={start}
+                  /></label
+                >
+                {#if ['appointment', 'google'].includes(event.type)}<label
+                    >End time<input class="v2-input" type="time" required bind:value={end} /></label
+                  >{/if}
+              </div>
+            </fieldset>
+            {#if event.type === 'appointment'}<HostAvailability
+                host={event.hostId}
+                {date}
+                {start}
+                {end}
+                exclude={event.id.split(':')[1]}
+                bind:blocked={unavailable}
+              />{/if}
+            <div class="action-buttons">
+              <button
+                type="button"
+                class="v2-btn"
+                disabled={busy}
+                onclick={() => {
+                  mode = 'details';
+                  failure = '';
+                }}>Back</button
+              ><button
+                class="v2-btn v2-btn-primary"
+                disabled={busy || (event.type === 'appointment' && unavailable)}
+                >{busy ? 'Saving…' : 'Save changes'}</button
+              >
+            </div>
+          </form>
+        {:else}
+          <div>
+            <h3>Cancel this event?</h3>
+            <p class="cancel-copy">It will be removed from the calendar.</p>
+            <div class="action-buttons">
+              <button
+                class="v2-btn"
+                disabled={busy}
+                onclick={() => {
+                  mode = 'details';
+                  failure = '';
+                }}>Keep event</button
+              ><button class="v2-btn danger" disabled={busy} onclick={() => manage('cancel')}
+                >{busy ? 'Cancelling…' : 'Yes, cancel event'}</button
+              >
+            </div>
+          </div>
+        {/if}
+        {#if failure}<p class="v2-error" role="alert">{failure}</p>{/if}
+      </div>{/if}
   {/if}
 </div>
 

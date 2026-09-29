@@ -569,3 +569,8 @@ EMAIL_TIMEOUT = 10
 
 # Close self-service registration when onboarding is invitation-only.
 PASSWORD_REGISTRATION_ENABLED = os.environ.get("PASSWORD_REGISTRATION_ENABLED", "true").lower() == "true"
+
+# Personal Gmail/Calendar connections, independent from the system email sender.
+GOOGLE_INTEGRATION_CLIENT_ID = os.environ.get('GOOGLE_INTEGRATION_CLIENT_ID', '')
+GOOGLE_INTEGRATION_CLIENT_SECRET = os.environ.get('GOOGLE_INTEGRATION_CLIENT_SECRET', '')
+GOOGLE_INTEGRATION_ENCRYPTION_KEY = os.environ.get('GOOGLE_INTEGRATION_ENCRYPTION_KEY', '')

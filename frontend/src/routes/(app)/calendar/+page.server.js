@@ -12,9 +12,9 @@ export const actions = {
     const [kind, id] = String(form.get('event_id') ?? '').split(':');
     const operation = String(form.get('operation') ?? '');
     if (
-      !['appointment', 'contact', 'company'].includes(kind) ||
+      !['appointment', 'contact', 'company', 'google'].includes(kind) ||
       !/^[0-9a-f-]{36}$/i.test(id ?? '') ||
-      !['cancel', 'reschedule'].includes(operation)
+      !['cancel', 'reschedule', 'details'].includes(operation)
     )
       return fail(400, { message: 'Invalid event action.' });
     const start = String(form.get('starts_at') ?? '');
@@ -22,15 +22,24 @@ export const actions = {
     if (
       operation === 'reschedule' &&
       (!Number.isFinite(Date.parse(start)) ||
-        (kind === 'appointment' &&
+        (['appointment', 'google'].includes(kind) &&
           (!Number.isFinite(Date.parse(end)) || Date.parse(end) <= Date.parse(start))))
     )
       return fail(400, { message: 'Choose a valid date and time.' });
     try {
-      if (kind === 'appointment')
+      if (kind === 'appointment' || kind === 'google')
         await apiRequest(
-          `/sales-appointments/${id}/`,
-          { method: 'PATCH', body: { operation, starts_at: start, ends_at: end } },
+          kind === 'google' ? `/integrations/google/events/${id}/` : `/sales-appointments/${id}/`,
+          {
+            method: 'PATCH',
+            body: {
+              operation,
+              starts_at: start,
+              ends_at: end,
+              title: String(form.get('title') ?? ''),
+              internal_notes: String(form.get('internal_notes') ?? '')
+            }
+          },
           { cookies }
         );
       else
@@ -59,7 +68,9 @@ export const actions = {
     body.allow_overlap = form.get('allow_overlap') === 'true' ? 'true' : 'false';
     const selected = form.getAll('attendees');
     if (!selected.length && form.get('attendee')) selected.push(form.get('attendee'));
-    body.contacts = []; body.companies = []; body.users = [];
+    body.contacts = [];
+    body.companies = [];
+    body.users = [];
     for (const value of selected) {
       const [kind, id] = String(value).split(':');
       if (!['contact', 'company', 'user'].includes(kind) || !/^[0-9a-f-]{36}$/i.test(id ?? ''))

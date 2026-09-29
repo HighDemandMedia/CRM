@@ -633,6 +633,8 @@ class ContactDetailView(APIView):
         contact_obj = self.get_object(pk)
         self.assert_contact_access(contact_obj)
         context["contact_obj"] = ContactSerializer(contact_obj).data
+        from common.views.google_integration_views import contact_mail_activity
+        context["email_activity"] = contact_mail_activity(request.profile, contact_obj)
         history = (
             Activity.objects.filter(
                 org=contact_obj.org, entity_type="Contact", entity_id=contact_obj.id, action__in=["UPDATE", "ASSIGN"]

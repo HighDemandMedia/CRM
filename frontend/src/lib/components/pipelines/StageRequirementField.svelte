@@ -1,4 +1,5 @@
 <script>
+  import { countryOptions } from '$lib/constants/countries.js';
   import { onMount } from 'svelte';
   import TagPicker from '$lib/v2/components/TagPicker.svelte';
   /** @type {{field:any,value?:any,required?:boolean}} */
@@ -38,7 +39,9 @@
     };
   });
   let choices = $derived(
-    field.relation
+    field.key === 'country'
+      ? countryOptions(value)
+      : field.relation
       ? options
       : (field.options || []).map((o) => (typeof o === 'string' ? { value: o, label: o } : o))
   );

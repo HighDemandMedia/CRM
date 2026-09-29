@@ -319,6 +319,13 @@ class AppointmentSerializer(serializers.ModelSerializer):
         return attrs
 
 
+def google_busy(org, host_id, start, end):
+    from common.models import GoogleCalendarEvent, GoogleCalendarMirror
+    mirrored = GoogleCalendarMirror.objects.filter(org=org, connection__profile_id=host_id).values('external_id')
+    return GoogleCalendarEvent.objects.filter(org=org, connection__profile_id=host_id,
+        connection__profile__is_active=True, busy=True, starts_at__lt=end, ends_at__gt=start).exclude(external_id__in=mirrored)
+
+
 def lock_host_and_check(
     request, host_id, start, end, exclude=None, allow_overlap=False
 ):
@@ -339,9 +346,10 @@ def lock_host_and_check(
     )
     if exclude:
         conflicts = conflicts.exclude(pk=exclude)
-    if conflicts.exists() and allow_overlap:
+    has_conflict = conflicts.exists() or google_busy(request.profile.org, host_id, start, end).exists()
+    if has_conflict and allow_overlap:
         require(request.profile, "calendar", "override_conflicts")
-    if conflicts.exists() and not allow_overlap:
+    if has_conflict and not allow_overlap:
         raise serializers.ValidationError(
             "This host is already booked during that time. Choose another time."
         )
@@ -386,6 +394,10 @@ class AppointmentAvailabilityView(APIView):
                     for record in records.distinct()
                     .order_by("starts_at")
                     .only("starts_at", "ends_at", "title", "host_id", "created_by_id")
+                ] + [
+                    {"starts_at": event.starts_at, "ends_at": event.ends_at,
+                     "title": event.title if str(host_id) == str(request.profile.pk) else None}
+                    for event in google_busy(request.profile.org, host_id, start, end)
                 ]
             }
         )
@@ -529,7 +541,7 @@ class SalesAppointmentManageView(APIView):
         )
         record = get_object_or_404(records.select_for_update(), pk=pk)
         operation = request.data.get("operation")
-        if operation not in ("cancel", "reschedule"):
+        if operation not in ("cancel", "reschedule", "details"):
             raise serializers.ValidationError("Invalid event action.")
         if record.cancelled_at:
             if operation == "cancel":
@@ -550,6 +562,9 @@ class SalesAppointmentManageView(APIView):
         if operation == "cancel":
             record.cancelled_at = now
             record.cancelled_by = request.user
+        elif operation == "details":
+            record.title = serializers.CharField(max_length=255).run_validation(request.data.get("title"))
+            record.internal_notes = serializers.CharField(max_length=10000, allow_blank=True, trim_whitespace=False).run_validation(request.data.get("internal_notes", ""))
         else:
             field = serializers.DateTimeField()
             start = field.run_validation(request.data.get("starts_at"))
@@ -562,6 +577,8 @@ class SalesAppointmentManageView(APIView):
         record.change_history = [*record.change_history, entry]
         record.save(
             update_fields=[
+                "title",
+                "internal_notes",
                 "starts_at",
                 "ends_at",
                 "cancelled_at",
@@ -572,7 +589,7 @@ class SalesAppointmentManageView(APIView):
         sync_attendee(
             record,
             request,
-            "cancelled" if operation == "cancel" else "rescheduled",
+            "cancelled" if operation == "cancel" else "updated" if operation == "details" else "rescheduled",
             previous_start,
         )
         return Response({"saved": True})

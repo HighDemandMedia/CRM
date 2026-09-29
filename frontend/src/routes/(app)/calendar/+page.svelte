@@ -26,6 +26,7 @@
   let events = $state(/** @type {any[]} */ ([]));
   let busy = $state(true);
   let failure = $state('');
+  let googleError = $state('');
   let refresh = $state(0);
   const days = $derived(calendarDays(selected, view));
   const title = $derived(
@@ -38,9 +39,19 @@
   const grouped = $derived.by(() => {
     const result = new Map();
     for (const event of events) {
-      const key = dateKey(new Date(event.start));
-      if (!result.has(key)) result.set(key, []);
-      result.get(key).push(event);
+      for (const day of days) {
+        const key = dateKey(day);
+        const next = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
+        const begins = Date.parse(event.start),
+          ends = Date.parse(event.end || event.start);
+        const occurs = event.allDay
+          ? key >= event.startDate && key < event.endDate
+          : begins < next.getTime() &&
+            (ends > day.getTime() || dateKey(new Date(event.start)) === key);
+        if (!occurs) continue;
+        if (!result.has(key)) result.set(key, []);
+        result.get(key).push(event);
+      }
     }
     return result;
   });
@@ -68,11 +79,13 @@
       .then(async (response) => {
         if (!response.ok) throw new Error('Could not load appointments.');
         const result = await response.json();
-        if (!controller.signal.aborted) events = result.events;
+        if (!controller.signal.aborted) {
+          events = result.events;
+          googleError = result.googleError || '';
+        }
       })
       .catch((err) => {
-        if (!controller.signal.aborted)
-          failure = 'Could not load appointments. Please try again.';
+        if (!controller.signal.aborted) failure = 'Could not load appointments. Please try again.';
       })
       .finally(() => {
         if (!controller.signal.aborted) busy = false;
@@ -82,34 +95,45 @@
 </script>
 
 {#snippet eventCard(event)}
-    {@const attendeeType = event.attendee?.type ?? event.type}
-    {@const typeLabel =
-      attendeeType === 'company' ? 'Company' : attendeeType === 'contact' ? 'Contact' : 'Event'}
-    <button
-      type="button"
-      title={`${typeLabel} · ${event.title} · ${new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
-      class="appointment"
-      class:company={attendeeType === 'company'}
-      class:unlinked={attendeeType !== 'company' && attendeeType !== 'contact'}
-      onclick={(click) => details.open(event, click.currentTarget)}
+  {@const attendeeType = event.attendee?.type ?? event.type}
+  {@const typeLabel =
+    event.type === 'google'
+      ? 'Google Calendar'
+      : attendeeType === 'company'
+        ? 'Company'
+        : attendeeType === 'contact'
+          ? 'Contact'
+          : 'Event'}
+  <button
+    type="button"
+    title={`${typeLabel} · ${event.title} · ${event.allDay ? 'All day' : new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
+    class="appointment"
+    class:company={attendeeType === 'company'}
+    class:unlinked={attendeeType !== 'company' && attendeeType !== 'contact'}
+    onclick={(click) => details.open(event, click.currentTarget)}
+  >
+    <div class="event-time">
+      {event.allDay
+        ? 'All day'
+        : new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+    </div>
+    <strong
+      >{#if attendeeType === 'company'}<Building2
+          size={12}
+          aria-label="Company"
+        />{:else if attendeeType === 'contact'}<UserRound
+          size={12}
+          aria-label="Contact"
+        />{/if}{event.title}</strong
     >
-      <div class="event-time">
-        {new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-      </div>
-      <strong
-        >{#if attendeeType === 'company'}<Building2
-            size={12}
-            aria-label="Company"
-          />{:else if attendeeType === 'contact'}<UserRound
-            size={12}
-            aria-label="Contact"
-          />{/if}{event.title}</strong
-      >
-    </button>
+  </button>
 {/snippet}
 
 <EventDetails bind:this={details} onChanged={() => refresh++} />
 <PageHeader title="Calendar" />
+{#if googleError}<p class="v2-error" role="status">
+    Google Calendar: {googleError} <a href="/profile?google=settings">Manage connection</a>
+  </p>{/if}
 <div class="calendar-toolbar">
   <button class="v2-btn" onclick={() => (selected = new Date())}>Today</button>
   <button
@@ -197,6 +221,12 @@
           >
         </header>
       {/each}
+      <div class="all-day-label">All day</div>
+      {#each days as day (dateKey(day))}<div class="all-day-events">
+          {#each (grouped.get(dateKey(day)) ?? []).filter((event) => event.allDay) as event (event.id)}{@render eventCard(
+              event
+            )}{/each}
+        </div>{/each}
       <div class="hour-labels">
         {#each hours as hour}<div class="hour-label" style={`top:${hour * 60}px`}>
             {hour % 12 || 12}
@@ -210,12 +240,14 @@
               style={`top:${hour * 60}px`}
               aria-hidden="true"
             ></div>{/each}
-          {#each timedCards(grouped.get(dateKey(day)) ?? []) as item (item.event.id)}
+          {#each timedCards((grouped.get(dateKey(day)) ?? [])
+              .filter((event) => !event.allDay)
+              .map( (event) => ({ ...event, start: new Date(Math.max(Date.parse(event.start), day.getTime())).toISOString(), end: event.end ? new Date(Math.min(Date.parse(event.end), new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1).getTime())).toISOString() : undefined, original: event }) )) as item (item.event.id)}
             <div
               class="timed-card"
               style={`height:${Math.max(14, item.duration - 2)}px;top:${item.minute}px;left:calc(${(item.lane / item.lanes) * 100}% + 3px);width:calc(${100 / item.lanes}% - 6px)`}
             >
-              {@render eventCard(item.event)}
+              {@render eventCard(item.event.original ?? item.event)}
             </div>
           {/each}
         </section>
@@ -225,6 +257,16 @@
 </div>
 
 <style>
+  .all-day-label,
+  .all-day-events {
+    padding: 6px;
+    border-bottom: 1px solid var(--v2-line);
+    font-size: 12px;
+  }
+  .all-day-events {
+    display: grid;
+    gap: 4px;
+  }
   .time-grid {
     display: grid;
     grid-template-columns: 64px repeat(var(--day-count), minmax(160px, 1fr));

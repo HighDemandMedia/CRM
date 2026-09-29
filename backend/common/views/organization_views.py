@@ -338,12 +338,8 @@ class ProfileView(APIView):
             user_obj[field] = getattr(profile, field)
         user_obj["photo_url"] = profile.user.profile_image.url if profile.user.profile_image else profile.user.profile_pic or ""
         user_obj["organization_timezone"] = profile.org.timezone or "UTC"
-        # Google sign-in does not grant Gmail or Calendar access. Neither
-        # integration is installed yet, so do not imply an active connection.
-        user_obj["integrations"] = {
-            "gmail": {"status": "setup_required", "email": None},
-            "google_calendar": {"status": "setup_required", "email": None, "calendar": None, "last_sync": None},
-        }
+        from common.google_integration import connection_status
+        user_obj["integrations"] = connection_status(profile)
         user_obj["teams"] = list(profile.user_teams.values_list("name", flat=True))
         return Response({"user_obj": user_obj}, status=status.HTTP_200_OK)
 

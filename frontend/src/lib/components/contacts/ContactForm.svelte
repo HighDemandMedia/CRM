@@ -1,4 +1,5 @@
 <script>
+  import { countryOptions } from '$lib/constants/countries.js';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import RecordSection from '$lib/components/creation/RecordSection.svelte';
   import ContactDuplicates from './ContactDuplicates.svelte';
@@ -289,7 +290,7 @@
       <label for="contact-country">Country</label>
       <select id="contact-country" name="country" class="v2-input" bind:value={values.country}>
         <option value="">Select country</option>
-        {#each data.countries ?? [] as option}<option value={option.value}>{option.label}</option
+        {#each countryOptions(values.country) as option}<option value={option.value}>{option.label}</option
           >{/each}
       </select>
     </div>

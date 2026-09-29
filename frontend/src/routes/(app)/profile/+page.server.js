@@ -1,33 +1,125 @@
 import { savePasswordSession } from '$lib/server/password-session.js';
 import { listTimezones } from '$lib/server/v2/organization.js';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
 import { getProfile } from '$lib/server/v2/profile.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies }) {
-  const [profile, timezones, password] = await Promise.all([getProfile({ cookies }), listTimezones(cookies), apiRequest('/auth/password/change/', {}, { cookies })]);
-  return { ...profile, timezones, hasPassword: password.has_password && !password.can_reset_password };
+export async function load({ cookies, url }) {
+  const [profile, timezones, password] = await Promise.all([
+    getProfile({ cookies }),
+    listTimezones(cookies),
+    apiRequest('/auth/password/change/', {}, { cookies })
+  ]);
+  return {
+    ...profile,
+    timezones,
+    googleResult: url.searchParams.get('google'),
+    hasPassword: password.has_password && !password.can_reset_password
+  };
 }
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  googleConnect: async ({ cookies, request, url }) => {
+    const form = await request.formData();
+    const service = String(form.get('service'));
+    if (!['gmail', 'calendar'].includes(service))
+      return fail(400, { scope: 'google', message: 'Choose a Google service.' });
+    let result;
+    try {
+      result = await apiRequest(
+        `/integrations/google/connect/${service}/`,
+        { method: 'POST', body: {} },
+        { cookies }
+      );
+    } catch (err) {
+      return fail(400, {
+        scope: 'google',
+        message: readableError(err, 'Could not connect Google.')
+      });
+    }
+    cookies.set('google_connection_state', result.state, {
+      path: '/profile/google/callback',
+      httpOnly: true,
+      secure: url.protocol === 'https:',
+      sameSite: 'lax',
+      maxAge: 600
+    });
+    redirect(303, result.url);
+  },
+  googleManage: async ({ cookies, request }) => {
+    const form = await request.formData();
+    try {
+      await apiRequest(
+        '/integrations/google/',
+        {
+          method: 'POST',
+          body: Object.fromEntries(
+            ['service', 'operation', 'calendar_id'].map((key) => [key, String(form.get(key) || '')])
+          )
+        },
+        { cookies }
+      );
+      return {
+        scope: 'google',
+        saved: true,
+        googleMessage:
+          form.get('operation') === 'disconnect'
+            ? 'Disconnected. Cached Google data has been removed from the CRM.'
+            : 'Synchronization queued. Updates usually appear within five minutes.'
+      };
+    } catch (err) {
+      return fail(400, {
+        scope: 'google',
+        message: readableError(err, 'Could not update the connection.')
+      });
+    }
+  },
   password: async ({ cookies, request }) => {
     const form = await request.formData();
-    if (form.get('password') !== form.get('confirm_password')) return fail(400, { scope: 'password', message: 'Passwords do not match.' });
+    if (form.get('password') !== form.get('confirm_password'))
+      return fail(400, { scope: 'password', message: 'Passwords do not match.' });
     try {
-      const result = await apiRequest('/auth/password/change/', { method: 'POST', body: { current_password: String(form.get('current_password') || ''), password: String(form.get('password') || '') } }, { cookies });
+      const result = await apiRequest(
+        '/auth/password/change/',
+        {
+          method: 'POST',
+          body: {
+            current_password: String(form.get('current_password') || ''),
+            password: String(form.get('password') || '')
+          }
+        },
+        { cookies }
+      );
       savePasswordSession(cookies, result);
       return { scope: 'password', saved: true };
-    } catch (err) { return fail(400, { scope: 'password', message: readableError(err, 'Could not change password.') }); }
+    } catch (err) {
+      return fail(400, {
+        scope: 'password',
+        message: readableError(err, 'Could not change password.')
+      });
+    }
   },
   emailMode: async ({ cookies, request }) => {
     const form = await request.formData();
     try {
-      await apiRequest('/profile/', { method: 'PATCH', body: { email_integration_mode: String(form.get('email_integration_mode') || '') } }, { cookies });
+      await apiRequest(
+        '/profile/',
+        {
+          method: 'PATCH',
+          body: { email_integration_mode: String(form.get('email_integration_mode') || '') }
+        },
+        { cookies }
+      );
       return { scope: 'email', saved: true };
-    } catch (err) { return fail(400, { scope: 'email', message: readableError(err, 'Could not save email preference.') }); }
+    } catch (err) {
+      return fail(400, {
+        scope: 'email',
+        message: readableError(err, 'Could not save email preference.')
+      });
+    }
   },
   // Only forward editable personal fields; account access is managed separately.
   edit: async ({ cookies, request }) => {

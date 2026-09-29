@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { enhance } from '$app/forms';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import { COUNTRIES } from '$lib/constants/countries.js';
+  import { countryOptions } from '$lib/constants/countries.js';
   import { CURRENCY_CODES } from '$lib/constants/filters.js';
   import { shortDate } from '$lib/v2/format.js';
   /** @type {{data:any, form:any}} */
@@ -41,7 +41,7 @@
                   <label>{label}{key === 'name' ? ' *' : ''}<input class="v2-input" name={key} {type} bind:value={draft[key]} required={key === 'name'}/></label>
                 {/each}
                 {#if section.title === 'Address'}
-                  <label>Country<select class="v2-input" name="country" bind:value={draft.country}><option value="">Select country</option>{#each COUNTRIES as country}<option value={country.code}>{country.name}</option>{/each}</select></label>
+                  <label>Country<select class="v2-input" name="country" bind:value={draft.country}><option value="">Select country</option>{#each countryOptions(draft.country) as country}<option value={country.value}>{country.label}</option>{/each}</select></label>
                 {/if}
               </div>
             </section>
@@ -50,7 +50,7 @@
             <h2>Regional defaults</h2>
             <div class="fields">
               <label>Currency<select class="v2-input" name="default_currency" bind:value={draft.default_currency}>{#each CURRENCY_CODES.filter(c => c.value) as currency}<option value={currency.value}>{currency.label}</option>{/each}</select></label>
-              <label>Default country<select class="v2-input" name="default_country" bind:value={draft.default_country}><option value="">Select country</option>{#each COUNTRIES as country}<option value={country.code}>{country.name}</option>{/each}</select></label>
+              <label>Default country<select class="v2-input" name="default_country" bind:value={draft.default_country}><option value="">Select country</option>{#each countryOptions(draft.default_country) as country}<option value={country.value}>{country.label}</option>{/each}</select></label>
               <label class="wide">Time zone<select class="v2-input" name="timezone" bind:value={draft.timezone}>{#each data.timezones as timezone}<option value={timezone.name}>{timezone.label}</option>{/each}</select></label>
             </div>
           </section>

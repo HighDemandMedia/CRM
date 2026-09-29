@@ -326,13 +326,14 @@
           </select></label
         >
         <label
-          >Internal notes<textarea
+          >Meeting notes<textarea
             class="v2-input"
             name="internal_notes"
             rows="4"
             maxlength="10000"
             bind:value={notes}></textarea></label
         >
+        <p class="v2-sub">These notes also appear in the Google Calendar description when the host connects a calendar.</p>
         {#if external}<label class="create-deal-toggle"
           ><input type="checkbox" name="create_deal" disabled={!canCreateDeal} bind:checked={createDeal} />Create a deal for
           this event</label

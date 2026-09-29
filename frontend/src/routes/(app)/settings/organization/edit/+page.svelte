@@ -1,4 +1,5 @@
 <script>
+  import { countryOptions } from '$lib/constants/countries.js';
   import { resolve } from '$app/paths';
   /**
    * Editing the organisation.
@@ -33,27 +34,6 @@
   // A supported currency is required (the column is non-blank with a default),
   // so the empty "Select Currency" placeholder is dropped from the options.
   const currencyOptions = CURRENCY_CODES.filter((/** @type {any} */ c) => c.value);
-
-  // A compact country list. Every value is a real code in the backend COUNTRIES
-  // set, so the select can never offer one the serializer rejects.
-  const countryOptions = [
-    { value: 'US', label: 'United States' },
-    { value: 'GB', label: 'United Kingdom' },
-    { value: 'CA', label: 'Canada' },
-    { value: 'AU', label: 'Australia' },
-    { value: 'DE', label: 'Germany' },
-    { value: 'FR', label: 'France' },
-    { value: 'IN', label: 'India' },
-    { value: 'JP', label: 'Japan' },
-    { value: 'SG', label: 'Singapore' },
-    { value: 'AE', label: 'United Arab Emirates' },
-    { value: 'BR', label: 'Brazil' },
-    { value: 'MX', label: 'Mexico' },
-    { value: 'CH', label: 'Switzerland' },
-    { value: 'NL', label: 'Netherlands' },
-    { value: 'ES', label: 'Spain' },
-    { value: 'IT', label: 'Italy' }
-  ];
 
   const org = untrack(() => data.org ?? {});
   // Always includes the org's current value, because the API builds the list
@@ -295,7 +275,7 @@
         <label for="f-country">Country</label>
         <select id="f-country" name="country" class="v2-input" bind:value={form.country}>
           <option value="">Not recorded</option>
-          {#each countryOptions as c (c.value)}
+          {#each countryOptions(form.country) as c (c.value)}
             <option value={c.value}>{c.label}</option>
           {/each}
         </select>
@@ -326,7 +306,7 @@
             bind:value={form.default_country}
           >
             <option value="">Not set</option>
-            {#each countryOptions as c (c.value)}
+            {#each countryOptions(form.default_country) as c (c.value)}
               <option value={c.value}>{c.label}</option>
             {/each}
           </select>

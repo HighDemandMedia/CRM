@@ -1236,3 +1236,6 @@ class OrganizationInvitation(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['org', 'email'], name='unique_org_invitation_email')]
+
+# Keep integration models in their own module while registering with this app.
+from common.google_models import GoogleConnection, GoogleCalendarEvent, GoogleMailActivity, GoogleCalendarMirror  # noqa: E402, F401

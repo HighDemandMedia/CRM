@@ -471,3 +471,55 @@ def flush_expired_refresh_tokens():
         expired.delete()
         logger.info("Flushed %s expired refresh token records", count)
     return count
+
+
+@shared_task(soft_time_limit=240, time_limit=270)
+def sync_google_connection(org_id, connection_id):
+    from common.google_integration import GoogleAPI, GoogleError
+    from common.google_sync import sync_calendar, sync_gmail
+    from common.models import GoogleConnection
+    from rest_framework.exceptions import PermissionDenied
+    from django.db.models import Q
+    set_rls_context(org_id)
+    conn = None
+    try:
+        now = timezone.now()
+        rows = GoogleConnection.objects.filter(pk=connection_id, org_id=org_id, status='connected', profile__is_active=True, profile__user__is_active=True)
+        if not rows.filter(Q(sync_started_at__isnull=True) | Q(sync_started_at__lt=now-timedelta(minutes=5))).update(sync_started_at=now):
+            return
+        conn = rows.select_related('profile__user', 'profile__org', 'org').get()
+        api = GoogleAPI(conn)
+        (sync_gmail if conn.service == 'gmail' else sync_calendar)(conn, api)
+        rows.filter(generation=conn.generation).update(last_sync=timezone.now(), error='', sync_started_at=None)
+        # Continue a large initial import in short jobs; normal updates run every five minutes.
+        pending = rows.filter(generation=conn.generation, service='gmail').exclude(mail_page_token='').exists()
+        if pending:
+            sync_google_connection.apply_async(args=[org_id, connection_id], countdown=5)
+    except (GoogleError, PermissionDenied) as exc:
+        if conn:
+            fields = {'error': str(exc)[:255], 'sync_started_at': None}
+            if isinstance(exc, GoogleError) and exc.reconnect:
+                fields['status'] = 'reconnect'
+            GoogleConnection.objects.filter(pk=conn.pk, generation=conn.generation).update(**fields)
+    except Exception:
+        if conn:
+            GoogleConnection.objects.filter(pk=conn.pk, generation=conn.generation).update(error='Sync did not finish. It will retry automatically.', sync_started_at=None)
+        # Intentionally omit provider responses and exception text (may contain tokens/mail).
+        logger.warning('Google synchronization failed for connection %s', connection_id)
+    finally:
+        clear_rls_context()
+
+
+@shared_task
+def schedule_google_sync():
+    from common.google_integration import configured
+    if not configured():
+        return
+    from common.models import GoogleConnection
+    for org_id in Org.objects.filter(is_active=True).values_list('pk', flat=True).iterator():
+        set_rls_context(org_id)
+        try:
+            for pk in GoogleConnection.objects.filter(org_id=org_id, status='connected', profile__is_active=True, profile__user__is_active=True).values_list('pk', flat=True):
+                sync_google_connection.delay(str(org_id), str(pk))
+        finally:
+            clear_rls_context()

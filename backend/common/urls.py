@@ -1,3 +1,4 @@
+from common.views.google_integration_views import GoogleConnectView, GoogleCallbackView, GoogleConnectionView, GoogleCalendarListView, GoogleEventsView, GoogleMailBodyView
 from common.views.ui_context_views import UIContextView
 from common.views.password_auth_views import PasswordLoginView, PasswordRegisterView, PasswordChangeView
 from common.views.role_views import MyPermissionsView
@@ -77,6 +78,13 @@ app_name = "api_common"
 
 
 urlpatterns = [
+    path("integrations/google/connect/<str:service>/", GoogleConnectView.as_view()),
+    path("integrations/google/callback/", GoogleCallbackView.as_view()),
+    path("integrations/google/", GoogleConnectionView.as_view()),
+    path("integrations/google/calendars/", GoogleCalendarListView.as_view()),
+    path("integrations/google/events/", GoogleEventsView.as_view()),
+    path("integrations/google/events/<uuid:pk>/", GoogleEventsView.as_view()),
+    path("integrations/google/mail/<uuid:pk>/", GoogleMailBodyView.as_view()),
     path("org/ui-context/", UIContextView.as_view()),
     path("auth/password/login/", PasswordLoginView.as_view()),
     path("auth/password/register/", PasswordRegisterView.as_view()),

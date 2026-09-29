@@ -5,8 +5,9 @@ import { listAccounts } from '$lib/server/v2/accounts.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ cookies, url }) {
-  const permissions = await apiRequest('/permissions/me/', {}, {cookies});
-  if (!permissions.rules?.calendar?.view || permissions.rules.calendar.view === 'none') error(403,'Your permission set does not include Calendar.');
+  const permissions = await apiRequest('/permissions/me/', {}, { cookies });
+  if (!permissions.rules?.calendar?.view || permissions.rules.calendar.view === 'none')
+    error(403, 'Your permission set does not include Calendar.');
   const start = url.searchParams.get('start'),
     end = url.searchParams.get('end');
   const from = Date.parse(start ?? ''),
@@ -42,7 +43,8 @@ export async function GET({ cookies, url }) {
           language: record.language || contact?.language || '',
           phone: record.phone || contact?.phone || '',
           email: record.email || contact?.email || '',
-          canManage: permissions.rules[type === 'company' ? 'companies' : 'contacts'].edit !== 'none',
+          canManage:
+            permissions.rules[type === 'company' ? 'companies' : 'contacts'].edit !== 'none',
           href: `/${type === 'contact' ? 'contacts' : 'accounts'}/${record.id}`
         });
       }
@@ -51,19 +53,26 @@ export async function GET({ cookies, url }) {
     }
     return events;
   }
-  const [contacts, companies, appointments] = await Promise.all([
+  const [contacts, companies, appointments, google] = await Promise.all([
     permissions.rules.contacts.view !== 'none' ? collect(listContacts, 'contact') : [],
     permissions.rules.companies.view !== 'none' ? collect(listAccounts, 'company') : [],
     apiRequest(
       `/sales-appointments/?${new URLSearchParams({ start: new Date(from).toISOString(), end: new Date(to).toISOString() })}`,
       {},
       { cookies }
-    )
+    ),
+    apiRequest(
+      `/integrations/google/events/?${new URLSearchParams({ start: new Date(from).toISOString(), end: new Date(to).toISOString() })}`,
+      {},
+      { cookies }
+    ).catch(() => ({ events: [], error: 'Google Calendar could not be loaded.' }))
   ]);
   // A linked event is also reflected in the attendee's Appointment field.
   const linked = new Set(
     appointments.flatMap((a) => [
-      ...(a.attendees ?? []).filter(person => person.type !== 'user').map(person => `${person.type}:${person.id}:${Date.parse(a.starts_at)}`),
+      ...(a.attendees ?? [])
+        .filter((person) => person.type !== 'user')
+        .map((person) => `${person.type}:${person.id}:${Date.parse(a.starts_at)}`),
       a.contact ? `contact:${a.contact}:${Date.parse(a.starts_at)}` : '',
       a.company ? `company:${a.company}:${Date.parse(a.starts_at)}` : ''
     ])
@@ -73,7 +82,9 @@ export async function GET({ cookies, url }) {
   );
   return json(
     {
+      googleError: google.error || '',
       events: [
+        ...(google.events ?? []),
         ...legacy,
         ...appointments.map((a) => ({
           id: `appointment:${a.id}`,

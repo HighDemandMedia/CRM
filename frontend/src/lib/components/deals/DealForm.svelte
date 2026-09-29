@@ -1,4 +1,5 @@
 <script>
+  import { countryOptions } from '$lib/constants/countries.js';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import RecordSection from '$lib/components/creation/RecordSection.svelte';
   import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
@@ -356,7 +357,7 @@
   <RecordSection title="Address" collapsible={!editing}>
     <label
       >Country<select class="v2-input" name="country" bind:value={values.country}
-        ><option value="">Select country</option>{#each data.countries as [value, label]}<option
+        ><option value="">Select country</option>{#each countryOptions(values.country) as { value, label }}<option
             {value}>{label}</option
           >{/each}</select
       ></label
