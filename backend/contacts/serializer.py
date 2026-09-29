@@ -213,6 +213,7 @@ class CreateContactSerializer(PipelineRulesMixin, serializers.ModelSerializer):
         return email
 
     class Meta:
+        read_only_fields = ("appointment_at",)
         model = Contact
         extra_kwargs = {
             "first_name": {"required": False},

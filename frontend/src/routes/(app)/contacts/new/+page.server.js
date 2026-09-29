@@ -1,7 +1,7 @@
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { EDITABLE_FIELDS, createContact, getContactFormOptions } from '$lib/server/v2/contacts.js';
-import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 
 /**
  * `?account=<id>` preselects the company, so "add somebody at this account"
@@ -37,7 +37,7 @@ export const actions = {
     try {
       created = await createContact({ cookies }, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, stageRequirements: stageRequirements(err), error: readableError(err, 'Could not create this contact.') });
+      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not create this contact.') });
     }
 
     // The API returns the new id. Landing on the person is the point of adding

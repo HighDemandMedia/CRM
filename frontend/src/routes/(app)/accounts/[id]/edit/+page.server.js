@@ -1,7 +1,7 @@
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { EDITABLE_FIELDS, getAccountForEdit, updateAccount } from '$lib/server/v2/accounts.js';
-import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies, params }) {
@@ -45,7 +45,7 @@ export const actions = {
     try {
       await updateAccount({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this company.') });
+      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this company.') });
     }
 
     redirect(303, `/accounts/${params.id}`);

@@ -1,4 +1,6 @@
 <script>
+  import { recordFieldError } from '$lib/components/creation/validation.js';
+  import RecordSection from '$lib/components/creation/RecordSection.svelte';
   import { resolve } from '$app/paths';
   /**
    * Adding a lead.
@@ -77,11 +79,8 @@
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       e.email = 'That does not look like an email address.';
 
-    // The exact regex from `flexible_phone_validator`. Extensions like "x123"
-    // are rejected by the model, so they are caught here rather than as an
-    // opaque whole-form refusal after the save.
-    if (form.phone && !/^[\d\s\-()+.]{7,25}$/.test(form.phone))
-      e.phone = '7 to 25 characters: digits, spaces, brackets, dots, dashes. No extensions.';
+    const phoneError = recordFieldError('phone', form.phone);
+    if (phoneError) e.phone = phoneError;
 
     // `createLead` runs `Number(amount)` and the body is JSON-encoded, and
     // `JSON.stringify` turns `NaN` into `null`. Without this check, typing
@@ -171,141 +170,149 @@
       </div>
     {/if}
 
-    <div class="v2-field">
-      <label for="f-first">First name</label>
-      <input
-        id="f-first"
-        name="first_name"
-        class="v2-input"
-        bind:value={form.first_name}
-        onblur={() => (touched.first_name = true)}
-      />
-    </div>
-    <div class="v2-field">
-      <label for="f-last">Last name</label>
-      <input
-        id="f-last"
-        name="last_name"
-        class="v2-input"
-        bind:value={form.last_name}
-        onblur={() => (touched.last_name = true)}
-        aria-invalid={show('last_name') ? 'true' : undefined}
-        aria-describedby={show('last_name') ? 'e-last' : undefined}
-      />
-      {#if show('last_name')}<p class="v2-error" id="e-last">{errors.last_name}</p>{/if}
-    </div>
-    <div class="v2-field">
-      <label for="f-company">Company</label>
-      <input id="f-company" name="company_name" class="v2-input" bind:value={form.company_name} />
-    </div>
-    <div class="v2-field">
-      <label for="f-email">Email</label>
-      <input
-        id="f-email"
-        name="email"
-        class="v2-input"
-        type="email"
-        bind:value={form.email}
-        onblur={() => (touched.email = true)}
-        aria-invalid={show('email') ? 'true' : undefined}
-        aria-describedby={show('email') ? 'e-email' : undefined}
-      />
-      {#if show('email')}<p class="v2-error" id="e-email">{errors.email}</p>{/if}
-    </div>
-    <div class="v2-field">
-      <label for="f-owner">Owner</label>
-      <select id="f-owner" name="assigned_to" class="v2-input" bind:value={form.assigned_to}>
-        <option value="">Unassigned</option>
-        {#each data.owners as o (o.id)}
-          <option value={o.id}>{o.name}</option>
-        {/each}
-      </select>
-    </div>
-    <div class="v2-field">
-      <label for="f-jobtitle">Job title</label>
-      <input id="f-jobtitle" name="job_title" class="v2-input" bind:value={form.job_title} />
-    </div>
-    <div class="v2-field">
-      <label for="f-phone">Phone</label>
-      <input
-        id="f-phone"
-        name="phone"
-        class="v2-input"
-        bind:value={form.phone}
-        onblur={() => (touched.phone = true)}
-        aria-invalid={show('phone') ? 'true' : undefined}
-        aria-describedby={show('phone') ? 'e-phone' : undefined}
-      />
-      {#if show('phone')}<p class="v2-error" id="e-phone">{errors.phone}</p>{/if}
-    </div>
-    <div class="v2-field">
-      <label for="f-website">Website</label>
-      <input id="f-website" name="website" class="v2-input" bind:value={form.website} />
-    </div>
-    <div class="v2-field">
-      <label for="f-status">Status</label>
-      <select id="f-status" name="status" class="v2-input" bind:value={form.status}>
-        {#each LEAD_STATUSES.filter((s) => s !== 'converted') as s (s)}
-          <option value={s}>{LEAD_STATUS_LABEL[s]}</option>
-        {/each}
-      </select>
-      <p class="v2-hint">
-        Converting is a significant, largely irreversible step: it creates an Account, a Contact and
-        an Opportunity that nothing undoes if the status changes back, and it requires an email
-        address that nothing else here does. Set the status here to something else, and convert once
-        the lead is real.
-      </p>
-    </div>
-    <div class="v2-field">
-      <label for="f-source">Source</label>
-      <select id="f-source" name="source" class="v2-input" bind:value={form.source}>
-        <option value="">Not specified</option>
-        {#each LEAD_SOURCES as s (s)}
-          <option value={s}>{LEAD_SOURCE_LABEL[s]}</option>
-        {/each}
-      </select>
-    </div>
-    <div class="v2-field">
-      <label for="f-industry">Industry</label>
-      <select id="f-industry" name="industry" class="v2-input" bind:value={form.industry}>
-        <option value="">Not specified</option>
-        {#each INDUSTRIES as ind (ind)}
-          <option value={ind}>{industryLabel(ind)}</option>
-        {/each}
-      </select>
-    </div>
-    <div class="v2-field">
-      <label for="f-amount">Estimated value</label>
-      <input
-        id="f-amount"
-        name="opportunity_amount"
-        class="v2-input v2-num"
-        type="number"
-        step="any"
-        bind:value={form.opportunity_amount}
-        onblur={() => (touched.opportunity_amount = true)}
-        aria-invalid={show('opportunity_amount') ? 'true' : undefined}
-        aria-describedby={show('opportunity_amount') ? 'e-amount' : 'h-amount'}
-      />
-      {#if show('opportunity_amount')}
-        <p class="v2-error" id="e-amount">{errors.opportunity_amount}</p>
-      {:else}
-        <p class="v2-hint" id="h-amount">
-          {Number(form.opportunity_amount) > 0
-            ? money(Number(form.opportunity_amount), data.org.currency)
-            : 'What the deal would be worth if it lands.'}
+    <RecordSection title="Lead details">
+      <div class="v2-field">
+        <label for="f-first">First name</label>
+        <input
+          id="f-first"
+          name="first_name"
+          class="v2-input"
+          bind:value={form.first_name}
+          onblur={() => (touched.first_name = true)}
+        />
+      </div>
+      <div class="v2-field">
+        <label for="f-last">Last name</label>
+        <input
+          id="f-last"
+          name="last_name"
+          class="v2-input"
+          bind:value={form.last_name}
+          onblur={() => (touched.last_name = true)}
+          aria-invalid={show('last_name') ? 'true' : undefined}
+          aria-describedby={show('last_name') ? 'e-last' : undefined}
+        />
+        {#if show('last_name')}<p class="v2-error" id="e-last">{errors.last_name}</p>{/if}
+      </div>
+      <div class="v2-field">
+        <label for="f-email">Email</label>
+        <input
+          id="f-email"
+          name="email"
+          class="v2-input"
+          type="email"
+          bind:value={form.email}
+          onblur={() => (touched.email = true)}
+          aria-invalid={show('email') ? 'true' : undefined}
+          aria-describedby={show('email') ? 'e-email' : undefined}
+        />
+        {#if show('email')}<p class="v2-error" id="e-email">{errors.email}</p>{/if}
+      </div>
+      <div class="v2-field">
+        <label for="f-phone">Phone</label>
+        <input
+          id="f-phone"
+          name="phone"
+          class="v2-input"
+          bind:value={form.phone}
+          onblur={() => (touched.phone = true)}
+          aria-invalid={show('phone') ? 'true' : undefined}
+          aria-describedby={show('phone') ? 'e-phone' : undefined}
+        />
+        {#if show('phone')}<p class="v2-error" id="e-phone">{errors.phone}</p>{/if}
+      </div>
+    </RecordSection>
+    <RecordSection title="Ownership & status">
+      <div class="v2-field">
+        <label for="f-owner">Owner</label>
+        <select id="f-owner" name="assigned_to" class="v2-input" bind:value={form.assigned_to}>
+          <option value="">Unassigned</option>
+          {#each data.owners as o (o.id)}
+            <option value={o.id}>{o.name}</option>
+          {/each}
+        </select>
+      </div>
+      <div class="v2-field">
+        <label for="f-status">Status</label>
+        <select id="f-status" name="status" class="v2-input" bind:value={form.status}>
+          {#each LEAD_STATUSES.filter((s) => s !== 'converted') as s (s)}
+            <option value={s}>{LEAD_STATUS_LABEL[s]}</option>
+          {/each}
+        </select>
+        <p class="v2-hint">
+          Converting is a significant, largely irreversible step: it creates an Account, a Contact
+          and an Opportunity that nothing undoes if the status changes back, and it requires an
+          email address that nothing else here does. Set the status here to something else, and
+          convert once the lead is real.
         </p>
-      {/if}
-    </div>
-    <div class="v2-field">
-      <label for="f-notes">Notes</label>
-      <textarea
-        id="f-notes"
-        name="description"
-        class="v2-input"
-        rows="4"
-        bind:value={form.description}></textarea>
-    </div>
+      </div>
+      <div class="v2-field">
+        <label for="f-source">Source</label>
+        <select id="f-source" name="source" class="v2-input" bind:value={form.source}>
+          <option value="">Not specified</option>
+          {#each LEAD_SOURCES as s (s)}
+            <option value={s}>{LEAD_SOURCE_LABEL[s]}</option>
+          {/each}
+        </select>
+      </div>
+    </RecordSection>
+    <RecordSection title="Business details" collapsible>
+      <div class="v2-field">
+        <label for="f-company">Company</label>
+        <input id="f-company" name="company_name" class="v2-input" bind:value={form.company_name} />
+      </div>
+      <div class="v2-field">
+        <label for="f-jobtitle">Job title</label>
+        <input id="f-jobtitle" name="job_title" class="v2-input" bind:value={form.job_title} />
+      </div>
+      <div class="v2-field">
+        <label for="f-website">Website</label>
+        <input id="f-website" name="website" class="v2-input" bind:value={form.website} />
+      </div>
+      <div class="v2-field">
+        <label for="f-industry">Industry</label>
+        <select id="f-industry" name="industry" class="v2-input" bind:value={form.industry}>
+          <option value="">Not specified</option>
+          {#each INDUSTRIES as ind (ind)}
+            <option value={ind}>{industryLabel(ind)}</option>
+          {/each}
+        </select>
+      </div>
+      <div class="v2-field">
+        <label for="f-amount">Estimated value</label>
+        <input
+          id="f-amount"
+          name="opportunity_amount"
+          class="v2-input v2-num"
+          type="number"
+          step="any"
+          bind:value={form.opportunity_amount}
+          onblur={() => (touched.opportunity_amount = true)}
+          aria-invalid={show('opportunity_amount') ? 'true' : undefined}
+          aria-describedby={show('opportunity_amount') ? 'e-amount' : 'h-amount'}
+        />
+        {#if show('opportunity_amount')}
+          <p class="v2-error" id="e-amount">{errors.opportunity_amount}</p>
+        {:else}
+          <p class="v2-hint" id="h-amount">
+            {Number(form.opportunity_amount) > 0
+              ? money(Number(form.opportunity_amount), data.org.currency)
+              : 'What the deal would be worth if it lands.'}
+          </p>
+        {/if}
+      </div>
+    </RecordSection>
+    <RecordSection title="Additional details" collapsible>
+      <div class="v2-field">
+        <label for="f-notes">Notes</label>
+        <textarea
+          id="f-notes"
+          name="description"
+          class="v2-input"
+          rows="4"
+          bind:value={form.description}></textarea>
+      </div>
+    </RecordSection>
 
     <div class="actions">
       <button class="v2-btn v2-btn-primary" type="submit" disabled={busy}>Create lead</button>

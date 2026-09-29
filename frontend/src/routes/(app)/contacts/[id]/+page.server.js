@@ -1,7 +1,7 @@
 import { apiRequest } from '$lib/api-helpers.js';
 import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
-import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 import { fail, redirect } from '@sveltejs/kit';
 import {
   addContactNote,
@@ -80,7 +80,7 @@ export const actions = {
     try {
       await updateContact({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this contact.') });
+      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this contact.') });
     }
 
     return { saved: true };
@@ -105,7 +105,7 @@ export const actions = {
       if (Object.keys(values).length) await updateContact({ cookies }, params.id, values);
       return { saved: true };
     } catch (/** @type {any} */ err) {
-      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save contact changes.') });
+      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save contact changes.') });
     }
   },
   /**

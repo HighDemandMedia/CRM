@@ -1,6 +1,8 @@
 <script>
-  import ContactDuplicates from "./ContactDuplicates.svelte";
-  import StageRuleNotice from "$lib/components/pipelines/StageRuleNotice.svelte";
+  import { recordValidation } from '$lib/components/creation/validation.js';
+  import RecordSection from '$lib/components/creation/RecordSection.svelte';
+  import ContactDuplicates from './ContactDuplicates.svelte';
+  import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
   import { creationEnhance } from '$lib/components/creation/enhance.js';
   const enhance = creationEnhance();
   import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
@@ -26,8 +28,8 @@
       phone: '',
       email: '',
       source: '',
-      stage: '',
-      appointment_at: '',
+      stage: 'LEAD',
+      country: '',
       address_line: '',
       language: '',
       city: '',
@@ -48,6 +50,8 @@
   );
   let autoReady = $state(false);
   let autoStatus = $state('');
+  let autoFieldErrors = $state({});
+  let formElement;
   let autoError = $state('');
   let autoIssue = $state(null);
   let autoBusy = false;
@@ -64,6 +68,8 @@
     queued = null;
     const changes = contactChanges(baseline, snapshot);
     if (!Object.keys(changes).length) return;
+    if (formElement && !formElement.checkValidity()) return;
+    autoFieldErrors = {};
     autoBusy = true;
     autoStatus = 'Saving…';
     autoError = '';
@@ -79,6 +85,7 @@
       });
       const result = deserialize(await response.text());
       if (result.type !== 'success') {
+        autoFieldErrors = result.type === 'failure' ? (result.data?.fieldErrors ?? {}) : {};
         autoIssue = result.type === 'failure' ? result.data?.stageRequirements : null;
         autoError =
           result.type === 'failure'
@@ -111,23 +118,13 @@
     });
   });
   onDestroy(() => clearTimeout(autoTimer));
-  let appointmentLocal = $state('');
-  let appointmentReady = $state(false);
   onMount(() => {
-    if (values.appointment_at) {
-      const date = new Date(values.appointment_at);
-      const pad = (/** @type {number} */ n) => String(n).padStart(2, '0');
-      if (Number.isFinite(date.getTime()))
-        appointmentLocal = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-    }
-    appointmentReady = true;
     baseline = JSON.parse(JSON.stringify({ ...values, tags: selectedTags }));
     autoReady = true;
   });
   let saving = $state(false);
   const textFields = /** @type {const} */ ([
     { key: 'name', label: 'Name', required: true, type: 'text', max: 255, autocomplete: 'name' },
-    { key: 'phone', label: 'Phone', required: false, type: 'tel', max: 25, autocomplete: 'tel' },
     {
       key: 'email',
       label: 'Email',
@@ -135,17 +132,20 @@
       type: 'email',
       max: 254,
       autocomplete: 'email'
-    }
+    },
+    { key: 'phone', label: 'Phone', required: false, type: 'tel', max: 25, autocomplete: 'tel' }
   ]);
   const addressFields = /** @type {const} */ ([
     { key: 'address_line', label: 'Address', autocomplete: 'street-address', max: 255 },
     { key: 'city', label: 'City', autocomplete: 'address-level2', max: 255 },
-    { key: 'postcode', label: 'Zip Code', autocomplete: 'postal-code', max: 64 },
-    { key: 'state', label: 'State', autocomplete: 'address-level1', max: 255 }
+    { key: 'state', label: 'State / region', autocomplete: 'address-level1', max: 255 },
+    { key: 'postcode', label: 'Postal code', autocomplete: 'postal-code', max: 64 }
   ]);
 </script>
 
 <form
+  bind:this={formElement}
+  use:recordValidation={result?.fieldErrors ?? autoFieldErrors}
   class="v2-form"
   class:auto-save={autoSave}
   class:inline-edit={inline}
@@ -177,8 +177,10 @@
     };
   }}
 >
-  <StageRuleNotice issue={autoIssue || result?.stageRequirements}/>
-  {#if result?.error && !result?.stageRequirements}<p class="v2-error" role="alert">{result.error}</p>{/if}
+  <StageRuleNotice issue={autoIssue || result?.stageRequirements} />
+  {#if result?.error && !result?.stageRequirements}<p class="v2-error" role="alert">
+      {result.error}
+    </p>{/if}
   {#if autoSave}
     <div class="save-status" role="status">{autoStatus}</div>
     {#if autoError && !autoIssue}<div class="v2-error" role="alert">
@@ -193,9 +195,7 @@
         >
       </div>{/if}
   {/if}
-  <div class="fields">
-    <LanguageSelect bind:value={values.language} />
-
+  <RecordSection title="Contact details">
     {#each textFields as field (field.key)}
       <div class="v2-field">
         <label for={'contact-' + field.key}>{field.label}{field.required ? ' *' : ''}</label>
@@ -211,51 +211,14 @@
         />
       </div>
     {/each}
-    <ContactDuplicates name={values.name || ''} email={values.email || ''} phone={values.phone || ''} exclude={data.contact?.id || ''}/>
-    <div class="v2-field">
-      <span class="tags-label">Tags</span><TagPicker
-        options={data.tagOptions ?? []}
-        original={data.form?.tags ?? []}
-        canCreate={data.canCreateTags}
-        bind:selected={selectedTags}
-        bind:creating={creatingTag}
-      />
-    </div>
-    <div class="v2-field">
-      <label for="contact-appointment">Appointment</label>
-      <input
-        id="contact-appointment"
-        class="v2-input"
-        type="datetime-local"
-        disabled={!appointmentReady}
-        bind:value={appointmentLocal}
-        onchange={() => {
-          values.appointment_at = appointmentLocal ? new Date(appointmentLocal).toISOString() : '';
-        }}
-      />
-      <input type="hidden" name="appointment_at" value={values.appointment_at ?? ''} />
-    </div>
-    <div class="v2-field">
-      <label for="contact-source">Source</label>
-      <select
-        id="contact-source"
-        name="source"
-        class="v2-input"
-        bind:value={values.source}
-      >
-        <option value="">Select source</option>
-        {#each data.sources ?? [] as option}<option value={option.value}>{option.label}</option
-          >{/each}
-      </select>
-    </div>
-    <div class="v2-field">
-      <label for="contact-stage">Stage</label>
-      <select id="contact-stage" name="stage" class="v2-input" bind:value={values.stage}>
-        <option value="">Select stage</option>
-        {#each data.stages ?? [] as option}<option value={option.value}>{option.label}</option
-          >{/each}
-      </select>
-    </div>
+    <ContactDuplicates
+      name={values.name || ''}
+      email={values.email || ''}
+      phone={values.phone || ''}
+      exclude={data.contact?.id || ''}
+    />
+  </RecordSection>
+  <RecordSection title="Ownership & stage">
     <div class="v2-field">
       <label for="contact-owner">Contact Owner</label>
       <select
@@ -278,19 +241,34 @@
         </p>
       {/if}
     </div>
-    {#each addressFields as field (field.key)}
-      <div class="v2-field">
-        <label for={'contact-' + field.key}>{field.label}</label>
-        <input
-          id={'contact-' + field.key}
-          class="v2-input"
-          name={field.key}
-          maxlength={field.max}
-          autocomplete={field.autocomplete}
-          bind:value={values[field.key]}
-        />
-      </div>
-    {/each}
+    <div class="v2-field">
+      <label for="contact-stage">Stage</label>
+      <select id="contact-stage" name="stage" class="v2-input" bind:value={values.stage}>
+        <option value="">Select stage</option>
+        {#each data.stages ?? [] as option}<option value={option.value}>{option.label}</option
+          >{/each}
+      </select>
+    </div>
+    <div class="v2-field">
+      <label for="contact-source">Source</label>
+      <select id="contact-source" name="source" class="v2-input" bind:value={values.source}>
+        <option value="">Select source</option>
+        {#each data.sources ?? [] as option}<option value={option.value}>{option.label}</option
+          >{/each}
+      </select>
+    </div>
+    <div class="v2-field">
+      <span class="tags-label">Tags</span><TagPicker
+        options={data.tagOptions ?? []}
+        original={data.form?.tags ?? []}
+        canCreate={data.canCreateTags}
+        bind:selected={selectedTags}
+        bind:creating={creatingTag}
+      />
+    </div>
+  </RecordSection>
+  <RecordSection title="Communication" collapsible={!editing}>
+    <LanguageSelect bind:value={values.language} />
     <div class="v2-field">
       <label for="contact-channel">Preferred Communication Channel</label>
       <select
@@ -305,17 +283,42 @@
           >{/each}
       </select>
     </div>
-  </div>
-  {#if !autoSave && !inline}
+  </RecordSection>
+  <RecordSection title="Address" collapsible={!editing}>
     <div class="v2-field">
-      <label for="contact-notes">Notes</label>
-      <textarea
-        id="contact-notes"
-        class="v2-input"
-        name="description"
-        rows="5"
-        bind:value={values.description}></textarea>
+      <label for="contact-country">Country</label>
+      <select id="contact-country" name="country" class="v2-input" bind:value={values.country}>
+        <option value="">Select country</option>
+        {#each data.countries ?? [] as option}<option value={option.value}>{option.label}</option
+          >{/each}
+      </select>
     </div>
+    {#each addressFields as field (field.key)}
+      <div class="v2-field">
+        <label for={'contact-' + field.key}>{field.label}</label>
+        <input
+          id={'contact-' + field.key}
+          class="v2-input"
+          name={field.key}
+          maxlength={field.max}
+          autocomplete={field.autocomplete}
+          bind:value={values[field.key]}
+        />
+      </div>
+    {/each}
+  </RecordSection>
+  {#if !autoSave && !inline}
+    <RecordSection title="Notes" collapsible={!editing}
+      ><div class="v2-field">
+        <label for="contact-notes">Notes</label>
+        <textarea
+          id="contact-notes"
+          class="v2-input"
+          name="description"
+          rows="5"
+          bind:value={values.description}></textarea>
+      </div></RecordSection
+    >
   {/if}
   {#if !editing && data.defaults?.account}
     <input type="hidden" name="account" value={data.defaults.account} />
@@ -345,29 +348,16 @@
     margin-bottom: 6px;
   }
 
-  :is(.auto-save, .inline-edit) .fields {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .save-status {
     min-height: 20px;
     font-size: 12px;
     color: var(--v2-slate);
   }
 
-  .fields {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0 18px;
-  }
   .actions {
     display: flex;
     gap: 10px;
     margin-top: 22px;
     padding-bottom: 40px;
-  }
-  @media (max-width: 720px) {
-    .fields {
-      grid-template-columns: 1fr;
-    }
   }
 </style>

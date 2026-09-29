@@ -2,53 +2,46 @@ from datetime import datetime, timezone
 
 import pytest
 
-from common.models import Activity
+from accounts.models import Account
 from contacts.models import Contact
+from common.pipeline_settings import rule_properties, validate_entry
+from rest_framework.exceptions import ValidationError
 
 pytestmark = pytest.mark.django_db
 
 
-def test_appointment_create_update_clear(admin_client):
-    response = admin_client.post(
-        "/api/contacts/",
-        {
-            "name": "Appointment test",
-            "phone": "3055550190",
-            "source": "META",
-            "stage": "LEAD",
-            "appointment_at": "2026-10-01T10:30:00-04:00",
-        },
-        format="json",
-    )
+@pytest.mark.parametrize('route,model,fields', [
+    ('contacts', Contact, {'first_name': 'Calendar contact'}),
+    ('accounts', Account, {'name': 'Calendar company'}),
+])
+@pytest.mark.parametrize('value', ['2026-10-02T15:00:00Z', None, '', 'not-a-date'])
+def test_appointment_cannot_be_set_or_cleared_in_record_api(admin_client, org_a, route, model, fields, value):
+    before = datetime(2026, 10, 1, 14, 30, tzinfo=timezone.utc)
+    record = model.objects.create(org=org_a, appointment_at=before, **fields)
+    for method in ('patch', 'put'):
+        response = getattr(admin_client, method)(f'/api/{route}/{record.pk}/',
+            {'name': 'Attempted edit', 'appointment_at': value}, format='json')
+        assert response.status_code == 400, response.data
+        assert 'Calendar' in str(response.data)
+        record.refresh_from_db()
+        assert record.appointment_at == before
+    response = admin_client.post(f'/api/{route}/', {'name': 'Attempted creation', 'appointment_at': value}, format='json')
+    assert response.status_code == 400, response.data
+    assert model.objects.count() == 1
+    response = admin_client.patch(f'/api/{route}/{record.pk}/', {'city': 'Miami'}, format='json')
     assert response.status_code == 200, response.data
-    contact = Contact.objects.get(first_name="Appointment test")
-    assert contact.appointment_at == datetime(2026, 10, 1, 14, 30, tzinfo=timezone.utc)
-    url = f"/api/contacts/{contact.pk}/"
-    assert admin_client.get(url).data["contact_obj"]["appointment_at"]
-    response = admin_client.patch(
-        url, {"appointment_at": "2026-10-02T15:00:00Z"}, format="json"
-    )
-    assert response.status_code == 200, response.data
-    history = Activity.objects.filter(entity_id=contact.pk, action="UPDATE").latest(
-        "created_at"
-    )
-    assert "appointment_at" in history.metadata["changes"]
-    assert history.user is not None
-    response = admin_client.patch(url, {"city": "Miami"}, format="json")
-    assert response.status_code == 200
-    contact.refresh_from_db()
-    assert contact.appointment_at == datetime(2026, 10, 2, 15, tzinfo=timezone.utc)
-    response = admin_client.patch(url, {"appointment_at": None}, format="json")
-    assert response.status_code == 200
-    contact.refresh_from_db()
-    assert contact.appointment_at is None
+    record.refresh_from_db()
+    assert record.appointment_at == before
 
 
-def test_invalid_appointment_does_not_save(admin_client, org_a):
-    contact = Contact.objects.create(first_name="Invalid date", org=org_a)
-    response = admin_client.patch(
-        f"/api/contacts/{contact.pk}/", {"appointment_at": "not-a-date"}, format="json"
-    )
-    assert response.status_code == 400
-    contact.refresh_from_db()
-    assert contact.appointment_at is None
+def test_appointment_stage_rule_uses_calendar_value_not_raw_payload(org_a):
+    org_a.pipeline_settings = {'Contact': [{'key': 'QUALIFIED', 'label': 'Qualified', 'order': 0,
+        'required_fields': ['appointment_at'], 'allowed_from': []}]}
+    record = Contact.objects.create(org=org_a, first_name='Stage test', stage='LEAD')
+    properties = rule_properties(org_a, 'Contact')
+    assert next(p for p in properties if p['key'] == 'appointment_at')['is_read_only']
+    with pytest.raises(ValidationError) as error:
+        validate_entry(org_a, 'Contact', record, {'stage': 'QUALIFIED'}, {'appointment_at': '2026-10-02T15:00:00Z'})
+    assert error.value.detail['stage_requirements']['fields'][0]['key'] == 'appointment_at'
+    record.appointment_at = datetime(2026, 10, 1, 14, 30, tzinfo=timezone.utc)
+    validate_entry(org_a, 'Contact', record, {'stage': 'QUALIFIED'})

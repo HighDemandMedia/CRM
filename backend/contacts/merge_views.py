@@ -21,7 +21,7 @@ from common.pipeline_settings import validate_entry, stages_for
 from contacts.models import Contact
 
 FIELDS = ['email', 'phone', 'language', 'source', 'stage',
-          'preferred_communication_channel', 'appointment_at', 'organization', 'title',
+          'preferred_communication_channel', 'organization', 'title',
           'department', 'linkedin_url', 'address_line', 'city', 'state', 'postcode', 'country', 'account']
 SALT = 'contacts.merge.v1'
 
@@ -190,6 +190,17 @@ class ContactMergeView(APIView):
         Contact.all_objects.filter(pk=secondary.pk).update(merged_into=primary, merged_at=timezone.now(),
                                                           merge_snapshot=originals, is_active=False)
         move_links(primary, secondary)
+        # Appointments follow their Calendar records, never a manually chosen date.
+        from common.models import SalesAppointment
+        events = SalesAppointment.objects.filter(
+            Q(contact=primary) | Q(contacts=primary),
+            org=primary.org, cancelled_at__isnull=True,
+        ).distinct()
+        if events.exists():
+            values['appointment_at'] = (
+                events.filter(starts_at__gte=timezone.now()).order_by('starts_at').values_list('starts_at', flat=True).first()
+                or events.order_by('-starts_at').values_list('starts_at', flat=True).first()
+            )
         previous_stage = primary.stage
         for key,value in values.items(): setattr(primary, key, value)
         primary.custom_fields = custom

@@ -339,6 +339,7 @@ class AccountCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
         return annual_revenue
 
     class Meta:
+        read_only_fields = ("appointment_at",)
         model = Account
         fields = (
             # Core Account Information

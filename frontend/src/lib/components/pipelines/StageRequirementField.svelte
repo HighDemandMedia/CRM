@@ -59,6 +59,10 @@
 </script>
 
 <div class="requirement-field">
+  {#if field.is_read_only === true || field.is_read_only === 'True'}
+    <strong>{field.label}</strong>
+    <p>Schedule the appointment in <a href="/calendar">Calendar</a>, then return to change the stage.</p>
+  {:else}
   <label for={`requirement-${field.key}`}>{field.label} {#if required}<span>*</span>{/if}</label>
   {#if field.relation && field.relation !== 'Tags'}<input
       class="v2-input"
@@ -149,6 +153,7 @@
     />{/if}
   {#if loading}<small>Loading options…</small>{:else if error}<small role="alert">{error}</small
     >{/if}
+  {/if}
 </div>
 
 <style>

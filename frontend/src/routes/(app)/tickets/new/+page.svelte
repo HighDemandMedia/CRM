@@ -1,4 +1,5 @@
 <script>
+  import { recordValidation } from '$lib/components/creation/validation.js';
   import { creationEnhance } from '$lib/components/creation/enhance.js';
   const enhance = creationEnhance();
   import { untrack } from 'svelte';
@@ -29,6 +30,7 @@
 <PageHeader title="New ticket" />
 <div class="v2-scroll v2-pad">
   <form
+    use:recordValidation={form?.fieldErrors}
     class="ticket-form"
     method="POST"
     action="?/create"

@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { createTask, getTaskFormOptions } from '$lib/server/v2/tasks.js';
-import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 import { listTickets } from '$lib/server/v2/tickets.js';
 import { listDeals } from '$lib/server/v2/deals.js';
 import { listLeads } from '$lib/server/v2/leads.js';
@@ -117,7 +117,7 @@ export const actions = {
     } catch (/** @type {any} */ err) {
       return fail(400, {
         values: { ...values, parent_kind: kind },
-        stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this task.')
+        fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this task.')
       });
     }
 

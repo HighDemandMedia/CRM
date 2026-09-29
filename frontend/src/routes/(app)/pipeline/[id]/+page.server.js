@@ -9,7 +9,7 @@ import {
   updateDeal,
   EDITABLE_FIELDS
 } from '$lib/server/v2/deals.js';
-import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 /** @type {import('./$types').PageServerLoad} */
 export async function load(event) {
   const [deal, editor] = await Promise.all([
@@ -80,7 +80,7 @@ export const actions = {
     } catch (/** @type {any} */ err) {
       // The API's field errors are the ones that count: this form's own
       // checks are a UX hint and the serializer is the rule.
-      return fail(400, { values, error: String(err?.message ?? 'Could not save the deal.') });
+      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save the deal.') });
     }
 
     return { saved: true };
@@ -114,13 +114,13 @@ export const actions = {
       const changes = JSON.parse(String(form.get('changes') ?? '{}'));
       if (!changes || Array.isArray(changes) || typeof changes !== 'object')
         return fail(400, { error: 'Invalid changes.' });
-      const allowed = new Set([...EDITABLE_FIELDS, 'assigned_to', 'contacts']);
+      const allowed = new Set([...EDITABLE_FIELDS, 'assigned_to', 'contacts', 'tags']);
       if (Object.keys(changes).some((key) => !allowed.has(key)))
         return fail(400, { error: 'Invalid property.' });
       if (Object.keys(changes).length) await updateDeal(event, event.params.id, changes);
       return { saved: true };
     } catch (/** @type {any} */ err) {
-      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save changes.') });
+      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save changes.') });
     }
   }
 };

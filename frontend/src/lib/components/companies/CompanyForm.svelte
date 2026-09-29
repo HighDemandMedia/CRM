@@ -1,18 +1,21 @@
 <script>
-  import StageRuleNotice from "$lib/components/pipelines/StageRuleNotice.svelte";
+  import { recordValidation } from '$lib/components/creation/validation.js';
+  import RecordSection from '$lib/components/creation/RecordSection.svelte';
+  import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
   import { configuredStages } from '$lib/v2/pipeline-config.js';
   import { page } from '$app/state';
 
   import { creationEnhance } from '$lib/components/creation/enhance.js';
   const enhance = creationEnhance();
   import TagPicker from '$lib/v2/components/TagPicker.svelte';
-  import AppointmentInput from '$lib/v2/components/AppointmentInput.svelte';
   import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
   import { companyStages as defaultCompanyStages } from '$lib/v2/company-stages.js';
   import { deserialize } from '$app/forms';
   import { resolve } from '$app/paths';
   import { untrack, onMount, onDestroy } from 'svelte';
-  let companyStages = $derived(configuredStages(page.data.pipelineConfig, 'Account', defaultCompanyStages));
+  let companyStages = $derived(
+    configuredStages(page.data.pipelineConfig, 'Account', defaultCompanyStages)
+  );
   /** @type {{data:any, result?:any, editing?:boolean, autoSave?:boolean, inline?:boolean, onCancel?:()=>void, onSaved?:()=>Promise<void>}} */
   let {
     data,
@@ -36,7 +39,6 @@
       annual_revenue: '',
       currency: data.org?.currency ?? 'USD',
       address_line: '',
-      appointment_at: '',
       language: '',
       city: '',
       state: '',
@@ -79,11 +81,13 @@
   const addresses = [
     ['address_line', 'Address'],
     ['city', 'City'],
-    ['state', 'State'],
-    ['postcode', 'Zip Code']
+    ['state', 'State / region'],
+    ['postcode', 'Postal code']
   ];
   let autoReady = $state(false);
   let autoStatus = $state('');
+  let autoFieldErrors = $state({});
+  let formElement;
   let autoError = $state('');
   let autoIssue = $state(null);
   let autoBusy = false;
@@ -104,6 +108,8 @@
       )
     );
     if (!Object.keys(changes).length) return;
+    if (formElement && !formElement.checkValidity()) return;
+    autoFieldErrors = {};
     autoBusy = true;
     autoStatus = 'Saving…';
     autoError = '';
@@ -119,6 +125,7 @@
       });
       const result = deserialize(await response.text());
       if (result.type !== 'success') {
+        autoFieldErrors = result.type === 'failure' ? (result.data?.fieldErrors ?? {}) : {};
         autoIssue = result.type === 'failure' ? result.data?.stageRequirements : null;
         autoError =
           result.type === 'failure'
@@ -156,6 +163,11 @@
     return JSON.parse(
       JSON.stringify({
         name: values.name,
+        email: values.email,
+        phone: values.phone,
+        assigned_to: values.assigned_to,
+        preferred_communication_channel: values.preferred_communication_channel,
+        tags: selectedTags,
         website: values.website,
         industry: values.industry,
         stage: values.stage,
@@ -164,7 +176,6 @@
         annual_revenue: values.annual_revenue ?? '',
         currency: values.currency,
         address_line: values.address_line,
-        appointment_at: values.appointment_at,
         language: values.language,
         city: values.city,
         state: values.state,
@@ -182,6 +193,8 @@
 </script>
 
 <form
+  bind:this={formElement}
+  use:recordValidation={result?.fieldErrors ?? autoFieldErrors}
   class="v2-form"
   class:auto-save={autoSave}
   class:inline-edit={inline}
@@ -208,8 +221,10 @@
     };
   }}
 >
-  <StageRuleNotice issue={autoIssue || result?.stageRequirements}/>
-  {#if result?.error && !result?.stageRequirements}<p class="v2-error" role="alert">{result.error}</p>{/if}
+  <StageRuleNotice issue={autoIssue || result?.stageRequirements} />
+  {#if result?.error && !result?.stageRequirements}<p class="v2-error" role="alert">
+      {result.error}
+    </p>{/if}
   {#if autoSave}<div role="status">{autoStatus}</div>
     {#if autoError && !autoIssue}<div class="v2-error" role="alert">
         {autoError}<button
@@ -221,10 +236,16 @@
           }}>Retry</button
         >
       </div>{/if}{/if}
-  <div class="fields">
-    <LanguageSelect bind:value={values.language} />
-    <AppointmentInput bind:value={values.appointment_at} />
-
+  <RecordSection title="Company details">
+    <label
+      >Name *<input
+        class="v2-input"
+        name="name"
+        required
+        maxlength="255"
+        bind:value={values.name}
+      /></label
+    >
     <label
       >Domain<input
         class="v2-input"
@@ -234,13 +255,57 @@
       /></label
     >
     <label
-      >Name *<input
+      >Email<input
         class="v2-input"
-        name="name" required
-        maxlength="255"
-        bind:value={values.name}
+        name="email"
+        maxlength="254"
+        type="email"
+        bind:value={values.email}
       /></label
     >
+    <label
+      >Phone<input
+        class="v2-input"
+        name="phone"
+        type="tel"
+        maxlength="25"
+        bind:value={values.phone}
+      /></label
+    >
+  </RecordSection>
+  <RecordSection title="Ownership & stage">
+    <label
+      >Owner<select class="v2-input" name="assigned_to" bind:value={values.assigned_to}
+        ><option value="">Select user</option>{#each data.owners ?? [] as owner}<option
+            value={owner.id}>{owner.name}</option
+          >{/each}</select
+      ></label
+    >
+    <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
+    <label
+      >Stage<select class="v2-input" name="stage" bind:value={values.stage}
+        >{#each companyStages as stage}<option value={stage.value}>{stage.label}</option
+          >{/each}</select
+      ></label
+    >
+    <label
+      >Source<select class="v2-input" name="source" bind:value={values.source}
+        ><option value="">Select source</option>{#each sources as [value, label]}<option {value}
+            >{label}</option
+          >{/each}</select
+      ></label
+    >
+    <div class="v2-field">
+      <span class="tags-label">Tags</span><TagPicker
+        options={data.tagOptions ?? []}
+        original={data.form?.tags ?? []}
+        canCreate={data.canCreateTags}
+        bind:selected={selectedTags}
+        bind:creating={creatingTag}
+      />
+    </div>
+  </RecordSection>
+  <RecordSection title="Associated contacts">
     <div class="contacts-field">
       <span id="company-contacts-label">Contacts</span>
       <details class="contacts-dropdown">
@@ -294,45 +359,8 @@
         </div>
       </details>
     </div>
-    <label
-      >Owner<select class="v2-input" name="assigned_to" bind:value={values.assigned_to}
-        ><option value="">Select user</option>{#each data.owners ?? [] as owner}<option
-            value={owner.id}>{owner.name}</option
-          >{/each}</select
-      ></label
-    >
-    <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
-    <label
-      >Phone<input
-        class="v2-input"
-        name="phone"
-        type="tel"
-        maxlength="25"
-        bind:value={values.phone}
-      /></label
-    >
-    <label
-      >Email<input class="v2-input" name="email" type="email" bind:value={values.email} /></label
-    >
-    <label
-      >Preferred Communication Channel<select
-        class="v2-input"
-        name="preferred_communication_channel"
-        bind:value={values.preferred_communication_channel}
-        ><option value="">Select channel</option><option value="SMS">SMS</option><option
-          value="CALL">Call</option
-        ><option value="EMAIL">Email</option></select
-      ></label
-    >
-    <div class="v2-field">
-      <span class="tags-label">Tags</span><TagPicker
-        options={data.tagOptions ?? []}
-        original={data.form?.tags ?? []}
-        canCreate={data.canCreateTags}
-        bind:selected={selectedTags}
-        bind:creating={creatingTag}
-      />
-    </div>
+  </RecordSection>
+  <RecordSection title="Business details" collapsible={!editing}>
     <label
       >Industry<select class="v2-input" name="industry" bind:value={values.industry}
         ><option value="">Select industry</option>{#each data.industries ?? [] as option}<option
@@ -368,22 +396,21 @@
         bind:value={values.currency}
       /></label
     >
+  </RecordSection>
+  <RecordSection title="Communication" collapsible={!editing}>
+    <LanguageSelect bind:value={values.language} />
     <label
-      >Stage<select class="v2-input" name="stage" bind:value={values.stage}
-        >{#each companyStages as stage}<option value={stage.value}>{stage.label}</option
-          >{/each}</select
+      >Preferred Communication Channel<select
+        class="v2-input"
+        name="preferred_communication_channel"
+        bind:value={values.preferred_communication_channel}
+        ><option value="">Select channel</option><option value="SMS">SMS</option><option
+          value="CALL">Call</option
+        ><option value="EMAIL">Email</option></select
       ></label
     >
-    <label
-      >Source<select class="v2-input" name="source" bind:value={values.source}
-        ><option value="">Select source</option>{#each sources as [value, label]}<option {value}
-            >{label}</option
-          >{/each}</select
-      ></label
-    >
-    {#each addresses as [key, label]}<label
-        >{label}<input class="v2-input" name={key} bind:value={values[key]} /></label
-      >{/each}
+  </RecordSection>
+  <RecordSection title="Address" collapsible={!editing}>
     <label
       >Country<select class="v2-input" name="country" bind:value={values.country}
         ><option value="">Select country</option>{#each data.countries ?? [] as option}<option
@@ -391,7 +418,15 @@
           >{/each}</select
       ></label
     >
-  </div>
+    {#each addresses as [key, label]}<label
+        >{label}<input
+          class="v2-input"
+          name={key}
+          maxlength={key === 'postcode' ? 64 : 255}
+          bind:value={values[key]}
+        /></label
+      >{/each}
+  </RecordSection>
   <fieldset>
     <legend>Pages</legend>
     {#each pages as page, index}<div class="page-row">
@@ -448,9 +483,6 @@
     margin-bottom: 6px;
   }
 
-  :is(.auto-save, .inline-edit) .fields {
-    grid-template-columns: minmax(0, 1fr);
-  }
   :is(.auto-save, .inline-edit) .page-row {
     flex-wrap: wrap;
   }
@@ -498,11 +530,6 @@
     box-shadow: 0 8px 24px #0002;
   }
 
-  .fields {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
   label {
     display: flex;
     flex-direction: column;
@@ -544,9 +571,6 @@
     padding-bottom: 24px;
   }
   @media (max-width: 700px) {
-    .fields {
-      grid-template-columns: 1fr;
-    }
     .page-row {
       flex-wrap: wrap;
     }

@@ -144,6 +144,8 @@ def test_calendar_files_invoice_and_portal_identity_are_preserved_safely(admin_c
     event.refresh_from_db(); invoice.refresh_from_db(); file.refresh_from_db(); token.refresh_from_db(); portal_note.refresh_from_db()
     assert event.contact_id == a.pk and list(event.contacts.values_list('pk',flat=True)) == [a.pk]
     assert event.starts_at == start and event.title == 'Meeting'
+    a.refresh_from_db()
+    assert a.appointment_at == start
     assert invoice.contact_id == a.pk and invoice.invoice_title == 'Existing invoice'
     assert file.object_id == a.pk and file.attachment.name == 'existing/agreement.pdf'
     assert portal_note.object_id == a.pk and portal_note.commented_by_contact_id == b.pk

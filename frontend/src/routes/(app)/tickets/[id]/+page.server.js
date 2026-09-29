@@ -17,7 +17,7 @@ import {
   setEntryBillable,
   deleteEntry
 } from '$lib/server/v2/timesheet.js';
-import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 import { openDescendants, subtreeTruncated, cascadedCount, closeResultMessage } from './close.js';
 
 /**
@@ -117,7 +117,7 @@ export const actions = {
       );
       if (Object.keys(changes).length) await updateTicket({ cookies }, params.id, changes);
     } catch (err) {
-      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save properties.') });
+      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save properties.') });
     }
     return { saved: true };
   },
@@ -127,7 +127,7 @@ export const actions = {
     try {
       await updateTicket({ cookies }, params.id, { status: 'Resolved', resolution_note });
     } catch (err) {
-      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not resolve ticket.') });
+      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not resolve ticket.') });
     }
     return { resolved: true };
   },
@@ -163,7 +163,7 @@ export const actions = {
     try {
       await replyToTicket({ cookies }, params.id, { body, internal, file });
     } catch (/** @type {any} */ err) {
-      return fail(400, { body, internal, stageRequirements: stageRequirements(err), error: readableError(err, 'Could not post this reply.') });
+      return fail(400, { body, internal, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not post this reply.') });
     }
 
     if (status) {
@@ -172,7 +172,7 @@ export const actions = {
       } catch (/** @type {any} */ err) {
         return fail(400, {
           sent: true,
-          stageRequirements: stageRequirements(err), error: readableError(err, `Reply posted, but the status stayed put.`)
+          fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, `Reply posted, but the status stayed put.`)
         });
       }
     }
@@ -200,7 +200,7 @@ export const actions = {
     try {
       await updateTicket({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not change the status.') });
+      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not change the status.') });
     }
 
     return { moved: status };
@@ -239,7 +239,7 @@ export const actions = {
         resolution_comment: comment
       });
     } catch (/** @type {any} */ err) {
-      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not close this ticket.') });
+      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not close this ticket.') });
     }
 
     return {

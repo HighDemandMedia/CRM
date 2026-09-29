@@ -96,8 +96,8 @@ def properties_for(org, target, definitions):
             "is_system": True, "is_active": True,
             "is_required": key in REQUIRED.get(target, set()) if target in REQUIRED else not field.blank and not field.null and field.editable,
             "usage_count": counts.get(key, 0),
-            "is_read_only": not field.editable,
-            "requirement_note": "Generated automatically" if key == "id" else "",
+            "is_read_only": not field.editable or key == "appointment_at",
+            "requirement_note": "Generated automatically" if key == "id" else "Managed in Calendar" if key == "appointment_at" else "",
         })
     if target in FIELDS:
         rows.append({

@@ -1,5 +1,7 @@
 <script>
-  import StageRuleNotice from "$lib/components/pipelines/StageRuleNotice.svelte";
+  import { recordValidation } from '$lib/components/creation/validation.js';
+  import RecordSection from '$lib/components/creation/RecordSection.svelte';
+  import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
   import { configuredStages } from '$lib/v2/pipeline-config.js';
   import { page } from '$app/state';
 
@@ -11,7 +13,13 @@
   import { resolve } from '$app/paths';
   import { untrack, onMount, onDestroy } from 'svelte';
   import { STAGES, STAGE_LABEL } from '$lib/v2/enums.js';
-  let stageOptions = $derived(configuredStages(page.data.pipelineConfig, 'Opportunity', STAGES.map(value => ({value,label:STAGE_LABEL[value]}))));
+  let stageOptions = $derived(
+    configuredStages(
+      page.data.pipelineConfig,
+      'Opportunity',
+      STAGES.map((value) => ({ value, label: STAGE_LABEL[value] }))
+    )
+  );
   /** @type {{data:any,result?:any,editing?:boolean, autoSave?:boolean, inline?:boolean, onCancel?:()=>void, showNotes?:boolean, onSaved?:()=>Promise<void>}} */
   let {
     data,
@@ -67,11 +75,13 @@
   const addressFields = [
     ['address_line', 'Address'],
     ['city', 'City'],
-    ['state', 'State'],
-    ['postcode', 'Zip Code']
+    ['state', 'State / region'],
+    ['postcode', 'Postal code']
   ];
   let autoReady = $state(false);
   let autoStatus = $state('');
+  let autoFieldErrors = $state({});
+  let formElement;
   let autoError = $state('');
   let autoIssue = $state(null);
   let autoBusy = false;
@@ -92,6 +102,8 @@
       )
     );
     if (!Object.keys(changes).length) return;
+    if (formElement && !formElement.checkValidity()) return;
+    autoFieldErrors = {};
     autoBusy = true;
     autoStatus = 'Saving…';
     autoError = '';
@@ -107,6 +119,7 @@
       });
       const result = deserialize(await response.text());
       if (result.type !== 'success') {
+        autoFieldErrors = result.type === 'failure' ? (result.data?.fieldErrors ?? {}) : {};
         autoIssue = result.type === 'failure' ? result.data?.stageRequirements : null;
         autoError =
           result.type === 'failure'
@@ -143,6 +156,9 @@
   function snapshotValues() {
     const snapshot = {
       name: values.name,
+      email: values.email,
+      phone: values.phone,
+      tags: selectedTags,
       stage: values.stage,
       closed_on: values.closed_on,
       assigned_to: values.assigned_to,
@@ -168,6 +184,8 @@
 </script>
 
 <form
+  bind:this={formElement}
+  use:recordValidation={result?.fieldErrors ?? autoFieldErrors}
   class="v2-form"
   class:auto-save={autoSave}
   class:inline-edit={inline}
@@ -194,8 +212,10 @@
     };
   }}
 >
-  <StageRuleNotice issue={autoIssue || result?.stageRequirements}/>
-  {#if result?.error && !result?.stageRequirements}<p class="v2-error" role="alert">{result.error}</p>{/if}
+  <StageRuleNotice issue={autoIssue || result?.stageRequirements} />
+  {#if result?.error && !result?.stageRequirements}<p class="v2-error" role="alert">
+      {result.error}
+    </p>{/if}
   {#if result?.saved}<p role="status">Saved</p>{/if}
   {#if autoSave}<div class="save-status" role="status">{autoStatus}</div>
     {#if autoError && !autoIssue}<div class="v2-error" role="alert">
@@ -208,37 +228,16 @@
           }}>Retry</button
         >
       </div>{/if}{/if}
-  <div class="fields">
-    <LanguageSelect bind:value={values.language} />
+  <RecordSection title="Deal details">
     <label
       >Name *<input
         class="v2-input"
-        name="name" required
+        name="name"
+        required
         maxlength="255"
         bind:value={values.name}
       /></label
     >
-    <label
-      >Phone<input
-        class="v2-input"
-        type="tel"
-        name="phone"
-        maxlength="25"
-        bind:value={values.phone}
-      /></label
-    >
-    <label
-      >Email<input class="v2-input" type="email" name="email" bind:value={values.email} /></label
-    >
-    <div class="v2-field">
-      <span class="tags-label">Tags</span><TagPicker
-        options={data.tagOptions ?? []}
-        original={data.form?.tags ?? []}
-        canCreate={data.canCreateTags}
-        bind:selected={selectedTags}
-        bind:creating={creatingTag}
-      />
-    </div>
     <label
       >Amount<input
         class="v2-input"
@@ -252,7 +251,8 @@
     >
     <label
       >Stage<select class="v2-input" name="stage" bind:value={values.stage}
-        >{#each stageOptions as stage}<option value={stage.value}>{stage.label}</option>{/each}</select
+        >{#each stageOptions as stage}<option value={stage.value}>{stage.label}</option
+          >{/each}</select
       ></label
     >
     <label
@@ -263,44 +263,8 @@
         bind:value={values.closed_on}
       /></label
     >
-    <label
-      >Deal Owner<select
-        class="v2-input"
-        name="assigned_to"
-        bind:value={values.assigned_to}
-        ><option value="">Select user</option>{#each data.owners as owner}<option value={owner.id}
-            >{owner.name}</option
-          >{/each}</select
-      ></label
-    >
-    <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
-    <label
-      >Priority<select class="v2-input" name="priority" bind:value={values.priority}
-        ><option value="">Select priority</option>{#each ['Low', 'Medium', 'High'] as label}<option
-            value={label.toUpperCase()}>{label}</option
-          >{/each}</select
-      ></label
-    >
-    <label
-      >Source<select class="v2-input" name="lead_source" bind:value={values.lead_source}
-        ><option value="">Select source</option>{#each sources as [value, label]}<option {value}
-            >{label}</option
-          >{/each}</select
-      ></label
-    >
-    {#each addressFields as [key, label]}<label
-        >{label}<input class="v2-input" name={key} bind:value={values[key]} /></label
-      >{/each}
-    <label
-      >Country<select class="v2-input" name="country" bind:value={values.country}
-        ><option value="">Select country</option>{#each data.countries as [value, label]}<option
-            {value}>{label}</option
-          >{/each}</select
-      ></label
-    >
-  </div>
-  <fieldset>
-    <legend>Associate</legend>
+  </RecordSection>
+  <RecordSection title="Associated records">
     <label
       >Company<select class="v2-input" name="account" bind:value={values.account}
         ><option value="">Select company</option>{#each data.accounts as company}<option
@@ -334,10 +298,84 @@
       value={JSON.stringify([...(data.form?.contacts ?? [])].sort())}
     />
     {#each contacts as id}<input type="hidden" name="contacts" value={id} />{/each}
-  </fieldset>
-  {#if showNotes}<label class="notes-field"
-      >Notes<textarea class="v2-input" name="description" rows="4" bind:value={values.description}
-      ></textarea></label
+  </RecordSection>
+  <RecordSection title="Ownership & classification">
+    <label
+      >Deal Owner<select class="v2-input" name="assigned_to" bind:value={values.assigned_to}
+        ><option value="">Select user</option>{#each data.owners as owner}<option value={owner.id}
+            >{owner.name}</option
+          >{/each}</select
+      ></label
+    >
+    <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
+    <label
+      >Priority<select class="v2-input" name="priority" bind:value={values.priority}
+        ><option value="">Select priority</option>{#each ['Low', 'Medium', 'High'] as label}<option
+            value={label.toUpperCase()}>{label}</option
+          >{/each}</select
+      ></label
+    >
+    <label
+      >Source<select class="v2-input" name="lead_source" bind:value={values.lead_source}
+        ><option value="">Select source</option>{#each sources as [value, label]}<option {value}
+            >{label}</option
+          >{/each}</select
+      ></label
+    >
+    <div class="v2-field">
+      <span class="tags-label">Tags</span><TagPicker
+        options={data.tagOptions ?? []}
+        original={data.form?.tags ?? []}
+        canCreate={data.canCreateTags}
+        bind:selected={selectedTags}
+        bind:creating={creatingTag}
+      />
+    </div>
+  </RecordSection>
+  <RecordSection title="Communication" collapsible={!editing}>
+    <label
+      >Email<input
+        class="v2-input"
+        type="email"
+        name="email"
+        maxlength="254"
+        bind:value={values.email}
+      /></label
+    >
+    <label
+      >Phone<input
+        class="v2-input"
+        type="tel"
+        name="phone"
+        maxlength="25"
+        bind:value={values.phone}
+      /></label
+    >
+    <LanguageSelect bind:value={values.language} />
+  </RecordSection>
+  <RecordSection title="Address" collapsible={!editing}>
+    <label
+      >Country<select class="v2-input" name="country" bind:value={values.country}
+        ><option value="">Select country</option>{#each data.countries as [value, label]}<option
+            {value}>{label}</option
+          >{/each}</select
+      ></label
+    >
+    {#each addressFields as [key, label]}<label
+        >{label}<input
+          class="v2-input"
+          name={key}
+          maxlength={key === 'postcode' ? 64 : 255}
+          bind:value={values[key]}
+        /></label
+      >{/each}
+  </RecordSection>
+
+  {#if showNotes}<RecordSection title="Notes" collapsible={!editing}
+      ><label class="notes-field"
+        >Notes<textarea class="v2-input" name="description" rows="4" bind:value={values.description}
+        ></textarea></label
+      ></RecordSection
     >
   {/if}
   {#if !autoSave}<div class="actions">
@@ -363,12 +401,6 @@
     margin-bottom: 6px;
   }
 
-  :is(.auto-save, .inline-edit) .fields {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  :is(.auto-save, .inline-edit) fieldset {
-    min-width: 0;
-  }
   .save-status {
     font-size: 12px;
     min-height: 18px;
@@ -382,11 +414,6 @@
     resize: vertical;
     min-height: 100px;
   }
-  .fields {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
   label,
   .contacts {
     display: flex;
@@ -394,17 +421,6 @@
     gap: 6px;
     font-size: 13px;
     min-width: 0;
-  }
-  fieldset {
-    margin: 20px 0;
-    border: 1px solid var(--v2-line);
-    border-radius: 8px;
-    padding: 16px;
-    display: grid;
-    gap: 14px;
-  }
-  legend {
-    font-size: 14px;
   }
   .options {
     max-height: 200px;
@@ -424,10 +440,5 @@
   }
   summary {
     cursor: pointer;
-  }
-  @media (max-width: 700px) {
-    .fields {
-      grid-template-columns: 1fr;
-    }
   }
 </style>

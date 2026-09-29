@@ -2,7 +2,7 @@ import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 import { apiRequest } from '$lib/api-helpers.js';
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail } from '@sveltejs/kit';
-import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 import {
   getAccount,
   getAccountForEdit,
@@ -87,7 +87,7 @@ export const actions = {
     try {
       await updateAccount({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this company.') });
+      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this company.') });
     }
 
     return { saved: true };
@@ -98,13 +98,13 @@ export const actions = {
       const changes = JSON.parse(String(form.get('changes') ?? '{}'));
       if (!changes || Array.isArray(changes) || typeof changes !== 'object')
         return fail(400, { error: 'Invalid changes.' });
-      const allowed = new Set([...EDITABLE_FIELDS, 'contacts']);
+      const allowed = new Set([...EDITABLE_FIELDS, 'contacts', 'assigned_to', 'tags']);
       if (Object.keys(changes).some((key) => !allowed.has(key)))
         return fail(400, { error: 'Invalid property.' });
       if (Object.keys(changes).length) await updateAccount({ cookies }, params.id, changes);
       return { saved: true };
     } catch (/** @type {any} */ err) {
-      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save changes.') });
+      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save changes.') });
     }
   },
   attach: async ({ cookies, params, request }) => {

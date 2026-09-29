@@ -1,7 +1,15 @@
 <script>
-  import { page } from "$app/state";
-  import { configuredStages } from "$lib/v2/pipeline-config.js";
-  const statusOptions = $derived(configuredStages(page.data.pipelineConfig, "Task", ["New", "In Progress", "Completed"].map(value => ({value,label:value}))));
+  import RecordSection from '$lib/components/creation/RecordSection.svelte';
+  import { recordValidation } from '$lib/components/creation/validation.js';
+  import { page } from '$app/state';
+  import { configuredStages } from '$lib/v2/pipeline-config.js';
+  const statusOptions = $derived(
+    configuredStages(
+      page.data.pipelineConfig,
+      'Task',
+      ['New', 'In Progress', 'Completed'].map((value) => ({ value, label: value }))
+    )
+  );
   import TaskReminder from '$lib/components/tasks/TaskReminder.svelte';
   import { creationEnhance } from '$lib/components/creation/enhance.js';
   const enhance = creationEnhance();
@@ -40,6 +48,7 @@
 
 <div class="v2-scroll">
   <form
+    use:recordValidation={form?.fieldErrors}
     method="POST"
     action="?/create"
     use:enhance
@@ -50,50 +59,54 @@
       <p style="color:var(--v2-rust);font-size:12.5px;margin:0 0 14px" role="alert">{form.error}</p>
     {/if}
 
-    <label class="v2-field">
-      <span class="v2-label">Task</span>
-      <input
-        class="v2-input"
-        name="title" required
-        maxlength="200"
-        value={values.title ?? ''}
-        placeholder="Task title"
-      />
-    </label>
-
-    <div style="display:flex;gap:12px;flex-wrap:wrap">
-      <label class="v2-field" style="flex:1;min-width:150px">
-        <span class="v2-label">Priority</span>
-        <select class="v2-input" name="priority" value={values.priority ?? 'Medium'}><option value="">None</option>
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
-        </select>
+    <RecordSection title="Task details">
+      <label class="v2-field">
+        <span class="v2-label">Title *</span>
+        <input
+          class="v2-input"
+          name="title"
+          required
+          maxlength="200"
+          value={values.title ?? ''}
+          placeholder="Task title"
+        />
       </label>
-      <label class="v2-field" style="flex:1;min-width:150px">
-        <span class="v2-label">Status</span>
-        <select class="v2-input" name="status" value={values.status ?? 'New'}>
-          {#each statusOptions as option}<option value={option.value}>{option.label}</option>{/each}
-        </select>
+      <TaskParent parents={data.parents} bind:kind bind:selected />
+    </RecordSection>
+    <RecordSection title="Assignment & schedule">
+      <TaskAssignees people={data.owners} bind:selected={assignees} />
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <label class="v2-field" style="flex:1;min-width:150px">
+          <span class="v2-label">Priority</span>
+          <select class="v2-input" name="priority" value={values.priority ?? 'Medium'}
+            ><option value="">None</option>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+          </select>
+        </label>
+        <label class="v2-field" style="flex:1;min-width:150px">
+          <span class="v2-label">Status</span>
+          <select class="v2-input" name="status" value={values.status ?? 'New'}>
+            {#each statusOptions as option}<option value={option.value}>{option.label}</option
+              >{/each}
+          </select>
+        </label>
+        <label class="v2-field" style="flex:1;min-width:150px">
+          <span class="v2-label">Due</span>
+          <input class="v2-input" type="date" name="due_date" value={values.due_date ?? ''} />
+        </label>
+      </div>
+      <TaskReminder bind:value={reminder} />
+    </RecordSection>
+    <RecordSection title="Additional details" collapsible>
+      <label class="v2-field">
+        <span class="v2-label">Description</span>
+        <textarea class="v2-input" name="description" rows="4" placeholder="Add details…"
+          >{values.description ?? ''}</textarea
+        >
       </label>
-      <label class="v2-field" style="flex:1;min-width:150px">
-        <span class="v2-label">Due</span>
-        <input class="v2-input" type="date" name="due_date" value={values.due_date ?? ''} />
-      </label>
-    </div>
-
-    <TaskReminder bind:value={reminder} />
-
-    <TaskParent parents={data.parents} bind:kind bind:selected />
-
-    <TaskAssignees people={data.owners} bind:selected={assignees} />
-
-    <label class="v2-field">
-      <span class="v2-label">Description</span>
-      <textarea class="v2-input" name="description" rows="4" placeholder="Add details…"
-        >{values.description ?? ''}</textarea
-      >
-    </label>
+    </RecordSection>
 
     <div style="display:flex;gap:9px;margin-top:6px">
       <button class="v2-btn v2-btn-primary" type="submit">Create task</button>

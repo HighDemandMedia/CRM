@@ -1,7 +1,7 @@
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { EDITABLE_FIELDS, getContactForEdit, updateContact } from '$lib/server/v2/contacts.js';
-import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
+import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 
 /** Fields the form submits as checkboxes: absent means false, not "unchanged". */
 const FLAGS = ['is_active'];
@@ -53,7 +53,7 @@ export const actions = {
     try {
       await updateContact({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this contact.') });
+      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this contact.') });
     }
 
     redirect(303, `/contacts/${params.id}`);

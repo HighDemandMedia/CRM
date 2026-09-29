@@ -33,6 +33,7 @@
     try {
       const changes = { ...pending.values };
       for (const f of pending.issue.fields) {
+        if (f.is_read_only === true || f.is_read_only === 'True') continue;
         let v = values[f.key];
         if (f.field_type === 'checkbox') v = v === 'true';
         if (f.field_type === 'list' && typeof v === 'string') v = JSON.parse(v);
@@ -97,7 +98,7 @@
           >Cancel</button
         >{#if pending.issue.code === 'missing_properties'}<button
             class="v2-btn v2-btn-primary"
-            disabled={busy}>{busy ? 'Saving…' : 'Save and move'}</button
+            disabled={busy || pending.issue.fields.some(f => f.is_read_only === true || f.is_read_only === 'True')}>{busy ? 'Saving…' : 'Save and move'}</button
           >{/if}
       </div>
     </form></TeamPanel

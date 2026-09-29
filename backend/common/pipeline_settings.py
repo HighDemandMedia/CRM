@@ -42,7 +42,7 @@ def rule_properties(org, target):
         f = model._meta.get_field(name)
         if not f.editable or name in ('created_at', 'created_by', stage_field(target)):
             continue
-        rows.append({'key': name, 'label': LABELS.get(name, str(f.verbose_name).replace('_', ' ').capitalize()), 'field_type': field_type(f), 'multiple': bool(f.many_to_many), 'relation': f.related_model.__name__ if f.is_relation else '', 'options': [{'value': key, 'label': label} for key, label in (f.choices or [])]})
+        rows.append({'key': name, 'label': LABELS.get(name, str(f.verbose_name).replace('_', ' ').capitalize()), 'field_type': field_type(f), 'multiple': bool(f.many_to_many), 'relation': f.related_model.__name__ if f.is_relation else '', 'options': [{'value': key, 'label': label} for key, label in (f.choices or [])], 'is_read_only': name == 'appointment_at' and target in ('Contact', 'Account')})
     for f in CustomFieldDefinition.objects.filter(org=org, target_model=target, is_active=True):
         rows.append({'key': 'custom_fields.' + f.key, 'label': f.label, 'field_type': f.field_type, 'options': f.options or []})
     return rows
@@ -100,6 +100,8 @@ def validate_entry(org, target, instance, data, raw=None):
     raw = raw or data
     aliases = {'tags': 'tag_ids', 'first_name': 'name'}
     def value_of(key):
+        if key == 'appointment_at' and target in ('Contact', 'Account'):
+            return getattr(instance, key, None)
         if key.startswith('custom_fields.'):
             import json
             values = raw.get('custom_fields', {})
@@ -128,7 +130,9 @@ def validate_entry(org, target, instance, data, raw=None):
 class PipelineRulesMixin:
     def run_validation(self, data=empty):
         from rest_framework import serializers
+        from common.record_validation import clean_record_values
         target = self.Meta.model.__name__
+        data = clean_record_values(data, target)
         if hasattr(data, 'get'):
             data = data.copy()
         for key in FIELDS.get(target, []):

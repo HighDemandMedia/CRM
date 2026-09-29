@@ -22,6 +22,7 @@
             nodes.push(...group.querySelectorAll('input:not([type=hidden]),select,textarea'));
         }
         for (const node of new Set(nodes)) {
+          for (let details = node.closest('details'); details; details = details.parentElement?.closest('details')) details.open = true;
           const previous = node.getAttribute('aria-invalid');
           node.classList.add('stage-missing');
           node.setAttribute('aria-invalid', 'true');
@@ -62,7 +63,7 @@
             : 'The stage has not changed. Complete the highlighted fields, then save again.'}
       </p>
       {#if issue.fields?.length}<ul>
-          {#each issue.fields as field}<li>{field.label}</li>{/each}
+          {#each issue.fields as field}<li>{field.label}{#if field.is_read_only === true || field.is_read_only === 'True'} — managed in Calendar. Schedule the appointment there before entering this stage.{/if}</li>{/each}
         </ul>{/if}
     </div>
   </div>{/if}
