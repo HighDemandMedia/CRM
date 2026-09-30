@@ -2,16 +2,24 @@
 
 Cada organización configura sus formularios en **Settings → Channels & integrations → Web forms**. Un envío válido crea un **Contact** en esa organización y avisa al responsable y a los usuarios elegidos. Los clientes pueden usar este módulo; no requiere acceso a funciones en preview.
 
+## Partes de la pantalla
+
+- **Configure:** nombre interno, sitios conectados, campos que se guardarán, confirmación al visitante, responsable y avisos. Las etiquetas y la protección adicional contra spam son opcionales.
+- **Connect to website:** elige entre conectar tu formulario actual o insertar uno construido por el CRM. Copia solo el código de la opción elegida.
+- **Submissions:** revisa los envíos recibidos, si crearon un contacto o se asociaron a uno existente, y abre el contacto para darle seguimiento.
+- **Save configuration:** guarda tus cambios. Cambiar de pestaña conserva lo escrito, pero no lo guarda.
+- **Publish / Unpublish:** activa o detiene la recepción de nuevos envíos. Guarda antes de publicar; los contactos existentes se conservan al detenerla.
+
 ## Configuración
 
 1. Un administrador crea un formulario y le pone un nombre reconocible, por ejemplo “Consulta de la página de servicios”.
 2. Selecciona las propiedades que desea recibir. **Name** y **Email** son obligatorias. El ID, la organización y la etapa inicial los asigna el CRM.
-3. En **Website input name**, escribe el atributo `name` del campo de la web: si el HTML dice `<input name="your-email">`, escribe `your-email` junto a Email. Se pueden conectar propiedades personalizadas activas de Contact.
+3. En **Matching field on your website**, escribe el atributo `name` del campo de la web: si el HTML dice `<input name="your-email">`, escribe `your-email` junto a Email. Se pueden conectar propiedades personalizadas activas de Contact.
 4. Elige el responsable, el origen y las etiquetas para los contactos nuevos. Activa los avisos en el CRM y por correo, y selecciona los destinatarios adicionales.
-5. En **Allowed origins**, añade el origen exacto del sitio, por ejemplo `https://example.com`. Añade también `https://www.example.com` si utilizas ambas versiones. No incluyas rutas. La lista autoriza al navegador; no sustituye las medidas antispam.
+5. En **Website addresses**, añade el origen exacto del sitio, por ejemplo `https://example.com`. Añade también `https://www.example.com` si utilizas ambas versiones. No incluyas rutas. La lista autoriza al navegador; no sustituye las medidas antispam.
 6. Guarda y publica. Los borradores no reciben envíos.
-7. Copia **Connect an existing HTML form** en la página. Pon `id="contact-form"` en el formulario, o cambia `data-form="#contact-form"` al selector que identifique exactamente ese formulario.
-8. Envía una consulta de prueba y revisa **Activity**, el contacto, la campana de notificaciones y el correo de los destinatarios.
+7. Copia **Connect to website → I already have a form** en la página. Pon `id="contact-form"` en el formulario, o cambia `data-form="#contact-form"` al selector que identifique exactamente ese formulario.
+8. Envía una consulta de prueba y revisa **Submissions**, el contacto, la campana de notificaciones y el correo de los destinatarios.
 
 El código mantiene el diseño del formulario, pero **se encarga de su envío**. Debes sustituir cualquier manejador de envío anterior. Si un formulario de una plataforma ya tiene procesamiento propio, integra el endpoint desde ese procesamiento; no añadas dos manejadores que compitan. El código se instala una sola vez por formulario.
 

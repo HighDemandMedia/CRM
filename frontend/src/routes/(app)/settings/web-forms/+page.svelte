@@ -38,7 +38,7 @@
   import ConfirmAction from '$lib/v2/components/ConfirmAction.svelte';
   import { count, shortDate } from '$lib/v2/format.js';
   import { enhance } from '$app/forms';
-  import { Plus, ShieldAlert } from '@lucide/svelte';
+  import { Plus, ArrowRight } from '@lucide/svelte';
 
   /** @type {{ data: any, form: any }} */
   let { data, form } = $props();
@@ -75,8 +75,7 @@
 <PageHeader title="Web forms">
   {#snippet crumb()}<SettingsCrumb />{/snippet}
   {#snippet sub()}
-    <span class="v2-num">{count(totals.published)}</span> published of
-    <span class="v2-num">{count(totals.count)}</span>
+    Turn website enquiries into contacts and notify your team.
   {/snippet}
   {#snippet actions()}
     {#if data.canManage}
@@ -94,7 +93,7 @@
       label="Drafts"
       value={count(drafts)}
       tone="slate"
-      detail={drafts ? 'Collecting nothing yet' : 'None'}
+      detail={drafts ? 'Not receiving submissions' : 'None'}
     />
     <StatCard label="Submissions, 30 days" value={count(totals.submissions_30d)} tone="ink" />
     <StatCard
@@ -196,7 +195,7 @@
                       {f.field_count === 1 ? 'field' : 'fields'}
                       {#if quiet}
                         <span style="color:var(--v2-clay);font-weight:600">
-                          · live but silent
+                          · No submissions yet
                         </span>
                       {/if}
                     </div>
@@ -222,7 +221,7 @@
                           action="?/unpublish"
                           label="Unpublish"
                           confirmLabel="Unpublish it"
-                          explain="Stops accepting submissions. The embed stays on the site and starts refusing people."
+                          explain="Stops receiving new submissions from your website. Existing contacts are kept."
                           hidden={{ id: f.id }}
                         />
                       {:else}
@@ -235,7 +234,7 @@
                         action="?/delete"
                         label="Delete"
                         confirmLabel="Delete permanently"
-                        explain="Removes the form and its submission history. Leads already created stay."
+                        explain="Removes the form and its submission history. Existing contacts and leads are kept."
                         hidden={{ id: f.id }}
                       />
                     </span>
@@ -255,20 +254,19 @@
       {/if}
     {/if}
 
-    <div
-      style="display:flex;gap:10px;align-items:flex-start;margin-top:20px;padding:14px 16px;border:1px solid var(--v2-line);border-radius:var(--v2-radius)"
-    >
-      <ShieldAlert size={16} style="color:var(--v2-clay);flex:none;margin-top:1px" />
-      <div>
-        <div style="font-weight:600;font-size:13px">A published form accepts posts from anyone</div>
-        <p class="v2-sub" style="font-size:12px;margin:4px 0 0">
-          It has to: the whole point is that a stranger can fill it in without an account. A
-          honeypot field, per-form and per-address rate limits, and disposable-address rejection are
-          always on, and each form can add a Cloudflare Turnstile challenge of its own. Publish only
-          the forms you are embedding, and unpublish one the moment you take its snippet off your
-          site.
-        </p>
-      </div>
+    <div class="v2-card" style="margin-top:20px;padding:18px">
+      <b style="font-size:14px">How it works</b>
+      <p class="v2-sub" style="font-size:13px;margin:8px 0;line-height:1.7">
+        Choose your fields and who to notify → Connect the form to your website → Receive contacts
+        and follow up.
+      </p>
+      <p class="v2-hint">
+        Each form belongs to this organization. If a visitor’s email already exists here, their
+        enquiry is added to that contact.
+      </p>
+      <a class="v2-btn v2-btn-sm" href={resolve('/help/knowledge/website-forms')}
+        >Read the setup guide <ArrowRight size={14} /></a
+      >
     </div>
   </div>
 </div>

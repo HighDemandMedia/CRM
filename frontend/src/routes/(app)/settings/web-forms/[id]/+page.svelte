@@ -94,9 +94,33 @@
     }));
   }
 
+  /** Keep editable settings in state when switching sections or saving. */
+  /** @param {any} row */
+  function seedSettings(row) {
+    return {
+      name: row.name ?? '',
+      origins: (row.allowed_origins ?? []).join('\n'),
+      button: row.submit_button_label ?? '',
+      message: row.success_message ?? '',
+      redirect: row.redirect_url ?? '',
+      owner: row.assign_to ?? '',
+      source: row.target_model === 'Contact' ? row.contact_source : row.lead_source,
+      inApp: Boolean(row.notify_in_app),
+      email: Boolean(row.notify_email),
+      recipients: [...(row.notify_profiles ?? [])],
+      tags: [...(row.tags ?? [])],
+      disposable: Boolean(row.reject_disposable_email),
+      siteKey: row.captcha_site_key ?? ''
+    };
+  }
+  let settings = $state(untrack(() => seedSettings(data.form)));
   let successMode = $state(untrack(() => data.form.success_mode));
   let captchaProvider = $state(untrack(() => data.form.captcha_provider ?? ''));
   let busy = $state(false);
+  let activeTab = $state('configure');
+  let connectionMode = $state('existing');
+  let dirty = $state(false);
+  let copyError = $state('');
   let copied = $state('');
 
   /**
@@ -112,6 +136,9 @@
   $effect(() => {
     if (data.form.id === loadedId) return;
     loadedId = data.form.id;
+    activeTab = 'configure';
+    dirty = false;
+    settings = seedSettings(data.form);
     fields = seed(data.form.fields ?? []);
     successMode = data.form.success_mode;
     captchaProvider = data.form.captcha_provider ?? '';
@@ -159,11 +186,16 @@
     return async (/** @type {any} */ { update, result }) => {
       await update({ reset: false });
       busy = false;
-      if (result?.type === 'success') fields = seed(data.form.fields ?? []);
+      if (result?.type === 'success') {
+        fields = seed(data.form.fields ?? []);
+        settings = seedSettings(data.form);
+        dirty = false;
+      }
     };
   };
 
   function addField() {
+    dirty = true;
     fields = [
       ...fields,
       {
@@ -181,6 +213,7 @@
 
   /** @param {number} index */
   function removeField(index) {
+    dirty = true;
     fields = fields.filter((_, i) => i !== index);
   }
 
@@ -226,20 +259,20 @@
   /** @param {number} index */
   function onDrop(index) {
     if (dragging === null || dragging === index) return;
+    dirty = true;
     fields = moveField(fields, dragging, index - dragging);
     dragging = null;
   }
 
   /** @param {string} text @param {string} which */
   async function copy(text, which) {
+    copyError = '';
     try {
       await navigator.clipboard.writeText(text);
       copied = which;
       setTimeout(() => (copied = ''), 1600);
     } catch {
-      // Clipboard blocked (no https, or no permission). The snippet is on
-      // screen to select by hand; nothing else to do and nothing worth an
-      // alarm.
+      copyError = 'Could not copy automatically. Select the code below and copy it.';
     }
   }
 
@@ -279,8 +312,8 @@
     </Pill>
     <span style="margin-left:8px">
       {wf.is_published
-        ? 'Accepting submissions from anyone with the embed.'
-        : 'Collecting nothing until it is published.'}
+        ? 'Enabled. Your connected website can send submissions.'
+        : 'Not receiving submissions yet. Configure, save and publish to begin.'}
     </span>
   {/snippet}
   {#snippet actions()}
@@ -290,11 +323,15 @@
           action="?/unpublish"
           label="Unpublish"
           confirmLabel="Unpublish it"
-          explain="The embed stays on the site and starts refusing people."
+          explain="Your website will stop sending new submissions to the CRM. Existing contacts are kept."
         />
       {:else}
         <form method="POST" action="?/publish" use:enhance={working}>
-          <button class="v2-btn v2-btn-primary" disabled={busy || Boolean(publishBlocker)}>
+          <button
+            class="v2-btn v2-btn-primary"
+            disabled={busy || dirty || Boolean(publishBlocker)}
+            title={dirty ? 'Save your changes before publishing' : undefined}
+          >
             Publish
           </button>
         </form>
@@ -319,7 +356,68 @@
       </div>
     {/if}
 
-    <form method="POST" action="?/save" use:enhance={saveSubmit}>
+    <nav class="wf-tabs" aria-label="Web form sections">
+      {#each [{ id: 'configure', label: '1. Configure' }, { id: 'connect', label: '2. Connect to website' }, { id: 'submissions', label: '3. Submissions' }] as tab}
+        <button
+          type="button"
+          class:active={activeTab === tab.id}
+          aria-pressed={activeTab === tab.id}
+          onclick={() => (activeTab = tab.id)}>{tab.label}</button
+        >
+      {/each}
+    </nav>
+    {#if dirty}
+      <p class="wf-notice" role="status">
+        You have unsaved changes. <button type="button" onclick={() => (activeTab = 'configure')}
+          >Return to configuration to save</button
+        >.
+      </p>
+    {/if}
+
+    <form
+      hidden={activeTab !== 'configure'}
+      method="POST"
+      action="?/save"
+      use:enhance={saveSubmit}
+      oninput={() => (dirty = true)}
+      onchange={() => (dirty = true)}
+    >
+      <section class="wf-section wf-intro">
+        <h2>Set up your website form</h2>
+        <p class="v2-sub">
+          Website submission → {isContact ? 'Contact' : 'Lead'} in your organization → Team notification.
+        </p>
+        <div class="wf-grid">
+          <div class="v2-field">
+            <label for="name">Form name</label>
+            <input
+              id="name"
+              name="name"
+              class="v2-input"
+              required
+              maxlength="255"
+              disabled={!canManage}
+              bind:value={settings.name}
+            />
+            <p class="v2-hint">For your team, for example “Contact us — main website”.</p>
+          </div>
+          <div class="v2-field">
+            <label for="allowed_origins">Website addresses</label>
+            <textarea
+              id="allowed_origins"
+              name="allowed_origins"
+              class="v2-input"
+              rows="2"
+              disabled={!canManage}
+              placeholder="https://example.com"
+              bind:value={settings.origins}></textarea>
+            <p class="v2-hint">
+              One address per line, including https://. Use the website address without a page path.
+              Add the www version too if your site uses it.
+            </p>
+          </div>
+        </div>
+      </section>
       <!-- The whole ordered list, in one value. `withOrder` stamps `order`
            from list position; the server does the same from the array's own
            order, so this is a convenience and not the authority. -->
@@ -328,14 +426,19 @@
       <!-- ============ Fields ============ -->
       <section class="wf-section">
         <div class="wf-section-head">
-          <h2 class="v2-section">Fields</h2>
+          <h2 class="v2-section">Information to collect</h2>
           <p class="v2-sub wf-section-sub">
-            Choose the {isContact ? 'contact' : 'lead'} properties to collect. For an existing website
-            form, enter each input’s HTML name below. {isContact
+            Choose where each website field will be saved in the CRM. {isContact
               ? 'Name and email are required.'
               : 'Email is required before publishing.'}
           </p>
         </div>
+
+        <p class="v2-hint">
+          Connecting an existing form? Use each website input’s name (for example “your-email”).
+          Your website editor or developer can find it. Leave these names blank for a CRM-built
+          form.
+        </p>
 
         {#if !fields.length}
           <p class="v2-sub wf-empty">No fields yet. A form with no fields collects nothing.</p>
@@ -360,58 +463,44 @@
               <span class="wf-drag" aria-hidden="true"><GripVertical size={15} /></span>
 
               <div class="wf-row-body">
-                <div class="wf-row-line">
-                  <label class="wf-sr" for="src-{field.key}">Field type</label>
+                <div class="v2-field">
+                  <label for="tgt-{field.key}">Save in CRM property</label>
                   <select
-                    id="src-{field.key}"
-                    class="v2-input wf-narrow"
+                    id="tgt-{field.key}"
+                    class="v2-input"
                     disabled={!canManage}
-                    value={field.source}
+                    value={field.source === 'custom'
+                      ? `custom:${field.custom_field}`
+                      : `lead:${field.lead_field}`}
                     onchange={(e) => {
-                      field.source = e.currentTarget.value;
-                      field.lead_field = '';
-                      field.custom_field = null;
+                      const value = e.currentTarget.value;
+                      if (value.startsWith('custom:')) {
+                        field.source = 'custom';
+                        pickCustomField(i, value.slice(7));
+                      } else {
+                        field.source = 'lead';
+                        pickLeadField(i, value.slice(5));
+                      }
                     }}
                   >
-                    <option value="lead">{isContact ? 'Contact property' : 'Lead property'}</option>
-                    <option value="custom" disabled={!data.customFields.length}>
-                      Custom field{data.customFields.length ? '' : ' (none defined)'}
-                    </option>
+                    <option value="lead:">Choose a property…</option>
+                    <optgroup label={isContact ? 'Contact properties' : 'Lead properties'}>
+                      {#each fieldOptions as f (f.value)}<option value={`lead:${f.value}`}
+                          >{f.label}</option
+                        >{/each}
+                    </optgroup>
+                    {#if data.customFields.length}
+                      <optgroup label="Custom properties">
+                        {#each data.customFields as c (c.id)}<option value={`custom:${c.id}`}
+                            >{c.label}</option
+                          >{/each}
+                      </optgroup>
+                    {/if}
                   </select>
-
-                  {#if field.source === 'custom'}
-                    <label class="wf-sr" for="tgt-{field.key}">Custom field</label>
-                    <select
-                      id="tgt-{field.key}"
-                      class="v2-input wf-narrow"
-                      disabled={!canManage}
-                      value={field.custom_field ?? ''}
-                      onchange={(e) => pickCustomField(i, e.currentTarget.value)}
-                    >
-                      <option value="">Choose one…</option>
-                      {#each data.customFields as c (c.id)}
-                        <option value={c.id}>{c.label}</option>
-                      {/each}
-                    </select>
-                  {:else}
-                    <label class="wf-sr" for="tgt-{field.key}">CRM property</label>
-                    <select
-                      id="tgt-{field.key}"
-                      class="v2-input wf-narrow"
-                      disabled={!canManage}
-                      value={field.lead_field}
-                      onchange={(e) => pickLeadField(i, e.currentTarget.value)}
-                    >
-                      <option value="">Choose one…</option>
-                      {#each fieldOptions as f (f.value)}
-                        <option value={f.value}>{f.label}</option>
-                      {/each}
-                    </select>
-                  {/if}
                 </div>
 
                 <div class="v2-field">
-                  <label for="external-{field.key}">Website input name</label>
+                  <label for="external-{field.key}">Matching field on your website</label>
                   <input
                     id="external-{field.key}"
                     class="v2-input"
@@ -420,31 +509,37 @@
                     placeholder={field.lead_field || 'e.g. your-email'}
                     bind:value={field.external_name}
                   />
+                </div>
+                <details class="wf-details">
+                  <summary>Field label and hint</summary>
+                  <div class="wf-grid">
+                    <div class="v2-field">
+                      <label for="lbl-{field.key}">Label</label>
+                      <input
+                        id="lbl-{field.key}"
+                        class="v2-input"
+                        disabled={!canManage}
+                        maxlength="255"
+                        bind:value={field.label}
+                      />
+                    </div>
+                    <div class="v2-field">
+                      <label for="ph-{field.key}">Example shown inside the field</label>
+                      <input
+                        id="ph-{field.key}"
+                        class="v2-input"
+                        disabled={!canManage}
+                        maxlength="255"
+                        placeholder="Optional"
+                        bind:value={field.placeholder}
+                      />
+                    </div>
+                  </div>
                   <p class="v2-hint">
-                    Use the input’s name attribute, such as name="your-email". Leave blank to use
-                    the CRM property name.
+                    The label is also used in validation messages. The hint only appears in
+                    CRM-built forms.
                   </p>
-                </div>
-                <div class="wf-row-line">
-                  <label class="wf-sr" for="lbl-{field.key}">Label</label>
-                  <input
-                    id="lbl-{field.key}"
-                    class="v2-input"
-                    disabled={!canManage}
-                    maxlength="255"
-                    placeholder="Label the visitor sees"
-                    bind:value={field.label}
-                  />
-                  <label class="wf-sr" for="ph-{field.key}">Placeholder</label>
-                  <input
-                    id="ph-{field.key}"
-                    class="v2-input"
-                    disabled={!canManage}
-                    maxlength="255"
-                    placeholder="Placeholder (optional)"
-                    bind:value={field.placeholder}
-                  />
-                </div>
+                </details>
 
                 <label class="wf-check">
                   <input
@@ -456,7 +551,9 @@
                       : field.is_required}
                     onchange={(e) => (field.is_required = e.currentTarget.checked)}
                   />
-                  Required
+                  {isContact && ['first_name', 'email'].includes(field.lead_field)
+                    ? 'Always required'
+                    : 'Visitor must complete this field'}
                 </label>
               </div>
 
@@ -470,7 +567,10 @@
                       class="wf-move-btn"
                       disabled={i === 0}
                       aria-label="Move {field.label || 'this field'} up"
-                      onclick={() => (fields = moveField(fields, i, -1))}
+                      onclick={() => {
+                        dirty = true;
+                        fields = moveField(fields, i, -1);
+                      }}
                     >
                       <ChevronUp size={16} />
                     </button>
@@ -479,7 +579,10 @@
                       class="wf-move-btn"
                       disabled={i === fields.length - 1}
                       aria-label="Move {field.label || 'this field'} down"
-                      onclick={() => (fields = moveField(fields, i, 1))}
+                      onclick={() => {
+                        dirty = true;
+                        fields = moveField(fields, i, 1);
+                      }}
                     >
                       <ChevronDown size={16} />
                     </button>
@@ -508,39 +611,13 @@
       <!-- ============ Behaviour ============ -->
       <section class="wf-section">
         <div class="wf-section-head">
-          <h2 class="v2-section">Behaviour</h2>
+          <h2 class="v2-section">After someone submits</h2>
           <p class="v2-sub wf-section-sub">
-            What the visitor sees after they submit, and where the record is created.
+            Choose the confirmation shown to the visitor, who follows up, and who receives an alert.
           </p>
         </div>
 
         <div class="wf-grid">
-          <div class="v2-field">
-            <label for="name">Name</label>
-            <input
-              id="name"
-              name="name"
-              class="v2-input"
-              required
-              maxlength="255"
-              disabled={!canManage}
-              value={wf.name}
-            />
-            <p class="v2-hint">Internal only. The visitor never sees it.</p>
-          </div>
-
-          <div class="v2-field">
-            <label for="submit_button_label">Submit button</label>
-            <input
-              id="submit_button_label"
-              name="submit_button_label"
-              class="v2-input"
-              maxlength="64"
-              disabled={!canManage}
-              value={wf.submit_button_label}
-            />
-          </div>
-
           <div class="v2-field">
             <label for="success_mode">After a successful submission</label>
             <select
@@ -551,13 +628,13 @@
               bind:value={successMode}
             >
               <option value="message">Show a message</option>
-              <option value="redirect">Redirect to a URL</option>
+              <option value="redirect">Open a thank-you page</option>
             </select>
           </div>
 
           {#if successMode === 'redirect'}
             <div class="v2-field">
-              <label for="redirect_url">Redirect URL</label>
+              <label for="redirect_url">Thank-you page address</label>
               <input
                 id="redirect_url"
                 name="redirect_url"
@@ -565,24 +642,21 @@
                 type="url"
                 maxlength="500"
                 disabled={!canManage}
-                value={wf.redirect_url}
+                bind:value={settings.redirect}
                 placeholder="https://example.com/thanks"
               />
-              <p class="v2-hint">
-                http or https only. The embed navigates the visitor's browser here, so any other
-                scheme would be a script running on your own site.
-              </p>
+              <p class="v2-hint">After a successful submission, the visitor goes to this page.</p>
             </div>
           {:else}
             <div class="v2-field wf-wide">
-              <label for="success_message">Success message</label>
+              <label for="success_message">Confirmation message</label>
               <textarea
                 id="success_message"
                 name="success_message"
                 class="v2-input"
                 rows="2"
-                disabled={!canManage}>{wf.success_message}</textarea
-              >
+                disabled={!canManage}
+                bind:value={settings.message}></textarea>
             </div>
           {/if}
 
@@ -593,9 +667,9 @@
               name="assign_to"
               class="v2-input"
               disabled={!canManage}
-              value={wf.assign_to ?? ''}
+              bind:value={settings.owner}
             >
-              <option value="">Nobody</option>
+              <option value="">Unassigned</option>
               {#each data.profiles as p (p.id)}
                 <option value={p.id}>{p.name}</option>
               {/each}
@@ -609,16 +683,27 @@
               name={isContact ? 'contact_source' : 'lead_source'}
               class="v2-input"
               disabled={!canManage}
-              value={isContact ? wf.contact_source : wf.lead_source}
+              bind:value={settings.source}
             >
               {#each isContact ? contactSources : LEAD_SOURCES as s (s)}
                 <option value={s}
-                  >{isContact ? s.replaceAll('_', ' ') : (LEAD_SOURCE_LABEL[s] ?? s)}</option
+                  >{isContact
+                    ? ({
+                        META: 'Meta',
+                        GOOGLE: 'Google',
+                        TIKTOK: 'TikTok',
+                        ORGANIC: 'Organic',
+                        CALL: 'Phone call',
+                        CUSTOMER_REFERAL: 'Customer referral',
+                        EMPLOYER_REFERAL: 'Employee referral',
+                        WALK_IN: 'Walk-in'
+                      }[s] ?? s)
+                    : (LEAD_SOURCE_LABEL[s] ?? s)}</option
                 >
               {/each}
             </select>
             <p class="v2-hint">
-              Which form a record came from is recorded separately, so this can stay broad.
+              Used for reporting on new records. The form name is saved separately.
             </p>
           </div>
 
@@ -627,7 +712,7 @@
               ><input
                 type="checkbox"
                 name="notify_in_app"
-                checked={wf.notify_in_app}
+                bind:checked={settings.inApp}
                 disabled={!canManage}
               /> Notify inside the CRM</label
             >
@@ -635,92 +720,84 @@
               ><input
                 type="checkbox"
                 name="notify_email"
-                checked={wf.notify_email}
+                bind:checked={settings.email}
                 disabled={!canManage}
               /> Notify by email</label
             >
           </div>
           <div class="v2-field">
-            <label for="notify_profiles">Notify these people on each submission</label>
-            <select
-              id="notify_profiles"
-              name="notify_profiles"
-              class="v2-input wf-multi"
-              multiple
-              size="4"
-              disabled={!canManage}
-            >
+            <fieldset class="wf-choices">
+              <legend>Additional people to notify</legend>
               {#each data.profiles as p (p.id)}
-                <option value={p.id} selected={wf.notify_profiles?.includes(p.id)}>{p.name}</option>
-              {/each}
-            </select>
+                <label class="wf-check"
+                  ><input
+                    type="checkbox"
+                    name="notify_profiles"
+                    value={p.id}
+                    bind:group={settings.recipients}
+                    disabled={!canManage}
+                  />{p.name}</label
+                >
+              {:else}<p class="v2-hint">Add team members in Users &amp; Teams.</p>{/each}
+            </fieldset>
             <p class="v2-hint">
-              The responsible user is also notified. Recipients must be active and have permission
-              to view the record.
+              The responsible user is included automatically. Recipients need access to the record.
+              Personal CRM notification preferences still apply.
             </p>
           </div>
-
-          <div class="v2-field">
-            <label for="tags">Tag new records with</label>
-            <select
-              id="tags"
-              name="tags"
-              class="v2-input wf-multi"
-              multiple
-              size="4"
-              disabled={!canManage}
-            >
-              {#each data.tags as t (t.id)}
-                <option value={t.id} selected={wf.tags?.includes(t.id)}>{t.name}</option>
-              {/each}
-            </select>
+          <div class="v2-field wf-wide">
+            <details class="wf-details">
+              <summary>Tags for new records (optional)</summary>
+              <div class="wf-choices">
+                {#each data.tags as t (t.id)}
+                  <label class="wf-check"
+                    ><input
+                      type="checkbox"
+                      name="tags"
+                      value={t.id}
+                      bind:group={settings.tags}
+                      disabled={!canManage}
+                    />{t.name}</label
+                  >
+                {:else}<p class="v2-hint">
+                    No tags yet. You can create them in Settings → Tags.
+                  </p>{/each}
+              </div>
+            </details>
           </div>
+          <p class="v2-hint wf-wide">
+            {isContact
+              ? 'If the email already belongs to a contact in this organization, the new submission is linked to that contact. Their details and owner stay unchanged.'
+              : 'Returning visitors are matched to an existing lead by email.'}
+          </p>
         </div>
       </section>
 
       <!-- ============ Spam ============ -->
-      <section class="wf-section">
+      <details class="wf-section wf-details wf-advanced">
+        <summary>Spam protection and CRM form appearance (optional)</summary>
         <div class="wf-section-head">
-          <h2 class="v2-section">Spam</h2>
+          <h2 class="v2-section">Spam protection</h2>
           <p class="v2-sub wf-section-sub">
-            A hidden honeypot field, a per-address rate limit and a per-form one are always on and
-            are not configurable. These are the parts you choose.
+            Basic spam protection is already enabled. Add visitor verification here if needed.
           </p>
         </div>
 
         <div class="wf-grid">
-          <div class="v2-field wf-wide">
-            <label for="allowed_origins">Allowed origins</label>
-            <textarea
-              id="allowed_origins"
-              name="allowed_origins"
-              class="v2-input"
-              rows="3"
-              disabled={!canManage}
-              placeholder="https://example.com">{(wf.allowed_origins ?? []).join('\n')}</textarea
-            >
-            <p class="v2-hint">
-              One per line, scheme and host only, no path. Leave empty and the iframe embed works
-              anywhere. <strong>The script embed needs the site's origin listed here</strong>: the
-              browser refuses a cross-origin POST that we have not permitted, and a form with no
-              listed origins permits none.
-            </p>
-          </div>
-
           <div class="v2-field wf-wide">
             <label class="wf-check">
               <input
                 type="checkbox"
                 name="reject_disposable_email"
                 disabled={!canManage}
-                checked={wf.reject_disposable_email}
+                bind:checked={settings.disposable}
               />
-              Reject throwaway email addresses
+              Block disposable email addresses
             </label>
           </div>
 
           <div class="v2-field">
-            <label for="captcha_provider">Challenge</label>
+            <label for="captcha_provider">Visitor verification</label>
             <select
               id="captcha_provider"
               name="captcha_provider"
@@ -728,7 +805,7 @@
               disabled={!canManage}
               bind:value={captchaProvider}
             >
-              <option value="">None</option>
+              <option value="">Basic protection only</option>
               <option value="turnstile">Cloudflare Turnstile</option>
             </select>
           </div>
@@ -742,7 +819,7 @@
                 class="v2-input"
                 maxlength="255"
                 disabled={!canManage}
-                value={wf.captcha_site_key}
+                bind:value={settings.siteKey}
               />
             </div>
 
@@ -761,39 +838,83 @@
                   : 'Paste the secret from Cloudflare'}
               />
               <p class="v2-hint">
-                Never shown again once saved; we only send it to Cloudflare. Leaving this blank
-                keeps whatever is stored rather than clearing it.
+                Get both keys from your Cloudflare Turnstile account. Leave this blank to keep a
+                saved secret.
                 {#if !wf.has_captcha_secret}
                   <strong>
-                    No secret is stored yet. Verification fails closed, so publishing with Turnstile
-                    on and no secret would refuse every submission.
+                    Add a secret before enabling Turnstile, or submissions will be rejected.
                   </strong>
                 {/if}
               </p>
             </div>
           {/if}
         </div>
-      </section>
+        <div class="v2-field" style="margin-top:16px">
+          <label for="submit_button_label">Button text for CRM-built forms</label>
+          <input
+            id="submit_button_label"
+            name="submit_button_label"
+            class="v2-input"
+            maxlength="64"
+            disabled={!canManage}
+            bind:value={settings.button}
+          />
+          <p class="v2-hint">Existing website forms keep their own button and design.</p>
+        </div>
+      </details>
 
       {#if canManage}
         <div class="wf-save">
-          <button class="v2-btn v2-btn-primary" disabled={busy}>Save changes</button>
+          <span class="v2-sub"
+            >{dirty ? 'Unsaved changes' : 'Changes are saved when you press Save.'}</span
+          >
+          <button class="v2-btn v2-btn-primary" disabled={busy}
+            >{busy ? 'Saving…' : 'Save configuration'}</button
+          >
         </div>
       {/if}
     </form>
 
     <!-- ============ Embed ============ -->
-    <section class="wf-section">
+    <section class="wf-section" hidden={activeTab !== 'connect'}>
       <div class="wf-section-head">
-        <h2 class="v2-section">Embed</h2>
+        <h2 class="v2-section">Connect to your website</h2>
         <p class="v2-sub wf-section-sub">
           Connect your existing form, or embed a new CRM form on your website.
         </p>
       </div>
 
-      <div class="wf-snippet">
+      <div class="wf-connect-options" aria-label="Connection method">
+        <button
+          type="button"
+          class:active={connectionMode === 'existing'}
+          aria-pressed={connectionMode === 'existing'}
+          onclick={() => (connectionMode = 'existing')}
+        >
+          <b>I already have a form</b><span>Keep your website’s current form and design.</span
+          ></button
+        >
+        <button
+          type="button"
+          class:active={connectionMode === 'new'}
+          aria-pressed={connectionMode === 'new'}
+          onclick={() => (connectionMode = 'new')}
+        >
+          <b>I need a form</b><span>Add a ready-made CRM form to your website.</span></button
+        >
+      </div>
+      {#if !wf.is_published}<p class="wf-notice">
+          This form is still a draft. Save your configuration, then press Publish before testing it.
+        </p>{/if}
+      {#if connectionMode === 'existing' && !(wf.allowed_origins ?? []).length}
+        <p class="wf-notice">
+          Add and save your website address in Configure before connecting an existing form.
+        </p>
+      {/if}
+      {#if copyError}<p role="alert" class="wf-notice">{copyError}</p>{/if}
+      <div class="wf-snippet" hidden={connectionMode !== 'existing'}>
         <div class="wf-snippet-head">
-          <b>Connect an existing HTML form</b>
+          <b>Code for your existing form</b>
           <button
             type="button"
             class="v2-btn v2-btn-sm"
@@ -803,15 +924,15 @@
           </button>
         </div>
         <ol class="v2-sub">
-          <li>Map your website input names above and add the website origin under Spam.</li>
+          <li>In Configure, match the website fields and add your website address.</li>
           <li>Save and publish this form.</li>
           <li>
             Give the website form id="contact-form", or change data-form in the snippet to its
             existing selector.
           </li>
           <li>
-            Paste the snippet once on that page, after the form. Submit a test and check Activity
-            below.
+            Paste the snippet once on that page, after the form. Submit a test and open the
+            Submissions tab.
           </li>
         </ol>
         <pre>{wf.connector_js}</pre>
@@ -836,10 +957,9 @@
           stay unchanged; the message is added to their activity.
         </p>
       </div>
-      <div class="wf-snippet">
+      <div class="wf-snippet" hidden={connectionMode !== 'new'}>
         <div class="wf-snippet-head">
-          <b>iframe</b>
-          <span class="v2-sub">Embeds a complete CRM form.</span>
+          <b>Ready-made form (recommended)</b>
           <button
             type="button"
             class="v2-btn v2-btn-sm"
@@ -848,12 +968,17 @@
             {#if copied === 'html'}<Check size={13} />Copied{:else}<Copy size={13} />Copy{/if}
           </button>
         </div>
+        <p class="v2-hint">
+          Paste this code into an HTML or embed block on your website. It shows the fields and
+          confirmation you configured.
+        </p>
         <pre>{wf.embed_html}</pre>
       </div>
 
-      <div class="wf-snippet">
+      <details class="wf-snippet wf-details" hidden={connectionMode !== 'new'}>
+        <summary>Alternative: use your website’s styling</summary>
         <div class="wf-snippet-head">
-          <b>script</b>
+          <b>Form script</b>
           <span class="v2-sub">Inherits your site's styling.</span>
           <button type="button" class="v2-btn v2-btn-sm" onclick={() => copy(wf.embed_js, 'js')}>
             {#if copied === 'js'}<Check size={13} />Copied{:else}<Copy size={13} />Copy{/if}
@@ -862,33 +987,25 @@
         <pre>{wf.embed_js}</pre>
         {#if !(wf.allowed_origins ?? []).length}
           <p class="v2-hint wf-warn">
-            This one will not work yet. Add the site's origin under Spam first: the browser blocks a
-            cross-origin POST unless we permit that origin, and this form permits none.
+            Add your website address in Configure before using this script.
           </p>
         {/if}
-      </div>
+      </details>
     </section>
 
     <!-- ============ Activity ============ -->
-    <section class="wf-section">
+    <section class="wf-section" hidden={activeTab !== 'submissions'}>
       <div class="wf-section-head">
-        <h2 class="v2-section">Activity</h2>
+        <h2 class="v2-section">Received submissions</h2>
         <p class="v2-sub wf-section-sub">
-          The last 30 days. Views and conversion measure embedded CRM forms only. Submissions also
-          include connected website forms.
+          Recent submissions appear below. Open a contact to follow up. Totals cover the last 30
+          days.
         </p>
       </div>
 
       {#if totals}
         <div class="v2-stats" style="margin-bottom:16px">
-          <StatCard label="Views" value={count(totals.views)} tone="slate" />
           <StatCard label="Accepted submissions" value={count(totals.submissions)} tone="ink" />
-          <StatCard
-            label="Conversion"
-            value={totals.views ? `${Math.round(totals.conversion_rate * 100)}%` : '-'}
-            tone="slate"
-            detail={totals.views ? null : 'No views yet'}
-          />
           <StatCard
             label="Spam blocked"
             value={count(totals.spam)}
@@ -902,8 +1019,8 @@
         <p role="alert" class="v2-sub">{data.activityError}</p>
       {:else if !submissions.length}
         <p class="v2-sub wf-empty">
-          Nothing submitted yet. Rejected attempts would be listed here too, so an empty list means
-          nobody has reached the form at all.
+          No submissions recorded yet. Send a test from your website, then refresh this page to see
+          the result.
         </p>
       {:else}
         <div class="v2-table-wrap">
@@ -951,7 +1068,7 @@
     </section>
 
     {#if canManage}
-      <section class="wf-section wf-danger">
+      <section class="wf-section wf-danger" hidden={activeTab !== 'configure'}>
         <div>
           <b>Delete this form</b>
           <p class="v2-sub" style="font-size:12px;margin:4px 0 0;max-width:60ch">
@@ -971,6 +1088,118 @@
 </div>
 
 <style>
+  [hidden] {
+    display: none !important;
+  }
+  .wf-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--v2-line);
+    padding-bottom: 10px;
+  }
+  .wf-tabs button,
+  .wf-connect-options button {
+    border: 1px solid var(--v2-line);
+    background: var(--v2-card);
+    color: var(--v2-ink);
+    border-radius: 8px;
+    padding: 11px 15px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+  }
+  .wf-tabs button.active,
+  .wf-connect-options button.active {
+    background: var(--v2-bg-sunk);
+    border-color: var(--v2-slate);
+    font-weight: 650;
+  }
+  .wf-intro {
+    padding: 18px;
+    border: 1px solid var(--v2-line);
+    border-radius: var(--v2-radius);
+    background: var(--v2-card);
+  }
+  .wf-intro h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+  .wf-intro > p {
+    margin: 8px 0 20px;
+    font-size: 13px;
+  }
+  .wf-notice {
+    padding: 12px 14px;
+    border: 1px solid var(--v2-line);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .wf-notice button {
+    background: none;
+    border: 0;
+    color: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+    font: inherit;
+  }
+  .wf-details {
+    margin: 12px 0;
+  }
+  .wf-details > summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 0;
+  }
+  .wf-advanced {
+    border: 1px solid var(--v2-line);
+    border-radius: var(--v2-radius);
+    padding: 6px 16px 12px;
+  }
+  .wf-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 190px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid var(--v2-line);
+    border-radius: 8px;
+  }
+  .wf-choices legend {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .wf-connect-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .wf-connect-options button {
+    text-align: left;
+  }
+  .wf-connect-options span {
+    display: block;
+    font-weight: 400;
+    margin-top: 5px;
+    font-size: 12px;
+  }
+  .wf-snippet > .v2-hint,
+  .wf-snippet > details,
+  .wf-snippet > summary {
+    margin: 12px;
+  }
+  .wf-snippet ol {
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 12px 20px 12px 34px;
+    list-style: decimal;
+  }
+
   .wf-body {
     padding-top: 16px;
     padding-bottom: 40px;
@@ -1038,21 +1267,6 @@
     min-width: 0;
   }
 
-  .wf-row-line {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-
-  .wf-row-line > .v2-input {
-    min-width: 0;
-  }
-
-  .wf-multi {
-    padding: 4px;
-  }
-
   .wf-check {
     display: inline-flex;
     align-items: center;
@@ -1112,14 +1326,6 @@
 
   /* Labels for the selects and inputs in a field row. The row's own layout
      carries the meaning visually; screen readers still need the words. */
-  .wf-sr {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
 
   /* ---- settings grids ---- */
 
@@ -1130,7 +1336,16 @@
   }
 
   .wf-save {
-    margin-bottom: 30px;
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    background: var(--v2-bg);
+    border-top: 1px solid var(--v2-line);
+    z-index: 1;
   }
 
   /* ---- embed snippets ---- */
@@ -1211,18 +1426,6 @@
 
     .wf-row-body {
       flex: 1;
-    }
-
-    .wf-row-line {
-      flex-direction: row;
-    }
-
-    .wf-row-line > .v2-input {
-      flex: 1;
-    }
-
-    .wf-narrow {
-      flex: 0 1 auto;
     }
 
     .wf-row-actions {
