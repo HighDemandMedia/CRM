@@ -16,6 +16,11 @@ app_name = "public_webforms"
 
 urlpatterns = [
     path(
+        "<uuid:org_id>/<uuid:form_id>/connect.js",
+        public_views.WebFormConnectJsView.as_view(),
+        name="connect_js",
+    ),
+    path(
         "<uuid:org_id>/<uuid:form_id>/embed/",
         public_views.WebFormEmbedView.as_view(),
         name="embed",

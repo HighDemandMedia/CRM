@@ -13,12 +13,14 @@ values a serializer has already validated. Nothing is read from a request.
 import logging
 
 from django.contrib.contenttypes.models import ContentType
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models.functions import Lower
 
 from common.models import Comment
+from contacts.models import Contact
 from leads.models import Lead
-from webforms.models import WebFormSubmission
+from webforms.constants import CONTACT_FIELD_VALUES
+from webforms.models import WebForm, WebFormSubmission
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +164,7 @@ def submit_form(
     referer="",
     rejected=None,
     reason="",
+    request_id=None,
 ):
     """Record one submission and create or merge its lead.
 
@@ -190,6 +193,17 @@ def submit_form(
             referer=referer,
         )
 
+    # Serialize retries for this form. The Contact unique-email constraint
+    # also resolves concurrent submissions through two different forms.
+    WebForm.objects.select_for_update().get(pk=form.pk, org_id=form.org_id)
+    if request_id:
+        previous = WebFormSubmission.objects.filter(
+            form=form, org=form.org, request_id=request_id
+        ).first()
+        if previous:
+            return previous
+    if form.target_model == "Contact":
+        return _submit_contact(form, values, custom_fields, ip, referer, request_id)
     email = values.get("email")
     existing = _existing_lead(form, email)
     if existing is not None:
@@ -203,12 +217,84 @@ def submit_form(
     if custom_fields:
         payload["custom_fields"] = dict(custom_fields)
 
-    return WebFormSubmission.objects.create(
+    submission = WebFormSubmission.objects.create(
         org=form.org,
         form=form,
         lead=lead,
+        request_id=request_id,
         payload=payload,
         status=status,
         submitted_ip=ip,
         referer=referer,
     )
+    from webforms.notifications import notify_in_app
+
+    notify_in_app(submission)
+    return submission
+
+
+def _submit_contact(form, values, custom_fields, ip, referer, request_id):
+    email = values["email"].strip().lower()
+    existing = Contact.objects.filter(org_id=form.org_id, email__iexact=email).first()
+    contact = existing
+    if contact is None:
+        safe_values = {
+            key: value for key, value in values.items() if key in CONTACT_FIELD_VALUES
+        }
+        safe_values["email"] = email
+        try:
+            # Savepoint lets a simultaneous website/CRM creation win safely.
+            with transaction.atomic():
+                contact = Contact.objects.create(
+                    org=form.org,
+                    stage="LEAD",
+                    source=form.contact_source,
+                    created_by=_created_by_user(form),
+                    auto_created=True,
+                    custom_fields=custom_fields or {},
+                    **safe_values,
+                )
+        except IntegrityError:
+            contact = Contact.objects.filter(
+                org_id=form.org_id, email__iexact=email
+            ).first()
+            if contact is None:
+                raise
+            existing = contact
+        if existing is None:
+            if (
+                form.assign_to
+                and form.assign_to.org_id == form.org_id
+                and form.assign_to.is_active
+            ):
+                contact.assigned_to.add(form.assign_to)
+            contact.tags.add(*form.tags.filter(org_id=form.org_id))
+    # Public senders may append a message, but cannot rewrite a known contact.
+    message = values.get("description")
+    if message:
+        Comment.objects.create(
+            org=form.org,
+            content_type=ContentType.objects.get_for_model(Contact),
+            object_id=contact.pk,
+            commented_by=None,
+            comment=f"Website form: {form.name}\n{message}",
+        )
+    payload = dict(values)
+    if custom_fields:
+        payload["custom_fields"] = custom_fields
+    submission = WebFormSubmission.objects.create(
+        org=form.org,
+        form=form,
+        contact=contact,
+        request_id=request_id,
+        payload=payload,
+        submitted_ip=ip,
+        referer=referer,
+        status=WebFormSubmission.ACCEPTED_DUPLICATE
+        if existing
+        else WebFormSubmission.ACCEPTED,
+    )
+    from webforms.notifications import notify_in_app
+
+    notify_in_app(submission)
+    return submission

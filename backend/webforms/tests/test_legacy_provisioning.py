@@ -45,6 +45,11 @@ def api_setting(org_a, admin_user):
 
 @pytest.mark.django_db
 class TestKeysMintedAfterTheMigration:
+    @pytest.fixture(autouse=True)
+    def _platform_owner(self, admin_user):
+        admin_user.is_superuser = True
+        admin_user.save(update_fields=["is_superuser"])
+
     def test_a_key_created_through_the_settings_api_captures_a_lead(
         self, admin_client, org_a
     ):

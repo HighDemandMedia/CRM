@@ -34,7 +34,7 @@ export async function load(event) {
   }
 
   const [submissions, analytics] = await Promise.all([
-    getSubmissions(event, id).catch(() => ({ submissions: [], count: 0 })),
+    getSubmissions(event, id).catch(() => ({ submissions: [], count: 0, activityError: 'Submission history could not be loaded. Administrator access is required.' })),
     getAnalytics(event, id).catch(() => null)
   ]);
 
@@ -91,7 +91,10 @@ function readValues(form) {
     success_mode: form.get('success_mode')?.toString() ?? '',
     success_message: form.get('success_message')?.toString() ?? '',
     redirect_url: form.get('redirect_url')?.toString() ?? '',
-    lead_source: form.get('lead_source')?.toString() ?? '',
+    ...(form.has('lead_source') ? { lead_source: String(form.get('lead_source')) } : {}),
+    ...(form.has('contact_source') ? { contact_source: String(form.get('contact_source')) } : {}),
+    notify_in_app: form.get('notify_in_app') === 'on',
+    notify_email: form.get('notify_email') === 'on',
     allowed_origins: readOrigins(form),
     // An unchecked checkbox sends nothing at all, so absence is `false`.
     // Reading it any other way would make the box impossible to turn off.

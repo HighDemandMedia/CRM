@@ -101,8 +101,13 @@ async function listLeadCustomFields(cookies) {
   try {
     const resp = await apiRequest('/custom-fields/', {}, { cookies });
     return (resp.definitions ?? [])
-      .filter((/** @type {any} */ d) => d.target_model === 'Lead' && d.is_active)
-      .map((/** @type {any} */ d) => ({ id: d.id, label: d.label, key: d.key }));
+      .filter((/** @type {any} */ d) => ['Lead', 'Contact'].includes(d.target_model) && d.is_active)
+      .map((/** @type {any} */ d) => ({
+        id: d.id,
+        label: d.label,
+        key: d.key,
+        target_model: d.target_model
+      }));
   } catch {
     return [];
   }
@@ -145,7 +150,7 @@ export async function getWebForm({ cookies }, id) {
   return {
     form,
     profiles,
-    customFields,
+    customFields: customFields.filter((d) => d.target_model === form.target_model),
     tags,
     canManage: viewerRole(cookies) === 'ADMIN'
   };
@@ -161,6 +166,10 @@ export async function getWebForm({ cookies }, id) {
  */
 const WRITABLE_FIELDS = [
   'name',
+  'target_model',
+  'contact_source',
+  'notify_in_app',
+  'notify_email',
   'allowed_origins',
   'submit_button_label',
   'success_mode',
@@ -185,6 +194,7 @@ const WRITABLE_FIELD_KEYS = [
   'custom_field',
   'label',
   'placeholder',
+  'external_name',
   'is_required'
 ];
 

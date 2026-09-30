@@ -36,7 +36,7 @@
     finally { busy = false; }
   }
   function phrase(verb) {
-    return {'case.mentioned':'mentioned you on', 'case.commented':'commented on', 'support.replied':'replied to', 'support.status_changed':'updated'}[verb] || 'updated';
+    return {'webform.submitted':'received a website submission through', 'case.mentioned':'mentioned you on', 'case.commented':'commented on', 'support.replied':'replied to', 'support.status_changed':'updated'}[verb] || 'updated';
   }
 </script>
 

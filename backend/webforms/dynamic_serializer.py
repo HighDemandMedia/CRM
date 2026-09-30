@@ -15,6 +15,7 @@ from disposable_email_domains import blocklist as disposable_domains
 from rest_framework import serializers
 
 from common.custom_fields import validate_payload
+from common.record_validation import clean_record_values
 from webforms.constants import LEAD_FIELD_CHOICE_SOURCES, LEAD_FIELD_MAX_LENGTHS
 from webforms.models import WebFormField
 
@@ -25,16 +26,16 @@ HONEYPOT_FIELD = "company_website_url"
 
 def _field_for(row):
     """One DRF field for one WebFormField row."""
-    required = row.is_required
+    required = row.is_required or (
+        row.form.target_model == "Contact" and row.lead_field in ("first_name", "email")
+    )
 
     if row.source == WebFormField.SOURCE_CUSTOM:
         # Typed loosely here and validated properly by common.custom_fields in
         # `validate()` below, which is the single validator for every custom
         # field in the app. Duplicating its type rules here is how the two
         # drift apart.
-        return serializers.CharField(
-            required=required, allow_blank=not required, max_length=1000
-        )
+        return serializers.JSONField(required=required)
 
     if row.lead_field == "email":
         return serializers.EmailField(required=required, allow_blank=not required)
@@ -54,7 +55,7 @@ def _field_for(row):
 
 def build_serializer(form):
     """Return a Serializer class for this form's current field set."""
-    rows = list(form.fields.select_related("custom_field").all())
+    rows = list(form.fields.select_related("custom_field", "form").all())
     lead_rows = [r for r in rows if r.source == WebFormField.SOURCE_LEAD]
     custom_rows = [
         r
@@ -94,12 +95,22 @@ def build_serializer(form):
         form is the form's own `WebFormField.is_required`, which DRF has already
         enforced by the time this runs.
         """
+        if form.target_model == "Contact":
+            missing = {
+                key: "This field is required."
+                for key in ("first_name", "email")
+                if not attrs_in.get(key)
+            }
+            if missing:
+                raise serializers.ValidationError(missing)
         submitted = {
             key: attrs_in[key]
             for key in custom_keys
             if attrs_in.get(key) not in (None, "")
         }
-        cleaned, errors = validate_payload("Lead", submitted, org)
+        if form.target_model == "Contact":
+            attrs_in = clean_record_values(attrs_in, "Contact")
+        cleaned, errors = validate_payload(form.target_model, submitted, org)
 
         relevant = {
             key: message

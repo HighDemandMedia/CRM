@@ -24,6 +24,10 @@ app.autodiscover_tasks(related_name="celery_tasks")  # tasks app uses celery_tas
 
 # Celery Beat Schedule for recurring tasks
 app.conf.beat_schedule = {
+    "retry-webform-emails": {
+        "task": "webforms.tasks.retry_pending_webform_emails",
+        "schedule": crontab(minute="*/5"),
+    },
     "sync-personal-google-accounts": {
         "task": "common.tasks.schedule_google_sync",
         "schedule": crontab(minute="*/5"),

@@ -69,3 +69,23 @@ LEAD_FIELD_CHOICE_SOURCES = {
 # key the submission service dedupes on, and without it a repeat submission
 # from the same address hits Lead's `UniqueConstraint(Lower("email"), "org")`.
 REQUIRED_LEAD_FIELD = "email"
+
+# Publicly collectable Contact properties. Ownership and pipeline state are
+# configured by the organization, never accepted from website visitors.
+CONTACT_FIELD_CHOICES = [
+    ("first_name", "Name"),
+    ("last_name", "Last name"),
+    ("email", "Email"),
+    ("phone", "Phone"),
+    ("organization", "Company"),
+    ("title", "Job title"),
+    ("department", "Department"),
+    ("description", "Message"),
+    ("address_line", "Address"),
+    ("city", "City"),
+    ("state", "State / region"),
+    ("country", "Country"),
+    ("postcode", "Postal code"),
+]
+CONTACT_FIELD_VALUES = [key for key, _ in CONTACT_FIELD_CHOICES]
+ALL_FIELD_CHOICES = list(dict(LEAD_FIELD_CHOICES + CONTACT_FIELD_CHOICES).items())

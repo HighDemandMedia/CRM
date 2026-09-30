@@ -55,11 +55,14 @@
   function destination(row) {
     const ticket = String(row.link || '').match(/^\/(?:cases|tickets)\/([^/?#]+)\/?$/);
     if (ticket) return '/tickets/' + encodeURIComponent(ticket[1]);
+    const record = String(row.link || '').match(/^\/(contacts|leads)\/([^/?#]+)\/?$/);
+    if (record) return '/' + record[1] + '/' + encodeURIComponent(record[2]);
     const help = String(row.link || '').match(/^\/(?:support|help)\/([^/?#]+)\/?$/);
     return help ? '/help/' + encodeURIComponent(help[1]) : '';
   }
   function description(row) {
     const actor = row.actor?.user_details?.name || row.actor?.user_details?.email || 'Someone';
+    if (row.verb === 'webform.submitted') return 'New website submission';
     if (row.verb === 'case.mentioned') return actor + ' mentioned you';
     if (row.verb === 'case.commented') return actor + ' added a comment';
     return actor + ' · ' + String(row.verb || 'Update').replace(/^[^.]+\./, '').replaceAll('_', ' ');

@@ -96,12 +96,12 @@
       tone="slate"
       detail={drafts ? 'Collecting nothing yet' : 'None'}
     />
-    <StatCard label="Leads, 30 days" value={count(totals.submissions_30d)} tone="ink" />
+    <StatCard label="Submissions, 30 days" value={count(totals.submissions_30d)} tone="ink" />
     <StatCard
       label="Spam blocked, 30 days"
       value={count(totals.spam_30d)}
       tone="slate"
-      detail={totals.spam_30d ? 'Never reached a lead' : 'None'}
+      detail={totals.spam_30d ? 'No record created' : 'None'}
     />
   </div>
 </div>
@@ -140,7 +140,7 @@
             placeholder="e.g. Contact us"
           />
         </div>
-        <button class="v2-btn v2-btn-primary" disabled={busy}>Create and add fields</button>
+        <button class="v2-btn v2-btn-primary" disabled={busy}>Create and configure</button>
         <button type="button" class="v2-btn" disabled={busy} onclick={() => (creating = false)}>
           Cancel
         </button>
@@ -151,7 +151,7 @@
       <EmptyState
         title="No web forms yet"
         body={data.canManage
-          ? 'A web form is a page you embed on your own site. What people fill in becomes a lead here, with no login and no copy-pasting.'
+          ? 'Connect an existing website form or embed a new one. Submissions create contacts in your organization and notify your team.'
           : 'Nobody has built a web form for this organisation yet. An admin can create one.'}
       >
         {#snippet actions()}

@@ -1,6 +1,24 @@
 // Product guidance for the customized HDM CRM. No customer records or tenant articles.
 export const articles = [
   {
+    slug: 'website-forms', category: 'Configuration', title: 'Connect your website forms',
+    summary: 'Create contacts from website enquiries and notify your team.',
+    sections: [
+      {title: 'Set up a connection', steps: [
+        'As an organization administrator, open Settings → Channels & integrations → Web forms and create a form.',
+        'Choose the contact properties to collect. Name and email are required. For each property, enter the name attribute of the matching input on your website.',
+        'Choose the owner, source and tags for new contacts. Enable CRM and email notifications and select any additional recipients.',
+        'Add the exact website origin, such as https://example.com, under Allowed origins. Save and publish.',
+        'Copy the Connect an existing HTML form snippet onto that page. Set data-form to the selector of exactly one form, such as #contact-form.',
+        'Send a test enquiry and check Activity, the contact record and notifications.'
+      ]},
+      {title: 'Existing contacts', text: 'The CRM matches email addresses within your organization. A returning visitor adds a submission and message to the existing contact without changing its details or owner. Retrying the same submission through the connector does not create another history entry.'},
+      {title: 'Who receives alerts', text: 'The configured owner, current contact owners and selected recipients receive alerts only if they are active and allowed to view the contact. In-app preferences are respected. Email is sent individually using the CRM system sender; users do not need a personal Gmail connection.'},
+      {title: 'Choose the right connection', text: 'The connector keeps your website design and takes over submission to the CRM. Replace previous submit handlers. If your platform already processes submissions, ask its developer to call the displayed endpoint from that flow. You can also embed a complete CRM form using the iframe or script option. Passwords, hidden inputs and files are not collected by the connector.'},
+      {title: 'If a submission fails', text: 'Check that the form is published, the exact website origin is allowed, input names match, and required fields are filled. Failed submissions keep the visitor’s entries for retry. If Turnstile is enabled, authorize the website domain in its settings. Email alerts run in the background and pending deliveries are retried automatically.'}
+    ]
+  },
+  {
     slug: 'getting-started',
     category: 'Getting started',
     title: 'Find your way around the CRM',

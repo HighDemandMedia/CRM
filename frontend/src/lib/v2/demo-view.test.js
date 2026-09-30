@@ -3,7 +3,7 @@ import { demoPageAllowed } from './demo-view.js';
 
 describe('customer demo routes', () => {
   it('allows ready record screens and reviewed settings', () => {
-    for (const route of ['/', '/contacts', '/contacts/123/edit', '/accounts/new', '/pipeline/123', '/calendar', '/tasks', '/tickets', '/help', '/help/knowledge/contacts', '/profile', '/settings/pipelines', '/team', '/settings/roles', '/settings/custom-fields', '/settings/tags']) {
+    for (const route of ['/', '/contacts', '/contacts/123/edit', '/accounts/new', '/pipeline/123', '/calendar', '/tasks', '/tickets', '/help', '/help/knowledge/contacts', '/profile', '/settings/pipelines', '/team', '/settings/roles', '/settings/custom-fields', '/settings/tags', '/settings/web-forms']) {
       expect(demoPageAllowed(route), route).toBe(true);
     }
   });

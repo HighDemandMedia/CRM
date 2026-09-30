@@ -50,7 +50,7 @@ export const actions = {
     /** @type {any} */
     let created;
     try {
-      created = await createWebForm(event, { name });
+      created = await createWebForm(event, { name, target_model: 'Contact' });
     } catch (/** @type {any} */ err) {
       const { status, message } = actionError(
         err,

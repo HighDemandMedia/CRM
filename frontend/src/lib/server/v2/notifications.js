@@ -22,6 +22,7 @@ import { apiRequest } from '$lib/api-helpers.js';
 /** Verbs the backend actually dispatches. Everything else has no copy and is
  *  flagged on the page as "no producer" rather than shown as a raw identifier. */
 export const PRODUCED_VERBS = [
+  'webform.submitted',
   'case.mentioned',
   'case.commented',
   'support.replied',
@@ -42,6 +43,8 @@ export function resolvedLink(link) {
   if (typeof link !== 'string') return '';
   const m = link.match(/^\/(?:cases|tickets)\/([^/?#]+)\/?$/);
   if (m) return `/tickets/${encodeURIComponent(m[1])}`;
+  const record = link.match(/^\/(contacts|leads)\/([^/?#]+)\/?$/);
+  if (record) return `/${record[1]}/${encodeURIComponent(record[2])}`;
   const help = link.match(/^\/(?:support|help)\/([^/?#]+)\/?$/);
   return help ? `/help/${encodeURIComponent(help[1])}` : '';
 }

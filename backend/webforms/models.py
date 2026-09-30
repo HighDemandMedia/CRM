@@ -19,7 +19,8 @@ from django.db import models
 from common.base import BaseOrgModel
 from common.models import APISettings, CustomFieldDefinition, Profile, Tags
 from common.utils import LEAD_SOURCE
-from webforms.constants import LEAD_FIELD_CHOICES
+from contacts.choices import CONTACT_SOURCES
+from webforms.constants import ALL_FIELD_CHOICES
 
 
 def _org_index():
@@ -55,6 +56,16 @@ class WebForm(BaseOrgModel):
         (CAPTCHA_TURNSTILE, "Cloudflare Turnstile"),
     ]
 
+    target_model = models.CharField(
+        max_length=16,
+        choices=[("Lead", "Lead"), ("Contact", "Contact")],
+        default="Lead",
+    )
+    contact_source = models.CharField(
+        max_length=32, choices=CONTACT_SOURCES, default="ORGANIC"
+    )
+    notify_in_app = models.BooleanField(default=True)
+    notify_email = models.BooleanField(default=True)
     name = models.CharField(max_length=255)
     is_published = models.BooleanField(
         default=False,
@@ -147,7 +158,7 @@ class WebFormField(BaseOrgModel):
     order = models.PositiveIntegerField(default=0)
     source = models.CharField(max_length=16, choices=SOURCE_CHOICES)
     lead_field = models.CharField(
-        max_length=32, choices=LEAD_FIELD_CHOICES, blank=True, default=""
+        max_length=32, choices=ALL_FIELD_CHOICES, blank=True, default=""
     )
     custom_field = models.ForeignKey(
         CustomFieldDefinition,
@@ -157,6 +168,7 @@ class WebFormField(BaseOrgModel):
         related_name="webform_fields",
     )
     label = models.CharField(max_length=128)
+    external_name = models.CharField(max_length=128, blank=True, default="")
     placeholder = models.CharField(max_length=128, blank=True, default="")
     is_required = models.BooleanField(default=False)
 
@@ -235,6 +247,16 @@ class WebFormSubmission(BaseOrgModel):
         blank=True,
         related_name="webform_submissions",
     )
+    contact = models.ForeignKey(
+        "contacts.Contact",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="webform_submissions",
+    )
+    request_id = models.UUIDField(null=True, blank=True)
+    email_completed_at = models.DateTimeField(null=True, blank=True)
+    email_delivered_to = models.JSONField(default=list, blank=True)
     # The VALIDATED dict, never raw request.data. Persisting the raw body would
     # let a submitter store an arbitrary blob of keys that later renders in an
     # admin's browser.
@@ -253,6 +275,13 @@ class WebFormSubmission(BaseOrgModel):
         verbose_name = "Web form submission"
         verbose_name_plural = "Web form submissions"
         db_table = "web_form_submission"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["form", "request_id"],
+                condition=models.Q(request_id__isnull=False),
+                name="webform_unique_request",
+            )
+        ]
         ordering = ("-created_at",)
         indexes = [
             _org_index(),

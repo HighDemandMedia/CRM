@@ -27,12 +27,12 @@ def test_demo_claim_and_ready_pages(demo):
     token = OrgAwareRefreshToken.for_user_and_org(profile.user, profile.org, profile)
     assert token['is_demo'] is True and token.access_token['is_demo'] is True
     assert token['role'] == 'ADMIN'
-    for url in ('/api/contacts/', '/api/accounts/', '/api/opportunities/', '/api/tasks/', '/api/cases/', '/api/pipeline-settings/', '/api/custom-fields/?catalog=true&target_model=Contact', '/api/roles/', '/api/teams/', '/api/users/'):
+    for url in ('/api/webforms/', '/api/contacts/', '/api/accounts/', '/api/opportunities/', '/api/tasks/', '/api/cases/', '/api/pipeline-settings/', '/api/custom-fields/?catalog=true&target_model=Contact', '/api/roles/', '/api/teams/', '/api/users/'):
         response = client.get(url)
         assert response.status_code == 200, (url, response.content)
 
 
-@pytest.mark.parametrize('path', ['/api/leads/', '/api/invoices/', '/api/documents/', '/api/cases/solutions/', '/api/webforms/'])
+@pytest.mark.parametrize('path', ['/api/leads/', '/api/invoices/', '/api/documents/', '/api/cases/solutions/'])
 def test_demo_cannot_open_unfinished_modules(demo, path):
     response = demo[1].get(path)
     assert response.status_code == 403

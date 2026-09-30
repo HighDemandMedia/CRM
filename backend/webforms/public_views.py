@@ -20,7 +20,11 @@ tenant, and the form row is then filtered on it, so a mismatched pair answers
 
 import json
 import logging
+import uuid
+from collections.abc import Mapping
+from urllib.parse import urlparse
 
+from django.db import transaction
 from django.db.models import F
 from django.http import HttpResponse, HttpResponseNotFound
 from django.template.loader import render_to_string
@@ -38,7 +42,7 @@ from webforms import captcha
 from webforms.dynamic_serializer import HONEYPOT_FIELD, build_serializer
 from webforms.models import WebForm, WebFormDailyStat, WebFormSubmission
 from webforms.service import submit_form
-from webforms.tasks import send_webform_submission_email
+from webforms.tasks import queue_notification
 from webforms.throttles import WebFormGlobalThrottle, WebFormIPThrottle
 
 logger = logging.getLogger(__name__)
@@ -60,7 +64,7 @@ class PublicWebFormMixin:
         """
         set_rls_context(org_id)
         return WebForm.objects.filter(
-            id=form_id, org_id=org_id, is_published=True
+            id=form_id, org_id=org_id, is_published=True, org__is_active=True
         ).first()
 
     def origin_allowed(self, request, form):
@@ -97,7 +101,8 @@ class PublicWebFormMixin:
         # non-browser caller sets both headers itself, but better than
         # refusing every legitimate server-side integration.
         ref = request.META.get("HTTP_REFERER", "")
-        return any(ref.startswith(entry) for entry in allowed)
+        parsed = urlparse(ref)
+        return f"{parsed.scheme}://{parsed.netloc}" in allowed
 
     def success_payload(self, form):
         """What the visitor is told.
@@ -137,6 +142,23 @@ class WebFormSubmitView(PublicWebFormMixin, APIView):
         ip = client_ip(request)
         ref = referer(request)
 
+        if not isinstance(request.data, Mapping):
+            return Response(
+                {"detail": "Submit a JSON object or form fields."}, status=400
+            )
+        request_id = request.data.get("request_id")
+        if request_id:
+            try:
+                request_id = uuid.UUID(str(request_id))
+            except (ValueError, TypeError):
+                return Response(
+                    {"detail": "Invalid submission identifier."}, status=400
+                )
+            # A retry of an accepted request does not need a second captcha token.
+            if WebFormSubmission.objects.filter(
+                form=form, org_id=form.org_id, request_id=request_id
+            ).exists():
+                return Response(self.success_payload(form))
         serializer = build_serializer(form)(data=request.data)
         if not serializer.is_valid():
             submit_form(
@@ -181,10 +203,11 @@ class WebFormSubmitView(PublicWebFormMixin, APIView):
             form,
             serializer.lead_values(),
             custom_fields=serializer.custom_values(),
+            request_id=request_id,
             ip=ip,
             referer=ref,
         )
-        send_webform_submission_email.delay(str(submission.id), str(form.org_id))
+        transaction.on_commit(lambda: queue_notification(submission.id, form.org_id))
         return Response(self.success_payload(form), status=status.HTTP_200_OK)
 
 
@@ -296,8 +319,9 @@ class WebFormEmbedJsView(EmbedViewMixin, APIView):
             # Only the SITE key. `captcha_secret` must never appear here, and
             # `test_the_script_embed_sends_the_site_key_but_not_the_secret`
             # is what says so.
-            "captchaSiteKey": form.captcha_site_key,
-            "mountId": f"bottlecrm-webform-{form.id}",
+            "captchaSiteKey": form.captcha_site_key if form.captcha_provider else "",
+            "mountId": f"hdm-webform-{form.id}",
+            "legacyMountId": f"bottlecrm-webform-{form.id}",
             "fields": [
                 {
                     "name": field.input_name,
@@ -317,3 +341,29 @@ class WebFormEmbedJsView(EmbedViewMixin, APIView):
             .replace("\u2028", "\\u2028")
             .replace("\u2029", "\\u2029")
         )
+
+
+class WebFormConnectJsView(WebFormEmbedJsView):
+    """Attach to one explicitly selected HTML form; collect mapped inputs only."""
+
+    def get(self, request, org_id, form_id):
+        form = self.load_form(org_id, form_id)
+        if form is None:
+            return HttpResponseNotFound(
+                "// Form not found.", content_type="application/javascript"
+            )
+        context = self.render_context(request, form)
+        config = json.loads(self.config_json(context))
+        config["formId"] = str(form.pk)
+        for field, row in zip(config["fields"], context["fields"]):
+            field["externalName"] = row.external_name or row.input_name
+        context["config_json"] = (
+            json.dumps(config).replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+        )
+        # Never cache the connector: publishing/configuration changes apply on reload.
+        response = HttpResponse(
+            render_to_string("webforms/connect.js", context),
+            content_type="application/javascript; charset=utf-8",
+        )
+        response["Cache-Control"] = "no-store"
+        return response

@@ -45,7 +45,7 @@
     withOrder,
     isFieldComplete,
     hasRequiredField,
-    leadFieldLabel,
+    WEBFORM_CONTACT_FIELDS,
     WEBFORM_LEAD_FIELDS
   } from '$lib/v2/webform-fields.js';
   import { ChevronUp, ChevronDown, GripVertical, Plus, Trash2, Copy, Check } from '@lucide/svelte';
@@ -55,6 +55,18 @@
 
   let wf = $derived(data.form);
   let canManage = $derived(data.canManage);
+  let isContact = $derived(wf.target_model === 'Contact');
+  let fieldOptions = $derived(isContact ? WEBFORM_CONTACT_FIELDS : WEBFORM_LEAD_FIELDS);
+  const contactSources = [
+    'META',
+    'GOOGLE',
+    'TIKTOK',
+    'ORGANIC',
+    'CALL',
+    'CUSTOMER_REFERAL',
+    'EMPLOYER_REFERAL',
+    'WALK_IN'
+  ];
 
   /**
    * The editable field list, seeded from the server ONCE and owned by the
@@ -77,6 +89,7 @@
       custom_field: row.custom_field ?? null,
       label: row.label ?? '',
       placeholder: row.placeholder ?? '',
+      external_name: row.external_name ?? '',
       is_required: Boolean(row.is_required)
     }));
   }
@@ -120,8 +133,10 @@
   let publishBlocker = $derived.by(() => {
     if (!fields.length) return 'Add at least one field first.';
     if (!hasRequiredField(fields)) {
-      return 'Add an email field before publishing. It is what lets a repeat submission update the existing lead instead of failing.';
+      return 'Add an email field before publishing so returning visitors can be recognized.';
     }
+    if (isContact && !fields.some((f) => f.source === 'lead' && f.lead_field === 'first_name'))
+      return 'Add the Name property before publishing.';
     if (!complete) return 'Every field needs a label and something to write into.';
     if (wf.success_mode === 'redirect' && !wf.redirect_url) {
       return 'This form redirects on success but has no redirect URL set.';
@@ -158,6 +173,7 @@
         custom_field: null,
         label: '',
         placeholder: '',
+        external_name: '',
         is_required: false
       }
     ];
@@ -178,10 +194,12 @@
    */
   function pickLeadField(index, value) {
     const row = fields[index];
-    const wasSuggested = !row.label.trim() || row.label === leadFieldLabel(row.lead_field);
+    const wasSuggested =
+      !row.label.trim() ||
+      row.label === (fieldOptions.find((f) => f.value === row.lead_field)?.label ?? row.lead_field);
     row.lead_field = value;
     row.custom_field = null;
-    if (wasSuggested) row.label = leadFieldLabel(value);
+    if (wasSuggested) row.label = fieldOptions.find((f) => f.value === value)?.label ?? value;
   }
 
   /**
@@ -243,8 +261,8 @@
   /** @param {string} status */
   const statusLabel = (status) =>
     ({
-      accepted: 'Lead created',
-      accepted_duplicate: 'Merged into an existing lead',
+      accepted: isContact ? 'Contact created' : 'Lead created',
+      accepted_duplicate: isContact ? 'Existing contact' : 'Merged into an existing lead',
       rejected_spam: 'Rejected as spam',
       rejected_invalid: 'Rejected, invalid',
       rejected_captcha: 'Rejected, captcha'
@@ -312,8 +330,10 @@
         <div class="wf-section-head">
           <h2 class="v2-section">Fields</h2>
           <p class="v2-sub wf-section-sub">
-            What a visitor is asked, in the order they are asked it. An email field is required
-            before the form can be published.
+            Choose the {isContact ? 'contact' : 'lead'} properties to collect. For an existing website
+            form, enter each input’s HTML name below. {isContact
+              ? 'Name and email are required.'
+              : 'Email is required before publishing.'}
           </p>
         </div>
 
@@ -353,7 +373,7 @@
                       field.custom_field = null;
                     }}
                   >
-                    <option value="lead">Lead field</option>
+                    <option value="lead">{isContact ? 'Contact property' : 'Lead property'}</option>
                     <option value="custom" disabled={!data.customFields.length}>
                       Custom field{data.customFields.length ? '' : ' (none defined)'}
                     </option>
@@ -374,7 +394,7 @@
                       {/each}
                     </select>
                   {:else}
-                    <label class="wf-sr" for="tgt-{field.key}">Lead field</label>
+                    <label class="wf-sr" for="tgt-{field.key}">CRM property</label>
                     <select
                       id="tgt-{field.key}"
                       class="v2-input wf-narrow"
@@ -383,13 +403,28 @@
                       onchange={(e) => pickLeadField(i, e.currentTarget.value)}
                     >
                       <option value="">Choose one…</option>
-                      {#each WEBFORM_LEAD_FIELDS as f (f.value)}
+                      {#each fieldOptions as f (f.value)}
                         <option value={f.value}>{f.label}</option>
                       {/each}
                     </select>
                   {/if}
                 </div>
 
+                <div class="v2-field">
+                  <label for="external-{field.key}">Website input name</label>
+                  <input
+                    id="external-{field.key}"
+                    class="v2-input"
+                    maxlength="128"
+                    disabled={!canManage}
+                    placeholder={field.lead_field || 'e.g. your-email'}
+                    bind:value={field.external_name}
+                  />
+                  <p class="v2-hint">
+                    Use the input’s name attribute, such as name="your-email". Leave blank to use
+                    the CRM property name.
+                  </p>
+                </div>
                 <div class="wf-row-line">
                   <label class="wf-sr" for="lbl-{field.key}">Label</label>
                   <input
@@ -412,7 +447,15 @@
                 </div>
 
                 <label class="wf-check">
-                  <input type="checkbox" disabled={!canManage} bind:checked={field.is_required} />
+                  <input
+                    type="checkbox"
+                    disabled={!canManage ||
+                      (isContact && ['first_name', 'email'].includes(field.lead_field))}
+                    checked={isContact && ['first_name', 'email'].includes(field.lead_field)
+                      ? true
+                      : field.is_required}
+                    onchange={(e) => (field.is_required = e.currentTarget.checked)}
+                  />
                   Required
                 </label>
               </div>
@@ -467,7 +510,7 @@
         <div class="wf-section-head">
           <h2 class="v2-section">Behaviour</h2>
           <p class="v2-sub wf-section-sub">
-            What the visitor sees after they submit, and where the lead lands.
+            What the visitor sees after they submit, and where the record is created.
           </p>
         </div>
 
@@ -544,7 +587,7 @@
           {/if}
 
           <div class="v2-field">
-            <label for="assign_to">Assign new leads to</label>
+            <label for="assign_to">Assign new {isContact ? 'contacts' : 'leads'} to</label>
             <select
               id="assign_to"
               name="assign_to"
@@ -563,22 +606,42 @@
             <label for="lead_source">Record the source as</label>
             <select
               id="lead_source"
-              name="lead_source"
+              name={isContact ? 'contact_source' : 'lead_source'}
               class="v2-input"
               disabled={!canManage}
-              value={wf.lead_source}
+              value={isContact ? wf.contact_source : wf.lead_source}
             >
-              {#each LEAD_SOURCES as s (s)}
-                <option value={s}>{LEAD_SOURCE_LABEL[s] ?? s}</option>
+              {#each isContact ? contactSources : LEAD_SOURCES as s (s)}
+                <option value={s}
+                  >{isContact ? s.replaceAll('_', ' ') : (LEAD_SOURCE_LABEL[s] ?? s)}</option
+                >
               {/each}
             </select>
             <p class="v2-hint">
-              Which form a lead came from is recorded separately, so this can stay broad.
+              Which form a record came from is recorded separately, so this can stay broad.
             </p>
           </div>
 
           <div class="v2-field">
-            <label for="notify_profiles">Email these people on each lead</label>
+            <label class="wf-check"
+              ><input
+                type="checkbox"
+                name="notify_in_app"
+                checked={wf.notify_in_app}
+                disabled={!canManage}
+              /> Notify inside the CRM</label
+            >
+            <label class="wf-check"
+              ><input
+                type="checkbox"
+                name="notify_email"
+                checked={wf.notify_email}
+                disabled={!canManage}
+              /> Notify by email</label
+            >
+          </div>
+          <div class="v2-field">
+            <label for="notify_profiles">Notify these people on each submission</label>
             <select
               id="notify_profiles"
               name="notify_profiles"
@@ -591,11 +654,14 @@
                 <option value={p.id} selected={wf.notify_profiles?.includes(p.id)}>{p.name}</option>
               {/each}
             </select>
-            <p class="v2-hint">Nobody selected means no notification is sent.</p>
+            <p class="v2-hint">
+              The responsible user is also notified. Recipients must be active and have permission
+              to view the record.
+            </p>
           </div>
 
           <div class="v2-field">
-            <label for="tags">Tag every lead with</label>
+            <label for="tags">Tag new records with</label>
             <select
               id="tags"
               name="tags"
@@ -721,15 +787,59 @@
       <div class="wf-section-head">
         <h2 class="v2-section">Embed</h2>
         <p class="v2-sub wf-section-sub">
-          Paste one of these into your own site. Both are built by the server, because they need
-          this API's address and a browser only knows your site's.
+          Connect your existing form, or embed a new CRM form on your website.
         </p>
       </div>
 
       <div class="wf-snippet">
         <div class="wf-snippet-head">
+          <b>Connect an existing HTML form</b>
+          <button
+            type="button"
+            class="v2-btn v2-btn-sm"
+            onclick={() => copy(wf.connector_js, 'connector')}
+          >
+            {#if copied === 'connector'}<Check size={13} />Copied{:else}<Copy size={13} />Copy{/if}
+          </button>
+        </div>
+        <ol class="v2-sub">
+          <li>Map your website input names above and add the website origin under Spam.</li>
+          <li>Save and publish this form.</li>
+          <li>
+            Give the website form id="contact-form", or change data-form in the snippet to its
+            existing selector.
+          </li>
+          <li>
+            Paste the snippet once on that page, after the form. Submit a test and check Activity
+            below.
+          </li>
+        </ol>
+        <pre>{wf.connector_js}</pre>
+        <p class="v2-hint">
+          This connector handles submission to the CRM and keeps your form’s design. Replace any
+          previous submit handler. Passwords, hidden inputs and files are not collected. If your
+          site already processes submissions, have its developer call the endpoint below from that
+          existing flow instead.
+        </p>
+        <details>
+          <summary>Submit from your own code</summary>
+          <p class="v2-hint">
+            POST JSON using the CRM property names (for example first_name, email and description).
+            Include a new UUID as request_id for each submission and reuse it when retrying. Use an
+            allowed Origin; include cf-turnstile-response when verification is enabled. No CRM login
+            or private API key belongs on your website.
+          </p>
+          <pre>{wf.submit_url}</pre>
+        </details>
+        <p class="v2-hint">
+          Returning contacts are matched by email within this organization. Their details and owner
+          stay unchanged; the message is added to their activity.
+        </p>
+      </div>
+      <div class="wf-snippet">
+        <div class="wf-snippet-head">
           <b>iframe</b>
-          <span class="v2-sub">Works anywhere, no origin list needed.</span>
+          <span class="v2-sub">Embeds a complete CRM form.</span>
           <button
             type="button"
             class="v2-btn v2-btn-sm"
@@ -764,15 +874,15 @@
       <div class="wf-section-head">
         <h2 class="v2-section">Activity</h2>
         <p class="v2-sub wf-section-sub">
-          The last 30 days. A view is counted when the embed loads, whether or not anyone fills it
-          in.
+          The last 30 days. Views and conversion measure embedded CRM forms only. Submissions also
+          include connected website forms.
         </p>
       </div>
 
       {#if totals}
         <div class="v2-stats" style="margin-bottom:16px">
           <StatCard label="Views" value={count(totals.views)} tone="slate" />
-          <StatCard label="Leads" value={count(totals.submissions)} tone="ink" />
+          <StatCard label="Accepted submissions" value={count(totals.submissions)} tone="ink" />
           <StatCard
             label="Conversion"
             value={totals.views ? `${Math.round(totals.conversion_rate * 100)}%` : '-'}
@@ -783,12 +893,14 @@
             label="Spam blocked"
             value={count(totals.spam)}
             tone="slate"
-            detail={totals.spam ? 'Never reached a lead' : 'None'}
+            detail={totals.spam ? 'No record created' : 'None'}
           />
         </div>
       {/if}
 
-      {#if !submissions.length}
+      {#if data.activityError}
+        <p role="alert" class="v2-sub">{data.activityError}</p>
+      {:else if !submissions.length}
         <p class="v2-sub wf-empty">
           Nothing submitted yet. Rejected attempts would be listed here too, so an empty list means
           nobody has reached the form at all.
@@ -800,7 +912,7 @@
               <tr>
                 <th>Submitted</th>
                 <th>Outcome</th>
-                <th data-m="hide">Lead</th>
+                <th data-m="hide">Record</th>
                 <th data-m="hide">From</th>
               </tr>
             </thead>
@@ -815,10 +927,12 @@
                     ><Pill tone={statusTone(s.status)}>{statusLabel(s.status)}</Pill></td
                   >
                   <td data-m="meta">
-                    {#if s.lead}
+                    {#if s.contact}
+                      <a href={resolve(`/contacts/${s.contact}`)}>{s.contact_name}</a>
+                    {:else if s.lead}
                       <a href={resolve(`/leads/${s.lead}`)}>{s.lead_name}</a>
                     {:else}
-                      <span class="v2-muted">No lead</span>
+                      <span class="v2-muted">No record</span>
                     {/if}
                   </td>
                   <td data-m="hide" class="v2-muted">{s.referer || s.submitted_ip || '—'}</td>
@@ -841,7 +955,7 @@
         <div>
           <b>Delete this form</b>
           <p class="v2-sub" style="font-size:12px;margin:4px 0 0;max-width:60ch">
-            Removes the form and its submission history. Leads it already created stay where they
+            Removes the form and its submission history. Records it already created stay where they
             are. Any embed still on your site will stop working.
           </p>
         </div>

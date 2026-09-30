@@ -67,3 +67,8 @@ describe('notification history pagination', () => {
     expect(data.pagination.status).toBe('all');
   });
 });
+
+it('opens the Contact linked to a website submission', () => {
+  expect(resolvedLink('/contacts/abc-123')).toBe('/contacts/abc-123');
+  expect(resolvedLink('/contacts/abc/../../team')).toBe('');
+});

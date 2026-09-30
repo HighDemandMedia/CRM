@@ -126,3 +126,19 @@ export function isFieldComplete(field) {
   if (field.source === 'custom') return Boolean(field.custom_field);
   return Boolean(field.lead_field);
 }
+
+export const WEBFORM_CONTACT_FIELDS = [
+  { value: 'first_name', label: 'Name' },
+  { value: 'last_name', label: 'Last name' },
+  { value: 'email', label: 'Email' },
+  { value: 'phone', label: 'Phone' },
+  { value: 'organization', label: 'Company' },
+  { value: 'title', label: 'Job title' },
+  { value: 'department', label: 'Department' },
+  { value: 'description', label: 'Message' },
+  { value: 'address_line', label: 'Address' },
+  { value: 'city', label: 'City' },
+  { value: 'state', label: 'State / region' },
+  { value: 'country', label: 'Country' },
+  { value: 'postcode', label: 'Postal code' }
+];

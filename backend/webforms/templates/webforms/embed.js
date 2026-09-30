@@ -21,7 +21,7 @@ public, and there is a test that says so.
   // back to wherever the script tag itself sits, which is what happens when
   // someone pastes the snippet and nothing else.
   var script = document.currentScript;
-  var mount = document.getElementById(CONFIG.mountId);
+  var mount = document.getElementById(CONFIG.mountId) || document.getElementById(CONFIG.legacyMountId);
   if (!mount) {
     mount = document.createElement("div");
     if (script && script.parentNode) script.parentNode.insertBefore(mount, script);

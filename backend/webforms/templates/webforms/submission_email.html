@@ -14,9 +14,9 @@ not switch the table to `{% autoescape off %}`.
 
     {% if is_duplicate %}
       <p style="margin: 0 0 16px; padding: 12px; background: #fffbeb; border-radius: 6px; color: #92400e;">
-        This address already had a lead, so the details were merged into it
-        rather than creating a second record. Any field that was already filled
-        in was left as it was.
+        This submission is linked to an existing record.
+        {% if form.target_model == "Contact" %}Its details and owner were left unchanged.
+        {% else %}New details were merged into blank fields only.{% endif %}
       </p>
     {% endif %}
 
@@ -33,11 +33,11 @@ not switch the table to `{% autoescape off %}`.
       {% endfor %}
     </table>
 
-    {% if lead %}
+    {% if record %}
       <p style="margin: 0;">
-        <a href="{{ lead_url }}"
+        <a href="{{ record_url }}"
            style="display: inline-block; padding: 10px 16px; background: #2563eb; color: #ffffff; border-radius: 6px; text-decoration: none;">
-          Open the lead
+          Open {{ form.target_model|lower }}
         </a>
       </p>
     {% endif %}

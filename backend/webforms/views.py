@@ -183,12 +183,17 @@ class WebFormPublishView(WebFormBaseView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not form.fields.filter(lead_field=REQUIRED_LEAD_FIELD).exists():
+        required = (
+            {"first_name", "email"}
+            if form.target_model == "Contact"
+            else {REQUIRED_LEAD_FIELD}
+        )
+        if not required.issubset(set(form.fields.values_list("lead_field", flat=True))):
             return Response(
                 {
                     "error": True,
                     "errors": (
-                        "Add an email field before publishing. It is what lets "
+                        "Add the required identity fields (name and email for contacts) before publishing. This lets "
                         "a repeat submission update the existing lead instead "
                         "of failing."
                     ),
@@ -234,9 +239,11 @@ class WebFormSubmissionListView(WebFormBaseView):
     @extend_schema(tags=["Web forms"], responses=WebFormSubmissionSerializer(many=True))
     def get(self, request, pk):
         form = self.get_form(request, pk)
+        if not is_org_admin(request.profile):
+            return _admin_required()
         queryset = (
             WebFormSubmission.objects.filter(form=form, org=request.profile.org)
-            .select_related("lead")
+            .select_related("lead", "contact")
             .order_by("-created_at")
         )
         paginator = LimitOffsetPagination()

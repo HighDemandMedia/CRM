@@ -37,6 +37,7 @@ def test_customer_super_admin_is_not_platform_owner(
     assert not token["is_platform_owner"] and not token["can_preview"]
     assert admin_client.get("/api/leads/").status_code == 403
     for path in (
+        "/api/webforms/",
         "/api/contacts/",
         "/api/tags/",
         "/api/roles/",
@@ -51,7 +52,6 @@ def test_customer_super_admin_is_not_platform_owner(
         "/api/invoices/",
         "/api/cases/routing-rules/",
         "/api/cases/mailboxes/",
-        "/api/webforms/",
         "/api/org/tokens/",
     ],
 )

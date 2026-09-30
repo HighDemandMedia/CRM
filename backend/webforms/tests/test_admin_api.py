@@ -9,6 +9,7 @@ the reason is the same.
 import pytest
 
 from common.models import CustomFieldDefinition
+from common.testing import rls_org
 from webforms.models import WebForm, WebFormField
 
 LIST_URL = "/api/webforms/"
@@ -387,13 +388,14 @@ class TestFieldWrites:
         assert response.status_code == 400
 
     def test_a_custom_field_from_another_org_is_400(self, admin_client, org_b, form):
-        foreign = CustomFieldDefinition.objects.create(
-            org=org_b,
-            target_model="Lead",
-            key="budget",
-            label="B",
-            field_type="number",
-        )
+        with rls_org(org_b):
+            foreign = CustomFieldDefinition.objects.create(
+                org=org_b,
+                target_model="Lead",
+                key="budget",
+                label="B",
+                field_type="number",
+            )
         response = admin_client.put(
             detail_url(form),
             {
@@ -483,11 +485,11 @@ class TestSubmissions:
         form.save(update_fields=["is_published"])
         return submit_form(form, {"email": "pat@example.com"})
 
-    def test_a_member_can_read_submissions(self, user_client, org_a, form):
+    def test_a_member_cannot_read_submission_payloads(self, user_client, org_a, form):
         self._one_submission(form, org_a)
         response = user_client.get(f"{detail_url(form)}submissions/")
-        assert response.status_code == 200
-        assert len(response.data["results"]) == 1
+        assert response.status_code == 403
+        assert "results" not in response.data
 
     def test_another_org_cannot_read_submissions(self, org_b_client, org_a, form):
         self._one_submission(form, org_a)
@@ -580,7 +582,8 @@ class TestListTotals:
         assert admin_client.get(LIST_URL).data["totals"]["submissions_30d"] == 0
 
     def test_another_orgs_forms_are_not_counted(self, admin_client, org_a, org_b, form):
-        WebForm.objects.create(name="Theirs", org=org_b, is_published=True)
+        with rls_org(org_b):
+            WebForm.objects.create(name="Theirs", org=org_b, is_published=True)
         totals = admin_client.get(LIST_URL).data["totals"]
         assert totals["count"] == 1
         assert totals["published"] == 0
@@ -678,7 +681,8 @@ class TestCrossOrgReferences:
     def test_tags_refuses_another_orgs_tag(self, admin_client, org_b):
         from common.models import Tags
 
-        tag = Tags.objects.create(name="Theirs", org=org_b)
+        with rls_org(org_b):
+            tag = Tags.objects.create(name="Theirs", org=org_b)
         response = admin_client.post(
             LIST_URL, {"name": "Probe", "tags": [str(tag.id)]}, format="json"
         )

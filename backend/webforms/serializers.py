@@ -12,13 +12,19 @@ Two rules run through all of this:
   about it, and a drag-reorder is one atomic request rather than N.
 """
 
+import re
+from html import escape
 from urllib.parse import urlparse
 
 from django.db import transaction
 from rest_framework import serializers
 
 from common.models import CustomFieldDefinition, Profile, Tags
-from webforms.constants import LEAD_FIELD_VALUES
+from webforms.constants import (
+    ALL_FIELD_CHOICES,
+    CONTACT_FIELD_VALUES,
+    LEAD_FIELD_VALUES,
+)
 from webforms.models import WebForm, WebFormField, WebFormSubmission
 
 ALLOWED_URL_SCHEMES = ("http", "https")
@@ -40,6 +46,7 @@ class WebFormFieldSerializer(serializers.ModelSerializer):
             "custom_field",
             "label",
             "placeholder",
+            "external_name",
             "is_required",
         )
         # `order` is absent from `fields` entirely rather than declared
@@ -48,7 +55,7 @@ class WebFormFieldSerializer(serializers.ModelSerializer):
         read_only_fields = ("id",)
 
     def validate_lead_field(self, value):
-        if value and value not in LEAD_FIELD_VALUES:
+        if value and value not in dict(ALL_FIELD_CHOICES):
             raise serializers.ValidationError(
                 f"'{value}' is not a field a web form may collect."
             )
@@ -76,7 +83,7 @@ class WebFormFieldSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {"custom_field": "No such custom field for leads."}
                 )
-            if custom_field.target_model != "Lead":
+            if not custom_field.is_active:
                 raise serializers.ValidationError(
                     {"custom_field": "No such custom field for leads."}
                 )
@@ -92,6 +99,7 @@ class WebFormListSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "name",
+            "target_model",
             "is_published",
             "created_at",
             "submission_count",
@@ -102,6 +110,8 @@ class WebFormListSerializer(serializers.ModelSerializer):
 class WebFormDetailSerializer(serializers.ModelSerializer):
     fields = WebFormFieldSerializer(many=True, required=False)
     embed_html = serializers.SerializerMethodField()
+    connector_js = serializers.SerializerMethodField()
+    submit_url = serializers.SerializerMethodField()
     embed_js = serializers.SerializerMethodField()
     # Whether a secret is stored, never which one. Turnstile fails closed, so a
     # form with a provider and no secret refuses every submission; without this
@@ -115,6 +125,7 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "name",
+            "target_model",
             "is_published",
             "allowed_origins",
             "submit_button_label",
@@ -124,6 +135,9 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
             "assign_to",
             "notify_profiles",
             "lead_source",
+            "contact_source",
+            "notify_in_app",
+            "notify_email",
             "tags",
             "captcha_provider",
             "captcha_site_key",
@@ -133,6 +147,8 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
             "fields",
             "embed_html",
             "embed_js",
+            "connector_js",
+            "submit_url",
             "has_captcha_secret",
         )
         read_only_fields = ("id", "created_at", "is_published")
@@ -165,8 +181,22 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
         if org is None:
             request = self.context.get("request")
             org = getattr(getattr(request, "profile", None), "org", None)
-        self._scope("assign_to", Profile.objects.filter(org=org) if org else None)
-        self._scope("notify_profiles", Profile.objects.filter(org=org) if org else None)
+        self._scope(
+            "assign_to",
+            Profile.objects.filter(
+                org=org, is_active=True, removed_at__isnull=True, user__is_active=True
+            )
+            if org
+            else None,
+        )
+        self._scope(
+            "notify_profiles",
+            Profile.objects.filter(
+                org=org, is_active=True, removed_at__isnull=True, user__is_active=True
+            )
+            if org
+            else None,
+        )
         self._scope("tags", Tags.objects.filter(org=org) if org else None)
 
     def _scope(self, name, queryset):
@@ -197,15 +227,21 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
         return (
             f'<iframe src="{self._public_base(obj)}embed/" '
             f'style="width:100%;border:0" height="500" '
-            f'title="{obj.name}"></iframe>'
+            f'title="{escape(obj.name, quote=True)}"></iframe>'
         )
+
+    def get_submit_url(self, obj):
+        return self._public_base(obj) + "submit/"
+
+    def get_connector_js(self, obj):
+        return f'<script src="{self._public_base(obj)}connect.js" data-form="#contact-form" defer></script>'
 
     def get_has_captcha_secret(self, obj):
         return bool(obj.captcha_secret)
 
     def get_embed_js(self, obj):
         return (
-            f'<div id="bottlecrm-webform-{obj.id}"></div>\n'
+            f'<div id="hdm-webform-{obj.id}"></div>\n'
             f'<script src="{self._public_base(obj)}embed.js" async></script>'
         )
 
@@ -245,7 +281,13 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
                     f"'{entry}' is not a valid origin. Use a scheme and a host, "
                     f"for example https://example.com."
                 )
-            if parsed.path not in ("", "/") or parsed.query or parsed.fragment:
+            if (
+                parsed.path not in ("", "/")
+                or parsed.query
+                or parsed.fragment
+                or parsed.username
+                or parsed.password
+            ):
                 # An Origin header never carries a path, so an entry with one
                 # can never match. It would look configured while doing
                 # nothing, which is worse than being rejected.
@@ -257,6 +299,85 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
         return cleaned
 
     def validate(self, attrs):
+        target = attrs.get(
+            "target_model", getattr(self.instance, "target_model", "Lead")
+        )
+        if self.instance and target != self.instance.target_model:
+            raise serializers.ValidationError(
+                {"target_model": "Create a separate form to change the record type."}
+            )
+        rows = attrs.get("fields")
+        if rows is not None:
+            if len(rows) > 50:
+                raise serializers.ValidationError(
+                    {"fields": "A form can collect up to 50 properties."}
+                )
+            allowed = CONTACT_FIELD_VALUES if target == "Contact" else LEAD_FIELD_VALUES
+            targets, inputs = set(), set()
+            for row in rows:
+                custom = row.get("custom_field")
+                key = custom.key if custom else row.get("lead_field", "")
+                if custom and (
+                    key in dict(ALL_FIELD_CHOICES)
+                    or hasattr(serializers.Serializer, key)
+                    or key
+                    in ("company_website_url", "cf-turnstile-response", "request_id")
+                ):
+                    raise serializers.ValidationError(
+                        {
+                            "fields": "This custom property name is reserved for form processing."
+                        }
+                    )
+                if custom:
+                    if row["source"] != "custom" or custom.target_model != target:
+                        raise serializers.ValidationError(
+                            {"fields": "Choose a custom property for this record type."}
+                        )
+                elif row["source"] != "lead" or key not in allowed:
+                    raise serializers.ValidationError(
+                        {
+                            "fields": "This property cannot be collected for this record type."
+                        }
+                    )
+                name = row.get("external_name") or key
+                if not re.fullmatch(
+                    r"[A-Za-z][A-Za-z0-9_.\[\]-]{0,127}", name
+                ) or name in (
+                    "company_website_url",
+                    "cf-turnstile-response",
+                    "request_id",
+                ):
+                    raise serializers.ValidationError(
+                        {"fields": "Use a valid, non-reserved website input name."}
+                    )
+                if key in targets or name in inputs:
+                    raise serializers.ValidationError(
+                        {
+                            "fields": "Each property and website input name must appear only once."
+                        }
+                    )
+                targets.add(key)
+                inputs.add(name)
+                if target == "Contact" and key in ("first_name", "email"):
+                    row["is_required"] = True
+            if self.instance and self.instance.is_published:
+                required = {"first_name", "email"} if target == "Contact" else {"email"}
+                if not required.issubset(targets):
+                    raise serializers.ValidationError(
+                        {
+                            "fields": "Keep the required identity fields on a published form."
+                        }
+                    )
+        mode = attrs.get(
+            "success_mode", getattr(self.instance, "success_mode", "message")
+        )
+        if (
+            self.instance
+            and self.instance.is_published
+            and mode == "redirect"
+            and not attrs.get("redirect_url", self.instance.redirect_url)
+        ):
+            raise serializers.ValidationError({"redirect_url": "Enter a redirect URL."})
         provider = attrs.get(
             "captcha_provider", getattr(self.instance, "captcha_provider", "")
         )
@@ -295,6 +416,7 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
                 custom_field=row.get("custom_field"),
                 label=row["label"],
                 placeholder=row.get("placeholder", ""),
+                external_name=row.get("external_name", ""),
                 is_required=row.get("is_required", False),
             )
 
@@ -312,6 +434,15 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
             instance.tags.set(tags)
         if notify is not None:
             instance.notify_profiles.set(notify)
+        if rows is None and instance.target_model == "Contact":
+            rows = [
+                dict(source="lead", lead_field=key, label=label, is_required=required)
+                for key, label, required in [
+                    ("first_name", "Name", True),
+                    ("email", "Email", True),
+                    ("description", "Message", False),
+                ]
+            ]
         if rows is not None:
             self._write_fields(instance, rows)
         return instance
@@ -335,6 +466,7 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
 
 class WebFormSubmissionSerializer(serializers.ModelSerializer):
     lead_name = serializers.SerializerMethodField()
+    contact_name = serializers.SerializerMethodField()
 
     class Meta:
         model = WebFormSubmission
@@ -345,6 +477,8 @@ class WebFormSubmissionSerializer(serializers.ModelSerializer):
             "payload",
             "lead",
             "lead_name",
+            "contact",
+            "contact_name",
             "submitted_ip",
             "referer",
         )
@@ -356,3 +490,6 @@ class WebFormSubmissionSerializer(serializers.ModelSerializer):
         if obj.lead is None:
             return None
         return str(obj.lead)
+
+    def get_contact_name(self, obj):
+        return str(obj.contact) if obj.contact else None

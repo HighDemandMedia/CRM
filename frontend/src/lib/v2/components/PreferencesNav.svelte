@@ -64,7 +64,7 @@
       label: 'Channels & integrations',
       items: [
         { label: 'Inbound email', href: '/settings/inbound-email', icon: Mail },
-        { label: 'Web forms', href: '/settings/web-forms', icon: FileText },
+        { label: 'Web forms', href: '/settings/web-forms', icon: FileText, hideReview: true },
         { label: 'API access', href: '/settings/api-tokens', icon: KeyRound }
       ]
     },
