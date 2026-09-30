@@ -234,7 +234,7 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
         return self._public_base(obj) + "submit/"
 
     def get_connector_js(self, obj):
-        return f'<script src="{self._public_base(obj)}connect.js" data-form="#contact-form" defer></script>'
+        return f'<script src="{self._public_base(obj)}connect.js" data-form="form" data-mode="copy" defer></script>'
 
     def get_has_captcha_secret(self, obj):
         return bool(obj.captcha_secret)

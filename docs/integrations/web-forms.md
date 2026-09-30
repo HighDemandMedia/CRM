@@ -1,4 +1,4 @@
-# Web forms (web-to-lead)
+# Web forms (website to CRM)
 
 ## What this is
 
@@ -57,6 +57,43 @@ validates the form's shape rather than just flipping a flag:
 site: an embed you have removed from the page is not the same thing as an endpoint that has
 stopped accepting posts.
 
+## Connect an existing HTML form
+
+Use **Configure** for CRM fields, permitted website addresses, ownership and team alerts.
+Use **Connect to website → I already have a form** to match HTML input `name` attributes
+to those CRM fields. Save, publish, then copy the generated script after the HTML form:
+
+```html
+<script src="https://api.example.com/api/public/forms/<org_id>/<form_id>/connect.js"
+        data-form="#leadForm" data-mode="copy" defer></script>
+```
+
+The screen generates `data-form` from the optional HTML form ID. Without an ID it uses `form`,
+which works only when exactly one form exists on the page. It copies only the configured fields.
+It excludes passwords, files and hidden inputs. Do not install it alongside another integration
+that already submits the same form to this CRM.
+
+In **copy** mode the connector does not cancel submission, disable website buttons or redirect
+the visitor. Existing website email delivery and thank-you handling remain the website's
+responsibility. CRM notifications are separate and follow the form's configured recipients.
+
+A copy starts on a valid HTML `submit` event, independently of the original handler's outcome.
+`keepalive` helps requests survive navigation, but this is not guaranteed delivery. Custom forms
+using `form.submit()` do not emit that event. If confirmation is required, integrate the public
+endpoint in the site's own submit handler, await `status: "ok"`, and retain the existing email
+and redirect steps. Never expose a private CRM token in the page. Use a UUID `request_id` and
+reuse it for retries. The connector emits `hdm:submitted` on confirmation or `hdm:error` on a
+failed request, without including submitted personal data in these events.
+
+With Turnstile enabled, copy mode requires a dedicated, unused `cf-turnstile-response` token
+for this form's site key; it cannot reuse a token already verified by the website. It does not
+install a second widget automatically. Use the ready-made CRM form or a custom handler if needed.
+Older installed connectors without `data-mode="copy"` retain their managed behavior, including
+cancelling the original submission and applying the CRM confirmation settings.
+
+Test from the published website and verify **Submissions**, the original email and thank-you page.
+A website success message by itself does not prove that the CRM copy arrived.
+
 ## Embedding
 
 Both snippets are built server-side and returned on the form's detail response as `embed_html` and
@@ -73,10 +110,10 @@ so a snippet assembled in the client would point at the wrong host.
 The frame posts its own height to the parent window (`bottlecrm:webform:height`) if you want to
 size it dynamically. Nothing else crosses that boundary.
 
-**Script.** Renders into a div on your page, so it inherits nothing and collides with nothing:
+**Script.** Renders into a div on your page and inherits the site’s styling:
 
 ```html
-<div id="bottlecrm-webform-<form_id>"></div>
+<div id="hdm-webform-<form_id>"></div>
 <script src="https://crm.example.com/api/public/forms/<org_id>/<form_id>/embed.js" async></script>
 ```
 
@@ -90,6 +127,19 @@ the cross-origin surface down to the single submit route.
     and no tenant data, so an attacker who frames it can only submit a form that was already
     public. When the form lists allowed origins, the response also carries a
     `Content-Security-Policy: frame-ancestors` header naming them.
+
+### Troubleshooting an embed
+
+The form must be published. Add the exact website origin, including `https://`, `www` and port
+when applicable. Editor previews can run on a different origin and be blocked by the iframe's
+`frame-ancestors` policy. Use an HTML/embed block; rich-text editors may remove scripts.
+**Open form preview** checks the public form separately from the host page; submissions from
+that preview are real and may notify the team. Script configuration is served without caching.
+Both built-in embeds use a 20-second timeout and stable submission IDs for unchanged retries.
+
+The separation of configuration, publishing and embedding follows the public workflows in
+[HubSpot's external-site forms guide](https://knowledge.hubspot.com/forms/set-up-and-style-your-form-on-an-external-site)
+and [Zoho CRM's web forms guide](https://help.zoho.com/portal/en/kb/crm/connect-with-customers/webforms/articles/set-up-web-forms).
 
 ## Spam and abuse controls
 

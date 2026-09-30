@@ -240,5 +240,5 @@ class TestNonFieldErrorsAreVisible:
         offline visitor got the same silence as a throttled one."""
         html = unauthenticated_client.get(embed_url(org_a, form)).content.decode()
         js = unauthenticated_client.get(embed_js_url(org_a, form)).content.decode()
-        assert "Could not reach the server" in html
-        assert "Could not reach the server" in js
+        assert "Delivery could not be confirmed" in html
+        assert "Delivery could not be confirmed" in js

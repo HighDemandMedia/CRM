@@ -21,165 +21,191 @@ public, and there is a test that says so.
   // back to wherever the script tag itself sits, which is what happens when
   // someone pastes the snippet and nothing else.
   var script = document.currentScript;
-  var mount = document.getElementById(CONFIG.mountId) || document.getElementById(CONFIG.legacyMountId);
-  if (!mount) {
-    mount = document.createElement("div");
-    if (script && script.parentNode) script.parentNode.insertBefore(mount, script);
-    else document.body.appendChild(mount);
-  }
+  function mountForm() {
+    var mount = document.getElementById(CONFIG.mountId) || document.getElementById(CONFIG.legacyMountId);
+    if (!mount) {
+      mount = document.createElement("div");
+      mount.id = CONFIG.mountId;
+      if (script && script.parentNode) script.parentNode.insertBefore(mount, script);
+      else document.body.appendChild(mount);
+    }
 
-  var form = document.createElement("form");
-  form.setAttribute("novalidate", "novalidate");
+    if (mount.dataset.hdmMounted) return;
+    mount.dataset.hdmMounted = "true";
 
-  var inputs = {};
-  var errorNodes = {};
+    var form = document.createElement("form");
+    form.setAttribute("novalidate", "novalidate");
 
-  CONFIG.fields.forEach(function (field) {
-    var row = document.createElement("div");
-    row.style.marginBottom = "16px";
+    var inputs = {};
+    var errorNodes = {};
 
-    var label = document.createElement("label");
-    label.textContent = field.label + (field.required ? " *" : "");
-    label.style.display = "block";
-    label.style.marginBottom = "4px";
+    CONFIG.fields.forEach(function (field) {
+      var row = document.createElement("div");
+      row.style.marginBottom = "16px";
 
-    var input = document.createElement(field.multiline ? "textarea" : "input");
-    if (!field.multiline) input.type = field.email ? "email" : "text";
-    input.name = field.name;
-    if (field.placeholder) input.placeholder = field.placeholder;
-    input.style.width = "100%";
-    // Without this, `width: 100%` plus padding and border overflows the
-    // container and the host page scrolls sideways on a phone. The host page's
-    // own reset cannot be relied on, since we do not control it, and the
-    // iframe embed only avoids this because it ships its own `* { box-sizing }`.
-    input.style.boxSizing = "border-box";
-    input.style.maxWidth = "100%";
-    input.style.minHeight = field.multiline ? "96px" : "44px";
-    input.style.padding = "10px 12px";
+      var label = document.createElement("label");
+      label.textContent = field.label + (field.required ? " *" : "");
+      label.style.display = "block";
+      label.style.marginBottom = "4px";
 
-    var error = document.createElement("div");
-    error.style.color = "#b91c1c";
-    error.style.fontSize = "14px";
+      var input = document.createElement(field.multiline ? "textarea" : "input");
+      if (!field.multiline) input.type = field.email ? "email" : "text";
+      input.name = field.name;
+      if (field.placeholder) input.placeholder = field.placeholder;
+      input.style.width = "100%";
+      // Without this, `width: 100%` plus padding and border overflows the
+      // container and the host page scrolls sideways on a phone. The host page's
+      // own reset cannot be relied on, since we do not control it, and the
+      // iframe embed only avoids this because it ships its own `* { box-sizing }`.
+      input.style.boxSizing = "border-box";
+      input.style.maxWidth = "100%";
+      input.style.minHeight = field.multiline ? "96px" : "44px";
+      input.style.padding = "10px 12px";
 
-    label.appendChild(input);
-    row.appendChild(label);
-    row.appendChild(error);
-    form.appendChild(row);
+      var error = document.createElement("div");
+      error.style.color = "#b91c1c";
+      error.style.fontSize = "14px";
 
-    inputs[field.name] = input;
-    errorNodes[field.name] = error;
-  });
+      label.appendChild(input);
+      row.appendChild(label);
+      row.appendChild(error);
+      form.appendChild(row);
 
-  // Honeypot. Positioned off-screen rather than display:none, so it still
-  // looks fillable to a bot that skips hidden inputs.
-  var trap = document.createElement("input");
-  trap.type = "text";
-  trap.name = CONFIG.honeypot;
-  trap.tabIndex = -1;
-  trap.setAttribute("autocomplete", "off");
-  trap.setAttribute("aria-hidden", "true");
-  trap.style.position = "absolute";
-  trap.style.left = "-9999px";
-  form.appendChild(trap);
-
-  if (CONFIG.captchaSiteKey) {
-    var widget = document.createElement("div");
-    widget.className = "cf-turnstile";
-    widget.setAttribute("data-sitekey", CONFIG.captchaSiteKey);
-    form.appendChild(widget);
-
-    var api = document.createElement("script");
-    api.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
-    api.async = true;
-    api.defer = true;
-    document.head.appendChild(api);
-  }
-
-  // Refusals that name no input land here: the captcha, the throttle, an
-  // origin that is not on the list. Each answers `{"detail": "..."}`, and none
-  // of those keys match a field, so without this they rendered nowhere at all
-  // and the visitor got a re-enabled button and no explanation.
-  var general = document.createElement("div");
-  general.setAttribute("role", "alert");
-  general.hidden = true;
-  general.style.color = "#b91c1c";
-  general.style.fontSize = "14px";
-  general.style.margin = "0 0 12px";
-  form.appendChild(general);
-
-  var button = document.createElement("button");
-  button.type = "submit";
-  button.textContent = CONFIG.buttonLabel;
-  button.style.boxSizing = "border-box";
-  button.style.maxWidth = "100%";
-  button.style.minHeight = "44px";
-  button.style.padding = "12px 16px";
-  form.appendChild(button);
-
-  var done = document.createElement("div");
-  done.hidden = true;
-
-  mount.appendChild(form);
-  mount.appendChild(done);
-
-  function showGeneral(text) {
-    general.textContent = text;
-    general.hidden = false;
-  }
-
-  form.addEventListener("submit", function (event) {
-    event.preventDefault();
-    button.disabled = true;
-    Object.keys(errorNodes).forEach(function (key) {
-      errorNodes[key].textContent = "";
+      inputs[field.name] = input;
+      errorNodes[field.name] = error;
     });
-    general.textContent = "";
+
+    // Honeypot. Positioned off-screen rather than display:none, so it still
+    // looks fillable to a bot that skips hidden inputs.
+    var trap = document.createElement("input");
+    trap.type = "text";
+    trap.name = CONFIG.honeypot;
+    trap.tabIndex = -1;
+    trap.setAttribute("autocomplete", "off");
+    trap.setAttribute("aria-hidden", "true");
+    trap.style.position = "absolute";
+    trap.style.left = "-9999px";
+    form.appendChild(trap);
+
+    if (CONFIG.captchaSiteKey) {
+      var widget = document.createElement("div");
+      widget.className = "cf-turnstile";
+      widget.setAttribute("data-sitekey", CONFIG.captchaSiteKey);
+      form.appendChild(widget);
+
+      var api = document.createElement("script");
+      api.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+      api.async = true;
+      api.defer = true;
+      document.head.appendChild(api);
+    }
+
+    // Refusals that name no input land here: the captcha, the throttle, an
+    // origin that is not on the list. Each answers `{"detail": "..."}`, and none
+    // of those keys match a field, so without this they rendered nowhere at all
+    // and the visitor got a re-enabled button and no explanation.
+    var general = document.createElement("div");
+    general.setAttribute("role", "alert");
     general.hidden = true;
+    general.style.color = "#b91c1c";
+    general.style.fontSize = "14px";
+    general.style.margin = "0 0 12px";
+    form.appendChild(general);
 
-    var payload = {};
-    new FormData(form).forEach(function (value, key) { payload[key] = value; });
+    var button = document.createElement("button");
+    button.type = "submit";
+    button.textContent = CONFIG.buttonLabel;
+    button.style.boxSizing = "border-box";
+    button.style.maxWidth = "100%";
+    button.style.minHeight = "44px";
+    button.style.padding = "12px 16px";
+    form.appendChild(button);
 
-    fetch(CONFIG.submitUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    })
-      .then(function (res) {
-        return res.json().then(function (body) { return [res, body]; });
+    var done = document.createElement("div");
+    done.hidden = true;
+
+    mount.appendChild(form);
+    mount.appendChild(done);
+
+    function showGeneral(text) {
+      general.textContent = text;
+      general.hidden = false;
+    }
+
+    var pending = false, requestId = null, lastPayload = null;
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      if (pending) return;
+      pending = true;
+      button.disabled = true;
+      Object.keys(errorNodes).forEach(function (key) {
+        errorNodes[key].textContent = "";
+      });
+      general.textContent = "";
+      general.hidden = true;
+
+      var payload = {};
+      new FormData(form).forEach(function (value, key) { payload[key] = value; });
+
+      // Retries of the same entries reuse the submission ID, even after a timeout.
+      var fingerprint = JSON.stringify(Object.keys(payload).filter(function (key) {
+        return key !== "cf-turnstile-response";
+      }).map(function (key) { return [key, payload[key]]; }));
+      if (lastPayload !== fingerprint || !requestId) requestId = crypto.randomUUID();
+      lastPayload = fingerprint;
+      payload.request_id = requestId;
+      var controller = new AbortController();
+      var timeout = setTimeout(function () { controller.abort(); }, 20000);
+
+      fetch(CONFIG.submitUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "omit",
+        signal: controller.signal
       })
-      .then(function (pair) {
-        var res = pair[0], body = pair[1];
-        if (res.status === 200) {
-          if (body.mode === "redirect") {
-            // No frame here, so a plain navigation is correct.
-            window.location = body.redirect_url;
+        .then(function (res) {
+          return res.json().then(function (body) { return [res, body]; });
+        })
+        .then(function (pair) {
+          var res = pair[0], body = pair[1];
+          if (res.ok && body && body.status === "ok") {
+            if (body.mode === "redirect") {
+              // No frame here, so a plain navigation is correct.
+              window.location = body.redirect_url;
+              return;
+            }
+            form.hidden = true;
+            // textContent, never innerHTML: `body.message` is org-authored copy
+            // rendering on someone else's domain.
+            done.textContent = body.message || "Thanks.";
+            done.hidden = false;
             return;
           }
-          form.hidden = true;
-          // textContent, never innerHTML: `body.message` is org-authored copy
-          // rendering on someone else's domain.
-          done.textContent = body.message || "Thanks.";
-          done.hidden = false;
-          return;
-        }
-        if (!body || typeof body !== "object") {
-          showGeneral("Sorry, that could not be sent. Please try again.");
+          if (!body || typeof body !== "object") {
+            showGeneral("Sorry, that could not be sent. Please try again.");
+            button.disabled = false;
+            return;
+          }
+          var leftover = [];
+          Object.keys(body).forEach(function (key) {
+            var text = [].concat(body[key]).join(" ");
+            if (errorNodes[key]) errorNodes[key].textContent = text;
+            else leftover.push(text);
+          });
+          if (leftover.length) showGeneral(leftover.join(" "));
           button.disabled = false;
-          return;
-        }
-        var leftover = [];
-        Object.keys(body).forEach(function (key) {
-          var text = [].concat(body[key]).join(" ");
-          if (errorNodes[key]) errorNodes[key].textContent = text;
-          else leftover.push(text);
+        })
+        .catch(function () {
+          // Offline, DNS, a CORS refusal, or a response that is not JSON.
+          showGeneral("Delivery could not be confirmed. Your entries are still here; please try again.");
+          button.disabled = false;
+        }).finally(function () {
+          clearTimeout(timeout);
+          pending = false;
         });
-        if (leftover.length) showGeneral(leftover.join(" "));
-        button.disabled = false;
-      })
-      .catch(function () {
-        // Offline, DNS, a CORS refusal, or a response that is not JSON.
-        showGeneral("Could not reach the server. Please check your connection and try again.");
-        button.disabled = false;
-      });
-  });
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountForm, {once: true});
+  else mountForm();
 })();

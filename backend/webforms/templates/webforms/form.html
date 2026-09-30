@@ -140,25 +140,40 @@ NEVER reference `form.captcha_secret` here. Only `captcha_site_key` is public.
     if (leftover.length) showGeneral(leftover.join(' '));
   }
 
+  var pending = false, requestId = null, lastPayload = null;
   form.addEventListener('submit', function (event) {
     event.preventDefault();
+    if (pending) return;
+    pending = true;
     button.disabled = true;
     clearErrors();
 
     var payload = {};
     new FormData(form).forEach(function (value, key) { payload[key] = value; });
 
+    // Retries of the same entries reuse the submission ID, even after a timeout.
+    var fingerprint = JSON.stringify(Object.keys(payload).filter(function (key) {
+      return key !== "cf-turnstile-response";
+    }).map(function (key) { return [key, payload[key]]; }));
+    if (lastPayload !== fingerprint || !requestId) requestId = crypto.randomUUID();
+    lastPayload = fingerprint;
+    payload.request_id = requestId;
+    var controller = new AbortController();
+    var timeout = setTimeout(function () { controller.abort(); }, 20000);
+
     fetch(submitUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      credentials: "omit",
+      signal: controller.signal
     })
       .then(function (res) {
         return res.json().then(function (body) { return [res, body]; });
       })
       .then(function (pair) {
         var res = pair[0], body = pair[1];
-        if (res.status === 200) {
+        if (res.ok && body && body.status === "ok") {
           if (body.mode === 'redirect') {
             // Navigate the top window when the parent allows it, otherwise
             // navigate this frame. A cross-origin parent throws on access,
@@ -181,9 +196,12 @@ NEVER reference `form.captcha_secret` here. Only `captcha_site_key` is public.
         // Offline, DNS, a CORS refusal, or a response that is not JSON. Saying
         // nothing here left an offline visitor with the same silence a
         // throttled one used to get.
-        showGeneral('Could not reach the server. Please check your connection and try again.');
+        showGeneral('Delivery could not be confirmed. Your entries are still here; please try again.');
         button.disabled = false;
         reportHeight();
+      }).finally(function () {
+        clearTimeout(timeout);
+        pending = false;
       });
   });
 })();

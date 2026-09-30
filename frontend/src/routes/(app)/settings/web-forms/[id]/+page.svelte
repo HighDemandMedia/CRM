@@ -31,6 +31,7 @@
    * bound to it would look like it worked and do nothing.
    */
   import { untrack } from 'svelte';
+  import { connectorSnippet, previewUrl } from '$lib/v2/webform-connection.js';
   import { enhance } from '$app/forms';
   import { resolve } from '$app/paths';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
@@ -119,6 +120,9 @@
   let busy = $state(false);
   let activeTab = $state('configure');
   let connectionMode = $state('existing');
+  let websiteFormId = $state('');
+  let connectionCode = $derived(connectorSnippet(wf.submit_url, websiteFormId));
+  let publicPreview = $derived(previewUrl(wf.submit_url));
   let dirty = $state(false);
   let copyError = $state('');
   let copied = $state('');
@@ -137,6 +141,7 @@
     if (data.form.id === loadedId) return;
     loadedId = data.form.id;
     activeTab = 'configure';
+    websiteFormId = '';
     dirty = false;
     settings = seedSettings(data.form);
     fields = seed(data.form.fields ?? []);
@@ -375,6 +380,7 @@
     {/if}
 
     <form
+      id="webform-settings"
       hidden={activeTab !== 'configure'}
       method="POST"
       action="?/save"
@@ -435,9 +441,7 @@
         </div>
 
         <p class="v2-hint">
-          Connecting an existing form? Use each website input’s name (for example “your-email”).
-          Your website editor or developer can find it. Leave these names blank for a CRM-built
-          form.
+          Select the information you need. Match it to your website’s fields in the next step.
         </p>
 
         {#if !fields.length}
@@ -499,17 +503,6 @@
                   </select>
                 </div>
 
-                <div class="v2-field">
-                  <label for="external-{field.key}">Matching field on your website</label>
-                  <input
-                    id="external-{field.key}"
-                    class="v2-input"
-                    maxlength="128"
-                    disabled={!canManage}
-                    placeholder={field.lead_field || 'e.g. your-email'}
-                    bind:value={field.external_name}
-                  />
-                </div>
                 <details class="wf-details">
                   <summary>Field label and hint</summary>
                   <div class="wf-grid">
@@ -906,56 +899,123 @@
       {#if !wf.is_published}<p class="wf-notice">
           This form is still a draft. Save your configuration, then press Publish before testing it.
         </p>{/if}
-      {#if connectionMode === 'existing' && !(wf.allowed_origins ?? []).length}
+      {#if !(wf.allowed_origins ?? []).length}
         <p class="wf-notice">
-          Add and save your website address in Configure before connecting an existing form.
+          Add and save your website address in Configure before testing on your website.
         </p>
       {/if}
       {#if copyError}<p role="alert" class="wf-notice">{copyError}</p>{/if}
-      <div class="wf-snippet" hidden={connectionMode !== 'existing'}>
-        <div class="wf-snippet-head">
-          <b>Code for your existing form</b>
-          <button
-            type="button"
-            class="v2-btn v2-btn-sm"
-            onclick={() => copy(wf.connector_js, 'connector')}
-          >
-            {#if copied === 'connector'}<Check size={13} />Copied{:else}<Copy size={13} />Copy{/if}
-          </button>
-        </div>
-        <ol class="v2-sub">
-          <li>In Configure, match the website fields and add your website address.</li>
-          <li>Save and publish this form.</li>
-          <li>
-            Give the website form id="contact-form", or change data-form in the snippet to its
-            existing selector.
-          </li>
-          <li>
-            Paste the snippet once on that page, after the form. Submit a test and open the
-            Submissions tab.
-          </li>
-        </ol>
-        <pre>{wf.connector_js}</pre>
-        <p class="v2-hint">
-          This connector handles submission to the CRM and keeps your form’s design. Replace any
-          previous submit handler. Passwords, hidden inputs and files are not collected. If your
-          site already processes submissions, have its developer call the endpoint below from that
-          existing flow instead.
+      <div hidden={connectionMode !== 'existing'}>
+        <h3>1. Match your website fields</h3>
+        <p class="v2-sub">
+          Use the <code>name</code> of each HTML input, not its label. For example,
+          <code>name="email"</code>
+          becomes <code>email</code> below.
         </p>
-        <details>
-          <summary>Submit from your own code</summary>
+        <div class="wf-mapping">
+          {#each fields as field (field.key)}
+            <div class="v2-field">
+              <label for="external-{field.key}"
+                >{field.label || field.lead_field}{field.is_required ? ' *' : ''}</label
+              >
+              <input
+                id="external-{field.key}"
+                class="v2-input"
+                maxlength="128"
+                disabled={!canManage}
+                placeholder={field.lead_field || 'Website input name'}
+                bind:value={field.external_name}
+                oninput={() => (dirty = true)}
+              />
+            </div>
+          {/each}
+        </div>
+        <p class="v2-hint">
+          Blank means the CRM property name is used. Only these fields are copied; passwords, hidden
+          fields and files are excluded.
+        </p>
+        {#if canManage}
+          <button type="submit" form="webform-settings" class="v2-btn" disabled={busy || !dirty}
+            >{busy ? 'Saving…' : 'Save changes'}</button
+          >
+        {/if}
+
+        <h3>2. Copy one snippet to your website</h3>
+        <div class="v2-field">
+          <label for="website-form-id">HTML form ID (optional)</label>
+          <input
+            id="website-form-id"
+            class="v2-input"
+            placeholder="e.g. leadForm"
+            bind:value={websiteFormId}
+          />
           <p class="v2-hint">
-            POST JSON using the CRM property names (for example first_name, email and description).
-            Include a new UUID as request_id for each submission and reuse it when retrying. Use an
-            allowed Origin; include cf-turnstile-response when verification is enabled. No CRM login
-            or private API key belongs on your website.
+            Leave blank if the page has only one form. Otherwise enter its ID, for example <code
+              >leadForm</code
+            >
+            for <code>&lt;form id="leadForm"&gt;</code>.
+          </p>
+        </div>
+        <p class="v2-sub">Paste this once after your existing form in the page’s HTML.</p>
+        <div class="wf-snippet">
+          <div class="wf-snippet-head">
+            <b>Send a copy to the CRM</b>
+            <button
+              type="button"
+              class="v2-btn v2-btn-sm"
+              disabled={!connectionCode ||
+                dirty ||
+                !wf.is_published ||
+                !(wf.allowed_origins ?? []).length}
+              onclick={() => copy(connectionCode, 'connector')}
+            >
+              {#if copied === 'connector'}<Check size={13} />Copied{:else}<Copy size={13} />Copy
+                code{/if}
+            </button>
+          </div>
+          {#if connectionCode}<pre>{connectionCode}</pre>{:else}<p role="alert">
+              Use a form ID starting with a letter and containing only letters, numbers, hyphens or
+              underscores.
+            </p>{/if}
+          <p class="v2-hint">
+            Your website keeps its current email delivery and thank-you page. The CRM receives a
+            separate copy when the visitor submits a valid form. Do not add this if the form already
+            sends to this CRM.
+          </p>
+        </div>
+        {#if wf.captcha_provider}
+          <p class="wf-notice">
+            Verification is enabled. Your existing form must supply an unused Turnstile token using
+            this form’s site key. A token already checked by your website cannot be reused. Use a
+            ready-made CRM form if your website does not already support this.
+          </p>
+        {/if}
+        <h3>3. Send a test from your published website</h3>
+        <p class="v2-sub">
+          Check that the contact appears in Submissions, your original email arrives, and your
+          thank-you page opens. CRM alerts go to the recipients selected in Configure.
+        </p>
+        <details class="wf-details">
+          <summary>Advanced integration and delivery limits</summary>
+          <p class="v2-hint">
+            The copy is independent of your website’s submission result. A browser or network
+            interruption can prevent it from arriving. If delivery must be confirmed before showing
+            success, call the submission endpoint from your existing handler and wait for its
+            response. Forms submitted with JavaScript’s form.submit() do not emit a submit event;
+            use requestSubmit() or call the endpoint directly.
+          </p>
+          <p class="v2-hint">
+            POST JSON with CRM property names (first_name, email, description). Reuse the same UUID
+            request_id when retrying a submission. A successful response has status: "ok". Use an
+            allowed Origin and include cf-turnstile-response when verification is enabled. Never put
+            private API keys in a web page.
           </p>
           <pre>{wf.submit_url}</pre>
+          <p class="v2-hint">
+            Returning contacts are matched by email within this organization. Their details and
+            owner stay unchanged; the message is added to their activity.
+          </p>
         </details>
-        <p class="v2-hint">
-          Returning contacts are matched by email within this organization. Their details and owner
-          stay unchanged; the message is added to their activity.
-        </p>
       </div>
       <div class="wf-snippet" hidden={connectionMode !== 'new'}>
         <div class="wf-snippet-head">
@@ -963,6 +1023,7 @@
           <button
             type="button"
             class="v2-btn v2-btn-sm"
+            disabled={dirty || !wf.is_published}
             onclick={() => copy(wf.embed_html, 'html')}
           >
             {#if copied === 'html'}<Check size={13} />Copied{:else}<Copy size={13} />Copy{/if}
@@ -973,6 +1034,12 @@
           confirmation you configured.
         </p>
         <pre>{wf.embed_html}</pre>
+        {#if wf.is_published && publicPreview}
+          <a class="v2-btn v2-btn-sm" href={publicPreview} target="_blank" rel="noopener noreferrer"
+            >Open form preview</a
+          >
+          <p class="v2-hint">Preview submissions are real and can notify your team.</p>
+        {/if}
       </div>
 
       <details class="wf-snippet wf-details" hidden={connectionMode !== 'new'}>
@@ -980,7 +1047,12 @@
         <div class="wf-snippet-head">
           <b>Form script</b>
           <span class="v2-sub">Inherits your site's styling.</span>
-          <button type="button" class="v2-btn v2-btn-sm" onclick={() => copy(wf.embed_js, 'js')}>
+          <button
+            type="button"
+            class="v2-btn v2-btn-sm"
+            disabled={dirty || !wf.is_published}
+            onclick={() => copy(wf.embed_js, 'js')}
+          >
             {#if copied === 'js'}<Check size={13} />Copied{:else}<Copy size={13} />Copy{/if}
           </button>
         </div>
@@ -990,6 +1062,28 @@
             Add your website address in Configure before using this script.
           </p>
         {/if}
+      </details>
+      <details class="wf-details" style="margin-top:24px">
+        <summary>Form not appearing or submissions missing?</summary>
+        <ul class="v2-sub">
+          <li>Save and publish the form before using its code.</li>
+          <li>
+            Add the exact website address in Configure, including https:// and www if used. An
+            editor’s preview may have a different address.
+          </li>
+          <li>
+            Paste into an HTML/code block, not a text block. Some editors remove scripts; try the
+            ready-made iframe.
+          </li>
+          <li>
+            For an existing form, check its ID and input names. A page with several forms needs a
+            specific ID.
+          </li>
+          <li>
+            Test the published page. Open Submissions to confirm delivery; a website success message
+            alone does not confirm the CRM copy.
+          </li>
+        </ul>
       </details>
     </section>
 
@@ -1088,6 +1182,17 @@
 </div>
 
 <style>
+  .wf-mapping {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+  }
+  h3 {
+    font-size: 15px;
+    margin: 28px 0 12px;
+  }
+
   [hidden] {
     display: none !important;
   }
@@ -1189,15 +1294,8 @@
     font-size: 12px;
   }
   .wf-snippet > .v2-hint,
-  .wf-snippet > details,
   .wf-snippet > summary {
     margin: 12px;
-  }
-  .wf-snippet ol {
-    font-size: 13px;
-    line-height: 1.7;
-    padding: 12px 20px 12px 34px;
-    list-style: decimal;
   }
 
   .wf-body {

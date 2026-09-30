@@ -294,7 +294,9 @@ class WebFormEmbedJsView(EmbedViewMixin, APIView):
         context = self.render_context(request, form)
         context["config_json"] = self.config_json(context)
         js = render_to_string("webforms/embed.js", context)
-        return HttpResponse(js, content_type="application/javascript; charset=utf-8")
+        response = HttpResponse(js, content_type="application/javascript; charset=utf-8")
+        response["Cache-Control"] = "no-store"
+        return response
 
     def config_json(self, context):
         """The form's shape as a JSON literal to inline in the script.
