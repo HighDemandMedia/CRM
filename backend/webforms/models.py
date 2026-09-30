@@ -82,6 +82,13 @@ class WebForm(BaseOrgModel):
             "An empty list means unrestricted."
         ),
     )
+    connection_mode = models.CharField(
+        max_length=16,
+        choices=[("new", "Create form"), ("existing", "Connect existing form")],
+        default="existing",
+    )
+    website_form_id = models.CharField(max_length=128, blank=True, default="")
+    appearance = models.JSONField(default=dict, blank=True)
     submit_button_label = models.CharField(max_length=64, default="Submit")
 
     success_mode = models.CharField(

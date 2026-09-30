@@ -36,6 +36,23 @@ public, and there is a test that says so.
     var form = document.createElement("form");
     form.setAttribute("novalidate", "novalidate");
 
+    var design = CONFIG.appearance;
+    mount.style.maxWidth = design.width + "px";
+    mount.style.margin = "auto";
+    mount.style.padding = "16px";
+    mount.style.boxSizing = "border-box";
+    mount.style.color = design.text_color;
+    mount.style.background = design.background_color;
+    mount.style.fontFamily = design.font_family;
+    if (design.title) { var title = document.createElement("h2"); title.textContent = design.title; mount.appendChild(title); }
+    if (design.description) { var description = document.createElement("p"); description.textContent = design.description; description.style.whiteSpace = "pre-wrap"; mount.appendChild(description); }
+    var grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gap = "0 20px";
+    form.appendChild(grid);
+    function resizeGrid() { grid.style.gridTemplateColumns = "repeat(" + (mount.clientWidth >= 540 ? design.columns : 1) + ", minmax(0, 1fr))"; }
+    if (window.ResizeObserver) new ResizeObserver(resizeGrid).observe(mount);
+    resizeGrid();
     var inputs = {};
     var errorNodes = {};
 
@@ -53,6 +70,11 @@ public, and there is a test that says so.
       input.name = field.name;
       if (field.placeholder) input.placeholder = field.placeholder;
       input.style.width = "100%";
+      input.style.border = "1px solid #d1d5db";
+      input.style.borderRadius = design.radius + "px";
+      input.style.font = "inherit";
+      input.style.color = "inherit";
+      input.style.background = "#ffffff";
       // Without this, `width: 100%` plus padding and border overflows the
       // container and the host page scrolls sideways on a phone. The host page's
       // own reset cannot be relied on, since we do not control it, and the
@@ -69,7 +91,7 @@ public, and there is a test that says so.
       label.appendChild(input);
       row.appendChild(label);
       row.appendChild(error);
-      form.appendChild(row);
+      grid.appendChild(row);
 
       inputs[field.name] = input;
       errorNodes[field.name] = error;
@@ -114,6 +136,11 @@ public, and there is a test that says so.
 
     var button = document.createElement("button");
     button.type = "submit";
+    button.style.background = design.button_color;
+    button.style.color = design.button_text_color;
+    button.style.border = "0";
+    button.style.borderRadius = design.radius + "px";
+    button.style.font = "inherit";
     button.textContent = CONFIG.buttonLabel;
     button.style.boxSizing = "border-box";
     button.style.maxWidth = "100%";

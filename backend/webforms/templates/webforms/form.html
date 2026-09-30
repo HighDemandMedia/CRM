@@ -54,10 +54,22 @@ NEVER reference `form.captcha_secret` here. Only `captcha_site_key` is public.
   }
   .wf-done { padding: 16px; background: #ecfdf5; border-radius: 8px; }
   @media (min-width: 768px) { button { width: auto; min-width: 180px; } }
+  body { color: {{ appearance.text_color }}; background: {{ appearance.background_color }}; font-family: {{ appearance.font_family }}; }
+  .wf-content { container-type: inline-size; max-width: {{ appearance.width }}px; margin: auto; }
+  .wf-fields { display: grid; gap: 0 20px; grid-template-columns: minmax(0, 1fr); }
+  h1 { font-size: 24px; line-height: 1.3; margin: 0 0 12px; }
+  .wf-description { white-space: pre-wrap; margin: 0 0 24px; }
+  input, textarea, button { border-radius: {{ appearance.radius }}px; }
+  button { background: {{ appearance.button_color }}; color: {{ appearance.button_text_color }}; }
+  @container (min-width: 508px) { .wf-fields { grid-template-columns: repeat({{ appearance.columns }}, minmax(0, 1fr)); } }
 </style>
 </head>
 <body>
+<main class="wf-content">
+{% if appearance.title %}<h1>{{ appearance.title }}</h1>{% endif %}
+{% if appearance.description %}<p class="wf-description">{{ appearance.description }}</p>{% endif %}
 <form id="wf-form" data-submit-url="{{ submit_url }}" novalidate>
+  <div class="wf-fields">
   {% for field in fields %}
     <div class="wf-row">
       <label for="wf-{{ forloop.counter }}">
@@ -74,6 +86,7 @@ NEVER reference `form.captcha_secret` here. Only `captcha_site_key` is public.
       <div class="wf-err" data-err-for="{{ field.input_name }}"></div>
     </div>
   {% endfor %}
+  </div>
 
   <div class="wf-hp" aria-hidden="true">
     <label for="wf-hp">Leave this field empty</label>
@@ -90,6 +103,7 @@ NEVER reference `form.captcha_secret` here. Only `captcha_site_key` is public.
 </form>
 
 <div id="wf-done" class="wf-done" hidden></div>
+</main>
 
 <script>
 (function () {

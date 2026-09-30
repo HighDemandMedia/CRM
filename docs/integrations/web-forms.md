@@ -242,3 +242,32 @@ Two things people ask for that this deliberately does not do yet:
 
 Both were scoped out of the first release rather than half-built. A form is a flat ordered list of
 fields.
+
+
+## Guided builder (September 2026)
+
+The management UI has two paths (`connection_mode`: `new` or `existing`) and four
+steps: Start, Prepare, Configure, Install & test. New forms use a Contact template
+(Name and Email required, Phone/Company/Message optional). The mode controls the
+editor and recommended snippet; both existing public render endpoints remain compatible.
+
+`appearance` stores bounded design tokens: title (120), description (500), three
+six-digit hex colors, font (`system`, `arial`, `georgia`), width (280–1000 px), radius
+(0–24 px), and columns (1 or 2). Both public renderers apply these settings and
+collapse to one column on narrow containers. Button text color is selected for
+contrast. Text is escaped or inserted through `textContent`, never raw HTML.
+`website_form_id` persists the connector selector. No new frontend dependency is needed.
+
+HTML detection runs in an inert browser template, limited to 200 KB. It never mounts
+or saves pasted HTML. It excludes disabled, password, hidden, file and button inputs,
+suggests common English/Spanish mappings, and requires manual decisions for unknown
+or duplicate targets. Only confirmed mappings are saved. Existing-form snippets use
+`data-mode="copy"`; place one script after `</form>` and retain the original submit handler.
+
+The installation test records its start time on the server. A manual check finds
+accepted or accepted-duplicate submissions since that time for this form only. This
+confirms CRM receipt, not email delivery, and does not create or send test data itself.
+Longer customer instructions live in Help → Knowledge base → Connect your website forms.
+
+Deployment requires the `webforms.0004_webform_design` migration before the updated
+frontend. There are no new environment variables or packages.

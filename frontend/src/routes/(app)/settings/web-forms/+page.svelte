@@ -114,10 +114,6 @@
     {/if}
 
     {#if creating}
-      <!-- A name and nothing else. The fields are chosen on the form's own
-           page: a form with no email field cannot be published at all, so
-           asking for the field list from a one-line panel would put the
-           editor on two pages. This redirects straight there. -->
       <form
         method="POST"
         action="?/create"
@@ -125,6 +121,14 @@
         class="v2-card"
         style="padding:14px 15px;margin-bottom:18px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap"
       >
+        <div style="width:100%;display:flex;gap:24px;flex-wrap:wrap">
+          <label
+            ><input type="radio" name="connection_mode" value="new" checked /> Create a form</label
+          >
+          <label
+            ><input type="radio" name="connection_mode" value="existing" /> Connect my existing form</label
+          >
+        </div>
         <div style="flex:1;min-width:220px">
           <label class="v2-label" for="form-name" style="display:block;margin-bottom:4px">
             What is this form for?
@@ -139,7 +143,7 @@
             placeholder="e.g. Contact us"
           />
         </div>
-        <button class="v2-btn v2-btn-primary" disabled={busy}>Create and configure</button>
+        <button class="v2-btn v2-btn-primary" disabled={busy}>Continue</button>
         <button type="button" class="v2-btn" disabled={busy} onclick={() => (creating = false)}>
           Cancel
         </button>

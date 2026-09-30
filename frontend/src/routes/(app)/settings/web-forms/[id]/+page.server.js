@@ -34,7 +34,11 @@ export async function load(event) {
   }
 
   const [submissions, analytics] = await Promise.all([
-    getSubmissions(event, id).catch(() => ({ submissions: [], count: 0, activityError: 'Submission history could not be loaded. Administrator access is required.' })),
+    getSubmissions(event, id).catch(() => ({
+      submissions: [],
+      count: 0,
+      activityError: 'Submission history could not be loaded. Administrator access is required.'
+    })),
     getAnalytics(event, id).catch(() => null)
   ]);
 
@@ -84,6 +88,21 @@ function readOrigins(form) {
 
 /** @param {FormData} form */
 function readValues(form) {
+  if (form.has('configuration')) {
+    const parsed = JSON.parse(String(form.get('configuration')));
+    if (
+      !parsed ||
+      typeof parsed !== 'object' ||
+      Array.isArray(parsed) ||
+      !Array.isArray(parsed.fields)
+    ) {
+      throw new Error('Invalid form configuration. Reload and try again.');
+    }
+    // The adapter below still whitelists all settings and nested field attributes.
+    if (!parsed.captcha_secret) delete parsed.captcha_secret;
+    return parsed;
+  }
+
   /** @type {Record<string, any>} */
   const values = {
     name: form.get('name')?.toString() ?? '',
@@ -138,6 +157,26 @@ function actionError(err, forbidden, fallback) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  async verify(event) {
+    const posted = await event.request.formData();
+    const since = String(posted.get('since') || '');
+    if (!since) return { testingSince: new Date().toISOString(), received: false };
+    if (!Number.isFinite(Date.parse(since)))
+      return fail(400, { verify: { error: 'Start a new test.' } });
+    try {
+      const result = await getSubmissions(event, event.params.id);
+      return {
+        testingSince: since,
+        received: result.submissions.some(
+          (s) =>
+            ['accepted', 'accepted_duplicate'].includes(s.status) &&
+            Date.parse(s.created_at) >= Date.parse(since)
+        )
+      };
+    } catch {
+      return fail(400, { verify: { error: 'Could not check submissions. Try again.' } });
+    }
+  },
   async save(event) {
     const form = await event.request.formData();
     try {

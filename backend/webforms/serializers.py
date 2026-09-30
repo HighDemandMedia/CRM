@@ -20,6 +20,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from common.models import CustomFieldDefinition, Profile, Tags
+from webforms.appearance import AppearanceSerializer
 from webforms.constants import (
     ALL_FIELD_CHOICES,
     CONTACT_FIELD_VALUES,
@@ -108,6 +109,7 @@ class WebFormListSerializer(serializers.ModelSerializer):
 
 
 class WebFormDetailSerializer(serializers.ModelSerializer):
+    appearance = AppearanceSerializer(required=False)
     fields = WebFormFieldSerializer(many=True, required=False)
     embed_html = serializers.SerializerMethodField()
     connector_js = serializers.SerializerMethodField()
@@ -128,6 +130,9 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
             "target_model",
             "is_published",
             "allowed_origins",
+            "connection_mode",
+            "website_form_id",
+            "appearance",
             "submit_button_label",
             "success_mode",
             "success_message",
@@ -224,9 +229,12 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
         return request.build_absolute_uri(path)
 
     def get_embed_html(self, obj):
+        height = 280 + sum(
+            145 if f.lead_field == "description" else 100 for f in obj.fields.all()
+        )
         return (
             f'<iframe src="{self._public_base(obj)}embed/" '
-            f'style="width:100%;border:0" height="500" '
+            f'style="width:100%;border:0" height="{height}" '
             f'title="{escape(obj.name, quote=True)}"></iframe>'
         )
 
@@ -234,7 +242,8 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
         return self._public_base(obj) + "submit/"
 
     def get_connector_js(self, obj):
-        return f'<script src="{self._public_base(obj)}connect.js" data-form="form" data-mode="copy" defer></script>'
+        selector = "#" + obj.website_form_id if obj.website_form_id else "form"
+        return f'<script src="{self._public_base(obj)}connect.js" data-form="{escape(selector, quote=True)}" data-mode="copy" defer></script>'
 
     def get_has_captcha_secret(self, obj):
         return bool(obj.captcha_secret)
@@ -246,6 +255,13 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
         )
 
     # ---- validation -----------------------------------------------------
+
+    def validate_website_form_id(self, value):
+        if value and not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", value):
+            raise serializers.ValidationError(
+                "Use a form ID starting with a letter, followed by letters, numbers, - or _."
+            )
+        return value
 
     def validate_redirect_url(self, value):
         """Only http and https.

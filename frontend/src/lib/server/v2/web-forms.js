@@ -165,6 +165,9 @@ export async function getWebForm({ cookies }, id) {
  * and handled separately below because its shape needs its own pass.
  */
 const WRITABLE_FIELDS = [
+  'connection_mode',
+  'website_form_id',
+  'appearance',
   'name',
   'target_model',
   'contact_source',

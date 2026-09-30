@@ -38,19 +38,24 @@ function actionError(err, forbidden, missing, fallback) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-  /**
-   * A new form starts as a name and nothing else. It is created unpublished
-   * and with no fields, because a form with no email field cannot be
-   * published at all, and asking for the whole field list in a one-line
-   * create panel would put the field editor on two pages.
-   */
+  /** Create an unpublished Contact form from the standard five-field template. */
   async create(event) {
     const form = await event.request.formData();
     const name = form.get('name')?.toString() ?? '';
     /** @type {any} */
     let created;
     try {
-      created = await createWebForm(event, { name, target_model: 'Contact' });
+      created = await createWebForm(event, {
+        name,
+        target_model: 'Contact',
+        connection_mode: form.get('connection_mode') === 'existing' ? 'existing' : 'new',
+        fields: ['first_name', 'email', 'phone', 'organization', 'description'].map((key, i) => ({
+          source: 'lead',
+          lead_field: key,
+          label: ['Name', 'Email', 'Phone', 'Company', 'Message'][i],
+          is_required: i < 2
+        }))
+      });
     } catch (/** @type {any} */ err) {
       const { status, message } = actionError(
         err,

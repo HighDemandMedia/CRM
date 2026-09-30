@@ -233,7 +233,10 @@ class EmbedViewMixin(PublicWebFormMixin):
             logger.exception("Could not count a view for web form %s", form.id)
 
     def render_context(self, request, form):
+        from webforms.appearance import form_appearance
+
         return {
+            "appearance": form_appearance(form),
             "form": form,
             "fields": list(form.fields.select_related("custom_field").all()),
             "submit_url": request.build_absolute_uri(
@@ -294,7 +297,9 @@ class WebFormEmbedJsView(EmbedViewMixin, APIView):
         context = self.render_context(request, form)
         context["config_json"] = self.config_json(context)
         js = render_to_string("webforms/embed.js", context)
-        response = HttpResponse(js, content_type="application/javascript; charset=utf-8")
+        response = HttpResponse(
+            js, content_type="application/javascript; charset=utf-8"
+        )
         response["Cache-Control"] = "no-store"
         return response
 
@@ -318,6 +323,7 @@ class WebFormEmbedJsView(EmbedViewMixin, APIView):
             "submitUrl": context["submit_url"],
             "honeypot": context["honeypot"],
             "buttonLabel": form.submit_button_label,
+            "appearance": context["appearance"],
             # Only the SITE key. `captcha_secret` must never appear here, and
             # `test_the_script_embed_sends_the_site_key_but_not_the_secret`
             # is what says so.
