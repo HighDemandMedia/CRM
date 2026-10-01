@@ -31,7 +31,6 @@ from django.core import mail
 from accounts.models import Account
 from cases.models import Case
 from contacts.models import Contact
-from leads.models import Lead
 from opportunity.models import Opportunity
 
 FRONTEND = "https://app.example.com"
@@ -68,17 +67,6 @@ def _outbox_and_frontend(settings):
 
 @pytest.mark.django_db
 class TestAssignmentEmailsLinkToTheRecord:
-    def test_lead_assignment_links_to_the_lead(self, org_a, admin_user, admin_profile):
-        from leads.tasks import send_email_to_assigned_user
-
-        with impersonate(admin_user):
-            lead = Lead.objects.create(title="Roof job", org=org_a, status="assigned")
-
-        send_email_to_assigned_user([admin_profile.id], lead.id, str(org_a.id))
-
-        assert len(mail.outbox) == 1
-        assert _button_href(mail.outbox[0]) == f"{FRONTEND}/leads/{lead.id}"
-
     def test_contact_assignment_links_to_the_contact(
         self, org_a, admin_user, admin_profile
     ):
@@ -144,58 +132,6 @@ class TestAssignmentEmailsLinkToTheRecord:
 
 
 @pytest.mark.django_db
-class TestTheSecondLeadMailerAgreesWithTheFirst:
-    """Two tasks send "you were assigned a lead" from the same template.
-
-    They filled different context keys, so the template hedged with
-    ``{{ url|default:lead_detail_url }}``. Both now fill ``url`` with the same
-    value, which is what lets the template say ``{{ url }}`` like its five
-    siblings.
-    """
-
-    def test_the_webhook_mailer_links_to_the_lead(
-        self, org_a, admin_user, admin_profile
-    ):
-        """This one hands the rendered HTML to a second task to send.
-
-        `send_email.delay(...)` needs a broker, and the test settings point
-        Celery at `memory://` without eager mode, so the mail never leaves the
-        queue. The assertion is on what this task renders and dispatches,
-        which is the part under test.
-        """
-        from unittest.mock import patch
-
-        from leads.tasks import send_lead_assigned_emails
-
-        with impersonate(admin_user):
-            lead = Lead.objects.create(title="Web form", org=org_a, status="assigned")
-
-        with patch("leads.tasks.send_email.delay") as dispatched:
-            send_lead_assigned_emails(lead.id, [admin_profile.id], str(org_a.id))
-
-        assert dispatched.call_count == 1
-        html = dispatched.call_args.kwargs["html_content"]
-        assert f'href="{FRONTEND}/leads/{lead.id}"' in html
-        # The render itself is the other half: this template used to raise
-        # `VariableDoesNotExist` for whichever sender filled the other key.
-        assert "Web form" in html
-
-    def test_it_no_longer_takes_a_host_supplied_base(self):
-        """The dropped argument was ``request.META["HTTP_HOST"]``.
-
-        Its one caller is the website-lead webhook, so the base of a link in
-        mail this system sends to its own staff came off the wire. Pinning the
-        signature keeps a future caller from reintroducing it.
-        """
-        import inspect
-
-        from leads.tasks import send_lead_assigned_emails
-
-        params = list(inspect.signature(send_lead_assigned_emails.run).parameters)
-        assert params == ["lead_id", "new_assigned_to_list", "org_id"]
-
-
-@pytest.mark.django_db
 class TestAlertEmailsLinkToTheirPage:
     def test_stale_deal_alert_links_to_the_rotten_filter(
         self, org_a, admin_user, admin_profile
@@ -212,24 +148,6 @@ class TestAlertEmailsLinkToTheirPage:
         assert len(mail.outbox) == 1
         assert _button_href(mail.outbox[0]) == f"{FRONTEND}/pipeline?rotten=true"
 
-    def test_goal_milestone_links_to_goals(self, org_a, admin_user, admin_profile):
-        from opportunity.models import SalesGoal
-        from opportunity.tasks import _send_goal_milestone_email
-
-        with impersonate(admin_user):
-            goal = SalesGoal.objects.create(
-                name="Q3 revenue",
-                org=org_a,
-                target_value=10000,
-                period_start="2026-07-01",
-                period_end="2026-09-30",
-            )
-
-        _send_goal_milestone_email(admin_profile, goal, "50%", 50, 5000)
-
-        assert len(mail.outbox) == 1
-        assert _button_href(mail.outbox[0]) == f"{FRONTEND}/goals"
-
 
 @pytest.mark.django_db
 def test_a_trailing_slash_on_the_setting_does_not_double_up(
@@ -242,11 +160,11 @@ def test_a_trailing_slash_on_the_setting_does_not_double_up(
     """
     settings.FRONTEND_URL = f"{FRONTEND}/"
 
-    from leads.tasks import send_email_to_assigned_user
+    from accounts.tasks import send_email_to_assigned_user
 
     with impersonate(admin_user):
-        lead = Lead.objects.create(title="Slash", org=org_a, status="assigned")
+        account = Account.objects.create(name="Slash", org=org_a)
 
-    send_email_to_assigned_user([admin_profile.id], lead.id, str(org_a.id))
+    send_email_to_assigned_user([admin_profile.id], account.id, str(org_a.id))
 
-    assert _button_href(mail.outbox[0]) == f"{FRONTEND}/leads/{lead.id}"
+    assert _button_href(mail.outbox[0]) == f"{FRONTEND}/accounts/{account.id}"

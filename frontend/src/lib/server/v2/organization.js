@@ -126,7 +126,11 @@ export function updateOrgSettings({ cookies }, body) {
  */
 export async function getOrgTerminology({ cookies }) {
   const org = await apiRequest('/org/settings/', {}, { cookies });
-  return { terminology: org?.terminology, vertical: org?.vertical, isSuperAdmin: !!org?.is_super_admin };
+  return {
+    terminology: org?.terminology,
+    vertical: org?.vertical,
+    isSuperAdmin: !!org?.is_super_admin
+  };
 }
 
 /**

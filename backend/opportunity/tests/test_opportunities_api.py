@@ -19,7 +19,6 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ValidationError
 from django.db import connection
 from rest_framework import status
 
@@ -1283,8 +1282,8 @@ class TestOpportunityModel:
         )
         assert "ago" in opp.created_on_arrow
 
-    def test_clean_closed_won_without_date_raises(self, admin_user, org_a):
-        """clean() raises ValidationError when stage is CLOSED_WON without closed_on."""
+    def test_clean_closed_won_allows_optional_date(self, admin_user, org_a):
+        """Organizations configure required fields through pipeline rules."""
         _set_rls(org_a)
         opp = Opportunity(
             name="Clean Opp",
@@ -1293,12 +1292,11 @@ class TestOpportunityModel:
             org=org_a,
             created_by=admin_user,
         )
-        with pytest.raises(ValidationError) as exc_info:
-            opp.clean()
-        assert "closed_on" in exc_info.value.message_dict
+        opp.clean()
+        assert opp.closed_on is None
 
-    def test_clean_closed_won_without_amount_raises(self, admin_user, org_a):
-        """clean() raises ValidationError when stage is CLOSED_WON without amount."""
+    def test_clean_closed_won_allows_optional_amount(self, admin_user, org_a):
+        """The model does not duplicate configurable entry requirements."""
         _set_rls(org_a)
         opp = Opportunity(
             name="Clean Amt Opp",
@@ -1307,21 +1305,19 @@ class TestOpportunityModel:
             org=org_a,
             created_by=admin_user,
         )
-        with pytest.raises(ValidationError) as exc_info:
-            opp.clean()
-        assert "amount" in exc_info.value.message_dict
+        opp.clean()
+        assert opp.amount is None
 
-    def test_clean_closed_lost_without_date_raises(self, admin_user, org_a):
-        """clean() raises ValidationError when stage is CLOSED_LOST without closed_on."""
+    def test_clean_closed_lost_allows_optional_date(self, admin_user, org_a):
+        """Closed stages are not globally tied to a required close date."""
         opp = Opportunity(
             name="Clean Lost Opp",
             stage="CLOSED_LOST",
             org=org_a,
             created_by=admin_user,
         )
-        with pytest.raises(ValidationError) as exc_info:
-            opp.clean()
-        assert "closed_on" in exc_info.value.message_dict
+        opp.clean()
+        assert opp.closed_on is None
 
     def test_clean_valid(self, admin_user, org_a):
         """clean() passes when all required fields are present."""
@@ -1725,6 +1721,7 @@ class TestOpportunityCommentViewOwner:
 class TestOpportunityAttachmentOwner:
     """Cover attachment permission checks for non-admin users."""
 
+    @pytest.mark.usefixtures("attachment_delete_role")
     def test_non_admin_creator_can_delete_their_own_attachment(
         self, user_client, regular_user, org_a, admin_user, user_profile
     ):

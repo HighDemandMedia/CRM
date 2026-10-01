@@ -21,9 +21,21 @@
     dealSource = $state('');
   import { dateKey } from '$lib/v2/calendar.js';
   /** @type {{hosts:any[],defaultHost?:string|null,selected:Date,onCreated:()=>void, action?:string, defaultAttendee?:{id:string,name:string,type:string}}} */
-  let { hosts: allHosts, defaultHost, selected, onCreated, action = '?/create', defaultAttendee } = $props();
-  let hosts = $derived(allHosts.filter(person => page.data.permissions?.calendar_host_ids?.includes(person.id)));
-  let canCreateDeal = $derived(page.data.permissions?.rules?.deals?.create === true && page.data.permissions?.rules?.deals?.associations !== 'none');
+  let {
+    hosts: allHosts,
+    defaultHost,
+    selected,
+    onCreated,
+    action = '?/create',
+    defaultAttendee
+  } = $props();
+  let hosts = $derived(
+    allHosts.filter((person) => page.data.permissions?.calendar_host_ids?.includes(person.id))
+  );
+  let canCreateDeal = $derived(
+    page.data.permissions?.rules?.deals?.create === true &&
+      page.data.permissions?.rules?.deals?.associations !== 'none'
+  );
   /** @type {HTMLDialogElement} */
   let dialog;
   /** @type {HTMLDialogElement} */
@@ -69,10 +81,12 @@
 
   let attendees = $state(/** @type {any[]} */ ([]));
   let search = $state('');
-  let external = $derived(attendees.find(a => a.type === 'contact') || attendees.find(a => a.type === 'company'));
+  let external = $derived(
+    attendees.find((a) => a.type === 'contact') || attendees.find((a) => a.type === 'company')
+  );
   let showResults = $state(false);
   function chooseAttendee(kind, record) {
-    if (attendees.some(a => a.type === kind && a.id === record.id)) return;
+    if (attendees.some((a) => a.type === kind && a.id === record.id)) return;
     const previous = external;
     attendees = [...attendees, { ...record, type: kind }];
     updateDealName(previous);
@@ -85,7 +99,7 @@
   }
   function removeAttendee(record) {
     const previous = external;
-    attendees = attendees.filter(a => a !== record);
+    attendees = attendees.filter((a) => a !== record);
     updateDealName(previous);
   }
 
@@ -93,7 +107,11 @@
     loadingAttendees = $state(false),
     attendeeError = $state('');
   let choices = $state(
-    /** @type {{contacts:any[],companies:any[],users:any[]}} */ ({ contacts: [], companies: [], users: [] })
+    /** @type {{contacts:any[],companies:any[],users:any[]}} */ ({
+      contacts: [],
+      companies: [],
+      users: []
+    })
   );
   $effect(() => {
     if (!open || !showResults) return;
@@ -129,23 +147,23 @@
 </script>
 
 {#if page.data.permissions?.rules?.calendar?.create === true}
-<button
-  class="v2-btn v2-btn-primary"
-  onclick={() => {
-    date = dateKey(selected);
-    if (defaultAttendee) {
-      attendees = [{ ...defaultAttendee }];
-      search = '';
-    }
-    host = defaultHost || hosts[0]?.id || '';
-    error = '';
-    createDeal = canCreateDeal;
-    dealName = external ? `${external.name} - Deal` : '';
-    dealSource = '';
-    open = true;
-    dialog.showModal();
-  }}>Schedule event</button
->
+  <button
+    class="v2-btn v2-btn-primary"
+    onclick={() => {
+      date = dateKey(selected);
+      if (defaultAttendee) {
+        attendees = [{ ...defaultAttendee }];
+        search = '';
+      }
+      host = defaultHost || hosts[0]?.id || '';
+      error = '';
+      createDeal = canCreateDeal;
+      dealName = external ? `${external.name} - Deal` : '';
+      dealSource = '';
+      open = true;
+      dialog.showModal();
+    }}>Schedule event</button
+  >
 {/if}
 <dialog
   onclose={() => {
@@ -259,7 +277,21 @@
           <div class="selected-attendees">
             {#each attendees as person (`${person.type}:${person.id}`)}
               <input type="hidden" name="attendees" value={`${person.type}:${person.id}`} />
-              <span class="attendee-chip"><span>{person.name}<small>{person.type === 'user' ? 'User' : person.type === 'company' ? 'Company' : 'Contact'}</small></span><button type="button" aria-label={`Remove ${person.name}`} onclick={() => removeAttendee(person)}>×</button></span>
+              <span class="attendee-chip"
+                ><span
+                  >{person.name}<small
+                    >{person.type === 'user'
+                      ? 'User'
+                      : person.type === 'company'
+                        ? 'Company'
+                        : 'Contact'}</small
+                  ></span
+                ><button
+                  type="button"
+                  aria-label={`Remove ${person.name}`}
+                  onclick={() => removeAttendee(person)}>×</button
+                ></span
+              >
             {/each}
           </div>
           {#if showResults}
@@ -271,7 +303,7 @@
                   {#each choices.contacts as contact}<button
                       type="button"
                       class="attendee-result"
-                      disabled={attendees.some(a => a.type === 'contact' && a.id === contact.id)}
+                      disabled={attendees.some((a) => a.type === 'contact' && a.id === contact.id)}
                       onclick={() => chooseAttendee('contact', contact)}>{contact.name}</button
                     >{/each}
                 {/if}
@@ -279,14 +311,19 @@
                   {#each choices.companies as company}<button
                       type="button"
                       class="attendee-result"
-                      disabled={attendees.some(a => a.type === 'company' && a.id === company.id)}
+                      disabled={attendees.some((a) => a.type === 'company' && a.id === company.id)}
                       onclick={() => chooseAttendee('company', company)}>{company.name}</button
                     >{/each}
                 {/if}
                 {#if choices.users.length}<h3>Users</h3>
-                  {#each choices.users as user}<button type="button" class="attendee-result"
-                    disabled={attendees.some(a => a.type === 'user' && a.id === user.id)}
-                    onclick={() => chooseAttendee('user', user)}>{user.name}{#if user.email !== user.name}<small>{user.email}</small>{/if}</button>{/each}
+                  {#each choices.users as user}<button
+                      type="button"
+                      class="attendee-result"
+                      disabled={attendees.some((a) => a.type === 'user' && a.id === user.id)}
+                      onclick={() => chooseAttendee('user', user)}
+                      >{user.name}{#if user.email !== user.name}<small>{user.email}</small
+                        >{/if}</button
+                    >{/each}
                 {/if}
                 {#if !choices.contacts.length && !choices.companies.length && !choices.users.length}<p
                     class="v2-sub"
@@ -333,11 +370,18 @@
             maxlength="10000"
             bind:value={notes}></textarea></label
         >
-        <p class="v2-sub">These notes also appear in the Google Calendar description when the host connects a calendar.</p>
+        <p class="v2-sub">
+          These notes also appear in the Google Calendar description when the host connects a
+          calendar.
+        </p>
         {#if external}<label class="create-deal-toggle"
-          ><input type="checkbox" name="create_deal" disabled={!canCreateDeal} bind:checked={createDeal} />Create a deal for
-          this event</label
-        >
+            ><input
+              type="checkbox"
+              name="create_deal"
+              disabled={!canCreateDeal}
+              bind:checked={createDeal}
+            />Create a deal for this event</label
+          >
         {/if}
         {#if createDeal && external}
           <label
@@ -411,12 +455,43 @@
 </dialog>
 
 <style>
-  .selected-attendees { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-  .attendee-chip { display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--v2-line); border-radius:8px; font-size:12px; max-width:100%; }
-  .attendee-chip > span { min-width:0; overflow-wrap:anywhere; }
-  .attendee-chip small, .attendee-result small { display:block; color:var(--v2-slate); font-size:10px; }
-  .attendee-chip button { border:0; background:transparent; color:var(--v2-slate); font-size:18px; cursor:pointer; }
-  .attendee-result:disabled { opacity:.45; cursor:default; }
+  .selected-attendees {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .attendee-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid var(--v2-line);
+    border-radius: 8px;
+    font-size: 12px;
+    max-width: 100%;
+  }
+  .attendee-chip > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .attendee-chip small,
+  .attendee-result small {
+    display: block;
+    color: var(--v2-slate);
+    font-size: 10px;
+  }
+  .attendee-chip button {
+    border: 0;
+    background: transparent;
+    color: var(--v2-slate);
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .attendee-result:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
 
   .create-deal-toggle {
     display: flex;

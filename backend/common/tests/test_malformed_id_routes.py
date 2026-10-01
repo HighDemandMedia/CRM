@@ -26,7 +26,7 @@ from django.urls import get_resolver
 MALFORMED = "not-a-uuid"
 
 # Path params that are legitimately not UUIDs. Anything else must be `<uid:>`.
-NON_UUID_PARAMS = {"token", "pack_id"}
+NON_UUID_PARAMS = {"token", "pack_id", "service", "module", "kind"}
 
 
 def _routes():

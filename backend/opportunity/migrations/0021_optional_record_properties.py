@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('opportunity', '0020_deal_phone_email'),
+        ("opportunity", "0020_deal_phone_email"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='opportunity',
-            name='name',
-            field=models.CharField(blank=True, max_length=255, verbose_name='Opportunity Name'),
+            model_name="opportunity",
+            name="name",
+            field=models.CharField(
+                blank=True, max_length=255, verbose_name="Opportunity Name"
+            ),
         ),
     ]

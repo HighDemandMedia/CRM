@@ -1,5 +1,12 @@
 import { fail } from '@sveltejs/kit';
-import { getTags, createTag, archiveTag, restoreTag, mergeTags, updateTag } from '$lib/server/v2/tags.js';
+import {
+  getTags,
+  createTag,
+  archiveTag,
+  restoreTag,
+  mergeTags,
+  updateTag
+} from '$lib/server/v2/tags.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -13,11 +20,14 @@ export const actions = {
     const form = await event.request.formData();
     try {
       await updateTag(event, String(form.get('id') || ''), {
-        name: String(form.get('name') || ''), color: String(form.get('color') || 'blue')
+        name: String(form.get('name') || ''),
+        color: String(form.get('color') || 'blue')
       });
-      return {edited: true};
+      return { edited: true };
     } catch (err) {
-      return fail(err.status === 403 ? 403 : 400, {edit: {error: readableError(err, 'Could not update this tag.')}});
+      return fail(err.status === 403 ? 403 : 400, {
+        edit: { error: readableError(err, 'Could not update this tag.') }
+      });
     }
   },
   // Admin-only. `load`'s `can_edit` hides the "New tag" control for a member,

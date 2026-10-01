@@ -121,9 +121,13 @@ function refreshAccessToken(refreshToken) {
  */
 async function performTokenRefresh(refreshToken) {
   try {
-    const response = await axios.post(`${API_BASE_URL}/auth/refresh-token/`, {
-      refresh: refreshToken
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/refresh-token/`,
+      {
+        refresh: refreshToken
+      },
+      { timeout: 15000 }
+    );
 
     if (!response.data?.access) {
       return null;
@@ -157,6 +161,7 @@ async function switchOrg(accessToken, orgId, refreshToken) {
       `${API_BASE_URL}/auth/switch-org/`,
       refreshToken ? { org_id: orgId, refresh: refreshToken } : { org_id: orgId },
       {
+        timeout: 15000,
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -171,8 +176,6 @@ async function switchOrg(accessToken, orgId, refreshToken) {
     return null;
   }
 }
-
-
 
 export const handle = async function handle({ event, resolve }) {
   // Get tokens from cookies
@@ -333,7 +336,15 @@ export const handle = async function handle({ event, resolve }) {
   // endpoints). Without them here the guard redirects every customer who clicks
   // a link to /login, so the portal is unreachable. Server-side token→org
   // resolution + RLS is what actually protects the data (see docs/PORTAL_RLS.md).
-  const PUBLIC_ROUTES = ['/login', '/register', '/logout', '/bounce', '/portal', '/csat', '/invite'];
+  const PUBLIC_ROUTES = [
+    '/login',
+    '/register',
+    '/logout',
+    '/bounce',
+    '/portal',
+    '/csat',
+    '/invite'
+  ];
 
   // Define semi-protected routes (auth required, but no org)
   const AUTH_ONLY_ROUTES = ['/org'];
@@ -366,7 +377,12 @@ export const handle = async function handle({ event, resolve }) {
   if (pathname.startsWith('/org/new') && !event.locals.user?.is_platform_owner) {
     throw redirect(303, '/org');
   }
-  if (!event.locals.profile?.can_preview && !isPublicRoute && !isAuthOnlyRoute && !pathname.startsWith('/api/') && !demoPageAllowed(pathname)) {
+  if (
+    !isPublicRoute &&
+    !isAuthOnlyRoute &&
+    !pathname.startsWith('/api/') &&
+    !demoPageAllowed(pathname)
+  ) {
     throw redirect(303, '/');
   }
   return resolve(event);

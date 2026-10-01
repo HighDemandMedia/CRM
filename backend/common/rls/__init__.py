@@ -32,7 +32,10 @@ INSERT_POLICY = "org_insert_check"
 # NOTE: Only include tables that have an org_id column directly
 # Table names must match actual PostgreSQL table names (check via \dt)
 ORG_SCOPED_TABLES = [
-    "google_connection", "google_calendar_event", "google_mail_activity", "google_calendar_mirror",
+    "google_connection",
+    "google_calendar_event",
+    "google_mail_activity",
+    "google_calendar_mirror",
     "crm_role",
     # Core business entities
     "lead",
@@ -118,6 +121,7 @@ ORG_SCOPED_TABLES = [
     #
     # Notifications
     "notification",
+    "reminder_delivery",
     # Case watchers (Tier 2 watchers-mentions)
     "case_watcher",
     # Business hours (Tier 2 business-hours-sla)

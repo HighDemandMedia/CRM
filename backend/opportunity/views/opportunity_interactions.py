@@ -161,4 +161,5 @@ class OpportunityAttachmentView(APIView):
     )
     def delete(self, request, pk, format=None):
         from common.views.attachment_views import delete_attachment
+
         return delete_attachment(request, pk, expected_model="opportunity")

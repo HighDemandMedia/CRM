@@ -18,7 +18,11 @@
   $effect(() => {
     const incoming = options;
     // Keep selected tag labels while later search results arrive.
-    available = [...new Map([...untrack(() => available), ...incoming].map(tag => [String(tag.id), tag])).values()];
+    available = [
+      ...new Map(
+        [...untrack(() => available), ...incoming].map((tag) => [String(tag.id), tag])
+      ).values()
+    ];
   });
   const originalValue = untrack(() => JSON.stringify([...original].map(String).sort()));
   let search = $state(''),
@@ -83,7 +87,8 @@
   }
 </script>
 
-<div data-stage-field="tags"
+<div
+  data-stage-field="tags"
   class="picker"
   onfocusout={(e) => {
     if (!e.currentTarget.contains(/** @type {Node|null} */ (e.relatedTarget))) open = false;
@@ -134,8 +139,7 @@
             type="button"
             class="option"
             disabled={creating}
-            onclick={() => choose(tag)}
-            ><TagBadge {tag} /></button
+            onclick={() => choose(tag)}><TagBadge {tag} /></button
           >{/each}
       </div>
       {#if search.trim() && !exact && canCreate}

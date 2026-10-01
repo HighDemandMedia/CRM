@@ -68,9 +68,12 @@ export function stageRequirements(err) {
 export function fieldErrors(err) {
   const errors = err?.body?.errors ?? err?.body;
   if (!errors || typeof errors !== 'object') return {};
-  return Object.fromEntries(Object.entries(errors).flatMap(([key, detail]) => {
-    const text = Array.isArray(detail) ? detail.join(' ') : detail;
-    return typeof text === 'string' && key !== 'non_field_errors'
-      ? [[key === 'first_name' ? 'name' : key, text]] : [];
-  }));
+  return Object.fromEntries(
+    Object.entries(errors).flatMap(([key, detail]) => {
+      const text = Array.isArray(detail) ? detail.join(' ') : detail;
+      return typeof text === 'string' && key !== 'non_field_errors'
+        ? [[key === 'first_name' ? 'name' : key, text]]
+        : [];
+    })
+  );
 }

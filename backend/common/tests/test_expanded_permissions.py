@@ -12,6 +12,7 @@ from common.rbac import (
     validate_record_fields,
     validate_rules,
 )
+from common.testing import rls_org
 from contacts.models import Contact
 
 pytestmark = pytest.mark.django_db
@@ -176,7 +177,8 @@ def test_calendar_own_team_org_visibility(
     role = set_role(user_profile)
     mine = event(org_a, user_profile)
     theirs = event(org_a, admin_profile)
-    other = event(org_b, profile_b)
+    with rls_org(org_b):
+        other = event(org_b, profile_b)
     assert set(
         calendar_scoped(SalesAppointment.objects.all(), user_profile).values_list(
             "pk", flat=True

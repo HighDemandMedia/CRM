@@ -60,6 +60,7 @@ class TestOpportunityAttachmentDelete:
         assert admin_client.delete(self.URL.format(att.id)).status_code == 200
         assert not Attachments.objects.filter(id=att.id).exists()
 
+    @pytest.mark.usefixtures("attachment_delete_role")
     def test_uploader_deletes_own_attachment(
         self, org_a, user_client, regular_user, opp_a
     ):

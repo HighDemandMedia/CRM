@@ -47,19 +47,19 @@ def allow_webform_origin(sender, request, **kwargs):
 
     # Imported here rather than at module scope to keep this module importable
     # from AppConfig.ready() without pulling the ORM in too early.
-    from common.tasks import set_rls_context
+    from common.rls.context import org_context
 
     org_id = match.group("org_id")
-    set_rls_context(org_id)
 
     try:
-        allowed = (
-            WebForm.objects.filter(
-                id=match.group("form_id"), org_id=org_id, is_published=True
+        with org_context(org_id):
+            allowed = (
+                WebForm.objects.filter(
+                    id=match.group("form_id"), org_id=org_id, is_published=True
+                )
+                .values_list("allowed_origins", flat=True)
+                .first()
             )
-            .values_list("allowed_origins", flat=True)
-            .first()
-        )
     except Exception:
         # A malformed id reaches the database as a bad UUID and raises. Refusing
         # is the safe answer: this decides whether to relax a cross-origin

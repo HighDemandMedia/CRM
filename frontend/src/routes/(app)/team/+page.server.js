@@ -28,10 +28,18 @@ export async function load({ cookies }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-  assignRole: async ({cookies, request}) => {
-    const form=await request.formData();
-    try { await apiRequest(`/roles/members/${form.get('profileId')}/`, {method:'POST',body:{role_id:form.get('role_id')}}, {cookies}); return {roleChanged:true}; }
-    catch(err) { return fail(400,{error:readableError(err,'Could not assign role.')}); }
+  assignRole: async ({ cookies, request }) => {
+    const form = await request.formData();
+    try {
+      await apiRequest(
+        `/roles/members/${form.get('profileId')}/`,
+        { method: 'POST', body: { role_id: form.get('role_id') } },
+        { cookies }
+      );
+      return { roleChanged: true };
+    } catch (err) {
+      return fail(400, { error: readableError(err, 'Could not assign role.') });
+    }
   },
   saveTeam: async ({ cookies, request }) => {
     const form = await request.formData();
@@ -77,12 +85,14 @@ export const actions = {
     if (!ROLES.includes(role)) return fail(400, { invite: { error: 'Pick a valid role.' } });
 
     try {
-      await inviteUser({ cookies }, { email, role, access_role_id: String(form.get('access_role_id') || '') || null });
+      await inviteUser(
+        { cookies },
+        { email, role, access_role_id: String(form.get('access_role_id') || '') || null }
+      );
     } catch (/** @type {any} */ err) {
       return fail(err?.status === 403 ? 403 : 400, {
         invite: {
-          error:
-            readableError(err, 'Could not send that invite.')
+          error: readableError(err, 'Could not send that invite.')
         }
       });
     }

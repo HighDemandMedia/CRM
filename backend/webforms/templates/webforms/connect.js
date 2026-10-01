@@ -10,6 +10,8 @@
     var matches;
     try { matches = selector ? document.querySelectorAll(selector) : []; }
     catch (_) { console.error('CRM: use a valid form selector in data-form.'); return; }
+    // Modal/page builders may insert the form after this script has loaded.
+    if (!matches.length) return;
     if (matches.length !== 1 || matches[0].tagName !== 'FORM') {
       console.error('CRM: data-form must match exactly one HTML form.'); return;
     }
@@ -126,6 +128,15 @@
       }
     }, true);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach, {once: true});
-  else attach();
+  function start() {
+    attach();
+    var scheduled = false;
+    new MutationObserver(function (changes) {
+      if (scheduled || !changes.some(function (change) { return change.addedNodes.length; })) return;
+      scheduled = true;
+      setTimeout(function () { scheduled = false; attach(); }, 50);
+    }).observe(document.body, {childList: true, subtree: true});
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once: true});
+  else start();
 })();

@@ -14,8 +14,9 @@ _DENIED = "You do not have Permission to perform this action"
 
 def has_deal_access(profile, user, opportunity):
     from common.rbac import configured, permitted
+
     if configured(profile):
-        return permitted(profile, opportunity, 'view')
+        return permitted(profile, opportunity, "view")
     """Admins, the creator, and anyone assigned. Everyone else is refused.
 
     Four copies of this check used to live inline in ``get``, ``put``,

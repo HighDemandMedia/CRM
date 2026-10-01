@@ -152,9 +152,14 @@ export async function deactivateCustomField({ cookies }, id) {
 /** Permanently remove a custom definition and its values, after typed confirmation. */
 export async function deleteCustomField({ cookies }, id, confirmation) {
   if (!id) throw new Error('Choose a custom property to delete.');
-  return apiRequest(`/custom-fields/${id}/?permanent=true`, {
-    method: 'DELETE', body: { confirmation }
-  }, { cookies });
+  return apiRequest(
+    `/custom-fields/${id}/?permanent=true`,
+    {
+      method: 'DELETE',
+      body: { confirmation }
+    },
+    { cookies }
+  );
 }
 
 const PROPERTY_OBJECTS = ['Contact', 'Account', 'Opportunity', 'Task', 'Case'];

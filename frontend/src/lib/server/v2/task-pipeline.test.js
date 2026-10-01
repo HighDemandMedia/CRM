@@ -4,7 +4,9 @@ vi.mock('$lib/api-helpers.js', () => ({ apiRequest: (...args) => apiRequest(...a
 const { updateTask } = await import('./tasks.js');
 const event = /** @type {any} */ ({ cookies: {} });
 describe('task pipeline moves', () => {
-  beforeEach(() => { apiRequest.mockReset(); });
+  beforeEach(() => {
+    apiRequest.mockReset();
+  });
   it.each(['New', 'In Progress', 'Completed'])('updates only status for %s', async (status) => {
     apiRequest.mockResolvedValue({});
     await updateTask(event, 'task-id', { status });

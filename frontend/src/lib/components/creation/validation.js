@@ -21,7 +21,7 @@ export function recordFieldError(name, raw, required = false) {
     return 'Enter a single line without control characters.';
   if (
     ['city', 'state'].includes(name) &&
-    (!/\p{L}/u.test(value) || /[^\p{L}\p{M}\p{N} .,'’‘‐‑–—()&/\-]/u.test(value))
+    (!/\p{L}/u.test(value) || /[^\p{L}\p{M}\p{N} .,'’‘‐‑–—()&/-]/u.test(value))
   )
     return `Enter a valid ${name === 'city' ? 'city' : 'state / region'} name.`;
   if (name === 'postcode' && (!/[\p{L}\p{N}]/u.test(value) || /[^\p{L}\p{N} -]/u.test(value)))

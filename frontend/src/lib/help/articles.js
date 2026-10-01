@@ -1,29 +1,49 @@
 // Product guidance for the customized HDM CRM. No customer records or tenant articles.
 export const articles = [
   {
-    slug: 'website-forms', category: 'Configuration', title: 'Connect your website forms',
+    slug: 'website-forms',
+    category: 'Configuration',
+    title: 'Connect your website forms',
     summary: 'Create contacts from website enquiries and notify your team.',
     sections: [
-      {title: 'Create a form', steps: [
-        'Open Settings → Channels & integrations → Web forms → New form. Choose Create a form and enter a name.',
-        'Start: add your website addresses, including https://. Add the www address separately if visitors use it.',
-        'Prepare: start with Name, Email, Phone, Company and Message. Add, reorder or remove fields. Name and Email are required. Set the title, button text, colors, font, width, corners and columns. Check Desktop and Mobile previews.',
-        'Configure: choose the responsible user and CRM/email alerts. Choose a confirmation message or the full URL of an existing thank-you page.',
-        'Install & test: publish the form, copy the code and paste it in your website’s HTML/embed block where the form should appear. Save and publish that website page.',
-        'Start a test, submit an enquiry on your website, then Check for submission. Review the contact and recipient inbox separately.'
-      ]},
-      {title: 'Connect an existing HTML form', steps: [
-        'Create a connection using Connect my existing form. Add the exact website addresses in Start.',
-        'In Prepare, paste the complete <form>…</form> HTML and choose Detect fields. If several forms are found, choose the correct one. Select a CRM property or Skip for every input, then Use these matches. Pasted HTML is inspected locally, never executed or saved.',
-        'Review the Website input name for each property. This must match the input’s name attribute, not its visible label. For example, <input name="your-email"> maps Website input name your-email to CRM property Email.',
-        'Enter the form ID from <form id="contact-form">. Leave it blank only if that page contains exactly one form. IDs must start with a letter and use letters, numbers, hyphens or underscores. Add a suitable ID to the website form when needed.',
-        'Choose the responsible user and alerts. Publish, then paste the connector code once immediately after </form> in that page’s HTML. Keep the website’s existing submit handler.',
-        'Publish the website, start a test and submit the existing form. Choose Check for submission and verify the contact and notifications.'
-      ]},
-      {title: 'What the connector preserves', text: 'The generated connector copies mapped values to the CRM without replacing your website’s design, submit handler, original email delivery or thank-you page. Only named visible inputs, selects and textareas can be collected; passwords, hidden inputs and files are excluded. This browser copy is independent of the website’s own delivery and can be interrupted by navigation, network issues, consent tools or content security rules. For guaranteed coordinated delivery, a developer should submit from your website backend using the public form endpoint and a stable request_id. Older installed scripts without data-mode="copy" may take over submission: replace them with the current installation code, rather than installing both.'},
-      {title: 'Appearance and installation', text: 'Appearance settings apply to CRM-built forms only. Mobile layouts use one column. The embedded frame isolates the form from website styles and can scroll when needed; adjust its height in the pasted code if the page needs more room. The thank-you URL must be a published page that exists on your website. For the alternate JavaScript renderer, replace the embed/ suffix in the published preview URL with embed.js and use that URL as a script src at the desired location. Do not install both renderers on the same form placement.'},
-      {title: 'Existing contacts and alerts', text: 'Email addresses are matched within the organization. A returning visitor adds a submission to the existing contact without changing its details or owner. The responsible user, current contact owners and selected recipients receive alerts only when active and allowed to view the contact. Personal in-app preferences apply. CRM email alerts use the system sender and do not require a personal Gmail connection. Submission received confirms a CRM record, not delivery to an inbox; check email separately.'},
-      {title: 'Spam protection and troubleshooting', text: 'The form must be published and the website origin allowed. Check field names and required values first. Turnstile is optional under Configure → More settings. Add its site key and secret, and authorize your website hostname in Cloudflare. An existing form needs its own available Turnstile token; a token already consumed by the website cannot be reused for the CRM. If the page strips scripts, use its custom-code editor. If an iframe is blocked, check the allowed website addresses. Open the published form to isolate installation problems. Submissions shows recent attempts; it does not prove email delivery.'}
+      {
+        title: 'Create a form',
+        steps: [
+          'Open Settings → Channels & integrations → Web forms → New form. Choose Create a form and enter a name.',
+          'Start: add your website addresses, including https://. Add the www address separately if visitors use it.',
+          'Prepare: start with Name, Email, Phone, Company and Message. Add, reorder or remove fields. Name and Email are required. Set the title, button text, colors, font, width, corners and columns. Check Desktop and Mobile previews.',
+          'Configure: choose the responsible user and CRM/email alerts. Choose a confirmation message or the full URL of an existing thank-you page.',
+          'Install & test: publish the form, copy the code and paste it in your website’s HTML/embed block where the form should appear. Save and publish that website page.',
+          'Start a test, submit an enquiry on your website, then Check for submission. Review the contact and recipient inbox separately.'
+        ]
+      },
+      {
+        title: 'Connect an existing HTML form',
+        steps: [
+          'Create a connection using Connect my existing form. Add the exact website addresses in Start.',
+          'In Prepare, paste the complete <form>…</form> HTML and choose Detect fields. If several forms are found, choose the correct one. Select a CRM property or Skip for every input, then Use these matches. Pasted HTML is inspected locally, never executed or saved.',
+          'Review the Website input name for each property. This must match the input’s name attribute, not its visible label. For example, <input name="your-email"> maps Website input name your-email to CRM property Email.',
+          'Enter the form ID from <form id="contact-form">. Leave it blank only if that page contains exactly one form. IDs must start with a letter and use letters, numbers, hyphens or underscores. Add a suitable ID to the website form when needed.',
+          'Choose the responsible user and alerts. Publish, then paste the connector code once immediately after </form> in that page’s HTML. Keep the website’s existing submit handler.',
+          'Publish the website, start a test and submit the existing form. Choose Check for submission and verify the contact and notifications.'
+        ]
+      },
+      {
+        title: 'What the connector preserves',
+        text: 'The generated connector copies mapped values to the CRM without replacing your website’s design, submit handler, original email delivery or thank-you page. Only named visible inputs, selects and textareas can be collected; passwords, hidden inputs and files are excluded. This browser copy is independent of the website’s own delivery and can be interrupted by navigation, network issues, consent tools or content security rules. For guaranteed coordinated delivery, a developer should submit from your website backend using the public form endpoint and a stable request_id. Older installed scripts without data-mode="copy" may take over submission: replace them with the current installation code, rather than installing both.'
+      },
+      {
+        title: 'Appearance and installation',
+        text: 'Appearance settings apply to CRM-built forms only. Mobile layouts use one column. The embedded frame isolates the form from website styles and can scroll when needed; adjust its height in the pasted code if the page needs more room. The thank-you URL must be a published page that exists on your website. For the alternate JavaScript renderer, replace the embed/ suffix in the published preview URL with embed.js and use that URL as a script src at the desired location. Do not install both renderers on the same form placement.'
+      },
+      {
+        title: 'Existing contacts and alerts',
+        text: 'Email addresses are matched within the organization. A returning visitor adds a submission to the existing contact without changing its details or owner. The responsible user, current contact owners and selected recipients receive alerts only when active and allowed to view the contact. Personal in-app preferences apply. CRM email alerts use the system sender and do not require a personal Gmail connection. Submission received confirms a CRM record, not delivery to an inbox; check email separately.'
+      },
+      {
+        title: 'Spam protection and troubleshooting',
+        text: 'The form must be published and the website origin allowed. Check field names and required values first. Turnstile is optional under Configure → More settings. Add its site key and secret, and authorize your website hostname in Cloudflare. An existing form needs its own available Turnstile token; a token already consumed by the website cannot be reused for the CRM. If the page strips scripts, use its custom-code editor. If an iframe is blocked, check the allowed website addresses. Open the published form to isolate installation problems. Submissions shows recent attempts; it does not prove email delivery.'
+      }
     ]
   },
   {
@@ -49,8 +69,8 @@ export const articles = [
         text: 'Open your profile menu at the bottom of the navigation bar. Use the organization selector in that menu to switch workspaces. Records, roles and settings belong to the selected organization.'
       },
       {
-        title: 'Modules marked Review',
-        text: 'Review identifies areas that have not yet been fully adapted to this CRM. Customer demo accounts hide unfinished modules. This knowledge base focuses on the adapted workflows.'
+        title: 'Available modules',
+        text: 'This CRM includes the workflows described in this guide. Experimental modules are maintained separately in a local laboratory.'
       }
     ]
   },
@@ -242,7 +262,7 @@ export const articles = [
       },
       {
         title: 'Set a reminder',
-        text: 'Choose how long before the due date to show a reminder, or select Custom time and enter the supported interval. Reminders appear in Today. This does not schedule a task on the sales calendar.'
+        text: 'Choose how long before the due date to show a reminder, or select Custom time and enter the supported interval. Reminders appear in Today and Notifications, once per due date and reminder setting. They go to the task assignees, or its creator when unassigned, subject to record access. The reminder day follows your organization’s timezone. This does not schedule a task on the sales calendar.'
       },
       {
         title: 'Work the task',
@@ -384,7 +404,7 @@ export const articles = [
       },
       {
         title: 'Notifications',
-        text: 'Use the bell in the navigation bar for incoming notifications. Notifications has read and unread history loaded in portions. Preferences control supported in-app notifications; existing notifications remain in history.'
+        text: 'Use the bell in the navigation bar for incoming notifications. Notifications has read and unread history loaded in portions. Preferences control in-app notifications; existing notifications remain in history. Task reminders follow their configured lead time. Calendar events notify the host and internal attendees 15 minutes before the start; connected Google events notify their owner, excluding all-day events. The bell refreshes automatically, and a brief alert appears while the CRM is open. These reminders do not send email or browser push notifications.'
       },
       {
         title: 'Gmail and Google Calendar',

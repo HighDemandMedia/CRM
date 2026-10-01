@@ -7,8 +7,8 @@ from rest_framework.views import APIView
 
 from common import swagger_params
 from common.lookups import get_scoped_or_404
-from common.models import Profile, Teams
-from common.permissions import is_org_admin, HasOrgContext
+from common.models import Teams
+from common.permissions import HasOrgContext, is_org_admin
 from common.serializer import (
     TeamCreateSerializer,
     TeamsSerializer,
@@ -119,7 +119,7 @@ class TeamsListView(APIView, LimitOffsetPagination):
         params = self.request.data
         serializer = TeamCreateSerializer(data=params, request_obj=request)
         if serializer.is_valid():
-            team_obj = serializer.save(org=request.profile.org, created_by=request.user)
+            serializer.save(org=request.profile.org, created_by=request.user)
 
             return Response(
                 {"error": False, "message": "Team Created Successfully"},

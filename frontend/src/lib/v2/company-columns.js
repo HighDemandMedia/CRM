@@ -15,5 +15,5 @@ export const companyColumns = [
   ['stage_label', 'Stage'],
   ['contacts', 'Contacts'],
   ['last_activity_at', 'Last Activity'],
-  ['created_at', 'Created'],
+  ['created_at', 'Created']
 ];

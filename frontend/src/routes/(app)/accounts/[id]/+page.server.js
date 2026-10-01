@@ -28,7 +28,11 @@ export const actions = {
     const comment = String(form.get('comment') ?? '').trim();
     if (!comment) return fail(400, { message: 'Write a note before saving.' });
     try {
-      await apiRequest(`/accounts/${params.id}/`, { method: 'POST', body: { comment } }, { cookies });
+      await apiRequest(
+        `/accounts/${params.id}/`,
+        { method: 'POST', body: { comment } },
+        { cookies }
+      );
       return { noted: true };
     } catch (err) {
       return fail(400, { message: readableError(err, 'Could not save note.') });
@@ -87,7 +91,12 @@ export const actions = {
     try {
       await updateAccount({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this company.') });
+      return fail(400, {
+        values,
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not save this company.')
+      });
     }
 
     return { saved: true };
@@ -104,7 +113,11 @@ export const actions = {
       if (Object.keys(changes).length) await updateAccount({ cookies }, params.id, changes);
       return { saved: true };
     } catch (/** @type {any} */ err) {
-      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save changes.') });
+      return fail(400, {
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not save changes.')
+      });
     }
   },
   attach: async ({ cookies, params, request }) => {

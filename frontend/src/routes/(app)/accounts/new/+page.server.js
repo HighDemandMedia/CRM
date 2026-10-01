@@ -31,7 +31,12 @@ export const actions = {
     try {
       created = await createAccount({ cookies }, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not create this company.') });
+      return fail(400, {
+        values,
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not create this company.')
+      });
     }
 
     // The API returns the new id. Landing on the account is the point of

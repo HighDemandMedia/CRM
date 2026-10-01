@@ -10,6 +10,12 @@ from common.management.commands.check_hosted_config import Command, validate_set
 @pytest.fixture
 def config():
     return SimpleNamespace(
+        CACHES={
+            "default": {
+                "BACKEND": "django.core.cache.backends.redis.RedisCache",
+                "LOCATION": "redis://redis:6379/1",
+            }
+        },
         ENV_TYPE="prod",
         DEBUG=False,
         SECRET_KEY="random-test-key-" * 5,
@@ -30,6 +36,7 @@ def config():
 @pytest.mark.parametrize(
     "name,value",
     [
+        ("CACHES", {}),
         ("ENV_TYPE", "dev"),
         ("DEBUG", True),
         ("SECRET_KEY", "short"),

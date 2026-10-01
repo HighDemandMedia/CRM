@@ -89,7 +89,7 @@ class NotificationListView(APIView):
         limit = _parse_int(params.get("limit"), DEFAULT_LIMIT)
         offset = _parse_int(params.get("offset"), 0, lo=0, hi=2147483647)
         results = NotificationSerializer(
-            qs.order_by("-created_at", "-id")[offset:offset + limit], many=True
+            qs.order_by("-created_at", "-id")[offset : offset + limit], many=True
         ).data
 
         return Response(

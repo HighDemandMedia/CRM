@@ -63,7 +63,11 @@
   <section class="properties hdm-panel" aria-label="Contact properties">
     <div class="properties-heading">
       <h2>Properties</h2>
-      <ContactActions {contact} disabled={editingProperties} onEdit={() => editingProperties = true}/>
+      <ContactActions
+        {contact}
+        disabled={editingProperties}
+        onEdit={() => (editingProperties = true)}
+      />
     </div>
 
     {#if editingProperties}
@@ -79,7 +83,34 @@
         }}
       />
     {:else}
-      <PropertySummary target="Contact" record={contact} tags={contact.tags} entries={[['Name', contact.name], ['Contact owner', data.owners?.join(', ')], ['Phone', contact.phone], ['Email', contact.email], ['Language', contact.language], ['Source', contact.source_label], ['Stage', configuredLabel(page.data.pipelineConfig, 'Contact', contact.stage, contact.stage_label)], ['Preferred communication channel', contact.preferred_communication_channel_label], ['Appointment', contact.appointment_at ? exactTime(contact.appointment_at) : ''], ['Address', contact.address_line], ['City', contact.city], ['State', contact.state], ['Zip Code', contact.postcode], ['Country', contact.country], ['Tags', ''], ['Last Activity', exactTime(contact.last_activity_at)], ['Created', exactTime(contact.created_at)], ['Created by', contact.created_by_email || 'Not recorded']]}/>
+      <PropertySummary
+        target="Contact"
+        record={contact}
+        tags={contact.tags}
+        entries={[
+          ['Name', contact.name],
+          ['Contact owner', data.owners?.join(', ')],
+          ['Phone', contact.phone],
+          ['Email', contact.email],
+          ['Language', contact.language],
+          ['Source', contact.source_label],
+          [
+            'Stage',
+            configuredLabel(page.data.pipelineConfig, 'Contact', contact.stage, contact.stage_label)
+          ],
+          ['Preferred communication channel', contact.preferred_communication_channel_label],
+          ['Appointment', contact.appointment_at ? exactTime(contact.appointment_at) : ''],
+          ['Address', contact.address_line],
+          ['City', contact.city],
+          ['State', contact.state],
+          ['Zip Code', contact.postcode],
+          ['Country', contact.country],
+          ['Tags', ''],
+          ['Last Activity', exactTime(contact.last_activity_at)],
+          ['Created', exactTime(contact.created_at)],
+          ['Created by', contact.created_by_email || 'Not recorded']
+        ]}
+      />
     {/if}
   </section>
   <main class="contact-center hdm-panel">
@@ -134,7 +165,7 @@
             {#each data.activity as event (event.id)}
               <article class="history-entry">
                 <div class="history-body">{event.body}</div>
-                {#if event.emailId}<EmailActivity id={event.emailId} href={event.href}/>{/if}
+                {#if event.emailId}<EmailActivity id={event.emailId} href={event.href} />{/if}
                 <div class="entry-meta">{event.by || 'Not recorded'} · {exactTime(event.at)}</div>
               </article>
             {:else}<p class="v2-sub">No activity.</p>{/each}

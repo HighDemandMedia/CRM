@@ -1,14 +1,15 @@
-from common.rbac import CRMRecordManager
-from common.languages import LANGUAGES
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.functions import Lower
 from django.utils.translation import gettext_lazy as _
 
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
+from common.languages import LANGUAGES
 from common.models import Org, Profile, Tags, Teams
+from common.rbac import CRMRecordManager
 from common.utils import COUNTRIES
-from common.validators import flexible_phone_validator, contact_phone_key
+from common.validators import contact_phone_key, flexible_phone_validator
 from contacts.choices import COMMUNICATION_CHANNELS, CONTACT_SOURCES, CONTACT_STAGES
 
 
@@ -18,10 +19,18 @@ class ActiveContactManager(CRMRecordManager):
 
 
 class Contact(AssignableMixin, BaseModel):
+    file_attachments = GenericRelation("common.Attachments")
+
     objects = ActiveContactManager()
     all_objects = CRMRecordManager()
-    merged_into = models.ForeignKey('self', null=True, blank=True, editable=False,
-        on_delete=models.SET_NULL, related_name='merged_contacts')
+    merged_into = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        editable=False,
+        on_delete=models.SET_NULL,
+        related_name="merged_contacts",
+    )
     merged_at = models.DateTimeField(null=True, editable=False)
     merge_snapshot = models.JSONField(default=dict, editable=False)
 
@@ -42,7 +51,9 @@ class Contact(AssignableMixin, BaseModel):
         validators=[flexible_phone_validator],
     )
 
-    phone_match_key = models.CharField(max_length=25, blank=True, default="", editable=False)
+    phone_match_key = models.CharField(
+        max_length=25, blank=True, default="", editable=False
+    )
 
     # Nullable for pre-existing and automatically imported records with unknown data.
     source = models.CharField(
@@ -54,7 +65,9 @@ class Contact(AssignableMixin, BaseModel):
     appointment_at = models.DateTimeField("Appointment", null=True, blank=True)
     stage_entered_at = models.DateTimeField(null=True, blank=True, editable=False)
 
-    language = models.CharField("Language", max_length=100, choices=LANGUAGES, blank=True, default="")
+    language = models.CharField(
+        "Language", max_length=100, choices=LANGUAGES, blank=True, default=""
+    )
 
     preferred_communication_channel = models.CharField(
         max_length=16, choices=COMMUNICATION_CHANNELS, blank=True, null=True
@@ -127,7 +140,9 @@ class Contact(AssignableMixin, BaseModel):
         ordering = ("-created_at",)
         indexes = [
             models.Index(fields=["org", "-created_at"]),
-            models.Index(fields=["org", "phone_match_key"], name="contact_org_phone_match_idx"),
+            models.Index(
+                fields=["org", "phone_match_key"], name="contact_org_phone_match_idx"
+            ),
         ]
         constraints = [
             # Case-insensitive unique email per organization (when email is not null)
@@ -135,7 +150,9 @@ class Contact(AssignableMixin, BaseModel):
                 Lower("email"),
                 "org",
                 name="unique_contact_email_per_org",
-                condition=Q(email__isnull=False) & ~Q(email="") & Q(merged_at__isnull=True),
+                condition=Q(email__isnull=False)
+                & ~Q(email="")
+                & Q(merged_at__isnull=True),
             ),
         ]
 

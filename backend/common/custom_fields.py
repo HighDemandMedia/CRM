@@ -10,14 +10,14 @@ See docs/cases/tier1/custom-fields.md and docs/cases/COORDINATION_DECISIONS.md.
 from __future__ import annotations
 
 import logging
-from datetime import date, time
-from decimal import Decimal, InvalidOperation
 import math
 import re
-from django.core.validators import validate_email, URLValidator
-from django.core.exceptions import ValidationError
+from datetime import date, time
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator, validate_email
 from rest_framework import serializers as drf_serializers
 
 logger = logging.getLogger(__name__)
@@ -127,11 +127,17 @@ def _coerce_value(field_type: str, raw: Any):
                 if not 0 <= value <= 100:
                     raise ValueError
                 return float(value), None
-            if abs(value) >= Decimal("100000000000000") or value != value.quantize(Decimal("0.01")):
+            if abs(value) >= Decimal("100000000000000") or value != value.quantize(
+                Decimal("0.01")
+            ):
                 raise ValueError
             return format(value, ".2f"), None
         except (InvalidOperation, TypeError, ValueError):
-            return None, {"integer": "must be a whole number within the safe integer range", "percentage": "must be between 0 and 100", "money": "must be an amount with at most 2 decimal places and 14 integer digits"}[field_type]
+            return None, {
+                "integer": "must be a whole number within the safe integer range",
+                "percentage": "must be between 0 and 100",
+                "money": "must be an amount with at most 2 decimal places and 14 integer digits",
+            }[field_type]
 
     if field_type == "time":
         try:
@@ -255,7 +261,10 @@ def validate_payload(
 
     # Required fields: error if neither a new value nor an existing one is set.
     for defn in active_by_key.values():
-        if defn.target_model in {"Contact", "Account", "Opportunity", "Task", "Case"} or not defn.is_required:
+        if (
+            defn.target_model in {"Contact", "Account", "Opportunity", "Task", "Case"}
+            or not defn.is_required
+        ):
             continue
         present = cleaned.get(defn.key) not in (None, "", [])
         if not present:

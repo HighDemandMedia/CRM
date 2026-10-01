@@ -3,7 +3,6 @@ import { createTask, getTaskFormOptions } from '$lib/server/v2/tasks.js';
 import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 import { listTickets } from '$lib/server/v2/tickets.js';
 import { listDeals } from '$lib/server/v2/deals.js';
-import { listLeads } from '$lib/server/v2/leads.js';
 
 /**
  * The new-task form.
@@ -18,14 +17,13 @@ import { listLeads } from '$lib/server/v2/leads.js';
  * @type {import('./$types').PageServerLoad}
  */
 export async function load(event) {
-  const [options, tickets, deals, leads] = await Promise.allSettled([
+  const [options, tickets, deals] = await Promise.allSettled([
     getTaskFormOptions(event),
     listTickets(event, new URLSearchParams({ limit: '100' })),
     // Open deals only, matching what this picker offered before `listDeals`
     // stopped assuming it: attaching a task to a deal you already closed is
     // an edge case the picker does not need to carry by default.
-    listDeals(event, new URLSearchParams({ open: 'true', limit: '100' })),
-    listLeads(event, new URLSearchParams({ limit: '100' }))
+    listDeals(event, new URLSearchParams({ open: 'true', limit: '100' }))
   ]);
 
   const settled = options.status === 'fulfilled' ? options.value : { owners: [], accounts: [] };
@@ -41,17 +39,6 @@ export async function load(event) {
       case:
         tickets.status === 'fulfilled'
           ? tickets.value.results.map((/** @type {any} */ t) => ({ id: t.id, name: t.name }))
-          : [],
-      lead:
-        leads.status === 'fulfilled'
-          ? leads.value.results.map((/** @type {any} */ l) => ({
-              id: l.id,
-              name:
-                `${l.first_name} ${l.last_name}`.trim() ||
-                l.company_name ||
-                l.email ||
-                '(unnamed lead)'
-            }))
           : []
     }
   };
@@ -117,7 +104,9 @@ export const actions = {
     } catch (/** @type {any} */ err) {
       return fail(400, {
         values: { ...values, parent_kind: kind },
-        fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this task.')
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not save this task.')
       });
     }
 

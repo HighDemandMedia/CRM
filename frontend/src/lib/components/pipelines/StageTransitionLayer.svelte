@@ -98,7 +98,10 @@
           >Cancel</button
         >{#if pending.issue.code === 'missing_properties'}<button
             class="v2-btn v2-btn-primary"
-            disabled={busy || pending.issue.fields.some(f => f.is_read_only === true || f.is_read_only === 'True')}>{busy ? 'Saving…' : 'Save and move'}</button
+            disabled={busy ||
+              pending.issue.fields.some(
+                (f) => f.is_read_only === true || f.is_read_only === 'True'
+              )}>{busy ? 'Saving…' : 'Save and move'}</button
           >{/if}
       </div>
     </form></TeamPanel

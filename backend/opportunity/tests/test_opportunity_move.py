@@ -127,13 +127,16 @@ class TestClosingByDragging:
         deal.refresh_from_db()
         assert deal.closed_on == expected
 
+    @pytest.mark.usefixtures("required_deal_close_fields")
     def test_dragging_to_won_without_an_amount_is_refused(self, admin_client, org_a):
         deal = _deal(org_a, amount=None)
 
         res = _move(admin_client, deal, column_id="CLOSED_WON")
 
         assert res.status_code == 400
-        assert "amount" in res.json()["errors"]
+        assert "amount" in {
+            field["key"] for field in res.json()["stage_requirements"]["fields"]
+        }
         deal.refresh_from_db()
         assert deal.stage == "PROSPECTING"
         assert deal.closed_on is None

@@ -1,9 +1,15 @@
 <script>
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
-  import StageRuleNotice from "$lib/components/pipelines/StageRuleNotice.svelte";
-  import { page } from "$app/state";
-  import { configuredStages, configuredLabel } from "$lib/v2/pipeline-config.js";
-  const statusOptions = $derived(configuredStages(page.data.pipelineConfig, "Task", ["New", "In Progress", "Completed"].map(value => ({value,label:value}))));
+  import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
+  import { page } from '$app/state';
+  import { configuredStages, configuredLabel } from '$lib/v2/pipeline-config.js';
+  const statusOptions = $derived(
+    configuredStages(
+      page.data.pipelineConfig,
+      'Task',
+      ['New', 'In Progress', 'Completed'].map((value) => ({ value, label: value }))
+    )
+  );
   import TaskReminder from '$lib/components/tasks/TaskReminder.svelte';
   import { asInternalPath } from '$lib/utils/paths.js';
   import { resolve } from '$app/paths';
@@ -60,7 +66,9 @@
 </script>
 
 <PageHeader title={task.title || `Task · ${task.id.slice(0, 8)}`} record>
-  {#snippet crumb()}<a href={resolve('/tasks')}>Tasks</a><span>{configuredLabel(page.data.pipelineConfig, 'Task', task.status, task.status)}</span>{/snippet}
+  {#snippet crumb()}<a href={resolve('/tasks')}>Tasks</a><span
+      >{configuredLabel(page.data.pipelineConfig, 'Task', task.status, task.status)}</span
+    >{/snippet}
   {#snippet actions()}
     {#if editing}<button class="v2-btn v2-btn-primary" type="submit" form={formId} disabled={busy}
         >{busy ? 'Saving…' : 'Save'}</button
@@ -77,8 +85,10 @@
     {/if}
   {/snippet}
 </PageHeader>
-<StageRuleNotice issue={form?.stageRequirements}/>
-{#if form?.error && !form?.stageRequirements}<p class="v2-error error" role="alert">{form.error}</p>{/if}
+<StageRuleNotice issue={form?.stageRequirements} />
+{#if form?.error && !form?.stageRequirements}<p class="v2-error error" role="alert">
+    {form.error}
+  </p>{/if}
 <div class="task-profile">
   <main>
     <section class="panel description">
@@ -86,7 +96,8 @@
           >Task name<input
             class="v2-input"
             form={formId}
-            name="title" required
+            name="title"
+            required
             disabled={busy}
             bind:value={draft.title}
             maxlength="200"
@@ -172,7 +183,8 @@
           >
           <label
             >Priority<select class="v2-input" name="priority" bind:value={draft.priority}
-              ><option value="">None</option>{#each ['Low', 'Medium', 'High'] as priority}<option>{priority}</option
+              ><option value="">None</option>{#each ['Low', 'Medium', 'High'] as priority}<option
+                  >{priority}</option
                 >{/each}</select
             ></label
           >
@@ -194,13 +206,32 @@
         </fieldset>
       </form>
     {:else}
-      <PropertySummary target="Task" record={task} entries={[
-        ['Name',task.title], ['Status', configuredLabel(page.data.pipelineConfig, 'Task', task.status, task.status)], ['Priority', task.priority],
-        ['Due date', task.due_date ? longDate(task.due_date) + (late ? ' · Overdue' : '') : '—', 'due_date'],
-        ['Reminder',task.reminder_days == null ? 'No reminder' : task.reminder_days === 0 ? 'On due date' : `${task.reminder_days} days before`, 'reminder_days'],
-        ['Assigned to',task.assigned_names.join(', ') || '—'],
-        ['Last Activity',exactDate(task.last_activity_at)], ['Created',exactDate(task.created_at)]
-      ]}/>
+      <PropertySummary
+        target="Task"
+        record={task}
+        entries={[
+          ['Name', task.title],
+          ['Status', configuredLabel(page.data.pipelineConfig, 'Task', task.status, task.status)],
+          ['Priority', task.priority],
+          [
+            'Due date',
+            task.due_date ? longDate(task.due_date) + (late ? ' · Overdue' : '') : '—',
+            'due_date'
+          ],
+          [
+            'Reminder',
+            task.reminder_days == null
+              ? 'No reminder'
+              : task.reminder_days === 0
+                ? 'On due date'
+                : `${task.reminder_days} days before`,
+            'reminder_days'
+          ],
+          ['Assigned to', task.assigned_names.join(', ') || '—'],
+          ['Last Activity', exactDate(task.last_activity_at)],
+          ['Created', exactDate(task.created_at)]
+        ]}
+      />
 
       <section class="associations">
         <h2>Association</h2>

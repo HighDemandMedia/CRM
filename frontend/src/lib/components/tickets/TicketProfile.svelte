@@ -11,7 +11,8 @@
   import TicketFields from './TicketFields.svelte';
   import Attachments from '$lib/v2/components/Attachments.svelte';
   import { dueDateLabel, statusLabel as defaultStatusLabel, priorityLabel } from './options.js';
-  const statusLabel = (key) => configuredLabel(page.data.pipelineConfig, 'Case', key, defaultStatusLabel(key));
+  const statusLabel = (key) =>
+    configuredLabel(page.data.pipelineConfig, 'Case', key, defaultStatusLabel(key));
   let { data, form, onadvanced } = $props();
   let ticket = $derived(data.ticket);
   let editing = $state(false),
@@ -86,13 +87,24 @@
           >
         </div>
       </form>
-    {:else}<PropertySummary target="Case" record={ticket} entries={[
-        ['Name',ticket.name], ['Assigned to',ticket.assignee ?? '—'],
-        ['Priority',priorityLabel(ticket.priority)], ['Status',statusLabel(ticket.status)],
-        ['Category',ticket.category], ['Due date',dueDateLabel(ticket.due_at) + (overdue ? ' · Overdue' : ''), 'due_at'],
-        ['Source',ticket.source], ...(ticket.status === 'Pending' ? [['Waiting on',ticket.waiting_reason || '—','waiting_reason']] : []),
-        ['Created',date(ticket.opened_at)], ['Last Activity',date(ticket.last_activity)]
-      ]}/>{/if}
+    {:else}<PropertySummary
+        target="Case"
+        record={ticket}
+        entries={[
+          ['Name', ticket.name],
+          ['Assigned to', ticket.assignee ?? '—'],
+          ['Priority', priorityLabel(ticket.priority)],
+          ['Status', statusLabel(ticket.status)],
+          ['Category', ticket.category],
+          ['Due date', dueDateLabel(ticket.due_at) + (overdue ? ' · Overdue' : ''), 'due_at'],
+          ['Source', ticket.source],
+          ...(ticket.status === 'Pending'
+            ? [['Waiting on', ticket.waiting_reason || '—', 'waiting_reason']]
+            : []),
+          ['Created', date(ticket.opened_at)],
+          ['Last Activity', date(ticket.last_activity)]
+        ]}
+      />{/if}
   </aside>
   <main>
     <section class="description">

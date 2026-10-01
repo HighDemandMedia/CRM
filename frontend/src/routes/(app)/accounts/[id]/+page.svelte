@@ -1,6 +1,6 @@
 <script>
-  import { configuredLabel } from '$lib/v2/pipeline-config.js';
   import { page } from '$app/state';
+  import { configuredLabel } from '$lib/v2/pipeline-config.js';
 
   import RecordTabs from '$lib/v2/components/RecordTabs.svelte';
   import NotesEditor from '$lib/components/deals/DealNotes.svelte';
@@ -17,20 +17,13 @@
   import { invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import Pill from '$lib/v2/components/Pill.svelte';
-  import { money, shortDate, longDate } from '$lib/v2/format.js';
-  import {
-    STAGE_LABEL,
-    PRIORITY_TONE,
-    INVOICE_STATUS_TONE,
-    invoiceStatusLabel
-  } from '$lib/v2/enums.js';
+  import { money } from '$lib/v2/format.js';
   import { ChevronRight, Mail } from '@lucide/svelte';
 
   /** @type {{ data: any, form?:any }} */
   let { data, form } = $props();
 
-  let { account, deals, contacts, tickets, invoices, owners } = $derived(data);
+  let { account, deals, contacts, tickets } = $derived(data);
 
   let overdueDeals = $derived(account.overdue_deal_count ?? 0);
 </script>
@@ -89,7 +82,9 @@
         }}
       />
     {:else}
-      <PropertySummary target="Account" record={account}
+      <PropertySummary
+        target="Account"
+        record={account}
         tags={account.tags}
         entries={[
           ['Name', account.name],
@@ -112,7 +107,15 @@
             account.annual_revenue != null ? money(account.annual_revenue, account.currency) : '—'
           ],
           ['Source', account.source_label || '—'],
-          ['Stage', configuredLabel(page.data.pipelineConfig, 'Account', account.stage, account.stage_label) || '—'],
+          [
+            'Stage',
+            configuredLabel(
+              page.data.pipelineConfig,
+              'Account',
+              account.stage,
+              account.stage_label
+            ) || '—'
+          ],
           ['Appointment', account.appointment_at ? exactTime(account.appointment_at) : '—'],
           ['Address', data.editor.form.address_line || '—'],
           ['City', account.city || '—'],
@@ -192,41 +195,6 @@
           />
         </div>
       </details>
-
-      {#if !page.data.demoMode}
-      <!-- Invoices -->
-      <details class="v2-card company-secondary">
-        <summary
-          >Invoices <span>{invoices.length}</span><span class="review-badge">Review</span></summary
-        >
-        <div class="v2-card-head">
-          <span class="section-title"
-            ><span class="v2-label">Invoices</span><span class="review-badge" title="Pending review"
-              >Review</span
-            ></span
-          >
-          <a href={resolve('/invoices')}>View all</a>
-        </div>
-        {#each invoices as inv (inv.id)}
-          <!-- A link now: invoices is wired, so a real id sent to
-               `/invoices/<uuid>` opens the invoice. -->
-          <a
-            href={resolve(`/invoices/${inv.id}`)}
-            style="display:flex;gap:12px;align-items:center;padding:11px 15px;border-bottom:1px solid var(--v2-line-soft);color:inherit;text-decoration:none"
-          >
-            <span class="v2-num" style="font-size:12.5px">{inv.invoice_number}</span>
-            <Pill tone={inv.past_due ? 'rust' : INVOICE_STATUS_TONE[inv.status]}>
-              {inv.past_due ? 'Past due' : invoiceStatusLabel(inv.status)}
-            </Pill>
-            <span class="v2-num" style="margin-left:auto;font-weight:600;font-size:13px">
-              {money(inv.past_due ? inv.amount_due : inv.total_amount, inv.currency)}
-            </span>
-          </a>
-        {:else}
-          <p class="v2-sub" style="padding:14px 15px;font-size:12.5px">Nothing billed yet.</p>
-        {/each}
-      </details>
-      {/if}
     </div>
   </div>
 </div>
@@ -259,21 +227,6 @@
   .property-pages > span {
     font-size: 11px;
     color: var(--v2-slate);
-  }
-
-  .section-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .review-badge {
-    font-size: 9px;
-    line-height: 1.3;
-    font-weight: 500;
-    padding: 2px 4px;
-    color: #805b19;
-    background: #fff3d6;
-    border-radius: 4px;
   }
 
   .company-layout {

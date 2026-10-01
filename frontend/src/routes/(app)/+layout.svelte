@@ -1,6 +1,7 @@
 <script>
-  import StageTransitionLayer from "$lib/components/pipelines/StageTransitionLayer.svelte";
+  import StageTransitionLayer from '$lib/components/pipelines/StageTransitionLayer.svelte';
   import CreateLayer from '$lib/components/creation/CreateLayer.svelte';
+  import { Toaster } from 'svelte-sonner';
   import { onMount } from 'svelte';
   import { PanelLeftClose, PanelLeftOpen } from '@lucide/svelte';
   import { resolve, base } from '$app/paths';
@@ -18,7 +19,7 @@
   let { data, children } = $props();
 
   let preferencesOpen = $derived(
-    ['/profile', '/team', '/settings', '/notifications', '/invoices/templates', '/goals'].some(
+    ['/profile', '/team', '/settings', '/notifications'].some(
       (path) => page.url.pathname === path || page.url.pathname.startsWith(`${path}/`)
     )
   );
@@ -28,13 +29,17 @@
   onMount(() => {
     try {
       navigationHidden = localStorage.getItem('crm-navigation-hidden') === 'true';
-    } catch {}
+    } catch {
+      /* Keep navigation usable when browser storage is unavailable. */
+    }
   });
   function toggleNavigation() {
     navigationHidden = !navigationHidden;
     try {
       localStorage.setItem('crm-navigation-hidden', String(navigationHidden));
-    } catch {}
+    } catch {
+      /* Keep navigation usable when browser storage is unavailable. */
+    }
   }
 
   // The sidebar is hidden below 768px, and the tab bar only carries four of the
@@ -79,6 +84,7 @@
 </svelte:head>
 
 <svelte:window {onkeydown} />
+<Toaster position="top-right" closeButton />
 
 <div class="v2-root v2-shell">
   <div class="desktop-navigation" class:collapsed={navigationHidden}>
@@ -186,7 +192,7 @@
           user={data.accountUser}
           accountId={data.accountId}
           role={data.role}
-        isSuperAdmin={data.isSuperAdmin}
+          isSuperAdmin={data.isSuperAdmin}
           terminology={data.org.terminology}
           onsearch={() => {
             menuOpen = false;

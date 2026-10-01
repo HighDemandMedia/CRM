@@ -12,24 +12,13 @@ urlpatterns = [
     path("search/", GlobalSearchView.as_view(), name="global_search"),
     path("accounts/", include("accounts.urls", namespace="api_accounts")),
     path("contacts/", include("contacts.urls", namespace="api_contacts")),
-    path("leads/", include("leads.urls", namespace="api_leads")),
     path("opportunities/", include("opportunity.urls", namespace="api_opportunities")),
     # Teams URLs are now in common app at /api/teams/
     path("tasks/", include("tasks.urls", namespace="api_tasks")),
     path("cases/", include("cases.urls", namespace="api_cases")),
     path(
-        "time-entries/",
-        include("cases.time_entry_urls", namespace="api_time_entries"),
-    ),
-    path("invoices/", include("invoices.api_urls", namespace="api_invoices")),
-    path(
         "boards/", include((board_urlpatterns, "api_boards"))
     ),  # Kanban Boards (merged into tasks app)
-    path(
-        "business-hours/",
-        include("business_hours.urls", namespace="api_business_hours"),
-    ),
-    path("macros/", include("macros.urls", namespace="api_macros")),
     # Web form management (issue #634). The public submit and embed routes are
     # NOT here: they are anonymous and mounted at /api/public/forms/ in
     # crm/urls.py, outside this authenticated tree.

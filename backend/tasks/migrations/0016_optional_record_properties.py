@@ -4,25 +4,38 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tasks', '0015_task_custom_reminder'),
+        ("tasks", "0015_task_custom_reminder"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='task',
-            name='priority',
-            field=models.CharField(blank=True, choices=[('Low', 'Low'), ('Medium', 'Medium'), ('High', 'High')], max_length=50, verbose_name='priority'),
+            model_name="task",
+            name="priority",
+            field=models.CharField(
+                blank=True,
+                choices=[("Low", "Low"), ("Medium", "Medium"), ("High", "High")],
+                max_length=50,
+                verbose_name="priority",
+            ),
         ),
         migrations.AlterField(
-            model_name='task',
-            name='status',
-            field=models.CharField(choices=[('New', 'New'), ('In Progress', 'In Progress'), ('Completed', 'Completed')], default='New', max_length=50, verbose_name='status'),
+            model_name="task",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("New", "New"),
+                    ("In Progress", "In Progress"),
+                    ("Completed", "Completed"),
+                ],
+                default="New",
+                max_length=50,
+                verbose_name="status",
+            ),
         ),
         migrations.AlterField(
-            model_name='task',
-            name='title',
-            field=models.CharField(blank=True, max_length=200, verbose_name='title'),
+            model_name="task",
+            name="title",
+            field=models.CharField(blank=True, max_length=200, verbose_name="title"),
         ),
     ]

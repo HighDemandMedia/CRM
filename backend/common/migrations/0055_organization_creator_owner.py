@@ -6,26 +6,37 @@ from django.db import migrations, models
 
 
 def backfill_creators(apps, schema_editor):
-    Org = apps.get_model('common','Org')
-    Profile = apps.get_model('common','Profile')
+    Org = apps.get_model("common", "Org")
+    Profile = apps.get_model("common", "Profile")
     for org in Org.objects.exclude(created_by_id=None).iterator():
         # Use recorded authorship only; do not guess the creator from an admin list.
-        if Profile.objects.filter(org_id=org.pk,user_id=org.created_by_id).exists():
+        if Profile.objects.filter(org_id=org.pk, user_id=org.created_by_id).exists():
             Org.objects.filter(pk=org.pk).update(owner_id=org.created_by_id)
-            Profile.objects.filter(org_id=org.pk,user_id=org.created_by_id).update(role='ADMIN',is_organization_admin=True,is_active=True,access_role_id=None)
+            Profile.objects.filter(org_id=org.pk, user_id=org.created_by_id).update(
+                role="ADMIN",
+                is_organization_admin=True,
+                is_active=True,
+                access_role_id=None,
+            )
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('common', '0054_permission_set_scope'),
+        ("common", "0054_permission_set_scope"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='org',
-            name='owner',
-            field=models.ForeignKey(blank=True, editable=False, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='owned_organizations', to=settings.AUTH_USER_MODEL),
+            model_name="org",
+            name="owner",
+            field=models.ForeignKey(
+                blank=True,
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="owned_organizations",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.RunPython(backfill_creators, migrations.RunPython.noop),
     ]

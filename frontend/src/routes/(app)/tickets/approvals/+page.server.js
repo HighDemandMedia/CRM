@@ -30,7 +30,8 @@ export const actions = {
       await approveApproval({ cookies }, id, form.get('note')?.toString() || '');
     } catch (/** @type {any} */ err) {
       return fail(err?.status === 403 ? 403 : 400, {
-        stageRequirements: stageRequirements(err), error: readableError(err, 'Could not approve this request.')
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not approve this request.')
       });
     }
     return { approved: true };
@@ -46,7 +47,8 @@ export const actions = {
       await rejectApproval({ cookies }, id, reason);
     } catch (/** @type {any} */ err) {
       return fail(err?.status === 403 ? 403 : 400, {
-        stageRequirements: stageRequirements(err), error: readableError(err, 'Could not reject this request.')
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not reject this request.')
       });
     }
     return { rejected: true };
@@ -60,7 +62,8 @@ export const actions = {
       await cancelApproval({ cookies }, id);
     } catch (/** @type {any} */ err) {
       return fail(err?.status === 403 ? 403 : 400, {
-        stageRequirements: stageRequirements(err), error: readableError(err, 'Could not withdraw this request.')
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not withdraw this request.')
       });
     }
     return { cancelled: true };

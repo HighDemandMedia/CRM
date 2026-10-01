@@ -68,7 +68,11 @@ def test_invalid_contact_values_rejected(admin_client, field, value):
 @pytest.mark.django_db
 def test_legacy_name_and_unknown_fields_preserved(admin_client, org_a, admin_user):
     c = Contact.objects.create(
-        first_name="María", last_name="del Carmen", stage=None, org=org_a, created_by=admin_user
+        first_name="María",
+        last_name="del Carmen",
+        stage=None,
+        org=org_a,
+        created_by=admin_user,
     )
     response = admin_client.patch(
         f"/api/contacts/{c.id}/",

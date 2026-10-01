@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('common', '0048_appointment_multiple_attendees'),
+        ("common", "0048_appointment_multiple_attendees"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='profile',
-            name='language',
-            field=models.CharField(blank=True, default='', max_length=50),
+            model_name="profile",
+            name="language",
+            field=models.CharField(blank=True, default="", max_length=50),
         ),
     ]

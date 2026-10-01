@@ -47,9 +47,7 @@ def test_create_deal_properties(admin_client, admin_profile, org_a, association)
     assert response.status_code == 200, response.data
 
 
-@pytest.mark.parametrize(
-    "field", ["stage", "priority", "lead_source", "assigned_to"]
-)
+@pytest.mark.parametrize("field", ["stage", "priority", "lead_source", "assigned_to"])
 def test_optional_fields(admin_client, admin_profile, org_a, field):
     body = payload(admin_profile)
     body["account"] = str(Account.objects.create(name="Company", org=org_a).pk)
@@ -83,23 +81,35 @@ def test_associations_and_owner_scope(admin_client, admin_profile, org_a, org_b)
 
 def test_phone_email_and_tags(admin_client, admin_profile, org_a):
     from common.models import Tags
-    company = Account.objects.create(name='Company', org=org_a)
-    tag = Tags.objects.create(name='Deal tag', color='blue', org=org_a)
-    body = {**payload(admin_profile), 'account':str(company.pk), 'phone':'3055550188',
-            'email':'deal@example.com', 'tags':[str(tag.pk)]}
-    response = admin_client.post('/api/opportunities/',body,format='json')
+
+    company = Account.objects.create(name="Company", org=org_a)
+    tag = Tags.objects.create(name="Deal tag", color="blue", org=org_a)
+    body = {
+        **payload(admin_profile),
+        "account": str(company.pk),
+        "phone": "3055550188",
+        "email": "deal@example.com",
+        "tags": [str(tag.pk)],
+    }
+    response = admin_client.post("/api/opportunities/", body, format="json")
     assert response.status_code == 200, response.data
-    deal = Opportunity.objects.get(name=body['name'],org=org_a)
-    assert deal.phone == body['phone'] and deal.email == body['email']
+    deal = Opportunity.objects.get(name=body["name"], org=org_a)
+    assert deal.phone == body["phone"] and deal.email == body["email"]
     assert deal.tags.filter(pk=tag.pk).exists()
-    url = f'/api/opportunities/{deal.pk}/'
-    detail = admin_client.get(url).data['opportunity_obj']
-    assert detail['phone'] == body['phone'] and detail['email'] == body['email']
-    assert admin_client.patch(url,{'email':'invalid'},format='json').status_code == 400
-    assert admin_client.patch(url,{'name':'Renamed'},format='json').status_code == 200
+    url = f"/api/opportunities/{deal.pk}/"
+    detail = admin_client.get(url).data["opportunity_obj"]
+    assert detail["phone"] == body["phone"] and detail["email"] == body["email"]
+    assert (
+        admin_client.patch(url, {"email": "invalid"}, format="json").status_code == 400
+    )
+    assert (
+        admin_client.patch(url, {"name": "Renamed"}, format="json").status_code == 200
+    )
     deal.refresh_from_db()
-    assert deal.phone == body['phone'] and deal.tags.filter(pk=tag.pk).exists()
-    response = admin_client.patch(url,{'phone':None,'email':None,'tags':[]},format='json')
+    assert deal.phone == body["phone"] and deal.tags.filter(pk=tag.pk).exists()
+    response = admin_client.patch(
+        url, {"phone": None, "email": None, "tags": []}, format="json"
+    )
     assert response.status_code == 200, response.data
     deal.refresh_from_db()
     assert deal.phone is None and deal.email is None and not deal.tags.exists()

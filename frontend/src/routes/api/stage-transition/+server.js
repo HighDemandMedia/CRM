@@ -80,7 +80,7 @@ export async function GET({ cookies, url }) {
       {
         options: rows.map((row) => ({
           value: row.id,
-          ...(relation === 'Tags' ? {color: row.color} : {}),
+          ...(relation === 'Tags' ? { color: row.color } : {}),
           label: row.name || row.title || [row.first_name, row.last_name].filter(Boolean).join(' ')
         }))
       },

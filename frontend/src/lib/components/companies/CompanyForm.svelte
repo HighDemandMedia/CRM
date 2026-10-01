@@ -414,8 +414,9 @@
   <RecordSection title="Address" collapsible={!editing}>
     <label
       >Country<select class="v2-input" name="country" bind:value={values.country}
-        ><option value="">Select country</option>{#each countryOptions(values.country) as option}<option
-            value={option.value}>{option.label}</option
+        ><option value="">Select country</option
+        >{#each countryOptions(values.country) as option}<option value={option.value}
+            >{option.label}</option
           >{/each}</select
       ></label
     >

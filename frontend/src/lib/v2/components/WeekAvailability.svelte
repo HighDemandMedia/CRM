@@ -13,7 +13,9 @@
     refresh = 0,
     disabled = false
   } = $props();
-  let slots = $state(/** @type {Array<{starts_at:string,ends_at:string,title?:string|null}>} */ ([]));
+  let slots = $state(
+    /** @type {Array<{starts_at:string,ends_at:string,title?:string|null}>} */ ([])
+  );
   let loading = $state(true),
     error = $state(''),
     retry = $state(0);

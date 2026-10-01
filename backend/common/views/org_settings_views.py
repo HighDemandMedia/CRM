@@ -28,7 +28,9 @@ class OrgSettingsView(APIView):
             )
         org = request.profile.org
         serializer = OrgSettingsSerializer(org, context={"request": request})
-        return Response({**serializer.data, "is_super_admin": request.profile.is_super_admin})
+        return Response(
+            {**serializer.data, "is_super_admin": request.profile.is_super_admin}
+        )
 
     def patch(self, request):
         """Update organization settings (admin only)."""

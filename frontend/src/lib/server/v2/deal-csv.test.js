@@ -13,10 +13,16 @@ it('quotes CSV text and neutralizes formulas', () => {
 it('exports every filtered page with selected columns in order', async () => {
   vi.mocked(listDeals)
     .mockResolvedValueOnce(
-      /** @type {any} */ ({ results: [{ name: 'First', priority_label: '123' }], totals: { count: 2 } })
+      /** @type {any} */ ({
+        results: [{ name: 'First', priority_label: '123' }],
+        totals: { count: 2 }
+      })
     )
     .mockResolvedValueOnce(
-      /** @type {any} */ ({ results: [{ name: 'Second', priority_label: '456' }], totals: { count: 2 } })
+      /** @type {any} */ ({
+        results: [{ name: 'Second', priority_label: '456' }],
+        totals: { count: 2 }
+      })
     );
   const event = {
     cookies: {},

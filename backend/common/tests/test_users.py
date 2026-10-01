@@ -417,12 +417,13 @@ class TestUserDetailView:
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_delete_user_as_admin(
+    def test_legacy_delete_is_closed_for_admin(
         self, admin_client, org_a, regular_user, user_profile
     ):
-        """Admin can delete another user."""
+        """Removal must use the reviewed member-removal flow."""
         response = admin_client.delete(self._url(regular_user.id))
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        assert Profile.objects.filter(id=user_profile.id).exists()
 
     def test_delete_user_self_forbidden(self, admin_client, admin_user):
         """Admin cannot delete themselves."""
@@ -436,20 +437,18 @@ class TestUserDetailView:
         response = user_client.delete(self._url(admin_user.id))
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    @patch("common.views.user_views.send_email_user_delete")
-    def test_delete_user_tells_them_they_were_removed(
+    @patch("common.tasks.send_email_user_delete")
+    def test_legacy_delete_does_not_send_a_removal_notice(
         self, send_email, admin_client, org_a, regular_user, user_profile
     ):
-        """The notice goes out, and only once the removal has actually happened."""
+        """A refused legacy request must not send a removal notice."""
         response = admin_client.delete(self._url(regular_user.id))
 
-        assert response.status_code == status.HTTP_200_OK
-        send_email.delay.assert_called_once_with(
-            regular_user.email, deleted_by="admin@test.com"
-        )
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        send_email.delay.assert_not_called()
 
     @pytest.mark.parametrize("relation", ["time-entry", "approval"])
-    @patch("common.views.user_views.send_email_user_delete")
+    @patch("common.tasks.send_email_user_delete")
     def test_delete_user_with_protected_history_is_refused(
         self, send_email, admin_client, org_a, regular_user, user_profile, relation
     ):
@@ -475,11 +474,7 @@ class TestUserDetailView:
 
         response = admin_client.delete(self._url(regular_user.id))
 
-        assert response.status_code == status.HTTP_409_CONFLICT
-        assert response.data["errors"] == (
-            "This user can't be deleted while they still have time entries or "
-            "approvals linked to them."
-        )
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         assert Profile.objects.filter(id=user_profile.id).exists()
         send_email.delay.assert_not_called()
 
@@ -557,14 +552,14 @@ class TestUserStatusView:
             {"status": "Inactive"},
             format="json",
         )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_403_FORBIDDEN
         admin_profile.refresh_from_db()
         assert admin_profile.is_active is True
 
-    def test_can_deactivate_admin_when_another_admin_exists(
+    def test_cannot_deactivate_self_even_when_another_admin_exists(
         self, admin_client, org_a, admin_user, admin_profile
     ):
-        """With a second admin present, deactivating one is allowed."""
+        """The self-management protection also applies with another admin."""
         from common.models import User
 
         second = User.objects.create_user(
@@ -577,9 +572,9 @@ class TestUserStatusView:
             {"status": "Inactive"},
             format="json",
         )
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_403_FORBIDDEN
         admin_profile.refresh_from_db()
-        assert admin_profile.is_active is False
+        assert admin_profile.is_active is True
 
     def test_status_unknown_user_is_404_not_500(self, admin_client, org_a):
         """An unknown user id is a clean 404, not a 500 from an unguarded .get()."""
@@ -762,9 +757,12 @@ class TestProfilePrivilegeEscalation:
         assert user_profile.phone == "+15559998888"
         assert user_profile.role == "USER"
 
-    def test_admin_can_promote_and_demote_another_member(
-        self, admin_client, regular_user, user_profile
+    def test_super_admin_can_promote_and_demote_another_member(
+        self, admin_client, regular_user, user_profile, admin_profile, org_a
     ):
+        # Fixture setup: ownership cannot be transferred through normal save().
+        type(org_a).objects.filter(pk=org_a.pk).update(owner=admin_profile.user)
+        org_a.refresh_from_db()
         promote = admin_client.patch(
             self._url(regular_user.id),
             {"role": "ADMIN"},

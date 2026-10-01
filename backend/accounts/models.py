@@ -1,5 +1,4 @@
-from common.rbac import CRMRecordManager
-from common.languages import LANGUAGES
+from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Q
@@ -9,10 +8,12 @@ from django.utils.translation import gettext_lazy as _
 
 from accounts.choices import ACCOUNT_INDUSTRIES
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
+from common.languages import LANGUAGES
 from common.models import Org, Profile, Tags, Teams
+from common.rbac import CRMRecordManager
 from common.utils import COUNTRIES, CURRENCY_CODES
 from common.validators import flexible_phone_validator
-from contacts.choices import CONTACT_SOURCES, CONTACT_STAGES, COMMUNICATION_CHANNELS
+from contacts.choices import COMMUNICATION_CHANNELS, CONTACT_SOURCES, CONTACT_STAGES
 from contacts.models import Contact
 
 # Cleanup notes:
@@ -21,6 +22,8 @@ from contacts.models import Contact
 
 
 class Account(AssignableMixin, BaseModel):
+    file_attachments = GenericRelation("common.Attachments")
+
     objects = CRMRecordManager()
     """
     Account model for CRM - Streamlined for modern sales workflow
@@ -37,7 +40,9 @@ class Account(AssignableMixin, BaseModel):
         blank=True,
         validators=[flexible_phone_validator],
     )
-    preferred_communication_channel = models.CharField(max_length=16, choices=COMMUNICATION_CHANNELS, blank=True, null=True)
+    preferred_communication_channel = models.CharField(
+        max_length=16, choices=COMMUNICATION_CHANNELS, blank=True, null=True
+    )
     website = models.URLField(_("Website"), blank=True, null=True)
 
     source = models.CharField(
@@ -63,8 +68,12 @@ class Account(AssignableMixin, BaseModel):
 
     # Address (flat fields like Lead and Contact models)
     address_line = models.CharField(_("Address"), max_length=255, blank=True, null=True)
-    appointment_at = models.DateTimeField("Appointment", null=True, blank=True, db_index=True)
-    language = models.CharField("Language", max_length=100, choices=LANGUAGES, blank=True, default="")
+    appointment_at = models.DateTimeField(
+        "Appointment", null=True, blank=True, db_index=True
+    )
+    language = models.CharField(
+        "Language", max_length=100, choices=LANGUAGES, blank=True, default=""
+    )
     city = models.CharField(_("City"), max_length=255, blank=True, null=True)
     state = models.CharField(_("State"), max_length=255, blank=True, null=True)
     postcode = models.CharField(_("Postal Code"), max_length=64, blank=True, null=True)

@@ -22,7 +22,7 @@ from common.models import PersonalAccessToken
 
 @pytest.mark.django_db
 class TestPATThroughMiddlewareStack:
-    PROBE_URL = "/api/leads/"
+    PROBE_URL = "/api/contacts/"
     TOKEN_URL = "/api/profile/tokens/"
 
     def test_pat_request_reaches_view(self, admin_profile):

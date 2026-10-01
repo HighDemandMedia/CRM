@@ -53,7 +53,12 @@ export const actions = {
     try {
       await updateContact({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this contact.') });
+      return fail(400, {
+        values,
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not save this contact.')
+      });
     }
 
     redirect(303, `/contacts/${params.id}`);

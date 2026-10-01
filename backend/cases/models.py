@@ -1,6 +1,6 @@
-from common.rbac import CRMRecordManager
 from datetime import timedelta
 
+from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
@@ -11,6 +11,7 @@ from django.utils.translation import pgettext_lazy
 from accounts.models import Account
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
 from common.models import Org, Profile, Tags, Teams
+from common.rbac import CRMRecordManager
 from common.utils import CASE_TYPE, CURRENCY_CODES, PRIORITY_CHOICE, STATUS_CHOICE
 from contacts.models import Contact
 
@@ -27,20 +28,51 @@ class TicketSequence(models.Model):
 
 
 class Case(AssignableMixin, BaseModel):
+    file_attachments = GenericRelation("common.Attachments")
+
     objects = CRMRecordManager()
     ticket_number = models.PositiveBigIntegerField(null=True, editable=False)
-    category = models.CharField(max_length=20, default="General", choices=[(x, x) for x in ("Support", "Billing", "Service", "General")])
-    source = models.CharField(max_length=20, default="Internal", choices=[(x, x) for x in ("Email", "Call", "SMS", "Website", "Internal")])
+    category = models.CharField(
+        max_length=20,
+        default="General",
+        choices=[(x, x) for x in ("Support", "Billing", "Service", "General")],
+    )
+    source = models.CharField(
+        max_length=20,
+        default="Internal",
+        choices=[(x, x) for x in ("Email", "Call", "SMS", "Website", "Internal")],
+    )
     due_at = models.DateTimeField(null=True, blank=True, db_index=True)
-    waiting_reason = models.CharField(max_length=20, blank=True, default="", choices=[("", "Not set"), ("Customer", "Customer"), ("Internal", "Internal")])
+    waiting_reason = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        choices=[("", "Not set"), ("Customer", "Customer"), ("Internal", "Internal")],
+    )
     resolution_note = models.TextField(blank=True, default="")
     # Legacy links are retained; new ticket forms and API writes do not expose them.
-    deal = models.ForeignKey("opportunity.Opportunity", on_delete=models.SET_NULL, null=True, blank=True, related_name="tickets")
-    deal = models.ForeignKey("opportunity.Opportunity", on_delete=models.SET_NULL, null=True, blank=True, related_name="tickets")
+    deal = models.ForeignKey(
+        "opportunity.Opportunity",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tickets",
+    )
+    deal = models.ForeignKey(
+        "opportunity.Opportunity",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tickets",
+    )
 
     @property
     def ticket_code(self):
-        return f"TKT-{self.ticket_number:04d}" if self.ticket_number else f"TKT-{str(self.pk)[:8].upper()}"
+        return (
+            f"TKT-{self.ticket_number:04d}"
+            if self.ticket_number
+            else f"TKT-{str(self.pk)[:8].upper()}"
+        )
 
     def save(self, *args, **kwargs):
         if self._state.adding and self.ticket_number is None and self.org_id:

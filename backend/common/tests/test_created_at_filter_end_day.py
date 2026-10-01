@@ -76,8 +76,6 @@ def _task(org, user):
 
 ENDPOINTS = [
     ("/api/accounts/", _account),
-    ("/api/leads/", _lead),
-    ("/api/leads/kanban/", _lead),
     ("/api/contacts/", _contact),
     ("/api/cases/", _case),
     ("/api/cases/kanban/", _case),

@@ -262,13 +262,12 @@
         >
           <p class="font-medium">CSV format</p>
           <p class="mt-1 text-[var(--text-secondary)]">
-            Required header: <code class="rounded bg-[var(--surface-default)] px-1"
-              >first_name</code
+            Required header: <code class="rounded bg-[var(--surface-default)] px-1">first_name</code
             >. Optional:
-            <code class="rounded bg-[var(--surface-default)] px-1">last_name</code>,
-            email, phone, organization, title, department, linkedin_url,
-            address_line, city, state, postcode, country (2-letter code), description, account_name,
-            assigned_emails, team_names, tags (semicolon-separated for the last three).
+            <code class="rounded bg-[var(--surface-default)] px-1">last_name</code>, email, phone,
+            organization, title, department, linkedin_url, address_line, city, state, postcode,
+            country (2-letter code), description, account_name, assigned_emails, team_names, tags
+            (semicolon-separated for the last three).
           </p>
           <p class="mt-1 text-[var(--text-secondary)]">
             Duplicates: rows with a previously-used email or phone (in your org or earlier in the

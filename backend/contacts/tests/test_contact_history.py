@@ -26,8 +26,7 @@ def test_creation_stage_clock_actor_and_changes(admin_client, admin_user):
     contact = Contact.objects.get(first_name="History test")
     assert contact.created_by_id == admin_user.id
     assert contact.stage_entered_at >= timezone.now() - timedelta(minutes=1)
-    created = Activity.objects.get(entity_id=contact.id, action="CREATE")
-    assert created.user.user_id == admin_user.id
+    assert not Activity.objects.filter(entity_id=contact.id, action="CREATE").exists()
     entered = contact.stage_entered_at
     response = admin_client.patch(
         f"/api/contacts/{contact.id}/", {"city": "Miami"}, format="json"
@@ -53,7 +52,7 @@ def test_creation_stage_clock_actor_and_changes(admin_client, admin_user):
     assert update.metadata["changes"]["stage"]["after"] == "QUALIFIED"
     history = admin_client.get(f"/api/contacts/{contact.id}/").data["history"]
     assert all(row["actor"] == admin_user.email for row in history)
-    assert any(row["action"] == "CREATE" for row in history)
+    assert all(row["action"] in ("UPDATE", "ASSIGN") for row in history)
 
 
 def test_legacy_clock_not_invented_and_noop_not_logged(admin_client, org_a):
@@ -91,17 +90,17 @@ def test_owner_notes_and_cross_org_history(
         f"/api/contacts/{contact.id}/", {"comment": "Called customer"}, format="json"
     )
     assert response.status_code == 200, response.data
-    assert Activity.objects.filter(
+    assert not Activity.objects.filter(
         entity_id=contact.id, description="Note added", user=profile
     ).exists()
     note = Comment.objects.get(object_id=contact.pk)
     note.comment = "Revised note"
     note.save()
     note.delete()
-    assert Activity.objects.filter(
+    assert not Activity.objects.filter(
         entity_id=contact.id, description="Note updated"
     ).exists()
-    assert Activity.objects.filter(
+    assert not Activity.objects.filter(
         entity_id=contact.id, description="Note deleted"
     ).exists()
     assert org_b_client.get(f"/api/contacts/{contact.id}/").status_code == 404

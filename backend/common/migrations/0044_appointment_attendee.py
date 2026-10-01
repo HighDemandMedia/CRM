@@ -5,22 +5,31 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('accounts', '0014_account_appointment'),
-        ('common', '0043_sales_appointment_rls'),
-        ('contacts', '0019_contact_language'),
+        ("accounts", "0014_account_appointment"),
+        ("common", "0043_sales_appointment_rls"),
+        ("contacts", "0019_contact_language"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='salesappointment',
-            name='company',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='accounts.account'),
+            model_name="salesappointment",
+            name="company",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="accounts.account",
+            ),
         ),
         migrations.AddField(
-            model_name='salesappointment',
-            name='contact',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='contacts.contact'),
+            model_name="salesappointment",
+            name="contact",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="contacts.contact",
+            ),
         ),
     ]

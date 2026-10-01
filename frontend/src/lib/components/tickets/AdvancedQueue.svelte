@@ -177,7 +177,6 @@
         {#if !data.showAll}
           <a class="v2-btn" href={resolve('/tickets?all=1')}>Show closed too</a>
         {/if}
-        <a class="v2-btn" href={resolve('/solutions')}>Knowledge base</a>
       {/snippet}
     </EmptyState>
   {:else}

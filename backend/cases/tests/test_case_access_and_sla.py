@@ -243,6 +243,7 @@ class TestAttachmentDeleteIsScoped:
         with rls_org(org_b):
             assert Attachments.objects.filter(pk=foreign.id).exists()
 
+    @pytest.mark.usefixtures("attachment_delete_role")
     def test_uploader_can_delete_their_own(
         self, user_client, assigned_case, org_a, regular_user
     ):

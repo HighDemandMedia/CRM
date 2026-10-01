@@ -9,6 +9,7 @@ Run with: pytest common/tests/test_multitenancy.py -v
 
 from unittest.mock import MagicMock
 
+import pytest
 from django.core.exceptions import ValidationError
 from django.test import RequestFactory, TestCase
 from rest_framework.test import APIClient
@@ -369,6 +370,7 @@ class TestNullOrgPrevention(MultiTenancyBaseTestCase):
             comment.save()
 
 
+@pytest.mark.postgres_only
 class TestRLSIntegration(MultiTenancyBaseTestCase):
     """
     Test Row-Level Security at the database level.
@@ -393,7 +395,7 @@ class TestRLSIntegration(MultiTenancyBaseTestCase):
             # Check if database user is a superuser (which bypasses RLS)
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT usesuper FROM pg_user WHERE usename = current_user"
+                    "SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname = current_user"
                 )
                 result = cursor.fetchone()
                 cls.is_superuser = result[0] if result else True
@@ -401,20 +403,29 @@ class TestRLSIntegration(MultiTenancyBaseTestCase):
     def setUp(self):
         super().setUp()
 
-        # Create test data in each org
-        self.lead_a = Lead.objects.create(
-            first_name="Lead", last_name="OrgA", email="lead_a@test.com", org=self.org_a
-        )
-        self.lead_b = Lead.objects.create(
-            first_name="Lead", last_name="OrgB", email="lead_b@test.com", org=self.org_b
-        )
+        from common.rls.context import org_context
 
-        self.account_a = Account.objects.create(
-            name="Account A", email="account_a@test.com", org=self.org_a
-        )
-        self.account_b = Account.objects.create(
-            name="Account B", email="account_b@test.com", org=self.org_b
-        )
+        # Seed each tenant under its own policy, then restore the empty context.
+        with org_context(self.org_a.pk):
+            self.lead_a = Lead.objects.create(
+                first_name="Lead",
+                last_name="OrgA",
+                email="lead_a@test.com",
+                org=self.org_a,
+            )
+            self.account_a = Account.objects.create(
+                name="Account A", email="account_a@test.com", org=self.org_a
+            )
+        with org_context(self.org_b.pk):
+            self.lead_b = Lead.objects.create(
+                first_name="Lead",
+                last_name="OrgB",
+                email="lead_b@test.com",
+                org=self.org_b,
+            )
+            self.account_b = Account.objects.create(
+                name="Account B", email="account_b@test.com", org=self.org_b
+            )
 
     def test_empty_context_returns_no_rows(self):
         """With empty RLS context, queries should return zero rows (fail-safe)."""
@@ -484,9 +495,7 @@ class TestRLSIntegration(MultiTenancyBaseTestCase):
                 "RLS is bypassed for superusers - use non-superuser for testing"
             )
 
-        import uuid
-
-        from django.db import connection
+        from django.db import DatabaseError, connection, transaction
 
         with connection.cursor() as cursor:
             # Set context to org_a
@@ -494,20 +503,13 @@ class TestRLSIntegration(MultiTenancyBaseTestCase):
                 "SELECT set_config('app.current_org', %s, true)", [str(self.org_a.id)]
             )
 
-            # Try to insert lead with org_b's ID (should fail due to WITH CHECK)
-            new_id = uuid.uuid4()
-            try:
-                cursor.execute(
-                    """
-                    INSERT INTO lead (id, first_name, last_name, email, org_id, created_at, updated_at)
-                    VALUES (%s, 'Test', 'Wrong Org', 'wrong@test.com', %s, NOW(), NOW())
-                """,
-                    [str(new_id), str(self.org_b.id)],
-                )
-                self.fail("Should not be able to insert record with wrong org_id")
-            except Exception:
-                # Expected - RLS should prevent this insert
-                pass
+            # Require the policy error, not an unrelated schema error or a
+            # swallowed assertion. The savepoint keeps the test transaction usable.
+            with (
+                self.assertRaisesMessage(DatabaseError, "row-level security"),
+                transaction.atomic(),
+            ):
+                Lead.objects.create(first_name="Wrong", last_name="Org", org=self.org_b)
 
     def test_celery_task_rls_context(self):
         """Celery tasks should be able to set RLS context."""

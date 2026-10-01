@@ -39,7 +39,9 @@
       {tab.label}
       {#if tab.count}
         {#await counts then readyCounts}
-          {#if readyCounts[tab.count]}<span class="v2-tab-count v2-num">{readyCounts[tab.count]}</span>{/if}
+          {#if readyCounts[tab.count]}<span class="v2-tab-count v2-num"
+              >{readyCounts[tab.count]}</span
+            >{/if}
         {/await}
       {/if}
     </a>

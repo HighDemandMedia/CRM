@@ -37,7 +37,12 @@ export const actions = {
       // `values` goes back so a rejected form is not a blank form. Retyping
       // eight fields because the ninth collided is how people learn to
       // distrust a create page.
-      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not create the deal.') });
+      return fail(400, {
+        values,
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not create the deal.')
+      });
     }
 
     // Straight to the deal, not back to the list: the next thing anyone does

@@ -102,7 +102,6 @@
     <Component {data} {form} />
   </div>
   {#if busy}<div class="saving" role="status">Saving…</div>{/if}
-
 </dialog>
 
 <style>

@@ -357,8 +357,8 @@
   <RecordSection title="Address" collapsible={!editing}>
     <label
       >Country<select class="v2-input" name="country" bind:value={values.country}
-        ><option value="">Select country</option>{#each countryOptions(values.country) as { value, label }}<option
-            {value}>{label}</option
+        ><option value="">Select country</option
+        >{#each countryOptions(values.country) as { value, label }}<option {value}>{label}</option
           >{/each}</select
       ></label
     >

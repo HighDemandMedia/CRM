@@ -1,5 +1,5 @@
 <script>
-  import StageRuleNotice from "$lib/components/pipelines/StageRuleNotice.svelte";
+  import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
   import { resolve } from '$app/paths';
   /**
    * Editing a ticket.
@@ -78,8 +78,8 @@
 
 <div class="v2-scroll v2-pad" style="padding-top:18px">
   <form class="v2-form" method="POST" action="?/save" use:enhance={check} novalidate>
-    <StageRuleNotice issue={result?.stageRequirements}/>
-{#if result?.error && !result?.stageRequirements}
+    <StageRuleNotice issue={result?.stageRequirements} />
+    {#if result?.error && !result?.stageRequirements}
       <div
         class="v2-next"
         style="background:color-mix(in srgb, var(--v2-rust) 9%, transparent);border-color:color-mix(in srgb, var(--v2-rust) 28%, transparent);margin-bottom:18px"

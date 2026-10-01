@@ -16,9 +16,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from common.property_catalog import TARGETS, properties_for
 from common.models import CustomFieldDefinition, Org
 from common.permissions import HasOrgContext, is_org_admin
+from common.property_catalog import TARGETS, properties_for
 from common.serializer import CustomFieldDefinitionSerializer
 
 # Each custom-field target_model → the (app_label, model) whose rows store the
@@ -240,7 +240,7 @@ class CustomFieldDefinitionDetailView(APIView):
     def delete(self, request, pk, *args, **kwargs):
         if not is_org_admin(request.profile):
             return _admin_required()
-        if request.query_params.get('permanent') == 'true':
+        if request.query_params.get("permanent") == "true":
             return self._delete_permanently(request, pk)
         obj = self._get_object(pk, request.profile.org)
         if not obj:
@@ -261,27 +261,52 @@ class CustomFieldDefinitionDetailView(APIView):
     def _delete_permanently(self, request, pk):
         # Share the organization lock with pipeline rules and property ordering.
         org = Org.objects.select_for_update().get(pk=request.profile.org_id)
-        obj = CustomFieldDefinition.objects.select_for_update().filter(pk=pk, org=org).first()
+        obj = (
+            CustomFieldDefinition.objects.select_for_update()
+            .filter(pk=pk, org=org)
+            .first()
+        )
         if obj is None:
-            return Response({'errors': 'Custom property not found.'}, status=404)
-        if str(request.data.get('confirmation', '')).strip() != obj.key:
-            return Response({'errors': 'Type the internal name to confirm deletion.'}, status=400)
+            return Response({"errors": "Custom property not found."}, status=404)
+        if str(request.data.get("confirmation", "")).strip() != obj.key:
+            return Response(
+                {"errors": "Type the internal name to confirm deletion."}, status=400
+            )
         model = _resolve_target_model(obj.target_model)
         if model is None:
-            return Response({'errors': 'This property type cannot be deleted.'}, status=400)
+            return Response(
+                {"errors": "This property type cannot be deleted."}, status=400
+            )
 
         # Remove only this JSON key, preserving concurrent changes to other keys.
         records = model._base_manager.filter(org=org, custom_fields__has_key=obj.key)
-        if connection.vendor == 'postgresql':
-            expression = CombinedExpression(F('custom_fields'), '-', Value(obj.key), output_field=JSONField())
+        if connection.vendor == "postgresql":
+            expression = CombinedExpression(
+                F("custom_fields"), "-", Value(obj.key), output_field=JSONField()
+            )
         else:
-            expression = Func(F('custom_fields'), Value(f'$."{obj.key}"'), function='json_remove', output_field=JSONField())
+            expression = Func(
+                F("custom_fields"),
+                Value(f'$."{obj.key}"'),
+                function="json_remove",
+                output_field=JSONField(),
+            )
         affected = records.update(custom_fields=expression)
-        reference = 'custom_fields.' + obj.key
+        reference = "custom_fields." + obj.key
         if obj.target_model in (org.property_order or {}):
-            org.property_order[obj.target_model] = [key for key in org.property_order[obj.target_model] if key != reference]
+            org.property_order[obj.target_model] = [
+                key for key in org.property_order[obj.target_model] if key != reference
+            ]
         for stage in (org.pipeline_settings or {}).get(obj.target_model, []):
-            stage['required_fields'] = [key for key in stage.get('required_fields', []) if key != reference]
-        org.save(update_fields=['property_order', 'pipeline_settings', 'updated_at'])
+            stage["required_fields"] = [
+                key for key in stage.get("required_fields", []) if key != reference
+            ]
+        org.save(update_fields=["property_order", "pipeline_settings", "updated_at"])
         obj.delete()
-        return Response({'error': False, 'message': 'Custom property deleted.', 'records_updated': affected})
+        return Response(
+            {
+                "error": False,
+                "message": "Custom property deleted.",
+                "records_updated": affected,
+            }
+        )

@@ -770,9 +770,8 @@
                     ><td
                       >{#if entry.contact}<a href={resolve(`/contacts/${entry.contact}`)}
                           >{entry.contact_name || entry.payload?.email || 'Open contact'}</a
-                        >{:else if entry.lead}<a href={resolve(`/leads/${entry.lead}`)}
-                          >{entry.lead_name || 'Open lead'}</a
-                        >{:else}{entry.payload?.email ?? '—'}{/if}</td
+                        >{:else if entry.lead}{entry.lead_name || 'Archived lead'}{:else}{entry
+                          .payload?.email ?? '—'}{/if}</td
                     ></tr
                   >{/each}</tbody
               >

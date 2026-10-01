@@ -192,10 +192,9 @@ class TestDealWriteAccess:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("required_deal_close_fields")
 class TestClosingADeal:
-    """`Opportunity.clean()` requires a close date on any closed stage and an
-    amount on Closed Won. DRF does not call `clean()`, so these are enforced in
-    `OpportunityCreateSerializer.validate()`."""
+    """The organization's closing requirements apply to API writes."""
 
     def test_patch_closed_won_without_amount_is_rejected(self, admin_client, org_a):
         deal = _deal(org_a, name="Winning")
@@ -205,7 +204,10 @@ class TestClosingADeal:
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "amount" in response.data["errors"]
+        assert "amount" in {
+            field["key"]
+            for field in response.data["errors"]["stage_requirements"]["fields"]
+        }
         deal.refresh_from_db()
         assert deal.stage == "QUALIFICATION"
 
@@ -215,7 +217,10 @@ class TestClosingADeal:
             _detail_url(deal.pk), {"stage": "CLOSED_LOST"}, format="json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "closed_on" in response.data["errors"]
+        assert "closed_on" in {
+            field["key"]
+            for field in response.data["errors"]["stage_requirements"]["fields"]
+        }
 
     def test_patch_stage_only_uses_the_stored_amount(self, admin_client, org_a):
         """A PATCH that only moves the stage is judged against what is already

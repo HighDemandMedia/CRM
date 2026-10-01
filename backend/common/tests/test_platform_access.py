@@ -35,7 +35,7 @@ def test_customer_super_admin_is_not_platform_owner(
     token = OrgAwareRefreshToken.for_user_and_org(admin_user, org_a, admin_profile)
     assert token["is_super_admin"]
     assert not token["is_platform_owner"] and not token["can_preview"]
-    assert admin_client.get("/api/leads/").status_code == 403
+    assert admin_client.get("/api/leads/").status_code == 404
     for path in (
         "/api/webforms/",
         "/api/contacts/",
@@ -56,15 +56,15 @@ def test_customer_super_admin_is_not_platform_owner(
     ],
 )
 def test_customer_cannot_open_preview_by_url(admin_client, path):
-    assert admin_client.get(path).status_code == 403
+    assert admin_client.get(path).status_code == 404
 
 
-def test_owner_preview_and_directory(owner, org_b):
+def test_owner_directory_without_preview(owner, org_b):
     user, profile, client = owner
-    assert OrgAwareRefreshToken.for_user_and_org(user, profile.org, profile)[
+    assert not OrgAwareRefreshToken.for_user_and_org(user, profile.org, profile)[
         "can_preview"
     ]
-    assert client.get("/api/leads/").status_code == 200
+    assert client.get("/api/leads/").status_code == 404
     directory = client.get("/api/org/").json()["profile_org_list"]
     assert str(org_b.pk) in [row["org"]["id"] for row in directory]
     me = client.get("/api/auth/me/").json()
@@ -89,7 +89,7 @@ def test_owner_explicit_switch_preserves_tenant_owner_and_isolation(
     assert not support.is_super_admin
     client.credentials(HTTP_AUTHORIZATION="Bearer " + response.data["access_token"])
     assert client.get(f"/api/contacts/{contact.pk}/").status_code == 200
-    assert client.get("/api/leads/").status_code == 200
+    assert client.get("/api/leads/").status_code == 404
     org_b.refresh_from_db()
     assert org_b.owner_id == profile_b.user_id
 
@@ -260,21 +260,21 @@ def test_customer_cannot_assign_platform_flags(admin_client, admin_user, admin_p
     admin_profile.refresh_from_db()
     assert not admin_user.is_superuser and not admin_user.is_staff
     assert not admin_profile.is_platform_access
-    assert admin_client.get("/api/leads/").status_code == 403
+    assert admin_client.get("/api/leads/").status_code == 404
 
 
 def test_preview_requires_owner_even_without_selected_organization(admin_user):
     token = OrgAwareRefreshToken.for_user_and_org(admin_user, None)
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION="Bearer " + str(token.access_token))
-    assert client.get("/api/packs/").status_code == 403
+    assert client.get("/api/packs/").status_code == 404
 
 
 def test_org_key_never_borrows_platform_privileges(owner, org_b, profile_b):
     owner[2].post("/api/auth/switch-org/", {"org_id": str(org_b.pk)}, format="json")
     client = APIClient()
     client.credentials(HTTP_TOKEN=org_b.api_key)
-    assert client.get("/api/leads/").status_code == 403
+    assert client.get("/api/leads/").status_code == 404
     assert client.get("/api/contacts/").status_code == 200
 
 

@@ -1,4 +1,5 @@
 import pytest
+
 from accounts.models import Account
 from contacts.models import Contact
 from opportunity.models import Opportunity

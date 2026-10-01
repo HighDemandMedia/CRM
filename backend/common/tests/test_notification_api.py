@@ -97,8 +97,10 @@ class TestList(NotificationAPIBase):
         rows[0].read_at = timezone.now()
         rows[0].save(update_fields=["read_at"])
         self._bulk(self.profile_b, 2)
-        pages = [self.client.get(f"/api/notifications/?limit=2&offset={offset}").json()
-                 for offset in (0, 2, 4)]
+        pages = [
+            self.client.get(f"/api/notifications/?limit=2&offset={offset}").json()
+            for offset in (0, 2, 4)
+        ]
         ids = [row["id"] for page in pages for row in page["results"]]
         assert len(set(ids)) == 5
         assert all(page["count"] == 5 and page["unread_count"] == 4 for page in pages)

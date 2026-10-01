@@ -50,6 +50,15 @@ THE DENY-LIST IS NOT A SCOPE
 # `test_api_resources_covers_the_live_urlconf`, which walks the real URLconf.
 API_RESOURCES = frozenset(
     {
+        "help",
+        "integrations",
+        "permissions",
+        "pipeline-settings",
+        "property-layout",
+        "record-associations",
+        "record-delete",
+        "reports",
+        "sales-appointments",
         "members",
         "roles",
         "invitations",

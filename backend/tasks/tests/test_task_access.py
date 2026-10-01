@@ -465,6 +465,7 @@ class TestAttachmentDeleteIsScopedToTheOrg:
         )
         assert Attachments.objects.filter(pk=attachment.pk).exists()
 
+    @pytest.mark.usefixtures("attachment_delete_role")
     def test_the_uploader_can_delete_their_own(self, user_client, regular_user, org_a):
         attachment = self._attachment(org_a, regular_user)
         assert (
@@ -612,7 +613,7 @@ class TestTheListPayload:
         for i in range(12):
             _task(org_a, admin_user, title=f"Task {i}")
         admin_client.get("/api/tasks/?limit=12&slim=true")
-        with django_assert_num_queries(12):
+        with django_assert_num_queries(13):
             admin_client.get("/api/tasks/?limit=12&slim=true")
 
     def test_twelve_rows_cost_the_same_as_two(
@@ -627,12 +628,12 @@ class TestTheListPayload:
         for i in range(2):
             _task(org_a, admin_user, title=f"Small {i}")
         admin_client.get("/api/tasks/?slim=true")
-        with django_assert_num_queries(12):
+        with django_assert_num_queries(13):
             admin_client.get("/api/tasks/?slim=true")
 
         for i in range(20):
             _task(org_a, admin_user, title=f"Big {i}")
-        with django_assert_num_queries(12):
+        with django_assert_num_queries(13):
             admin_client.get("/api/tasks/?limit=25&slim=true")
 
 

@@ -55,19 +55,36 @@ export const actions = {
   async delete(event) {
     const form = await event.request.formData();
     try {
-      await deleteCustomField(event, String(form.get('id') || ''), String(form.get('confirmation') || ''));
+      await deleteCustomField(
+        event,
+        String(form.get('id') || ''),
+        String(form.get('confirmation') || '')
+      );
       return { deleted: true };
     } catch (err) {
-      return fail(err?.status === 403 ? 403 : 400, { delete: { error: readableError(err, 'Could not delete the property.') } });
+      return fail(err?.status === 403 ? 403 : 400, {
+        delete: { error: readableError(err, 'Could not delete the property.') }
+      });
     }
   },
-  async reorder({cookies, request}) {
+  async reorder({ cookies, request }) {
     const form = await request.formData();
     try {
-      return await apiRequest('/property-layout/', {method: 'PUT', body: {
-        target_model: form.get('target_model'), revision: form.get('revision'), order: JSON.parse(String(form.get('order')))
-      }}, {cookies});
-    } catch (err) { return fail(400, {error: readableError(err, 'Could not save the order.')}); }
+      return await apiRequest(
+        '/property-layout/',
+        {
+          method: 'PUT',
+          body: {
+            target_model: form.get('target_model'),
+            revision: form.get('revision'),
+            order: JSON.parse(String(form.get('order')))
+          }
+        },
+        { cookies }
+      );
+    } catch (err) {
+      return fail(400, { error: readableError(err, 'Could not save the order.') });
+    }
   },
   // Admin-only server-side (`CustomFieldDefinitionListCreateView.post` calls
   // `_is_admin` first). `can_edit` only hides the control.

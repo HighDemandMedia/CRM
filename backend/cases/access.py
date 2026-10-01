@@ -44,6 +44,7 @@ _DENIED = "You do not have Permission to perform this action"
 
 def visible_cases_qs(profile):
     from common.rbac import configured, scoped
+
     if configured(profile):
         return scoped(Case.objects.all(), profile)
     """Cases ``profile`` is allowed to open. The queryset form of `read`.
@@ -78,8 +79,9 @@ def get_case_or_404(profile, pk):
 
 def has_case_read_access(profile, case):
     from common.rbac import configured, permitted
+
     if configured(profile):
-        return permitted(profile, case, 'view')
+        return permitted(profile, case, "view")
     """Non-raising form of `read`, for computing response flags."""
     if has_case_write_access(profile, case):
         return True
@@ -88,8 +90,9 @@ def has_case_read_access(profile, case):
 
 def has_case_write_access(profile, case):
     from common.rbac import configured, permitted
+
     if configured(profile):
-        return permitted(profile, case, 'edit')
+        return permitted(profile, case, "edit")
     """Non-raising form of `write`."""
     if is_org_admin(profile):
         return True
@@ -112,8 +115,10 @@ def assert_case_write_access(profile, case):
 
 def assert_case_delete_access(profile, case):
     from common.rbac import configured, permitted
+
     if configured(profile):
-        if not permitted(profile, case, 'delete'): raise PermissionDenied(_DENIED)
+        if not permitted(profile, case, "delete"):
+            raise PermissionDenied(_DENIED)
         return
     """Raise 403 unless ``profile`` may destroy ``case``.
 

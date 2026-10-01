@@ -37,6 +37,7 @@ Keep database and email secrets out of frontend services and out of Git.
 | DBPASSWORD | PostgreSQL password from Render |
 | CELERY_BROKER_URL | Key Value internal connection URL |
 | CELERY_RESULT_BACKEND | Same Key Value internal connection URL |
+| CACHE_URL | Shared Key Value internal connection URL; required for hosted rate limits and caches |
 | SECRET_KEY | Generate a private random value of at least 50 bytes |
 | ENV_TYPE | prod (runtime security mode; this remains the Staging environment) |
 | DEBUG | false |
@@ -52,6 +53,11 @@ Do not paste example hostnames into production settings. First reserve/configure
 the service names, then use the exact Render-assigned URLs. Switch the three
 frontend URL settings and the frontend ORIGIN together when custom DNS is ready.
 Leave SESSION_COOKIE_DOMAIN unset so cookies stay host-scoped.
+
+`CACHE_URL` must be available to API, worker and scheduler through the core group.
+Use the same Redis database and cache namespace for these services. A cache configured
+only on one service is not a shared limit. Remove conflicting service-level overrides
+after checking their values. Do not share this cache with an unrelated environment.
 
 ## Services (create only after the verified code is pushed)
 
@@ -85,7 +91,8 @@ Local Compose keeps the development image stage and its original entrypoint.
 ## Release checks
 
 The hosted guard refuses development mode, wildcard hosts, open CORS, public
-registration, insecure cookies and an HTTP frontend. It verifies PostgreSQL is
+registration, insecure cookies and an HTTP frontend. It rejects a process-local
+cache: `CACHE_URL` must select the shared Redis backend. It verifies PostgreSQL is
 not using a superuser or BYPASSRLS role and that row_security is on. Migrations
 enable/force the policies; this check does not replace tenant-isolation tests.
 

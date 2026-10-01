@@ -1,16 +1,9 @@
-from common.pipeline_board import pipeline_board
-from contacts.serializer import ContactListSerializer
-from common.last_activity import with_last_activity
-from common.pipeline_settings import stages_for
-from common.rbac import configured, permitted
-from common.calendar_filters import filter_calendar
 import json
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import OuterRef, Q, Subquery
-from django.db.models.functions import Coalesce
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import (
@@ -23,7 +16,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.calendar_filters import filter_calendar
 from common.custom_fields import validate_payload as validate_custom_fields_payload
+from common.last_activity import with_last_activity
 from common.models import (
     Activity,
     Attachments,
@@ -34,6 +29,9 @@ from common.models import (
     Teams,
 )
 from common.permissions import HasOrgContext, is_org_admin
+from common.pipeline_board import pipeline_board
+from common.pipeline_settings import stages_for
+from common.rbac import configured
 from common.serializer import (
     AttachmentsSerializer,
     CommentSerializer,
@@ -42,11 +40,12 @@ from common.serializer import (
 from common.utils import COUNTRIES, create_attachment
 from common.validators import date_param, payload_id_list, uuid_list_param
 from contacts import access, swagger_params
-from contacts.choices import COMMUNICATION_CHANNELS, CONTACT_SOURCES, CONTACT_STAGES
+from contacts.choices import COMMUNICATION_CHANNELS, CONTACT_SOURCES
 from contacts.models import Contact
 from contacts.serializer import (
     ContactCommentEditSwaggerSerializer,
     ContactDetailEditSwaggerSerializer,
+    ContactListSerializer,
     ContactSerializer,
     CreateContactSerializer,
 )
@@ -73,7 +72,9 @@ class ContactsListView(APIView, LimitOffsetPagination):
             .prefetch_related("account_contacts", "assigned_to__user", "teams", "tags")
         )
         queryset = with_last_activity(queryset)
-        if not configured(self.request.profile) and not is_org_admin(self.request.profile):
+        if not configured(self.request.profile) and not is_org_admin(
+            self.request.profile
+        ):
             queryset = queryset.filter(
                 Q(assigned_to__in=[self.request.profile])
                 | Q(created_by=self.request.profile.user)
@@ -89,7 +90,10 @@ class ContactsListView(APIView, LimitOffsetPagination):
                 if params.get(field):
                     if field == "stage" and params[field] == "UNASSIGNED":
                         queryset = queryset.exclude(
-                            stage__in=[s['key'] for s in stages_for(self.request.profile.org, 'Contact')]
+                            stage__in=[
+                                s["key"]
+                                for s in stages_for(self.request.profile.org, "Contact")
+                            ]
                         )
                     else:
                         queryset = queryset.filter(**{field: params[field]})
@@ -221,31 +225,56 @@ class ContactsListView(APIView, LimitOffsetPagination):
 
         queryset = filter_calendar(queryset, params)
         queryset = order_contacts(
-            queryset, params.get("sort"), params.get("direction") == "desc", org=self.request.profile.org
+            queryset,
+            params.get("sort"),
+            params.get("direction") == "desc",
+            org=self.request.profile.org,
         )
 
         if params.get("include_pipeline_totals") == "true":
             context["money_totals"] = contact_pipeline_totals(
-                self.request.profile, self.request.user, queryset.order_by().values("pk")
+                self.request.profile,
+                self.request.user,
+                queryset.order_by().values("pk"),
             )
 
         if params.get("board") == "true":
+
             def enrich(rows):
-                values = contact_deal_values(self.request.profile, self.request.user, [row["id"] for row in rows])
+                values = contact_deal_values(
+                    self.request.profile, self.request.user, [row["id"] for row in rows]
+                )
                 for row in rows:
                     row["deal_values"] = values.get(str(row["id"]), [])
-            context.update({
-                "board": pipeline_board(queryset, self.request, ContactListSerializer,
-                    lambda qs: contact_pipeline_totals(self.request.profile, self.request.user, qs.values("pk")),
-                    enrich=enrich),
-                "results": [], "count": queryset.distinct().count(),
-                "stages": [(s["key"], s["label"]) for s in stages_for(self.request.profile.org, "Contact")],
-            })
+
+            context.update(
+                {
+                    "board": pipeline_board(
+                        queryset,
+                        self.request,
+                        ContactListSerializer,
+                        lambda qs: contact_pipeline_totals(
+                            self.request.profile, self.request.user, qs.values("pk")
+                        ),
+                        enrich=enrich,
+                    ),
+                    "results": [],
+                    "count": queryset.distinct().count(),
+                    "stages": [
+                        (s["key"], s["label"])
+                        for s in stages_for(self.request.profile.org, "Contact")
+                    ],
+                }
+            )
             return context
         results_contact = self.paginate_queryset(
             queryset.distinct(), self.request, view=self
         )
-        serializer_class = ContactListSerializer if params.get("compact") == "true" else ContactSerializer
+        serializer_class = (
+            ContactListSerializer
+            if params.get("compact") == "true"
+            else ContactSerializer
+        )
         contacts = serializer_class(results_contact, many=True).data
         if params.get("include_deal_values") == "true":
             values = contact_deal_values(
@@ -273,7 +302,10 @@ class ContactsListView(APIView, LimitOffsetPagination):
         context["contact_obj_list"] = contacts
         context["countries"] = COUNTRIES
         context["sources"] = CONTACT_SOURCES
-        context["stages"] = [(s["key"], s["label"]) for s in stages_for(self.request.profile.org, "Contact")]
+        context["stages"] = [
+            (s["key"], s["label"])
+            for s in stages_for(self.request.profile.org, "Contact")
+        ]
         context["communication_channels"] = COMMUNICATION_CHANNELS
         users = Profile.objects.filter(
             is_active=True, org=self.request.profile.org
@@ -623,7 +655,9 @@ class ContactDetailView(APIView):
         visited = set()
         while pk not in visited:
             visited.add(pk)
-            archived = Contact._base_manager.filter(pk=pk, org=request.profile.org, merged_at__isnull=False).first()
+            archived = Contact._base_manager.filter(
+                pk=pk, org=request.profile.org, merged_at__isnull=False
+            ).first()
             if not archived:
                 break
             if not archived.merged_into_id:
@@ -634,10 +668,14 @@ class ContactDetailView(APIView):
         self.assert_contact_access(contact_obj)
         context["contact_obj"] = ContactSerializer(contact_obj).data
         from common.views.google_integration_views import contact_mail_activity
+
         context["email_activity"] = contact_mail_activity(request.profile, contact_obj)
         history = (
             Activity.objects.filter(
-                org=contact_obj.org, entity_type="Contact", entity_id=contact_obj.id, action__in=["UPDATE", "ASSIGN"]
+                org=contact_obj.org,
+                entity_type="Contact",
+                entity_id=contact_obj.id,
+                action__in=["UPDATE", "ASSIGN"],
             )
             .select_related("user__user")
             .order_by("-created_at", "-id")
@@ -696,7 +734,9 @@ class ContactDetailView(APIView):
         }
         context["countries"] = COUNTRIES
         context["sources"] = CONTACT_SOURCES
-        context["stages"] = [(s["key"], s["label"]) for s in stages_for(request.profile.org, "Contact")]
+        context["stages"] = [
+            (s["key"], s["label"]) for s in stages_for(request.profile.org, "Contact")
+        ]
         context["communication_channels"] = COMMUNICATION_CHANNELS
         contact_content_type = ContentType.objects.get_for_model(Contact)
         comments = Comment.objects.filter(
@@ -766,7 +806,8 @@ class ContactDetailView(APIView):
         # work on a contact, only an admin or the person who entered it may
         # destroy the record. This comparison was already the right one.
         if (
-            not configured(self.request.profile) and not is_org_admin(self.request.profile)
+            not configured(self.request.profile)
+            and not is_org_admin(self.request.profile)
             and self.request.profile.user_id != self.object.created_by_id
         ):
             return Response(
@@ -1103,4 +1144,5 @@ class ContactAttachmentView(APIView):
     @transaction.atomic
     def delete(self, request, pk, format=None):
         from common.views.attachment_views import delete_attachment
+
         return delete_attachment(request, pk, expected_model="contact")

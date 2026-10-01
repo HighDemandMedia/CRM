@@ -14,8 +14,9 @@ _DENIED = "You do not have Permission to perform this action"
 
 def has_account_access(profile, account):
     from common.rbac import configured, permitted
+
     if configured(profile):
-        return permitted(profile, account, 'view')
+        return permitted(profile, account, "view")
     """Admins, the person who created it, and anyone assigned. Else refused.
 
     One check, because there were four and they disagreed. ``get``, ``put``,

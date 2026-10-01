@@ -14,5 +14,5 @@ export const contactColumns = [
   ['description', 'Notes'],
   ['account', 'Company'],
   ['created_at', 'Created'],
-  ['last_activity_at', 'Last Activity'],
+  ['last_activity_at', 'Last Activity']
 ];

@@ -31,6 +31,15 @@ def validate_settings(config):
         errors.append("FRONTEND_URL must use HTTPS.")
     if not config.SESSION_COOKIE_SECURE or not config.CSRF_COOKIE_SECURE:
         errors.append("Session and CSRF cookies must require HTTPS.")
+    cache = getattr(config, "CACHES", {}).get("default", {})
+    if cache.get(
+        "BACKEND"
+    ) != "django.core.cache.backends.redis.RedisCache" or urlsplit(
+        str(cache.get("LOCATION", ""))
+    ).scheme not in ("redis", "rediss"):
+        errors.append(
+            "Set CACHE_URL to a shared Redis URL for hosted throttles and caches."
+        )
     backend = config.EMAIL_BACKEND
     if backend == "common.gmail_backend.GmailEmailBackend":
         for name in (

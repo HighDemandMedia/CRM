@@ -80,7 +80,12 @@ export const actions = {
     try {
       await updateContact({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this contact.') });
+      return fail(400, {
+        values,
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not save this contact.')
+      });
     }
 
     return { saved: true };
@@ -105,7 +110,11 @@ export const actions = {
       if (Object.keys(values).length) await updateContact({ cookies }, params.id, values);
       return { saved: true };
     } catch (/** @type {any} */ err) {
-      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save contact changes.') });
+      return fail(400, {
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not save contact changes.')
+      });
     }
   },
   /**

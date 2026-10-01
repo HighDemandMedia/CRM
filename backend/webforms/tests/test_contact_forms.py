@@ -432,3 +432,23 @@ def test_concurrent_forms_create_one_contact(org_a):
     assert ids[0] == ids[1]
     assert Contact.objects.filter(org=org_a).count() == 1
     assert WebFormSubmission.objects.filter(org=org_a).count() == 2
+
+
+@pytest.mark.django_db(transaction=True)
+def test_email_delivery_has_no_database_lock_and_claim_blocks_duplicate(form):
+    from django.db import connection
+
+    from webforms.tasks import _deliver
+
+    with patch("webforms.tasks.queue_notification"):
+        row = submit_form(form, {"first_name": "Pat", "email": "pat@example.com"})
+
+    def deliver(**kwargs):
+        assert not connection.in_atomic_block
+        _deliver(row.pk, form.org_id)
+
+    with patch("webforms.tasks.send_email", side_effect=deliver) as sender:
+        _deliver(row.pk, form.org_id)
+    assert sender.call_count == 1
+    row.refresh_from_db()
+    assert row.email_completed_at and row.email_claim_id is None

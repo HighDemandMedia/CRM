@@ -1,22 +1,6 @@
-from common.views.google_integration_views import GoogleConnectView, GoogleCallbackView, GoogleConnectionView, GoogleCalendarListView, GoogleEventsView, GoogleMailBodyView
-from common.views.ui_context_views import UIContextView
-from common.views.password_auth_views import PasswordLoginView, PasswordRegisterView, PasswordChangeView, InvitationPreviewView
-from common.views.role_views import MyPermissionsView
-from common.views.property_layout_views import PropertyLayoutView
-from common.views.crm_report_views import CRMReportView
-from common.views.help_views import HelpRequestView
-from common.views.pipeline_settings_views import PipelineSettingsView
-from common.views.member_removal_views import MemberRemovalView
-from common.views.role_views import RolesView, RoleDetailView, MemberRoleView, RoleExportCheckView
-from common.views.profile_photo_views import ProfilePhotoView
-from common.views.invitation_views import InvitationsView, InvitationDetailView, AcceptInvitationView
-from common.views.today_summary_views import TodaySummaryView
-from common.views.record_delete_views import RecordDeleteView
-from common.views.record_association_views import RecordAssociationView
-from common.views.sales_appointment_views import SalesAppointmentView, AppointmentAttendeesView, SalesAppointmentManageView, AppointmentAvailabilityView
 from django.urls import path
 
-from common.views.attachment_views import AttachmentDownloadView, AttachmentDeleteView
+from common.views.attachment_views import AttachmentDeleteView, AttachmentDownloadView
 from common.views.auth_views import (
     GoogleIdTokenView,
     GoogleOAuthCallbackView,
@@ -28,16 +12,27 @@ from common.views.auth_views import (
     OrgAwareTokenRefreshView,
     OrgSwitchView,
 )
+from common.views.crm_report_views import CRMReportView
 from common.views.custom_field_views import (
     CustomFieldDefinitionDetailView,
     CustomFieldDefinitionListCreateView,
 )
-from common.views.dashboard_views import ActivityListView, ApiHomeView, ApiTodayView
-from common.views.document_views import (
-    DocumentDetailView,
-    DocumentDownloadView,
-    DocumentListView,
+from common.views.dashboard_views import ActivityListView, ApiTodayView
+from common.views.google_integration_views import (
+    GoogleCalendarListView,
+    GoogleCallbackView,
+    GoogleConnectionView,
+    GoogleConnectView,
+    GoogleEventsView,
+    GoogleMailBodyView,
 )
+from common.views.help_views import HelpRequestView
+from common.views.invitation_views import (
+    AcceptInvitationView,
+    InvitationDetailView,
+    InvitationsView,
+)
+from common.views.member_removal_views import MemberRemovalView
 from common.views.notification_views import (
     NotificationDetailView,
     NotificationListView,
@@ -46,20 +41,35 @@ from common.views.notification_views import (
 )
 from common.views.org_settings_views import OrgSettingsView, TimezoneListView
 from common.views.organization_views import (
-    OrgApiKeyView,
     OrgProfileCreateView,
     OrgUpdateView,
     ProfileDetailView,
     ProfileView,
 )
-from common.views.pack_views import PackApplyView, PackListView, PackSampleDataView
-from common.views.pat_views import (
-    OrgAccessTokenDetailView,
-    OrgAccessTokenListView,
-    PersonalAccessTokenDetailView,
-    PersonalAccessTokenListCreateView,
+from common.views.password_auth_views import (
+    InvitationPreviewView,
+    PasswordChangeView,
+    PasswordLoginView,
+    PasswordRegisterView,
 )
-from common.views.settings_views import DomainDetailView, DomainList
+from common.views.pipeline_settings_views import PipelineSettingsView
+from common.views.profile_photo_views import ProfilePhotoView
+from common.views.property_layout_views import PropertyLayoutView
+from common.views.record_association_views import RecordAssociationView
+from common.views.record_delete_views import RecordDeleteView
+from common.views.role_views import (
+    MemberRoleView,
+    MyPermissionsView,
+    RoleDetailView,
+    RoleExportCheckView,
+    RolesView,
+)
+from common.views.sales_appointment_views import (
+    AppointmentAttendeesView,
+    AppointmentAvailabilityView,
+    SalesAppointmentManageView,
+    SalesAppointmentView,
+)
 from common.views.tags_views import (
     TagsDetailView,
     TagsListView,
@@ -67,6 +77,8 @@ from common.views.tags_views import (
     TagsRestoreView,
 )
 from common.views.team_views import TeamsDetailView, TeamsListView
+from common.views.today_summary_views import TodaySummaryView
+from common.views.ui_context_views import UIContextView
 from common.views.user_views import (
     GetTeamsAndUsersView,
     UserDetailView,
@@ -106,11 +118,24 @@ urlpatterns = [
     path("dashboard/day-summary/", TodaySummaryView.as_view()),
     path("record-delete/<str:kind>/<uid:pk>/", RecordDeleteView.as_view()),
     path("record-associations/<str:kind>/<uid:pk>/", RecordAssociationView.as_view()),
-    path("sales-appointments/availability/", AppointmentAvailabilityView.as_view(), name="appointment_availability"),
-    path("sales-appointments/<uid:pk>/", SalesAppointmentManageView.as_view(), name="manage_sales_appointment"),
-    path("sales-appointments/attendees/", AppointmentAttendeesView.as_view(), name="appointment_attendees"),
-    path("sales-appointments/", SalesAppointmentView.as_view(), name="sales_appointments"),
-    path("dashboard/", ApiHomeView.as_view()),
+    path(
+        "sales-appointments/availability/",
+        AppointmentAvailabilityView.as_view(),
+        name="appointment_availability",
+    ),
+    path(
+        "sales-appointments/<uid:pk>/",
+        SalesAppointmentManageView.as_view(),
+        name="manage_sales_appointment",
+    ),
+    path(
+        "sales-appointments/attendees/",
+        AppointmentAttendeesView.as_view(),
+        name="appointment_attendees",
+    ),
+    path(
+        "sales-appointments/", SalesAppointmentView.as_view(), name="sales_appointments"
+    ),
     path("dashboard/today/", ApiTodayView.as_view()),
     # JWT Authentication endpoints for SvelteKit integration
     path(
@@ -154,43 +179,21 @@ urlpatterns = [
     # from profile/tokens/ (self-scoped) so the self guard is never widened; an
     # admin sees and can revoke any token in their own org, a deactivated
     # colleague's included.
-    path("org/api-key/", OrgApiKeyView.as_view(), name="org_api_key"),
-    path("org/tokens/", OrgAccessTokenListView.as_view(), name="org_pat_list"),
-    path(
-        "org/tokens/<uuid:pk>/",
-        OrgAccessTokenDetailView.as_view(),
-        name="org_pat_detail",
-    ),
     path("org/<uid:pk>/", OrgUpdateView.as_view()),
     path("profile/", ProfileView.as_view()),
     path("profile/photo/", ProfilePhotoView.as_view(), name="profile_photo"),
     # Personal Access Tokens (REST API), a user manages ONLY their own
-    path(
-        "profile/tokens/",
-        PersonalAccessTokenListCreateView.as_view(),
-        name="pat_list_create",
-    ),
-    path(
-        "profile/tokens/<uuid:pk>/",
-        PersonalAccessTokenDetailView.as_view(),
-        name="pat_detail",
-    ),
     # User management
     path("users/get-teams-and-users/", GetTeamsAndUsersView.as_view()),
     path("users/", UsersListView.as_view()),
     path("user/<uid:pk>/", UserDetailView.as_view()),
     path("user/<uid:pk>/status/", UserStatusView.as_view()),
     # Documents
-    path("documents/", DocumentListView.as_view()),
-    path("documents/<uid:pk>/", DocumentDetailView.as_view()),
-    path("documents/<uid:pk>/download/", DocumentDownloadView.as_view()),
     # Attachments. One generic download for every attachable record type; see
     # the view for why a /media/ URL is not an alternative to it.
     path("attachments/<uid:pk>/download/", AttachmentDownloadView.as_view()),
     path("attachments/<uid:pk>/", AttachmentDeleteView.as_view()),
     # API Settings
-    path("api-settings/", DomainList.as_view()),
-    path("api-settings/<uid:pk>/", DomainDetailView.as_view()),
     # Activities (for dashboard recent activities)
     path("activities/", ActivityListView.as_view(), name="activities"),
     # Teams (merged from teams app)
@@ -232,7 +235,4 @@ urlpatterns = [
     # Vertical packs: any member may list; apply/clear are ADMIN-only (see
     # common/views/pack_views.py). sample-data/ must precede
     # <str:pack_id>/apply/ so it is never captured as a pack id.
-    path("packs/", PackListView.as_view(), name="pack_list"),
-    path("packs/sample-data/", PackSampleDataView.as_view(), name="pack_sample_data"),
-    path("packs/<str:pack_id>/apply/", PackApplyView.as_view(), name="pack_apply"),
 ]

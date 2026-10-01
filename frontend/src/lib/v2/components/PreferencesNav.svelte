@@ -1,11 +1,9 @@
 <script>
   import { page } from '$app/state';
-  import { demoPageAllowed } from '$lib/v2/demo-view.js';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import {
-    Trophy,
     Bell,
     CircleUser,
     Users,
@@ -13,13 +11,8 @@
     ListFilter,
     Columns3,
     Building2,
-    KeyRound,
     Tag,
-    Workflow,
-    Clock,
-    Mail,
     FileText,
-    Receipt,
     ChevronDown,
     ArrowLeft
   } from '@lucide/svelte';
@@ -28,52 +21,32 @@
     {
       label: 'Personal',
       items: [
-        { label: 'Profile', href: '/profile', icon: CircleUser, hideReview: true },
-        { label: 'Notifications', href: '/notifications', icon: Bell, reviewed: true }
+        { label: 'Profile', href: '/profile', icon: CircleUser },
+        { label: 'Notifications', href: '/notifications', icon: Bell }
       ]
     },
     {
       label: 'Organization & access',
       items: [
-        { label: 'Organization', href: '/settings/organization', icon: Building2, hideReview: true },
-        { label: 'Users & Teams', href: '/team', icon: Users, hideReview: true },
-        { label: 'Roles & Permissions', href: '/settings/roles', icon: ShieldCheck, hideReview: true }
+        { label: 'Organization', href: '/settings/organization', icon: Building2 },
+        { label: 'Users & Teams', href: '/team', icon: Users },
+        { label: 'Roles & Permissions', href: '/settings/roles', icon: ShieldCheck }
       ]
     },
     {
       label: 'CRM configuration',
       items: [
-        { label: 'Properties', href: '/settings/custom-fields', icon: ListFilter, hideReview: true },
-        { label: 'Pipelines', href: '/settings/pipelines', icon: Columns3, hideReview: true },
-        { label: 'Tags', href: '/settings/tags', icon: Tag, hideReview: true },
-        { label: 'Goals', href: '/goals', icon: Trophy }
-      ]
-    },
-    {
-      label: 'Ticket management',
-      items: [
-        { label: 'Routing', href: '/settings/routing', icon: Workflow },
-        { label: 'Escalation', href: '/settings/escalation', icon: Workflow },
-        { label: 'Business hours', href: '/settings/business-hours', icon: Clock },
-        { label: 'Approval rules', href: '/settings/ticket-approvals', icon: ShieldCheck },
-        { label: 'Reopen policy', href: '/settings/reopen', icon: Workflow },
-        { label: 'Saved replies', href: '/settings/macros', icon: FileText }
+        { label: 'Properties', href: '/settings/custom-fields', icon: ListFilter },
+        { label: 'Pipelines', href: '/settings/pipelines', icon: Columns3 },
+        { label: 'Tags', href: '/settings/tags', icon: Tag }
       ]
     },
     {
       label: 'Channels & integrations',
-      items: [
-        { label: 'Inbound email', href: '/settings/inbound-email', icon: Mail },
-        { label: 'Web forms', href: '/settings/web-forms', icon: FileText, hideReview: true },
-        { label: 'API access', href: '/settings/api-tokens', icon: KeyRound }
-      ]
-    },
-    {
-      label: 'Billing',
-      items: [{ label: 'Invoice templates', href: '/invoices/templates', icon: Receipt }]
+      items: [{ label: 'Web forms', href: '/settings/web-forms', icon: FileText }]
     }
   ];
-  let groups = $derived(allGroups.map(group => ({...group, items: group.items.filter(item => page.data.canPreview || demoPageAllowed(item.href))})).filter(group => group.items.length));
+  const groups = allGroups;
   const active = (href) => page.url.pathname === href || page.url.pathname.startsWith(`${href}/`);
   let selected = $derived(
     groups.flatMap((group) => group.items).find((item) => active(item.href))?.href || ''
@@ -97,12 +70,7 @@
             href={resolve(asInternalPath(item.href))}
             aria-current={active(item.href) ? 'page' : undefined}
             ><item.icon size={16} /><span class="preference-label">{item.label}</span>
-            {#if item.reviewed}
-              <span class="reviewed-mark">CHECK</span>
-            {:else if !item.hideReview}
-              <span class="review-badge" title="Pending review">Review</span>
-            {/if}</a
-          >
+          </a>
         {/each}
       </details>
     {/each}
@@ -115,7 +83,7 @@
     >
       {#if !selected}<option value="" disabled>Choose a section</option>{/if}
       {#each groups as group}<optgroup label={group.label}
-          >{#each group.items as item}<option value={item.href}>{item.label}{item.reviewed ? ' · CHECK' : item.hideReview ? '' : ' · Review'}</option
+          >{#each group.items as item}<option value={item.href}>{item.label}</option
             >{/each}</optgroup
         >{/each}
     </select>
@@ -191,25 +159,6 @@
   }
   nav a :global(svg) {
     flex-shrink: 0;
-  }
-  .reviewed-mark {
-    font-size:9px;
-    font-weight:600;
-    padding:2px 4px;
-    display:flex;
-    align-items:center;
-    flex-shrink:0;
-    color:var(--v2-moss, #52735d);
-  }
-  .review-badge {
-    flex-shrink: 0;
-    font-size: 9px;
-    line-height: 1.3;
-    font-weight: 500;
-    padding: 2px 4px;
-    color: #85734f;
-    background: #f0eadf;
-    border-radius: 4px;
   }
   nav a:hover,
   .preferences-heading a:hover {

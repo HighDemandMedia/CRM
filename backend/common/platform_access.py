@@ -10,7 +10,9 @@ def is_platform_owner(user):
 
 
 def can_preview(profile):
-    return bool(profile and not profile.is_demo and is_platform_owner(profile.user))
+    return (
+        False  # Review features live exclusively in the independent local laboratory.
+    )
 
 
 def accessible_profiles(user):

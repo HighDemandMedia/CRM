@@ -29,7 +29,7 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import APIException, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -126,16 +126,8 @@ def delete_attachment(request, pk, expected_model=None):
         raise PermissionDenied(
             "Your permission set does not allow deleting this attachment."
         )
-    # Keep the row available for retry if the storage provider refuses deletion.
-    # FileField does not delete the stored object when its database row is removed.
-    if attachment.attachment:
-        try:
-            attachment.attachment.storage.delete(attachment.attachment.name)
-        except Exception:
-            logger.exception("Attachment storage deletion failed: %s", attachment.pk)
-            failure = APIException("Could not delete the file. Please try again.")
-            failure.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-            raise failure
+    # Deletion and its storage-cleanup receipt commit together. Storage failures
+    # are retried by the worker without restoring a downloadable database row.
     attachment.delete()
     return Response({"error": False, "message": "Attachment deleted."})
 

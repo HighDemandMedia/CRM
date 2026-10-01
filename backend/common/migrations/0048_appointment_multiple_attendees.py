@@ -4,10 +4,10 @@ from django.db import migrations, models
 
 
 def protect_relations(apps, schema_editor):
-    if schema_editor.connection.vendor != 'postgresql':
+    if schema_editor.connection.vendor != "postgresql":
         return
-    appointment = apps.get_model('common', 'SalesAppointment')
-    for name in ('contacts', 'companies', 'attendee_users'):
+    appointment = apps.get_model("common", "SalesAppointment")
+    for name in ("contacts", "companies", "attendee_users"):
         through = appointment._meta.get_field(name).remote_field.through
         table = through._meta.db_table
         schema_editor.execute(f'ALTER TABLE "{table}" ENABLE ROW LEVEL SECURITY')
@@ -20,28 +20,33 @@ def protect_relations(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('accounts', '0015_account_communication_channel'),
-        ('common', '0047_organization_invitations'),
-        ('contacts', '0019_contact_language'),
+        ("accounts", "0015_account_communication_channel"),
+        ("common", "0047_organization_invitations"),
+        ("contacts", "0019_contact_language"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='salesappointment',
-            name='attendee_users',
-            field=models.ManyToManyField(blank=True, related_name='invited_sales_events', to='common.profile'),
+            model_name="salesappointment",
+            name="attendee_users",
+            field=models.ManyToManyField(
+                blank=True, related_name="invited_sales_events", to="common.profile"
+            ),
         ),
         migrations.AddField(
-            model_name='salesappointment',
-            name='companies',
-            field=models.ManyToManyField(blank=True, related_name='attended_sales_events', to='accounts.account'),
+            model_name="salesappointment",
+            name="companies",
+            field=models.ManyToManyField(
+                blank=True, related_name="attended_sales_events", to="accounts.account"
+            ),
         ),
         migrations.AddField(
-            model_name='salesappointment',
-            name='contacts',
-            field=models.ManyToManyField(blank=True, related_name='attended_sales_events', to='contacts.contact'),
+            model_name="salesappointment",
+            name="contacts",
+            field=models.ManyToManyField(
+                blank=True, related_name="attended_sales_events", to="contacts.contact"
+            ),
         ),
         migrations.RunPython(protect_relations, migrations.RunPython.noop),
     ]

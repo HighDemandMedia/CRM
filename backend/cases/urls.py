@@ -5,16 +5,12 @@ from cases import (
     approval_views,
     bulk_views,
     csat_views,
-    escalation_views,
     import_views,
-    inbound_views,
     kanban_views,
     kb_views,
     merge_views,
     parent_views,
-    routing_views,
     solution_views,
-    time_views,
     unmerge_views,
     views,
     watcher_views,
@@ -74,54 +70,9 @@ urlpatterns = [
         name="solution_unpublish",
     ),
     # Reopen policy (admin singleton, must be before <uid:pk>/ patterns)
-    path(
-        "reopen-policy/",
-        views.ReopenPolicyView.as_view(),
-        name="reopen_policy",
-    ),
     # Escalation policies (admin CRUD, must be before <uid:pk>/ patterns)
-    path(
-        "escalation-policies/",
-        escalation_views.EscalationPolicyListCreateView.as_view(),
-        name="escalation_policy_list_create",
-    ),
-    path(
-        "escalation-policies/<uid:pk>/",
-        escalation_views.EscalationPolicyDetailView.as_view(),
-        name="escalation_policy_detail",
-    ),
     # Routing rules (admin CRUD + dry-run test endpoint, must be before <uid:pk>/ patterns)
-    path(
-        "routing-rules/",
-        routing_views.RoutingRuleListCreateView.as_view(),
-        name="routing_rule_list_create",
-    ),
-    path(
-        "routing-rules/<uid:pk>/",
-        routing_views.RoutingRuleDetailView.as_view(),
-        name="routing_rule_detail",
-    ),
-    path(
-        "routing-rules/<uid:pk>/test/",
-        routing_views.RoutingRuleTestView.as_view(),
-        name="routing_rule_test",
-    ),
     # Inbound email: public webhook (SNS-signed) + admin mailbox CRUD.
-    path(
-        "inbound/<uid:mailbox_id>/",
-        inbound_views.InboundMailboxWebhookView.as_view(),
-        name="inbound_webhook",
-    ),
-    path(
-        "mailboxes/",
-        inbound_views.InboundMailboxListCreateView.as_view(),
-        name="inbound_mailbox_list_create",
-    ),
-    path(
-        "mailboxes/<uid:pk>/",
-        inbound_views.InboundMailboxDetailView.as_view(),
-        name="inbound_mailbox_detail",
-    ),
     # Watching list (must be before <uid:pk>/ patterns)
     path(
         "watching/",
@@ -259,32 +210,7 @@ urlpatterns = [
         name="case_close_with_children",
     ),
     # Time-tracking endpoints (must be before <uid:pk>/ catchall)
-    path(
-        "<uid:pk>/time-entries/",
-        time_views.TimeEntryListCreateView.as_view(),
-        name="case_time_entries",
-    ),
-    path(
-        "<uid:pk>/time-entries/start/",
-        time_views.TimeEntryStartView.as_view(),
-        name="case_time_entry_start",
-    ),
-    path(
-        "<uid:pk>/time-summary/",
-        time_views.TimeSummaryView.as_view(),
-        name="case_time_summary",
-    ),
     # Approval workflows (must be before <uid:pk>/ catchall), Tier 3 approvals.
-    path(
-        "approval-rules/",
-        approval_views.ApprovalRuleListCreateView.as_view(),
-        name="approval_rule_list_create",
-    ),
-    path(
-        "approval-rules/<uid:pk>/",
-        approval_views.ApprovalRuleDetailView.as_view(),
-        name="approval_rule_detail",
-    ),
     path(
         "approvals/",
         approval_views.ApprovalInboxView.as_view(),

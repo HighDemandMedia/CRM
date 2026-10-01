@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('common', '0057_additional_property_types'),
+        ("common", "0057_additional_property_types"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='org',
-            name='pipeline_settings',
+            model_name="org",
+            name="pipeline_settings",
             field=models.JSONField(blank=True, default=dict),
         ),
     ]

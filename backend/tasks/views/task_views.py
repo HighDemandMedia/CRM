@@ -1,4 +1,3 @@
-from common.pipeline_settings import stages_for
 import json
 from datetime import timedelta
 
@@ -26,6 +25,7 @@ from common.models import (
     Teams,
 )
 from common.permissions import HasOrgContext
+from common.pipeline_settings import stages_for
 from common.serializer import (
     AttachmentsSerializer,
     CommentSerializer,
@@ -100,7 +100,9 @@ class TaskListView(APIView, LimitOffsetPagination):
             # Due Today counts mean. A single `?status=New` behaves exactly as
             # it did, so no existing caller changes.
             statuses = choice_list_param(
-                params, "status", [s['key'] for s in stages_for(self.request.profile.org, 'Task')]
+                params,
+                "status",
+                [s["key"] for s in stages_for(self.request.profile.org, "Task")],
             )
             if statuses:
                 queryset = queryset.filter(status__in=statuses)
@@ -905,4 +907,5 @@ class TaskAttachmentView(APIView):
     )
     def delete(self, request, pk, format=None):
         from common.views.attachment_views import delete_attachment
+
         return delete_attachment(request, pk, expected_model="task")

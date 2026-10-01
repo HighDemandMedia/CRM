@@ -42,6 +42,7 @@ _DENIED = "You do not have Permission to perform this action"
 
 def visible_tasks_qs(profile):
     from common.rbac import configured, scoped
+
     if configured(profile):
         return scoped(Task.objects.all(), profile)
     """Tasks ``profile`` is allowed to open, the queryset form of `access`."""
@@ -70,8 +71,9 @@ def get_task_or_404(profile, pk):
 
 def has_task_access(profile, task):
     from common.rbac import configured, permitted
+
     if configured(profile):
-        return permitted(profile, task, 'view')
+        return permitted(profile, task, "view")
     """Non-raising form of `access`, for deciding what to put in a response."""
     if is_org_admin(profile):
         return True
@@ -88,8 +90,9 @@ def assert_task_access(profile, task):
 
 def has_task_delete_access(profile, task):
     from common.rbac import configured, permitted
+
     if configured(profile):
-        return permitted(profile, task, 'delete')
+        return permitted(profile, task, "delete")
     """Non-raising form of `delete`."""
     if is_org_admin(profile):
         return True

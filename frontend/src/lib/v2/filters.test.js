@@ -15,16 +15,10 @@ import {
  */
 const MODULES = {
   tickets: () => import('$lib/server/v2/tickets.js'),
-  leads: () => import('$lib/server/v2/leads.js'),
   contacts: () => import('$lib/server/v2/contacts.js'),
   pipeline: () => import('$lib/server/v2/deals.js'),
   tasks: () => import('$lib/server/v2/tasks.js'),
-  accounts: () => import('$lib/server/v2/accounts.js'),
-  invoices: () => import('$lib/server/v2/invoices.js'),
-  estimates: () => import('$lib/server/v2/estimates.js'),
-  solutions: () => import('$lib/server/v2/solutions.js'),
-  documents: () => import('$lib/server/v2/documents.js'),
-  recurring: () => import('$lib/server/v2/recurring.js')
+  accounts: () => import('$lib/server/v2/accounts.js')
 };
 
 describe('every descriptor agrees with its module allow-list', () => {
@@ -67,68 +61,6 @@ describe('every descriptor agrees with its module allow-list', () => {
       }
     });
   }
-});
-
-describe('leads: only statuses the list endpoint can actually show', () => {
-  // backend/leads/views/lead_views.py:92 excludes status="converted" from the
-  // base queryset unconditionally, before any query param is read, and :166
-  // splits what remains into `open_leads` and a `close_leads` block that
-  // `listLeads` (lib/server/v2/leads.js) never reads. So the leads list can
-  // only ever render "assigned", "in process" or "recycled". Offering
-  // "Converted" or "Closed" as a filter option would submit a value the page
-  // can never return a row for, which reads as "you have none" rather than
-  // "this page cannot show them".
-  it('offers neither "converted" nor "closed" as a status option', () => {
-    const statusField = FILTERS.leads.fields.find((f) => f.key === 'status');
-    expect(statusField.options).not.toContain('converted');
-    expect(statusField.options).not.toContain('closed');
-  });
-
-  it('writes no preset param the list endpoint does not read', () => {
-    // `is_converted` is read only by the PATCH/conversion action, never by
-    // the list GET, so no preset may promise a view built on it.
-    for (const preset of FILTERS.leads.presets) {
-      expect(Object.keys(preset.params)).not.toContain('is_converted');
-    }
-  });
-});
-
-describe('documents: exactly one filter field', () => {
-  // `DocumentListView.get` (backend/common/views/document_views.py:71-79) reads
-  // only `title`, `status` and `shared_to`. `Document` has no `tags` relation
-  // at all, and `shared_to` is passed straight to `json.loads`, so an ordinary
-  // `?shared_to=<uuid>` throws `JSONDecodeError` and answers 500. If a future
-  // change adds a field here, re-check the backend view before doing it; do
-  // not "helpfully" restore `tags` or `created_by`.
-  it('offers only "status"', () => {
-    expect(FILTERS.documents.fields.map((f) => f.key)).toEqual(['status']);
-  });
-});
-
-describe('documents: archived rows stay out of the default view', () => {
-  // Archiving a document is how you get it out of the way. If the empty-params
-  // preset were the "all" one, a bare /documents would show archived rows back
-  // alongside the live ones and undo the only thing archiving does. So `active`
-  // is the default and `all` opts in through `archived=1`, which
-  // `documents/+page.server.js` reads. Same shape as contacts' `inactive`.
-  it('makes "active" the empty-params default', () => {
-    const active = FILTERS.documents.presets.find((p) => p.key === 'active');
-    expect(Object.keys(active.params)).toEqual([]);
-  });
-
-  it('makes seeing archived rows an explicit opt-in', () => {
-    const all = FILTERS.documents.presets.find((p) => p.key === 'all');
-    expect(all.params).toEqual({ archived: '1' });
-  });
-
-  it('never lets a preset send status=active, which the load owns', () => {
-    // The default narrowing lives in the load, not the descriptor, so that an
-    // explicit Status choice can override it. A preset writing status=active
-    // would put a second, competing source of truth in the URL.
-    for (const preset of FILTERS.documents.presets) {
-      expect(preset.params.status).toBeUndefined();
-    }
-  });
 });
 
 describe('URL helpers', () => {

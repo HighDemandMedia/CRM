@@ -20,8 +20,8 @@ it('keeps legacy attachment downloads after their first audited edit', async () 
     ]
   });
   const data = await getContact(event, 'contact');
-  expect(data.activity.some((row) => row.type === 'file' && row.href)).toBe(true);
-  expect(data.activity[0].by).toBe('owner@example.com');
+  expect(data.attachments.some((row) => row.id === 'file' && row.href)).toBe(true);
+  expect(data.activity).toEqual([]);
 });
 
 it('shows an audited note once and keeps the original creator', async () => {
@@ -45,6 +45,6 @@ it('shows an audited note once and keeps the original creator', async () => {
     ]
   });
   const data = await getContact(event, 'contact');
-  expect(data.activity.filter((row) => row.type === 'note')).toHaveLength(1);
-  expect(data.activity.find((row) => row.id === 'created-contact')?.by).toBe('creator@example.com');
+  expect(data.notes).toHaveLength(1);
+  expect(data.activity).toEqual([]);
 });

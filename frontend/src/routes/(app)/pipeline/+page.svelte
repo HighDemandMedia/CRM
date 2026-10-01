@@ -1,6 +1,6 @@
 <script>
   import { can } from '$lib/v2/permissions.js';
-  import { showStageRequirements } from "$lib/components/pipelines/feedback.js";
+  import { showStageRequirements } from '$lib/components/pipelines/feedback.js';
   import PipelineTotal from '$lib/v2/components/PipelineTotal.svelte';
   import PipelineCardSummary from '$lib/v2/components/PipelineCardSummary.svelte';
   import '$lib/v2/styles/pipeline.css';
@@ -100,7 +100,10 @@
       });
       const result = deserialize(await response.text());
       if (result.type !== 'success') {
-        if (showStageRequirements(result, 'Opportunity', id, {stage})) { moveStatus = ''; return; }
+        if (showStageRequirements(result, 'Opportunity', id, { stage })) {
+          moveStatus = '';
+          return;
+        }
         moveError =
           result.type === 'failure'
             ? String(result.data?.error ?? 'Could not move this deal.')
@@ -482,13 +485,16 @@
 <PageHeader title="Deals">
   {#snippet sub()}<span class="v2-num">{count(data.totals.count)}</span>
     {data.totals.count === 1 ? 'deal' : 'deals'}{#if data.view === 'pipeline'}
-      {' · '} <PipelineTotal
+      &nbsp;· <PipelineTotal
         currency={data.org.currency}
         values={data.totals.money_totals}
         label="Total deal amount"
       />{/if}{/snippet}
   {#snippet actions()}
-    {#if can(page.data.permissions, 'deals', 'create')}<a class="v2-btn v2-btn-primary" href={resolve('/pipeline/new')}><Plus />New deal</a>{/if}
+    {#if can(page.data.permissions, 'deals', 'create')}<a
+        class="v2-btn v2-btn-primary"
+        href={resolve('/pipeline/new')}><Plus />New deal</a
+      >{/if}
   {/snippet}
 </PageHeader>
 
@@ -615,16 +621,16 @@
   </details>
   {#if data.view === 'list'}
     {#if can(page.data.permissions, 'deals', 'export')}<a
-      class="v2-btn"
-      data-sveltekit-reload
-      href={resolve('/pipeline/export') +
-        '?' +
-        new URLSearchParams(
-          [...page.url.searchParams.entries()]
-            .filter(([key]) => key !== 'columns')
-            .concat([['columns', selected.join(',')]])
-        ).toString()}>Export CSV</a
-    >{/if}
+        class="v2-btn"
+        data-sveltekit-reload
+        href={resolve('/pipeline/export') +
+          '?' +
+          new URLSearchParams(
+            [...page.url.searchParams.entries()]
+              .filter(([key]) => key !== 'columns')
+              .concat([['columns', selected.join(',')]])
+          ).toString()}>Export CSV</a
+      >{/if}
   {/if}
   <div class="view-actions">
     <nav class="view-toggle" aria-label="Deal views">
@@ -821,7 +827,8 @@
                 >
                   {#if key === 'name'}<a
                       class="v2-row-link v2-table-primary"
-                      href={resolve(`/pipeline/${contact.id}`)}>{contact.name || `Deal · ${contact.id.slice(0, 8)}`}</a
+                      href={resolve(`/pipeline/${contact.id}`)}
+                      >{contact.name || `Deal · ${contact.id.slice(0, 8)}`}</a
                     >
                   {:else if key === 'stage_label'}<StageProgress
                       stage={contact.stage}
@@ -843,9 +850,9 @@
                   >Open</a
                 >
                 {#if can(page.data.permissions, 'deals', 'edit')}<a
-                  aria-label={`Edit ${contact.name}`}
-                  href={resolve(`/pipeline/${contact.id}/edit`)}>Edit</a
-                >{/if}</td
+                    aria-label={`Edit ${contact.name}`}
+                    href={resolve(`/pipeline/${contact.id}/edit`)}>Edit</a
+                  >{/if}</td
               >
             </tr>
           {:else}<tr><td colspan={selected.length + 1}>No deals on this page.</td></tr>{/each}

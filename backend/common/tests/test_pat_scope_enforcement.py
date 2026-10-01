@@ -27,7 +27,7 @@ def _pat_client(profile, scopes=None, name="cli"):
 class TestScopeEnforcement:
     def test_unscoped_token_still_reads(self, admin_profile):
         """Every token issued before scopes existed carries `[]`. It must keep working."""
-        assert _pat_client(admin_profile).get("/api/leads/").status_code == 200
+        assert _pat_client(admin_profile).get("/api/contacts/").status_code == 200
 
     def test_unscoped_token_still_writes(self, admin_profile):
         resp = _pat_client(admin_profile).post(
@@ -38,7 +38,7 @@ class TestScopeEnforcement:
 
     def test_read_scope_allows_get(self, admin_profile):
         client = _pat_client(admin_profile, scopes=["*:read"])
-        assert client.get("/api/leads/").status_code == 200
+        assert client.get("/api/contacts/").status_code == 200
 
     def test_read_scope_refuses_post(self, admin_profile):
         client = _pat_client(admin_profile, scopes=["*:read"])
@@ -58,9 +58,9 @@ class TestScopeEnforcement:
         assert Lead.objects.filter(id=lead.id).exists()
 
     def test_resource_scope_confines_reads(self, admin_profile):
-        client = _pat_client(admin_profile, scopes=["leads:read"])
-        assert client.get("/api/leads/").status_code == 200
-        assert client.get("/api/contacts/").status_code == 403
+        client = _pat_client(admin_profile, scopes=["contacts:read"])
+        assert client.get("/api/contacts/").status_code == 200
+        assert client.get("/api/accounts/").status_code == 403
 
     def test_denial_body_names_the_reason(self, admin_profile):
         client = _pat_client(admin_profile, scopes=["leads:read"])
@@ -80,8 +80,8 @@ class TestCredentialDenyList:
     def test_token_cannot_list_tokens(self, admin_profile):
         assert _pat_client(admin_profile).get("/api/profile/tokens/").status_code == 403
 
-    def test_session_can_list_tokens(self, admin_client):
-        assert admin_client.get("/api/profile/tokens/").status_code == 200
+    def test_session_cannot_list_archived_tokens(self, admin_client):
+        assert admin_client.get("/api/profile/tokens/").status_code == 404
 
     def test_token_cannot_mint_a_token(self, admin_profile):
         """Self-replication defeats revocation: revoke the leaked one, the child lives."""
@@ -91,12 +91,12 @@ class TestCredentialDenyList:
         assert resp.status_code == 403
         assert PersonalAccessToken.objects.count() == before
 
-    def test_session_can_mint_a_token(self, admin_client):
+    def test_session_cannot_mint_archived_tokens(self, admin_client):
         assert (
             admin_client.post(
                 "/api/profile/tokens/", {"name": "from-browser"}
             ).status_code
-            == 201
+            == 404
         )
 
     def test_full_access_token_still_cannot_mint(self, admin_profile):
@@ -112,8 +112,8 @@ class TestCredentialDenyList:
         """The escalation this closes: token reads the org key, key outlives the token."""
         assert _pat_client(admin_profile).get("/api/org/api-key/").status_code == 403
 
-    def test_session_can_read_the_org_api_key(self, admin_client):
-        assert admin_client.get("/api/org/api-key/").status_code == 200
+    def test_session_cannot_read_archived_org_api_key(self, admin_client):
+        assert admin_client.get("/api/org/api-key/").status_code == 404
 
     def test_token_cannot_rotate_the_org_api_key(self, admin_profile, org_a):
         before = org_a.api_key

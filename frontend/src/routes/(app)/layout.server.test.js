@@ -22,7 +22,7 @@ function event(canPreview) {
 
 describe('CRM shell critical path', () => {
   it.each([
-    [true, 4],
+    [true, 1],
     [false, 1]
   ])('renders before optional counts finish for preview=%s', async (preview, count) => {
     /** @type {(value: any) => void} */

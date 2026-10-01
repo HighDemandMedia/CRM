@@ -55,8 +55,8 @@ function toMember(p, teamsByProfile, viewerId) {
     email: details.email,
     role: p.role,
     is_super_admin: !!p.is_super_admin,
-    access_role_id:p.access_role_id,
-    access_role_name:p.access_role_name,
+    access_role_id: p.access_role_id,
+    access_role_name: p.access_role_name,
     is_active: p.is_active,
     teams: teamsByProfile[p.id] ?? [],
     last_login: details.last_login ?? null,
@@ -120,7 +120,7 @@ export async function listTeam({ cookies }) {
 
   return {
     forbidden: false,
-    isSuperAdmin: active.some(m => m.is_you && m.is_super_admin),
+    isSuperAdmin: active.some((m) => m.is_you && m.is_super_admin),
     active,
     inactive,
     teams,

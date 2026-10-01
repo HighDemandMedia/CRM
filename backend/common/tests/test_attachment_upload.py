@@ -216,22 +216,6 @@ class TestAFileSentOnItsOwn:
         assert response.status_code == status.HTTP_200_OK
         assert self._count(org_a) == before + 1
 
-    def test_a_lead_stores_it(self, admin_client, org_a):
-        """The defect. This was 200 with nothing stored."""
-        from leads.models import Lead
-
-        lead = Lead.objects.create(
-            first_name="Jill", last_name="Shaffer", email="j@example.test", org=org_a
-        )
-        before = self._count(org_a)
-
-        response = self._upload(
-            admin_client, f"/api/leads/{lead.id}/", "lead_attachment"
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        assert self._count(org_a) == before + 1, "the file was dropped"
-
     def test_a_deal_stores_it(self, admin_client, org_a):
         from opportunity.models import Opportunity
 
@@ -261,23 +245,3 @@ class TestAFileSentOnItsOwn:
 
         assert response.status_code == status.HTTP_200_OK
         assert self._count(org_a) == before + 1
-
-    def test_the_lead_response_shows_the_new_file(self, admin_client, org_a):
-        """The client updates its list from this response rather than refetch.
-
-        A count in the database is not enough: the mobile screen reads the
-        `attachments` array the POST answers with, so an upload the response
-        omits still looks like it failed.
-        """
-        from leads.models import Lead
-
-        lead = Lead.objects.create(
-            first_name="Jill", last_name="Shaffer", email="j2@example.test", org=org_a
-        )
-
-        response = self._upload(
-            admin_client, f"/api/leads/{lead.id}/", "lead_attachment"
-        )
-
-        assert len(response.data["attachments"]) == 1
-        assert response.data["attachments"][0]["file_name"] == "evidence.pdf"

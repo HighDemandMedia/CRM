@@ -23,10 +23,10 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [master]
+    branches: [main, master]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [master]
+    branches: [main, master]
   schedule:
     - cron: '41 18 * * 2'
 
@@ -48,10 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Python only. The SvelteKit frontend is not scanned; adding
-        # `javascript-typescript` here is a real coverage gain and a real new
-        # alert backlog, so it is a decision rather than a fix.
-        language: ['python']
+        language: ['python', 'javascript-typescript']
 
     steps:
       - name: Checkout repository

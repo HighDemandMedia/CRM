@@ -1,10 +1,9 @@
-from common.pipeline_settings import PipelineMoveChoicesMixin
-from common.last_activity import LastActivitySerializerMixin, ActivityListSerializer
-from common.pipeline_settings import PipelineRulesMixin
-from common.rbac import VisibleCRMSerializerMixin
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from common.last_activity import ActivityListSerializer, LastActivitySerializerMixin
+from common.pipeline_settings import PipelineMoveChoicesMixin, PipelineRulesMixin
+from common.rbac import VisibleCRMSerializerMixin
 from common.serializer import (
     AttachmentsSerializer,
     CommentSerializer,
@@ -245,7 +244,9 @@ class _MinimalLeadField(serializers.RelatedField):
         return {"id": str(value.pk), "name": name}
 
 
-class TaskListSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer):
+class TaskListSerializer(
+    VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer
+):
     """Slim payload for /api/tasks/ list pages. Drops the comment/attachment
     bodies (sometimes hundreds of rows per task) and the contacts/teams M2Ms
     that the list UI doesn't render. Use TaskSerializer for the detail view."""
@@ -277,7 +278,9 @@ class TaskListSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin,
         )
 
 
-class TaskSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer):
+class TaskSerializer(
+    VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer
+):
     created_by = UserSerializer()
     assigned_to = ProfileSerializer(read_only=True, many=True)
     contacts = ContactSerializer(read_only=True, many=True)
@@ -350,10 +353,14 @@ class TaskCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
         past the rule.
         """
         attrs = super().validate(attrs)
-        reminder = attrs.get("reminder_days", getattr(self.instance, "reminder_days", None))
+        reminder = attrs.get(
+            "reminder_days", getattr(self.instance, "reminder_days", None)
+        )
         due = attrs.get("due_date", getattr(self.instance, "due_date", None))
         if reminder is not None and not due:
-            raise serializers.ValidationError({"due_date": "Set a due date to enable a reminder."})
+            raise serializers.ValidationError(
+                {"due_date": "Set a due date to enable a reminder."}
+            )
         resolved = {}
         for name in PARENT_FIELDS:
             if name in attrs:

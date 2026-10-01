@@ -63,75 +63,6 @@ def _attach(record, profile):
 
 
 @pytest.mark.django_db
-class TestDocumentDownload:
-    def test_uploader_gets_the_bytes(self, user_client, regular_user, org_a):
-        doc = _doc(org_a, regular_user, title="Mine")
-        response = user_client.get(_doc_url(doc.pk))
-        assert response.status_code == 200
-        assert _body(response) == FILE_BYTES
-
-    def test_a_member_it_is_not_shared_with_is_refused(
-        self, user_client, admin_user, org_a
-    ):
-        """The pair that made this worth building.
-
-        This caller gets 403 from `/api/documents/<id>/` and used to get 200
-        with the contents from the file's `/media/` path.
-        """
-        doc = _doc(org_a, admin_user, title="Not mine")
-        assert user_client.get(f"/api/documents/{doc.pk}/").status_code == 403
-        assert user_client.get(_doc_url(doc.pk)).status_code == 403
-
-    def test_a_share_is_enough_to_download(
-        self, user_client, admin_user, org_a, user_profile
-    ):
-        doc = _doc(org_a, admin_user, title="Shared with me")
-        doc.shared_to.add(user_profile)
-        response = user_client.get(_doc_url(doc.pk))
-        assert response.status_code == 200
-        assert _body(response) == FILE_BYTES
-
-    def test_a_team_share_is_enough_to_download(
-        self, user_client, admin_user, org_a, user_profile
-    ):
-        doc = _doc(org_a, admin_user, title="Shared with my team")
-        team = Teams.objects.create(name="Support", org=org_a, created_by=admin_user)
-        team.users.add(user_profile)
-        doc.teams.add(team)
-        assert user_client.get(_doc_url(doc.pk)).status_code == 200
-
-    def test_an_admin_downloads_anything_in_their_org(
-        self, admin_client, regular_user, org_a
-    ):
-        doc = _doc(org_a, regular_user, title="Somebody else's")
-        assert admin_client.get(_doc_url(doc.pk)).status_code == 200
-
-    def test_another_org_gets_404_not_the_file(self, org_b_client, admin_user, org_a):
-        """404, not 403: an id in another tenant is an id that does not exist."""
-        doc = _doc(org_a, admin_user, title="Theirs")
-        assert org_b_client.get(_doc_url(doc.pk)).status_code == 404
-
-    def test_anonymous_is_refused(self, unauthenticated_client, admin_user, org_a):
-        doc = _doc(org_a, admin_user)
-        assert unauthenticated_client.get(_doc_url(doc.pk)).status_code == 403
-
-    def test_a_document_with_no_file_is_404_not_500(
-        self, admin_client, admin_user, org_a
-    ):
-        doc = _doc(org_a, admin_user)
-        Document.objects.filter(pk=doc.pk).update(document_file="")
-        assert admin_client.get(_doc_url(doc.pk)).status_code == 404
-
-    def test_the_download_is_named_after_the_title(
-        self, admin_client, admin_user, org_a
-    ):
-        """The stored path is a timestamped upload name nobody chose."""
-        doc = _doc(org_a, admin_user, title="Q3 pricing")
-        response = admin_client.get(_doc_url(doc.pk))
-        assert "Q3 pricing" in response["Content-Disposition"]
-
-
-@pytest.mark.django_db
 class TestAttachmentDownload:
     def test_lead_creator_gets_the_bytes(
         self, user_client, regular_user, user_profile, org_a
@@ -149,7 +80,7 @@ class TestAttachmentDownload:
         lead = Lead.objects.create(title="Not mine", org=org_a)
         Lead.objects.filter(pk=lead.pk).update(created_by=admin_user)
         attachment = _attach(lead, admin_profile)
-        assert user_client.get(f"/api/leads/{lead.pk}/").status_code == 403
+        assert user_client.get(f"/api/leads/{lead.pk}/").status_code == 404
         assert user_client.get(_attachment_url(attachment.pk)).status_code == 403
 
     def test_assignment_to_the_lead_is_enough(

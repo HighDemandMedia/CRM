@@ -1,7 +1,7 @@
 <script>
   import { can } from '$lib/v2/permissions.js';
-  import { showStageRequirements } from "$lib/components/pipelines/feedback.js";
-  import { configuredStages, configuredLabel } from "$lib/v2/pipeline-config.js";
+  import { showStageRequirements } from '$lib/components/pipelines/feedback.js';
+  import { configuredStages, configuredLabel } from '$lib/v2/pipeline-config.js';
   import '$lib/v2/styles/pipeline.css';
   import '$lib/v2/styles/list-view.css';
   import { pipelineTone } from '$lib/v2/pipeline-view.js';
@@ -22,7 +22,13 @@
     statusLabel,
     priorityLabel
   } from '$lib/components/tickets/options.js';
-  const statuses = $derived(configuredStages(page.data.pipelineConfig, 'Case', defaultStatuses.map(([value,label]) => ({value,label}))).map(s => [s.value,s.label]));
+  const statuses = $derived(
+    configuredStages(
+      page.data.pipelineConfig,
+      'Case',
+      defaultStatuses.map(([value, label]) => ({ value, label }))
+    ).map((s) => [s.value, s.label])
+  );
   let { data, form } = $props();
   let advanced = $state(false),
     search = $state(''),
@@ -63,7 +69,8 @@
       ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
       : '—';
   function value(t, key) {
-    if (key === 'status') return configuredLabel(page.data.pipelineConfig, 'Case', t.status, statusLabel(t.status));
+    if (key === 'status')
+      return configuredLabel(page.data.pipelineConfig, 'Case', t.status, statusLabel(t.status));
     if (key === 'priority') return priorityLabel(t.priority);
     if (key === 'association')
       return [t.account?.name, ...t.contacts.map((c) => c.name)].filter(Boolean).join(', ');
@@ -87,7 +94,9 @@
       const saved = JSON.parse(localStorage.getItem('crm.ticket.columns') ?? 'null');
       if (Array.isArray(saved) && saved.length)
         columns = saved.filter((key) => fields.some(([id]) => id === key));
-    } catch {}
+    } catch {
+      // Unavailable storage or invalid saved preferences leave the default columns in place.
+    }
     return () => clearTimeout(timer);
   });
   function toggle(key) {
@@ -116,7 +125,16 @@
     try {
       const result = deserialize(await (await fetch('?/move', { method: 'POST', body })).text());
       if (result.type !== 'success') {
-        if (showStageRequirements(result, 'Case', id, {status, ...(status === 'Closed' ? {closed_on:new Date().toISOString().slice(0,10)} : {}), ...(status === 'Resolved' ? {resolution_note:resolution}: {})})) {resolving = null; return;}
+        if (
+          showStageRequirements(result, 'Case', id, {
+            status,
+            ...(status === 'Closed' ? { closed_on: new Date().toISOString().slice(0, 10) } : {}),
+            ...(status === 'Resolved' ? { resolution_note: resolution } : {})
+          })
+        ) {
+          resolving = null;
+          return;
+        }
         error =
           result.type === 'failure'
             ? String(result.data?.error ?? 'Could not move ticket.')
@@ -150,7 +168,10 @@
   }
   async function exportCSV() {
     const response = await fetch(resolve('/tickets/export-check'));
-    if (!response.ok) { error = 'Your permission set does not allow exporting tickets.'; return; }
+    if (!response.ok) {
+      error = 'Your permission set does not allow exporting tickets.';
+      return;
+    }
     const safe = (v) => {
       let s = String(v ?? '');
       if (/^[=+@\-\t\r]/.test(s)) s = "'" + s;
@@ -177,12 +198,15 @@
   ><AdvancedQueue {data} />{:else}
   <PageHeader title="Tickets"
     >{#snippet sub()}{data.totals.count}
-      {data.totals.count === 1 ? 'ticket' : 'tickets'}{/snippet}{#snippet actions()}{#if can(page.data.permissions, 'tickets', 'export')}<button
-        class="v2-btn"
-        onclick={exportCSV}><Download size={14} />Export CSV</button
-      >{/if}{#if can(page.data.permissions, 'tickets', 'create')}<a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}
-        ><Plus size={14} />New ticket</a
-      >{/if}{/snippet}</PageHeader
+      {data.totals.count === 1
+        ? 'ticket'
+        : 'tickets'}{/snippet}{#snippet actions()}{#if can(page.data.permissions, 'tickets', 'export')}<button
+          class="v2-btn"
+          onclick={exportCSV}><Download size={14} />Export CSV</button
+        >{/if}{#if can(page.data.permissions, 'tickets', 'create')}<a
+          class="v2-btn v2-btn-primary"
+          href={resolve('/tickets/new')}><Plus size={14} />New ticket</a
+        >{/if}{/snippet}</PageHeader
   >
   <div class="workspace">
     <div class="filters">
@@ -351,7 +375,10 @@
                       ticket.due_at &&
                       new Date(ticket.due_at) < new Date()}
                     >{#if key === 'name' || key === 'ticket_code'}<a
-                        href={resolve(`/tickets/${ticket.id}`)}>{value(ticket, key) || ticket.ticket_code || `Ticket · ${ticket.id.slice(0, 8)}`}</a
+                        href={resolve(`/tickets/${ticket.id}`)}
+                        >{value(ticket, key) ||
+                          ticket.ticket_code ||
+                          `Ticket · ${ticket.id.slice(0, 8)}`}</a
                       >{:else if key === 'status'}<span
                         class="status list-badge"
                         data-tone={pipelineTone(ticket.status)}>{value(ticket, key)}</span
@@ -359,7 +386,12 @@
                         class="list-badge"
                         data-priority={ticket.priority}>{value(ticket, key)}</span
                       >{:else}{value(ticket, key)}{/if}</td
-                  >{/each}<td class="list-row-actions">{#if can(page.data.permissions, 'tickets', 'edit')}<a aria-label={`Edit ${ticket.name}`} href={resolve(`/tickets/${ticket.id}/edit`)}>Edit</a>{/if}</td></tr
+                  >{/each}<td class="list-row-actions"
+                  >{#if can(page.data.permissions, 'tickets', 'edit')}<a
+                      aria-label={`Edit ${ticket.name}`}
+                      href={resolve(`/tickets/${ticket.id}/edit`)}>Edit</a
+                    >{/if}</td
+                ></tr
               >{:else}<tr><td colspan={columns.length + 1}>No tickets found.</td></tr>{/each}</tbody
           >
         </table>

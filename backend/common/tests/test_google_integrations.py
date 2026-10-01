@@ -530,6 +530,9 @@ def test_sync_error_requires_reconnect_without_leaking_secret(conn):
         side_effect=GoogleError("Reconnect Google to restore access.", reconnect=True),
     ):
         sync_google_connection(str(conn.org_id), str(conn.pk))
+    from common.testing import restore_rls_context
+
+    restore_rls_context()
     conn.refresh_from_db()
     assert conn.status == "reconnect" and conn.sync_started_at is None
     assert "refresh-secret" not in conn.error
@@ -549,3 +552,48 @@ def test_calendar_notes_escape_markup_on_export(conn):
         api.request.call_args.kwargs["body"]["description"]
         == "Budget &lt; 100 &amp; literal &lt;tag&gt;"
     )
+
+
+@pytest.mark.django_db(transaction=True)
+def test_calendar_http_runs_outside_database_transaction(conn):
+    from django.db import connection
+
+    conn.service = "calendar"
+    conn.save()
+    appointment(conn)
+    api = Mock()
+
+    def get(*args, **kwargs):
+        assert not connection.in_atomic_block
+        raise GoogleError(status=404)
+
+    def write(*args, **kwargs):
+        assert not connection.in_atomic_block
+        return {"etag": "v1"}
+
+    api.get.side_effect = get
+    api.request.side_effect = write
+    sync_mirrors(conn, api, "calendar/v3/calendars/primary", True)
+    assert GoogleCalendarMirror.objects.count() == 1
+
+
+def test_calendar_edit_during_http_remains_pending(conn):
+    conn.service = "calendar"
+    conn.save()
+    appt = appointment(conn)
+    sent_fingerprint = fingerprint(appt)
+    api = Mock()
+    api.get.side_effect = GoogleError(status=404)
+
+    def edit_during_send(*args, **kwargs):
+        SalesAppointment.objects.filter(pk=appt.pk).update(
+            title="Edited while Google responds"
+        )
+        return {"etag": "v1"}
+
+    api.request.side_effect = edit_during_send
+    sync_mirrors(conn, api, "calendar/v3/calendars/primary", True)
+    appt.refresh_from_db()
+    mirror = GoogleCalendarMirror.objects.get()
+    assert mirror.fingerprint == sent_fingerprint
+    assert mirror.fingerprint != fingerprint(appt)

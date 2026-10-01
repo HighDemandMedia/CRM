@@ -1,14 +1,16 @@
 """Preserve tenant/permission contracts while reducing the page-load workload."""
 
 import json
+
 import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
+
 from accounts.models import Account
-from contacts.models import Contact
-from opportunity.models import Opportunity
 from common.models import CustomFieldDefinition
 from common.testing import rls_org
+from contacts.models import Contact
+from opportunity.models import Opportunity
 
 
 @pytest.mark.django_db

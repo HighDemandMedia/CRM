@@ -1,7 +1,7 @@
 <script>
   import { can } from '$lib/v2/permissions.js';
-  import { showStageRequirements } from "$lib/components/pipelines/feedback.js";
-  import { configuredStages, configuredLabel } from "$lib/v2/pipeline-config.js";
+  import { showStageRequirements } from '$lib/components/pipelines/feedback.js';
+  import { configuredStages, configuredLabel } from '$lib/v2/pipeline-config.js';
   import { resolve } from '$app/paths';
   /**
    * Tasks are the one list where the row itself is the work, so every row
@@ -31,8 +31,14 @@
   /** @type {{ data: any, form: any }} */
   let { data, form } = $props();
 
-  const statuses = $derived(configuredStages(page.data.pipelineConfig, 'Task', ['New', 'In Progress', 'Completed'].map(value => ({ value, label: value }))).map(s => s.value));
-  const statusName = value => configuredLabel(page.data.pipelineConfig, 'Task', value, value);
+  const statuses = $derived(
+    configuredStages(
+      page.data.pipelineConfig,
+      'Task',
+      ['New', 'In Progress', 'Completed'].map((value) => ({ value, label: value }))
+    ).map((s) => s.value)
+  );
+  const statusName = (value) => configuredLabel(page.data.pipelineConfig, 'Task', value, value);
   let pipeline = $derived(page.url.searchParams.get('view') === 'pipeline');
   let dragged = $state(''),
     target = $state(''),
@@ -54,8 +60,14 @@
         headers: { 'x-sveltekit-action': 'true' }
       });
       const result = deserialize(await response.text());
-      if (result.type !== 'success' && showStageRequirements(result, 'Task', id, {status})) return;
-      if (result.type !== 'success') throw new Error(result.type === 'failure' ? String(result.data?.error || 'Could not move the task.') : 'Could not move the task. Please try again.');
+      if (result.type !== 'success' && showStageRequirements(result, 'Task', id, { status }))
+        return;
+      if (result.type !== 'success')
+        throw new Error(
+          result.type === 'failure'
+            ? String(result.data?.error || 'Could not move the task.')
+            : 'Could not move the task. Please try again.'
+        );
       await invalidateAll();
     } catch (error) {
       moveError = error.message;
@@ -83,7 +95,10 @@
     <span class="v2-num" style="color:var(--v2-rust)">{count(totals.overdue)}</span> overdue
   {/snippet}
   {#snippet actions()}
-    {#if can(page.data.permissions, 'tasks', 'create')}<a class="v2-btn v2-btn-primary" href={resolve('/tasks/new')}><Plus />New task</a>{/if}
+    {#if can(page.data.permissions, 'tasks', 'create')}<a
+        class="v2-btn v2-btn-primary"
+        href={resolve('/tasks/new')}><Plus />New task</a
+      >{/if}
   {/snippet}
 </PageHeader>
 
@@ -146,7 +161,9 @@
                   target = '';
                 }}
               >
-                <a class="pipeline-name" href={resolve(`/tasks/${task.id}`)}>{task.title || `Task · ${task.id.slice(0, 8)}`}</a>
+                <a class="pipeline-name" href={resolve(`/tasks/${task.id}`)}
+                  >{task.title || `Task · ${task.id.slice(0, 8)}`}</a
+                >
                 <dl>
                   <div>
                     <dt>Owner</dt>
@@ -170,7 +187,8 @@
                   value={task.status}
                   disabled={moving}
                   onchange={(event) => move(task.id, event.currentTarget.value)}
-                  >{#each statuses as choice}<option value={choice}>{statusName(choice)}</option>{/each}</select
+                  >{#each statuses as choice}<option value={choice}>{statusName(choice)}</option
+                    >{/each}</select
                 >
               </article>
             {:else}<p class="pipeline-empty">No tasks</p>{/each}
@@ -185,7 +203,10 @@
     >
       {#snippet icon()}<CircleCheck size={21} />{/snippet}
       {#snippet actions()}
-        {#if can(page.data.permissions, 'tasks', 'create')}<a class="v2-btn v2-btn-primary" href={resolve('/tasks/new')}>New task</a>{/if}
+        {#if can(page.data.permissions, 'tasks', 'create')}<a
+            class="v2-btn v2-btn-primary"
+            href={resolve('/tasks/new')}>New task</a
+          >{/if}
         {#if !data.showAll}
           <a class="v2-btn" href={resolve('/tasks?all=1')}>Show completed</a>
         {/if}
@@ -246,7 +267,8 @@
                 <a
                   href={resolve(`/tasks/${t.id}`)}
                   class="v2-table-primary"
-                  style={t.is_done ? 'text-decoration:line-through' : ''}>{t.title || `Task · ${t.id.slice(0, 8)}`}</a
+                  style={t.is_done ? 'text-decoration:line-through' : ''}
+                  >{t.title || `Task · ${t.id.slice(0, 8)}`}</a
                 >
                 {#if t.description}
                   <span class="v2-table-secondary v2-task-note">{t.description}</span>
@@ -284,8 +306,17 @@
                   {relativeDays(t.due_date)}
                 {/if}
               </td>
-              <td title={t.last_activity_at ? new Date(t.last_activity_at).toLocaleString() : undefined}>{t.last_activity_at ? relativeDays(t.last_activity_at) : '—'}</td>
-              <td class="list-row-actions">{#if can(page.data.permissions, 'tasks', 'edit')}<a aria-label={`Edit ${t.title}`} href={resolve(`/tasks/${t.id}/edit`)}>Edit</a>{/if}</td>
+              <td
+                title={t.last_activity_at
+                  ? new Date(t.last_activity_at).toLocaleString()
+                  : undefined}>{t.last_activity_at ? relativeDays(t.last_activity_at) : '—'}</td
+              >
+              <td class="list-row-actions"
+                >{#if can(page.data.permissions, 'tasks', 'edit')}<a
+                    aria-label={`Edit ${t.title}`}
+                    href={resolve(`/tasks/${t.id}/edit`)}>Edit</a
+                  >{/if}</td
+              >
             </tr>
           {/each}
         </tbody>

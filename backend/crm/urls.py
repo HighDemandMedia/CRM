@@ -33,21 +33,15 @@ urlpatterns = [
         name="healthz",
     ),
     path("api/", include("common.app_urls", namespace="common_urls")),
-    # Public portal endpoints (no auth required)
-    path("api/public/", include("invoices.public_urls", namespace="public_invoices")),
-    # Public web form endpoints (issue #634). Anonymous by design: an embedded
-    # form on a customer's website carries no credential at all. Unlike the
-    # invoice and estimate routes above, these take the org from the first path
-    # segment and set the RLS context from it before touching any org-scoped
-    # table, so they read correctly under a non-superuser role.
+    # Public forms resolve their tenant from the URL and set RLS before reading data.
     path(
         "api/public/forms/",
         include("webforms.public_urls", namespace="public_webforms"),
     ),
+    path("api/portal/", include("common.portal_urls", namespace="portal")),
     # Customer self-service portal. Its own credential realm: sign-in under
     # /api/portal/login/ is anonymous, everything else needs a portal token
     # that GetProfileAndOrg refuses anywhere outside this prefix.
-    path("api/portal/", include("common.portal_urls", namespace="portal")),
     path(
         "logout/", views.LogoutView.as_view(), {"next_page": "/login/"}, name="logout"
     ),
@@ -80,13 +74,4 @@ if settings.DEBUG:
     # endpoint answered the same caller 404. Every uploaded file in the system
     # sat behind it: documents, and lead, deal, ticket and task attachments.
     #
-    # Nothing needs it any more. Files are reached through
-    # `/api/documents/<id>/download/` and `/api/attachments/<id>/download/`,
-    # each gated by the record's own read predicate, and no client builds a
-    # storage path. The one remaining server-side reader of MEDIA_ROOT is the
-    # invoice PDF renderer, which opens the org logo off the filesystem rather
-    # than over HTTP (see `invoices/pdf.py`).
-    #
-    # This only closes dev. In production MEDIA_URL points straight at the S3
-    # bucket and Django is not in the request path at all, so the exposure
-    # there is whatever the bucket policy says.
+    # Attachments use authenticated download endpoints and record-level permissions.

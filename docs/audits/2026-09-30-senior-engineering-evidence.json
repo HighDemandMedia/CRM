@@ -1,0 +1,259 @@
+{
+  "date": "2026-09-30",
+  "base_commit": "fd6e619300f2c39e1f58cdbffbc9d4fa2633cee3",
+  "scope": "Local working tree including pre-existing reminder changes; not a verification of deployed infrastructure",
+  "tests": {
+    "backend_sqlite": {
+      "passed": 3972,
+      "failed": 859,
+      "skipped": 27
+    },
+    "frontend_vitest": {
+      "passed": 743,
+      "failed": 4
+    },
+    "postgres_only_non_superuser": {
+      "passed": 6,
+      "failed": 1,
+      "failure": "Preview gate blocks PAT Leads isolation test before its intended assertion"
+    },
+    "postgres_pool": {
+      "passed": 3
+    },
+    "svelte_check": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "frontend_build": "passed",
+    "migration_drift": "No changes detected",
+    "ruff": {
+      "total": 287,
+      "I001": 116,
+      "E701": 58,
+      "E402": 54,
+      "E702": 42,
+      "F401": 14,
+      "F841": 3
+    },
+    "eslint": {
+      "errors": 9,
+      "warnings": 290
+    }
+  },
+  "dependencies": {
+    "python": {
+      "method": "pip-audit, frozen uv export --no-dev, no dependencies installed in project",
+      "packages_checked": 79,
+      "affected_packages": [
+        {
+          "name": "pyjwt",
+          "version": "2.13.0",
+          "advisories": [
+            {
+              "id": "CVE-2026-102274",
+              "aliases": [
+                "GHSA-w6j9-cwv2-h6wq"
+              ],
+              "fix_versions": [
+                "2.14.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-101917",
+              "aliases": [
+                "GHSA-2gx3-rcp4-g85q"
+              ],
+              "fix_versions": [
+                "2.14.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-102273",
+              "aliases": [
+                "GHSA-w2cx-738m-mc7w"
+              ],
+              "fix_versions": [
+                "2.14.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-102269",
+              "aliases": [
+                "GHSA-hxm8-2xgr-2p9m"
+              ],
+              "fix_versions": [
+                "2.14.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-102267",
+              "aliases": [
+                "GHSA-9v7f-9g4p-ffgj"
+              ],
+              "fix_versions": [
+                "2.14.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-102268",
+              "aliases": [
+                "GHSA-ffc3-869f-jxw9"
+              ],
+              "fix_versions": [
+                "2.14.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-102272",
+              "aliases": [
+                "GHSA-r6x4-923q-g947"
+              ],
+              "fix_versions": [
+                "2.14.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-102271",
+              "aliases": [
+                "GHSA-p4g4-x82p-q773"
+              ],
+              "fix_versions": [
+                "2.14.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-102265",
+              "aliases": [
+                "GHSA-8wjv-2p76-3863"
+              ],
+              "fix_versions": [
+                "2.14.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-102266",
+              "aliases": [
+                "GHSA-9j54-fg26-wv3r"
+              ],
+              "fix_versions": [
+                "2.14.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-102270",
+              "aliases": [
+                "GHSA-jwrc-g2q2-pq5p"
+              ],
+              "fix_versions": [
+                "2.14.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-101918",
+              "aliases": [
+                "GHSA-42vr-xj54-vc7v"
+              ],
+              "fix_versions": [
+                "2.15.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-103001",
+              "aliases": [
+                "GHSA-gvp8-978c-rx2q"
+              ],
+              "fix_versions": []
+            }
+          ]
+        },
+        {
+          "name": "urllib3",
+          "version": "2.7.0",
+          "advisories": [
+            {
+              "id": "CVE-2026-97687",
+              "aliases": [
+                "GHSA-8988-9cw3-xx77"
+              ],
+              "fix_versions": [
+                "2.8.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-97688",
+              "aliases": [
+                "GHSA-gh4c-6fx4-qh6g"
+              ],
+              "fix_versions": [
+                "2.8.0"
+              ]
+            },
+            {
+              "id": "CVE-2026-97689",
+              "aliases": [
+                "GHSA-vxq7-64xx-v4gw"
+              ],
+              "fix_versions": [
+                "2.8.0"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "npm": {
+      "method": "Official npm bulk advisory API, all package versions from pnpm lockfile",
+      "packages_checked": 299,
+      "advisories": {
+        "brace-expansion": [
+          {
+            "id": 1240107,
+            "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+            "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+            "severity": "high",
+            "vulnerable_versions": ">=4.0.0 <5.0.11",
+            "cwe": [
+              "CWE-400",
+              "CWE-674"
+            ],
+            "cvss": {
+              "score": 7.5,
+              "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+            }
+          },
+          {
+            "id": 1240111,
+            "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+            "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+            "severity": "high",
+            "vulnerable_versions": ">=4.0.0 <5.0.10",
+            "cwe": [
+              "CWE-400",
+              "CWE-674"
+            ],
+            "cvss": {
+              "score": 7.5,
+              "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+            }
+          },
+          {
+            "id": 1240103,
+            "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+            "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+            "severity": "moderate",
+            "vulnerable_versions": ">=4.0.0 <5.0.12",
+            "cwe": [
+              "CWE-400",
+              "CWE-407"
+            ],
+            "cvss": {
+              "score": 5.3,
+              "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "caveat": "Advisory match is not proof of exploitability in the application. No live exploitation or load test performed."
+}

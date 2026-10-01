@@ -9,7 +9,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from accounts.models import Account
 from cases.models import Case
-from common.models import Attachments, CRMRole, Teams
+from common.attachment_cleanup import purge_files
+from common.models import Attachments, CRMRole, PendingFileDeletion, Teams
 from common.rbac import default_rules, expanded_rules, validate_rules
 from common.serializer import AttachmentsSerializer
 from common.testing import rls_org
@@ -82,6 +83,8 @@ def test_grant_revoke_and_delete_file(
     response = user_client.delete(url)
     assert response.status_code == 200, response.data
     assert not Attachments.objects.filter(pk=item.pk).exists()
+    assert PendingFileDeletion.objects.filter(name=name).exists()
+    purge_files()
     assert not storage.exists(name)
     assert model.objects.filter(pk=parent.pk).exists()
     assert user_client.delete(url).status_code == 404
@@ -134,16 +137,22 @@ def test_admin_cross_org_parent_and_legacy_route_isolation(
     assert admin_client.delete(f"/api/attachments/{local.pk}/").status_code == 200
 
 
-def test_storage_failure_keeps_attachment_for_retry(admin_client, admin_user, org_a):
+def test_storage_failure_keeps_cleanup_receipt_for_retry(
+    admin_client, admin_user, org_a
+):
     parent = Contact.objects.create(org=org_a, first_name="Retry")
     item = attachment(parent, admin_user)
     with patch.object(
         item.attachment.storage, "delete", side_effect=OSError("Storage unavailable")
     ):
-        assert admin_client.delete(f"/api/attachments/{item.pk}/").status_code == 503
-    assert Attachments.objects.filter(pk=item.pk).exists()
+        assert admin_client.delete(f"/api/attachments/{item.pk}/").status_code == 200
+        purge_files()
+    assert not Attachments.objects.filter(pk=item.pk).exists()
+    assert PendingFileDeletion.objects.filter(name=item.attachment.name).exists()
     assert item.attachment.storage.exists(item.attachment.name)
-    assert admin_client.delete(f"/api/attachments/{item.pk}/").status_code == 200
+    purge_files()
+    assert not item.attachment.storage.exists(item.attachment.name)
+    assert not PendingFileDeletion.objects.exists()
 
 
 def test_catalog_defaults_and_legacy_policy(admin_client):
@@ -186,3 +195,46 @@ def test_dangling_parent_and_anonymous_are_denied(
     ).status_code in (401, 403)
     Attachments.objects.filter(pk=item.pk).update(object_id=uuid4())
     assert admin_client.delete(f"/api/attachments/{item.pk}/").status_code == 403
+
+
+def test_database_rollback_preserves_attachment_and_file(admin_user, org_a):
+    from django.db import transaction
+
+    parent = Contact.objects.create(org=org_a, first_name="Rollback")
+    item = attachment(parent, admin_user)
+    pk, name = item.pk, item.attachment.name
+    with pytest.raises(RuntimeError), transaction.atomic():
+        item.delete()
+        raise RuntimeError("Database operation failed")
+    assert Attachments.objects.filter(pk=pk).exists()
+    assert item.attachment.storage.exists(name)
+    assert not PendingFileDeletion.objects.filter(name=name).exists()
+
+
+def test_cleanup_retry_cannot_delete_a_new_upload_with_the_same_name(admin_user, org_a):
+    parent = Contact.objects.create(org=org_a, first_name="Reupload")
+    old = attachment(parent, admin_user)
+    storage, old_name = old.attachment.storage, old.attachment.name
+    old.delete()
+    # Simulate a crash after storage accepted deletion but before DB acknowledgement.
+    storage.delete(old_name)
+    new = attachment(parent, admin_user)
+    assert new.attachment.name != old_name
+    purge_files()
+    assert storage.exists(new.attachment.name)
+    assert not PendingFileDeletion.objects.exists()
+
+
+@pytest.mark.parametrize("model,module,endpoint,field", OBJECTS)
+def test_parent_deletion_collects_files(
+    admin_user, org_a, model, module, endpoint, field
+):
+    parent = model.objects.create(org=org_a, **{field: "Delete parent"})
+    item = attachment(parent, admin_user)
+    name = item.attachment.name
+    parent.delete()
+    assert not Attachments.objects.filter(pk=item.pk).exists()
+    assert PendingFileDeletion.objects.filter(name=name).exists()
+    assert item.attachment.storage.exists(name)
+    purge_files()
+    assert not item.attachment.storage.exists(name)

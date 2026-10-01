@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { apiRequest } from '$lib/api-helpers.js';
-vi.mock('$lib/api-helpers.js', () => ({apiRequest: vi.fn()}));
+vi.mock('$lib/api-helpers.js', () => ({ apiRequest: vi.fn() }));
 
 import { resolvedLink, getNotifications } from './notifications.js';
 
@@ -46,23 +46,38 @@ describe('resolvedLink', () => {
   });
 });
 
-
 describe('notification history pagination', () => {
-  beforeEach(() => { vi.mocked(apiRequest).mockReset(); });
+  beforeEach(() => {
+    vi.mocked(apiRequest).mockReset();
+  });
   it('loads all statuses by default in batches of 20', async () => {
-    vi.mocked(apiRequest).mockResolvedValue({count:45, unread_count:4, results:[]});
-    const data = await getNotifications({cookies: /** @type {any} */ ({})});
-    expect(apiRequest).toHaveBeenCalledWith('/notifications/?limit=20&offset=0', {}, {cookies:{}});
-    expect(data.pagination).toEqual({page:1, size:20, status:'all', pages:3});
+    vi.mocked(apiRequest).mockResolvedValue({ count: 45, unread_count: 4, results: [] });
+    const data = await getNotifications({ cookies: /** @type {any} */ ({}) });
+    expect(apiRequest).toHaveBeenCalledWith(
+      '/notifications/?limit=20&offset=0',
+      {},
+      { cookies: {} }
+    );
+    expect(data.pagination).toEqual({ page: 1, size: 20, status: 'all', pages: 3 });
   });
   it('requests read history and page offset on the server', async () => {
-    vi.mocked(apiRequest).mockResolvedValue({count:45, unread_count:4, results:[]});
-    await getNotifications({cookies: /** @type {any} */ ({}), url:new URL('http://localhost/notifications?status=read&page=2')});
-    expect(apiRequest).toHaveBeenCalledWith('/notifications/?limit=20&offset=20&read=true', {}, {cookies:{}});
+    vi.mocked(apiRequest).mockResolvedValue({ count: 45, unread_count: 4, results: [] });
+    await getNotifications({
+      cookies: /** @type {any} */ ({}),
+      url: new URL('http://localhost/notifications?status=read&page=2')
+    });
+    expect(apiRequest).toHaveBeenCalledWith(
+      '/notifications/?limit=20&offset=20&read=true',
+      {},
+      { cookies: {} }
+    );
   });
   it('normalizes invalid page and filter parameters', async () => {
-    vi.mocked(apiRequest).mockResolvedValue({count:0, unread_count:0, results:[]});
-    const data = await getNotifications({cookies: /** @type {any} */ ({}), url:new URL('http://localhost/notifications?status=invalid&page=-1')});
+    vi.mocked(apiRequest).mockResolvedValue({ count: 0, unread_count: 0, results: [] });
+    const data = await getNotifications({
+      cookies: /** @type {any} */ ({}),
+      url: new URL('http://localhost/notifications?status=invalid&page=-1')
+    });
     expect(data.pagination.page).toBe(1);
     expect(data.pagination.status).toBe('all');
   });

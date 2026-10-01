@@ -1197,8 +1197,6 @@
 
   <Sidebar.Footer class="border-t border-[color:var(--sidebar-border)] px-2 py-2">
     <Sidebar.Menu class="space-y-px">
-
-
       <!-- Collapse/Expand Toggle -->
       <Sidebar.MenuItem>
         <Sidebar.MenuButton

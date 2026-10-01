@@ -1,10 +1,10 @@
-from common.last_activity import LastActivitySerializerMixin, ActivityListSerializer
-from common.pipeline_settings import PipelineRulesMixin, stages_for
-from common.rbac import VisibleCRMSerializerMixin
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from accounts.models import Account, AccountEmail, AccountEmailLog
+from common.last_activity import ActivityListSerializer, LastActivitySerializerMixin
+from common.pipeline_settings import PipelineRulesMixin, stages_for
+from common.rbac import VisibleCRMSerializerMixin
 from common.serializer import (
     AttachmentsSerializer,
     OrganizationSerializer,
@@ -20,15 +20,18 @@ from contacts.serializer import ContactSerializer
 # - created_on_arrow (frontend computes its own humanized timestamps)
 
 
-class AccountSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer):
+class AccountSerializer(
+    VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer
+):
     stage_label = serializers.SerializerMethodField()
 
     def get_stage_label(self, obj):
-        cache = self.__dict__.setdefault('_pipeline_labels', {})
+        cache = self.__dict__.setdefault("_pipeline_labels", {})
         key = (obj.org_id, obj.__class__.__name__)
         if key not in cache:
-            cache[key] = {s['key']: s['label'] for s in stages_for(obj.org, key[1])}
+            cache[key] = {s["key"]: s["label"] for s in stages_for(obj.org, key[1])}
         return cache[key].get(obj.stage, obj.get_stage_display())
+
     source_label = serializers.CharField(source="get_source_display", read_only=True)
     """Serializer for reading Account data"""
 
@@ -145,15 +148,26 @@ class AccountSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, 
 
 class AccountListSerializer(AccountSerializer):
     """List/card fields without unrelated detail panels or nested full records."""
-    from common.list_serializers import OwnerLabelSerializer, ContactLabelSerializer
+
+    from common.list_serializers import ContactLabelSerializer, OwnerLabelSerializer
 
     assigned_to = OwnerLabelSerializer(read_only=True, many=True)
     contacts = ContactLabelSerializer(read_only=True, many=True)
 
     class Meta(AccountSerializer.Meta):
         fields = tuple(
-            field for field in AccountSerializer.Meta.fields
-            if field not in ('org', 'teams', 'created_by', 'account_attachment', 'cases', 'tasks', 'opportunities')
+            field
+            for field in AccountSerializer.Meta.fields
+            if field
+            not in (
+                "org",
+                "teams",
+                "created_by",
+                "account_attachment",
+                "cases",
+                "tasks",
+                "opportunities",
+            )
         )
 
 

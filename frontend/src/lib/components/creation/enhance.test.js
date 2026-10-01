@@ -14,7 +14,10 @@ const panel = () => ({
   setBusy: vi.fn(),
   result: vi.fn()
 });
-const node = () => /** @type {HTMLFormElement} */ (/** @type {unknown} */ ({ action: '', getAttribute: () => '?/create' }));
+const node = () =>
+  /** @type {HTMLFormElement} */ (
+    /** @type {unknown} */ ({ action: '', getAttribute: () => '?/create' })
+  );
 async function setup(submit) {
   mocks.context = panel();
   const form = node();

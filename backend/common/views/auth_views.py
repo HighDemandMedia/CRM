@@ -323,9 +323,7 @@ class GoogleIdTokenView(APIView):
         # Get user's organizations. Active profiles only: `OrgSwitchView`
         # requires `is_active=True`, so listing a deactivated membership here
         # offered an org that answers 403 the moment it is chosen.
-        profiles = accessible_profiles(user).select_related(
-            "org"
-        )
+        profiles = accessible_profiles(user).select_related("org")
         organizations = [_org_payload(p.org, role=p.role) for p in profiles]
 
         # Generate JWT token
@@ -426,8 +424,13 @@ class OrgAwareTokenRefreshView(APIView):
 
             from rest_framework_simplejwt.settings import api_settings
             from rest_framework_simplejwt.utils import get_md5_hash_password
-            if api_settings.CHECK_REVOKE_TOKEN and token.get(api_settings.REVOKE_TOKEN_CLAIM) != get_md5_hash_password(user.password):
-                return Response({"error": "Password changed. Please sign in again."}, status=401)
+
+            if api_settings.CHECK_REVOKE_TOKEN and token.get(
+                api_settings.REVOKE_TOKEN_CLAIM
+            ) != get_md5_hash_password(user.password):
+                return Response(
+                    {"error": "Password changed. Please sign in again."}, status=401
+                )
 
             # If token has org context, validate membership
             org = None
@@ -677,7 +680,11 @@ class OrgSwitchView(APIView):
             token = OrgAwareRefreshToken.for_user_and_org(
                 request.user, profile.org, profile
             )
-            if request.auth and request.auth.get("password_reset_until", 0) > timezone.now().timestamp():
+            if (
+                request.auth
+                and request.auth.get("password_reset_until", 0)
+                > timezone.now().timestamp()
+            ):
                 token["password_reset_until"] = request.auth["password_reset_until"]
 
         # Audit log the org switch
@@ -987,9 +994,7 @@ class MagicLinkVerifyCodeView(APIView):
         user.save(update_fields=["last_login"])
 
         profiles = list(
-            accessible_profiles(user)
-            .select_related("org")
-            .order_by("org__name")
+            accessible_profiles(user).select_related("org").order_by("org__name")
         )
         # Same shape the Google flow returns, so a client can offer the same
         # picker whichever way the user signed in.

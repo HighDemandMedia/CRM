@@ -6,25 +6,30 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('common', '0044_appointment_attendee'),
+        ("common", "0044_appointment_attendee"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='salesappointment',
-            name='cancelled_at',
+            model_name="salesappointment",
+            name="cancelled_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='salesappointment',
-            name='cancelled_by',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='cancelled_sales_appointments', to=settings.AUTH_USER_MODEL),
+            model_name="salesappointment",
+            name="cancelled_by",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="cancelled_sales_appointments",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='salesappointment',
-            name='change_history',
+            model_name="salesappointment",
+            name="change_history",
             field=models.JSONField(blank=True, default=list),
         ),
     ]

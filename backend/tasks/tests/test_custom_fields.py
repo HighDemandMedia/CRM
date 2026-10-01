@@ -119,15 +119,17 @@ class TestTaskCreateWithCustomFields:
         task = Task.objects.get(title="Unknown Key Task", org=org_a)
         assert task.custom_fields == {"complexity": "trivial"}
 
-    def test_create_required_missing_returns_400(self, admin_client, org_a):
+    def test_creation_defers_required_properties_to_pipeline_rules(
+        self, admin_client, org_a
+    ):
         _make_complexity_def(org_a, is_required=True)
         response = admin_client.post(
             TASKS_LIST_URL,
             {"title": "No CF Task", "status": "New", "priority": "Low"},
             format="json",
         )
-        assert response.status_code == 400
-        assert "complexity" in response.json()["errors"]["custom_fields"]
+        assert response.status_code == 200
+        assert Task.objects.get(title="No CF Task", org=org_a).custom_fields == {}
 
 
 @pytest.mark.django_db

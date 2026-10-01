@@ -1,5 +1,3 @@
-from common.pipeline_settings import validate_entry, stages_for
-from common.rbac import configured
 """Kanban views for opportunities.
 
 Status-based only (Opportunity has no Pipeline/Stage model. It groups by the
@@ -19,6 +17,8 @@ from rest_framework.views import APIView
 
 from common.kanban import place_in_column
 from common.permissions import HasOrgContext, is_org_admin
+from common.pipeline_settings import stages_for, validate_entry
+from common.rbac import configured
 from common.validators import date_param, uuid_list_param, uuid_param
 from opportunity.access import assert_deal_access
 from opportunity.models import Opportunity, StageAgingConfig
@@ -101,7 +101,11 @@ class OpportunityKanbanView(APIView):
 
         # Match the list view's RBAC scoping so users only see opps they own
         # or are assigned to. Kanban shouldn't reveal more than the table.
-        if not configured(request.profile) and not is_org_admin(request.profile) and not request.user.is_superuser:
+        if (
+            not configured(request.profile)
+            and not is_org_admin(request.profile)
+            and not request.user.is_superuser
+        ):
             queryset = queryset.filter(
                 Q(created_by=request.profile.user) | Q(assigned_to=request.profile)
             ).distinct()
@@ -113,9 +117,9 @@ class OpportunityKanbanView(APIView):
         aging_configs = {c.stage: c for c in StageAgingConfig.objects.filter(org=org)}
 
         columns = []
-        stage_choices = stages_for(org, 'Opportunity')
+        stage_choices = stages_for(org, "Opportunity")
         for configured_stage in stage_choices:
-            stage_value = configured_stage['key']
+            stage_value = configured_stage["key"]
             cfg = STAGE_CONFIG.get(
                 stage_value,
                 {"order": 99, "color": "#6B7280", "type": "open", "label": stage_value},
@@ -205,7 +209,9 @@ class OpportunityMoveView(APIView):
         # creator branch sit dead long enough to need a PR.
         assert_deal_access(request.profile, request.user, opportunity)
 
-        serializer = OpportunityMoveSerializer(data=request.data, context={"request": request})
+        serializer = OpportunityMoveSerializer(
+            data=request.data, context={"request": request}
+        )
         if not serializer.is_valid():
             return Response(
                 {"error": True, "errors": serializer.errors},

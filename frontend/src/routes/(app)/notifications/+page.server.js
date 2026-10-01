@@ -9,7 +9,10 @@ import {
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies, url }) {
-  const [feed, preferences] = await Promise.all([getNotifications({ cookies, url }), apiRequest('/profile/', {}, { cookies })]);
+  const [feed, preferences] = await Promise.all([
+    getNotifications({ cookies, url }),
+    apiRequest('/profile/', {}, { cookies })
+  ]);
   return { ...feed, preferences };
 }
 
@@ -17,11 +20,21 @@ export async function load({ cookies, url }) {
 export const actions = {
   preferences: async ({ cookies, request }) => {
     const form = await request.formData();
-    const body = Object.fromEntries(['notify_in_app', 'notify_mentions', 'notify_comments'].map(key => [key, form.get(key) === 'on']));
+    const body = Object.fromEntries(
+      ['notify_in_app', 'notify_mentions', 'notify_comments'].map((key) => [
+        key,
+        form.get(key) === 'on'
+      ])
+    );
     try {
       await apiRequest('/profile/', { method: 'PATCH', body }, { cookies });
       return { scope: 'preferences', saved: true };
-    } catch (err) { return fail(400, { scope: 'preferences', message: readableError(err, 'Could not save preferences.') }); }
+    } catch (err) {
+      return fail(400, {
+        scope: 'preferences',
+        message: readableError(err, 'Could not save preferences.')
+      });
+    }
   },
 
   /**

@@ -1,7 +1,6 @@
-from common.member_access import assert_member_management
 from django.conf import settings
 from django.db import IntegrityError, transaction
-from django.db.models import Count, ProtectedError, Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, inline_serializer
@@ -14,6 +13,7 @@ from rest_framework.views import APIView
 from cases.models import Case
 from cases.serializer import CaseSerializer
 from common import swagger_params
+from common.member_access import assert_member_management
 from common.models import Comment, PersonalAccessToken, Profile, Teams, User
 from common.permissions import HasOrgContext, is_org_admin
 from common.serializer import (
@@ -26,7 +26,6 @@ from common.serializer import (
     UserCreateSwaggerSerializer,
     UserUpdateStatusSwaggerSerializer,
 )
-from common.tasks import send_email_user_delete
 from common.utils import COUNTRIES, ROLES
 from contacts.models import Contact
 from contacts.serializer import ContactSerializer
@@ -107,7 +106,7 @@ class UsersListView(APIView, LimitOffsetPagination):
                 status=status.HTTP_403_FORBIDDEN,
             )
         params = request.data
-        assert_member_management(request.profile, new_role=params.get('role'))
+        assert_member_management(request.profile, new_role=params.get("role"))
         if params:
             user_serializer = CreateUserSerializer(data=params, org=request.profile.org)
             address_serializer = BillingAddressSerializer(data=params)
@@ -150,8 +149,11 @@ class UsersListView(APIView, LimitOffsetPagination):
                     # person's account.
 
                     from common.rbac import ensure_default_roles
+
                     Profile.objects.create(
-                        access_role=ensure_default_roles(request.profile.org)[0] if profile_serializer.validated_data["role"] == "USER" else None,
+                        access_role=ensure_default_roles(request.profile.org)[0]
+                        if profile_serializer.validated_data["role"] == "USER"
+                        else None,
                         user=user,
                         date_of_joining=timezone.now(),
                         role=profile_serializer.validated_data["role"],
@@ -204,7 +206,9 @@ class UsersListView(APIView, LimitOffsetPagination):
                 {"error": True, "errors": "Permission Denied"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        queryset = Profile.objects.filter(org=request.profile.org, removed_at__isnull=True, is_platform_access=False).order_by("-id")
+        queryset = Profile.objects.filter(
+            org=request.profile.org, removed_at__isnull=True, is_platform_access=False
+        ).order_by("-id")
         params = request.query_params
         if params:
             if params.get("email"):
@@ -285,14 +289,31 @@ class UserDetailView(APIView):
         # Security fix: Filter by org to prevent cross-org enumeration
         # Lookup by user ID since frontend sends user.id, not profile.id
         profile = get_object_or_404(Profile, user__id=pk, org=self.request.profile.org)
-        if self.request.method not in ('GET', 'HEAD', 'OPTIONS') and (profile.user.is_superuser or profile.is_platform_access):
+        if self.request.method not in ("GET", "HEAD", "OPTIONS") and (
+            profile.user.is_superuser or profile.is_platform_access
+        ):
             from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied('Use personal profile settings; platform access is managed privately.')
-        if self.request.method not in ('GET', 'HEAD', 'OPTIONS') and profile.is_super_admin and profile.user_id != self.request.user.pk:
+
+            raise PermissionDenied(
+                "Use personal profile settings; platform access is managed privately."
+            )
+        if (
+            self.request.method not in ("GET", "HEAD", "OPTIONS")
+            and profile.is_super_admin
+            and profile.user_id != self.request.user.pk
+        ):
             from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied('Only the organization creator can edit their own account.')
-        if self.request.method not in ('GET', 'HEAD', 'OPTIONS') and profile.user_id != self.request.user.pk:
-            assert_member_management(self.request.profile, profile, self.request.data.get('role'))
+
+            raise PermissionDenied(
+                "Only the organization creator can edit their own account."
+            )
+        if (
+            self.request.method not in ("GET", "HEAD", "OPTIONS")
+            and profile.user_id != self.request.user.pk
+        ):
+            assert_member_management(
+                self.request.profile, profile, self.request.data.get("role")
+            )
         return profile
 
     @staticmethod
@@ -532,8 +553,10 @@ class UserDetailView(APIView):
                 {"error": True, "errors": "Permission Denied"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        return Response({'error': 'Use Remove from organization and confirm the email address.'}, status=405)
-
+        return Response(
+            {"error": "Use Remove from organization and confirm the email address."},
+            status=405,
+        )
 
 
 class UserStatusView(APIView):
@@ -605,7 +628,9 @@ class UserStatusView(APIView):
                 )
             profile.save()
             if not profile.is_active:
-                PersonalAccessToken.objects.filter(profile=profile, revoked_at__isnull=True).update(revoked_at=timezone.now())
+                PersonalAccessToken.objects.filter(
+                    profile=profile, revoked_at__isnull=True
+                ).update(revoked_at=timezone.now())
 
         context = {}
         active_profiles = profiles.filter(is_active=True)

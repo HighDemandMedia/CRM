@@ -95,7 +95,9 @@ class TestCaseCreateWithCustomFields:
         assert case.custom_fields == {"severity": "S1"}
 
     @patch("cases.views.send_email_to_assigned_user")
-    def test_create_required_missing_returns_400(self, mock_email, admin_client, org_a):
+    def test_creation_defers_required_properties_to_pipeline_rules(
+        self, mock_email, admin_client, org_a
+    ):
         _make_severity_def(org_a, is_required=True)
         response = admin_client.post(
             CASES_LIST_URL,
@@ -106,8 +108,8 @@ class TestCaseCreateWithCustomFields:
             },
             format="json",
         )
-        assert response.status_code == 400
-        assert "severity" in response.json()["errors"]["custom_fields"]
+        assert response.status_code == 200
+        assert Case.objects.get(name="Login crash", org=org_a).custom_fields == {}
 
 
 @pytest.mark.django_db

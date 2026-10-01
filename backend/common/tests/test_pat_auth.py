@@ -95,30 +95,10 @@ class TestPATAuthentication:
         assert pat.last_used_at == first
 
 
-def _collect_lead_ids(payload):
-    """Pull every lead id out of the leads-list response shape.
-
-    LeadListView returns a dict with `open_leads.open_leads[]` and
-    `close_leads.close_leads[]`, each entry serialized by LeadSerializer
-    (which includes an `id`). We scan both buckets so the assertion holds
-    regardless of which list a lead lands in.
-    """
-    ids = set()
-    for bucket_key, inner_key in (
-        ("open_leads", "open_leads"),
-        ("close_leads", "close_leads"),
-    ):
-        bucket = payload.get(bucket_key) or {}
-        for lead in bucket.get(inner_key, []) or []:
-            if isinstance(lead, dict) and lead.get("id") is not None:
-                ids.add(str(lead["id"]))
-    return ids
-
-
 @pytest.mark.postgres_only
 @pytest.mark.django_db
-def test_cross_org_pat_cannot_read_other_orgs_leads(org_a, admin_profile):
-    """A PAT scoped to org A must never surface org B's leads via /api/leads/.
+def test_cross_org_pat_cannot_read_other_orgs_contacts(org_a, admin_profile):
+    """A PAT scoped to org A must never surface org B's contacts.
 
     This is the regression guard for tenant isolation through a real list
     endpoint: RLS plus the explicit `org=` ORM filter must keep org B's row
@@ -131,11 +111,11 @@ def test_cross_org_pat_cannot_read_other_orgs_leads(org_a, admin_profile):
         )
 
     from common.tasks import clear_rls_context, set_rls_context
-    from leads.models import Lead
+    from contacts.models import Contact
 
-    # Create org B and a lead in it directly, with org explicitly set.
+    # Create org B and a contact in it directly, with org explicitly set.
     #
-    # The context has to be set for the INSERT itself. `lead` carries an
+    # The context has to be set for the INSERT itself. `contact` carries an
     # RLS insert-check policy, so a write with `app.current_org` empty is
     # refused outright ("new row violates row-level security policy"), and
     # this test then failed during its own setup. It went unnoticed because
@@ -146,22 +126,24 @@ def test_cross_org_pat_cannot_read_other_orgs_leads(org_a, admin_profile):
     org_b = Org.objects.create(name="Cross-Org Isolation Org B")
     set_rls_context(org_b.id)
     try:
-        lead_b = Lead.objects.create(
+        contact_b = Contact.objects.create(
             first_name="Hidden",
-            last_name="Lead-OrgB",
+            last_name="Contact-OrgB",
             email="hidden_orgb@test.com",
             org=org_b,
         )
     finally:
         clear_rls_context()
 
-    # Mint a PAT for the org-A admin profile and call the leads list as that token.
+    set_rls_context(org_a.id)
+    visible = Contact.objects.create(org=org_a, first_name="Visible")
+    clear_rls_context()
+    # Mint a PAT for the org-A admin profile and call the contacts list.
     raw, _ = PersonalAccessToken.generate(profile=admin_profile, name="cross-org-cli")
     client = Client()
-    response = client.get("/api/leads/", HTTP_AUTHORIZATION=f"Bearer {raw}")
+    response = client.get("/api/contacts/", HTTP_AUTHORIZATION=f"Bearer {raw}")
 
     assert response.status_code == 200, response.content
-    lead_ids = _collect_lead_ids(response.json())
-    assert str(lead_b.id) not in lead_ids, (
-        "org B's lead leaked into an org A PAT's leads list, tenant isolation broken"
-    )
+    contact_ids = {row["id"] for row in response.json()["contact_obj_list"]}
+    assert str(visible.pk) in contact_ids
+    assert str(contact_b.pk) not in contact_ids

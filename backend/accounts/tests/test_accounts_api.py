@@ -151,7 +151,7 @@ class TestAccountListView:
         assert "industries" in data
         assert "tags" in data
         assert "users" in data
-        assert "leads" in data
+        assert "leads" not in data
         assert "status" in data
 
     def test_list_accounts_inactive(self, admin_client, org_a):
@@ -281,7 +281,7 @@ class TestAccountDetailView:
         assert "countries" in data
         assert "comment_permission" in data
         assert "users_mention" in data
-        assert "leads" in data
+        assert "leads" not in data
 
     def test_get_account_detail_comment_permission_for_creator(
         self, admin_client, org_a, admin_profile
@@ -712,7 +712,7 @@ class TestAccountAttachmentView:
         assert response.status_code == 200
         data = response.json()
         assert data["error"] is False
-        assert "Deleted" in data["message"]
+        assert "deleted" in data["message"].lower()
 
 
 # ---------------------------------------------------------------------------

@@ -20,7 +20,8 @@
     stage: 'Move between stages; entry rules still apply.',
     notes: 'Add notes; edit or remove your own notes.',
     attachments: 'Upload files to records within this set’s access level.',
-    delete_attachments: 'Delete attachments after confirmation, within this set’s access level. Does not allow deleting records.',
+    delete_attachments:
+      'Delete attachments after confirmation, within this set’s access level. Does not allow deleting records.',
     associations: 'Add or remove links. Access is checked on both records.',
     delete: 'Permanently delete records after confirmation.',
     export: 'Download visible records as CSV.',
@@ -32,7 +33,10 @@
     error = '';
     const base = role || { name: '', description: '', scope: 'own', rules: {}, member_count: 0 };
     expandedModules = Object.fromEntries(
-      data.catalog.map((module) => [module.key, ['contacts', 'calendar', 'reports'].includes(module.key)])
+      data.catalog.map((module) => [
+        module.key,
+        ['contacts', 'calendar', 'reports'].includes(module.key)
+      ])
     );
     editing = structuredClone(base);
     editing.enabled = Object.fromEntries(
@@ -172,10 +176,7 @@
           </div>
           <div class="permission-groups">
             {#each data.catalog as module (module.key)}
-              <details
-                class="permission-group"
-                bind:open={expandedModules[module.key]}
-              >
+              <details class="permission-group" bind:open={expandedModules[module.key]}>
                 <summary
                   ><span>{module.label}</span><small
                     >{Object.values(editing.enabled[module.key]).filter(Boolean).length} enabled</small
@@ -242,7 +243,13 @@
                 >{scopes.find(([key]) => key === role.scope)?.[1]}</span
               >
             </h2>
-            <p>{role.description || (['Member', 'Manager'].includes(role.name) ? 'Default permission set' : 'Custom permission set')} · {role.member_count} {role.member_count === 1 ? 'user' : 'users'}</p>
+            <p>
+              {role.description ||
+                (['Member', 'Manager'].includes(role.name)
+                  ? 'Default permission set'
+                  : 'Custom permission set')} · {role.member_count}
+              {role.member_count === 1 ? 'user' : 'users'}
+            </p>
           </div>
           <div class="actions">
             <button

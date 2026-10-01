@@ -263,6 +263,8 @@ class WebFormSubmission(BaseOrgModel):
     )
     request_id = models.UUIDField(null=True, blank=True)
     email_completed_at = models.DateTimeField(null=True, blank=True)
+    email_claim_id = models.UUIDField(null=True, blank=True)
+    email_claimed_at = models.DateTimeField(null=True, blank=True)
     email_delivered_to = models.JSONField(default=list, blank=True)
     # The VALIDATED dict, never raw request.data. Persisting the raw body would
     # let a submitter store an arbitrary blob of keys that later renders in an

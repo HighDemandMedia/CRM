@@ -7,36 +7,51 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('accounts', '0017_required_record_names'),
-        ('common', '0063_optional_properties_phone_keys_per_org'),
-        ('contacts', '0021_required_record_names'),
+        ("accounts", "0017_required_record_names"),
+        ("common", "0063_optional_properties_phone_keys_per_org"),
+        ("contacts", "0021_required_record_names"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.RemoveConstraint(
-            model_name='contact',
-            name='unique_contact_email_per_org',
+            model_name="contact",
+            name="unique_contact_email_per_org",
         ),
         migrations.AddField(
-            model_name='contact',
-            name='merge_snapshot',
+            model_name="contact",
+            name="merge_snapshot",
             field=models.JSONField(default=dict, editable=False),
         ),
         migrations.AddField(
-            model_name='contact',
-            name='merged_at',
+            model_name="contact",
+            name="merged_at",
             field=models.DateTimeField(editable=False, null=True),
         ),
         migrations.AddField(
-            model_name='contact',
-            name='merged_into',
-            field=models.ForeignKey(blank=True, editable=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='merged_contacts', to='contacts.contact'),
+            model_name="contact",
+            name="merged_into",
+            field=models.ForeignKey(
+                blank=True,
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="merged_contacts",
+                to="contacts.contact",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='contact',
-            constraint=models.UniqueConstraint(django.db.models.functions.text.Lower('email'), models.F('org'), condition=models.Q(('email__isnull', False), models.Q(('email', ''), _negated=True), ('merged_at__isnull', True)), name='unique_contact_email_per_org'),
+            model_name="contact",
+            constraint=models.UniqueConstraint(
+                django.db.models.functions.text.Lower("email"),
+                models.F("org"),
+                condition=models.Q(
+                    ("email__isnull", False),
+                    models.Q(("email", ""), _negated=True),
+                    ("merged_at__isnull", True),
+                ),
+                name="unique_contact_email_per_org",
+            ),
         ),
     ]

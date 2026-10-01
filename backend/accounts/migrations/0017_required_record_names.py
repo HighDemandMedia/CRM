@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('accounts', '0016_optional_record_properties'),
+        ("accounts", "0016_optional_record_properties"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='account',
-            name='name',
-            field=models.CharField(max_length=255, verbose_name='Account Name'),
+            model_name="account",
+            name="name",
+            field=models.CharField(max_length=255, verbose_name="Account Name"),
         ),
     ]

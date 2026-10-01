@@ -13,7 +13,8 @@ export async function GET({ url, cookies, locals }) {
   const q = url.searchParams.get('q') || '';
   try {
     const result = await search({ cookies }, q);
-    if (!locals.profile?.can_preview) result.results = result.results.filter(row => demoPageAllowed(row.href));
+    if (!locals.profile?.can_preview)
+      result.results = result.results.filter((row) => demoPageAllowed(row.href));
     return json(result);
   } catch (/** @type {any} */ err) {
     return json({ results: [], error: err?.message || 'Search failed' }, { status: 400 });

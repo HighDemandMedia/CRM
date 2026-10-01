@@ -8,14 +8,15 @@ const template = readFileSync(
   new URL('../../../../backend/webforms/templates/webforms/connect.js', import.meta.url),
   'utf8'
 );
-/** @param {{mode?: string | null, status?: number, fields?: any, captcha?: string}} options */
-function host({ mode = 'copy', status = 200, fields, captcha = '' } = {}) {
+/** @param {{mode?: string | null, status?: number, fields?: any, captcha?: string, late?: boolean}} options */
+function host({ mode = 'copy', status = 200, fields, captcha = '', late = false } = {}) {
   const controls = fields || [{ name: 'visitor-email', type: 'email', value: 'test@example.test' }];
   controls.namedItem = (name) => controls.find((c) => c.name === name);
   const button = { disabled: false };
   const children = [],
     events = [];
-  let handler;
+  let handler, observer;
+  let present = !late;
   const form = {
     tagName: 'FORM',
     dataset: {},
@@ -25,9 +26,9 @@ function host({ mode = 'copy', status = 200, fields, captcha = '' } = {}) {
     },
     checkValidity: () => true,
     querySelectorAll: () => [button],
-    addEventListener: (_, fn) => {
+    addEventListener: vi.fn((_, fn) => {
       handler = fn;
-    },
+    }),
     dispatchEvent: (event) => {
       events.push(event.type);
     }
@@ -50,8 +51,9 @@ function host({ mode = 'copy', status = 200, fields, captcha = '' } = {}) {
   };
   const document = {
     readyState: 'complete',
+    body: {},
     currentScript: { getAttribute: (key) => (key === 'data-mode' ? mode : '#existing') },
-    querySelectorAll: () => [form],
+    querySelectorAll: () => (present ? [form] : []),
     createElement: () => ({ value: '', style: {}, setAttribute() {} })
   };
   const context = {
@@ -63,6 +65,12 @@ function host({ mode = 'copy', status = 200, fields, captcha = '' } = {}) {
     AbortController,
     setTimeout,
     clearTimeout,
+    MutationObserver: class {
+      constructor(callback) {
+        observer = callback;
+      }
+      observe() {}
+    },
     CustomEvent: class {
       constructor(type) {
         this.type = type;
@@ -78,6 +86,11 @@ function host({ mode = 'copy', status = 200, fields, captcha = '' } = {}) {
     events,
     assign,
     error,
+    async mount() {
+      present = true;
+      observer([{ addedNodes: [form] }]);
+      await new Promise((resolve) => setTimeout(resolve, 80));
+    },
     async submit() {
       const event = { preventDefault: vi.fn(), stopImmediatePropagation: vi.fn() };
       await handler(event);
@@ -87,6 +100,15 @@ function host({ mode = 'copy', status = 200, fields, captcha = '' } = {}) {
 }
 
 describe('existing HTML form connector', () => {
+  it('connects a form inserted later and does not duplicate its handler on DOM updates', async () => {
+    const h = host({ late: true });
+    expect(h.form.addEventListener).not.toHaveBeenCalled();
+    await h.mount();
+    await h.mount();
+    expect(h.form.addEventListener).toHaveBeenCalledTimes(1);
+    await h.submit();
+    expect(h.fetch).toHaveBeenCalledTimes(1);
+  });
   it('copies mapped data without cancelling the existing email/thank-you handler', async () => {
     const h = host();
     const event = await h.submit();

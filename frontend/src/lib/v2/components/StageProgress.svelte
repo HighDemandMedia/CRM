@@ -12,7 +12,9 @@
 <div class="stage-progress" aria-label={name}>
   <div class="segments" aria-hidden="true">
     {#each pipeline as item, index (item.value)}<span
-        class:filled={percentage != null ? index < Math.ceil(percentage / 100 * pipeline.length) : !lost && (complete || (position >= 0 && index <= position))}
+        class:filled={percentage != null
+          ? index < Math.ceil((percentage / 100) * pipeline.length)
+          : !lost && (complete || (position >= 0 && index <= position))}
       ></span>{/each}
   </div>
   <span class="stage-name">{name}</span>

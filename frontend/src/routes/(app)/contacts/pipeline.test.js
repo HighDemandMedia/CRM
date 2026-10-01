@@ -29,16 +29,20 @@ describe('pipeline stage moves', () => {
       { cookies }
     );
   });
-  it.each(['UNASSIGNED', '', 'invented'])(
-    'rejects invalid stage %s without writing',
-    async (stage) => {
-      expect((await move(stage)).status).toBe(400);
-      expect(apiRequest).not.toHaveBeenCalled();
-    }
-  );
+  it.each([''])('rejects invalid stage %s without writing', async (stage) => {
+    expect((await move(stage)).status).toBe(400);
+    expect(apiRequest).not.toHaveBeenCalled();
+  });
   it('rejects a contact path instead of an id', async () => {
     expect((await move('LEAD', '../other')).status).toBe(400);
     expect(apiRequest).not.toHaveBeenCalled();
+  });
+  it('delegates validation of custom stage keys to the API', async () => {
+    vi.mocked(apiRequest).mockRejectedValue(
+      Object.assign(new Error('Unknown stage'), { status: 400 })
+    );
+    expect((await move('custom-stage')).status).toBe(400);
+    expect(apiRequest).toHaveBeenCalled();
   });
   it('does not report success when the API denies the update', async () => {
     vi.mocked(apiRequest).mockRejectedValue(new Error('Permission denied'));

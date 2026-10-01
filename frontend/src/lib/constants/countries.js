@@ -262,18 +262,40 @@ export function getCountryName(code) {
   return country?.name || code;
 }
 
-
 // A compact Americas-focused picker; retain the full catalog for stored values.
 const PREFERRED_COUNTRY_CODES = [
-  'US', 'MX', 'CA', 'CO', 'CU', 'PR', 'DO', 'VE', 'AR', 'BR',
-  'CL', 'PE', 'EC', 'CR', 'PA', 'GT', 'HN', 'SV', 'NI', 'BO',
-  'PY', 'UY', 'JM', 'HT', 'BZ'
+  'US',
+  'MX',
+  'CA',
+  'CO',
+  'CU',
+  'PR',
+  'DO',
+  'VE',
+  'AR',
+  'BR',
+  'CL',
+  'PE',
+  'EC',
+  'CR',
+  'PA',
+  'GT',
+  'HN',
+  'SV',
+  'NI',
+  'BO',
+  'PY',
+  'UY',
+  'JM',
+  'HT',
+  'BZ'
 ];
 
 /** @param {string} [current] */
 export function countryOptions(current = '') {
-  const codes = current && !PREFERRED_COUNTRY_CODES.includes(current)
-    ? [...PREFERRED_COUNTRY_CODES, current]
-    : PREFERRED_COUNTRY_CODES;
-  return codes.map(value => ({ value, label: getCountryName(value) }));
+  const codes =
+    current && !PREFERRED_COUNTRY_CODES.includes(current)
+      ? [...PREFERRED_COUNTRY_CODES, current]
+      : PREFERRED_COUNTRY_CODES;
+  return codes.map((value) => ({ value, label: getCountryName(value) }));
 }

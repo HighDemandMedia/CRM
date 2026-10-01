@@ -294,6 +294,28 @@ def sync_mirrors(conn, api, base, writable):
         host=conn.profile,
     )
     for appointment_id in appointments.values_list("pk", flat=True):
+        snapshot = SalesAppointment.objects.filter(
+            pk=appointment_id, org=conn.org
+        ).first()
+        if not snapshot:
+            continue
+        previous_mirror = conn.mirrors.filter(appointment_id=appointment_id).first()
+        external_id = (
+            previous_mirror.external_id
+            if previous_mirror
+            else "hdm"
+            + hashlib.sha256(
+                f"{conn.org_id}:{conn.profile_id}:{appointment_id}".encode()
+            ).hexdigest()
+        )
+        path = base + "/events/" + quote(external_id, safe="")
+        try:
+            remote = api.get(path)
+        except GoogleError as exc:
+            if exc.status not in (404, 410):
+                raise
+            remote = None
+        write = None
         with transaction.atomic():
             if (
                 not GoogleConnection.objects.select_for_update()
@@ -301,10 +323,18 @@ def sync_mirrors(conn, api, base, writable):
                 .exists()
             ):
                 return
-            appointment = SalesAppointment.objects.select_for_update().get(
-                pk=appointment_id, org=conn.org
+            appointment = (
+                SalesAppointment.objects.select_for_update()
+                .filter(pk=appointment_id, org=conn.org)
+                .first()
             )
+            if not appointment or fingerprint(appointment) != fingerprint(snapshot):
+                continue
             mirror = conn.mirrors.filter(appointment=appointment).first()
+            if (mirror.etag if mirror else None) != (
+                previous_mirror.etag if previous_mirror else None
+            ):
+                continue
             if not mirror and appointment.cancelled_at:
                 continue
             action = "cancel" if appointment.cancelled_at else "edit"
@@ -318,22 +348,6 @@ def sync_mirrors(conn, api, base, writable):
                 "start": {"dateTime": appointment.starts_at.isoformat()},
                 "end": {"dateTime": appointment.ends_at.isoformat()},
             }
-            # Stable provider ID makes retries safe when a Google response is lost.
-            external_id = (
-                mirror.external_id
-                if mirror
-                else "hdm"
-                + hashlib.sha256(
-                    f"{conn.org_id}:{conn.profile_id}:{appointment.pk}".encode()
-                ).hexdigest()
-            )
-            path = base + "/events/" + quote(external_id, safe="")
-            try:
-                remote = api.get(path)
-            except GoogleError as exc:
-                if exc.status not in (404, 410):
-                    raise
-                remote = None
             local_changed = mirror and mirror.fingerprint != fingerprint(appointment)
             remote_changed = (
                 ((remote.get("etag", "") if remote else "") != mirror.etag)
@@ -428,38 +442,54 @@ def sync_mirrors(conn, api, base, writable):
             elif not mirror or local_changed:
                 if appointment.cancelled_at:
                     if remote and remote.get("status") != "cancelled":
-                        api.request(
-                            "DELETE",
-                            path,
-                            params={"sendUpdates": "none"},
-                            etag=remote.get("etag"),
-                        )
+                        write = ("DELETE", path, {"etag": remote.get("etag")})
                     remote = {"etag": "", "status": "cancelled"}
                 elif not remote:
-                    remote = api.request(
+                    write = (
                         "POST",
                         base + "/events",
-                        params={"sendUpdates": "none"},
-                        body={**payload, "id": external_id},
+                        {"body": {**payload, "id": external_id}},
                     )
                 elif local_changed:
-                    remote = api.request(
+                    write = (
                         "PATCH",
                         path,
-                        params={"sendUpdates": "none"},
-                        body=payload,
-                        etag=remote.get("etag"),
+                        {"body": payload, "etag": remote.get("etag")},
                     )
-            GoogleCalendarMirror.objects.update_or_create(
-                connection=conn,
-                appointment=appointment,
-                defaults={
-                    "org": conn.org,
-                    "external_id": external_id,
-                    "etag": (remote or {}).get("etag", ""),
-                    "fingerprint": fingerprint(appointment),
-                },
-            )
+            if not write:
+                save_mirror(conn, appointment, external_id, remote)
+        if write:
+            method, url, options = write
+            result = api.request(method, url, params={"sendUpdates": "none"}, **options)
+            with transaction.atomic():
+                if (
+                    not GoogleConnection.objects.select_for_update()
+                    .filter(pk=conn.pk, generation=conn.generation, status="connected")
+                    .exists()
+                ):
+                    return
+                if not SalesAppointment.objects.filter(
+                    pk=appointment_id, org=conn.org
+                ).exists():
+                    continue
+                # Record exactly what was sent. An edit made during the HTTP
+                # request remains different and is picked up by the next sync.
+                save_mirror(
+                    conn, appointment, external_id, result if method != "DELETE" else {}
+                )
+
+
+def save_mirror(conn, appointment, external_id, remote):
+    GoogleCalendarMirror.objects.update_or_create(
+        connection=conn,
+        appointment=appointment,
+        defaults={
+            "org": conn.org,
+            "external_id": external_id,
+            "etag": (remote or {}).get("etag", ""),
+            "fingerprint": fingerprint(appointment),
+        },
+    )
 
 
 def sync_calendar(conn, api):

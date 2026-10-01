@@ -1,8 +1,7 @@
 """
 Tests for the v2 "Today" action queue: GET /api/dashboard/today/ (ApiTodayView).
 
-Two things are under test: that each of the four sources (unanswered cases,
-overdue invoices, quiet deals, due tasks) lands in the right bucket, and. The
+Two things are under test: that each active source (unanswered cases, quiet deals, due tasks) lands in the right bucket. The
 part that matters for a multi-tenant app. That a member sees only their own
 rows and no request ever crosses an org boundary.
 
@@ -75,7 +74,7 @@ class TestTodayView:
         )
 
     # ── invoices ────────────────────────────────────────────────────────
-    def test_overdue_invoice_in_queue(self, admin_client, org_a):
+    def test_archived_invoice_is_not_in_queue(self, admin_client, org_a):
         _set_rls(org_a)
         inv = Invoice.objects.create(
             invoice_title="Past due invoice",
@@ -89,12 +88,9 @@ class TestTodayView:
         item = next(
             (i for i in resp.data["queue"] if i["id"] == f"invoice-{inv.id}"), None
         )
-        assert item is not None
-        assert item["due"] == "Overdue"
-        assert item["action"] == "Send a reminder"
-        assert item["href"] == f"/invoices/{inv.id}"
+        assert item is None
 
-    def test_future_invoice_is_later_not_queue(self, admin_client, org_a):
+    def test_archived_invoice_is_not_in_later(self, admin_client, org_a):
         _set_rls(org_a)
         inv = Invoice.objects.create(
             invoice_title="Due Friday",
@@ -106,7 +102,7 @@ class TestTodayView:
         )
         resp = admin_client.get(self.url)
         assert f"invoice-{inv.id}" not in _ids(resp.data["queue"])
-        assert f"invoice-{inv.id}" in _ids(resp.data["later"])
+        assert f"invoice-{inv.id}" not in _ids(resp.data["later"])
 
     def test_paid_invoice_absent(self, admin_client, org_a):
         _set_rls(org_a)
@@ -242,60 +238,56 @@ class TestTodayView:
     ):
         """A USER's queue includes rows they created and excludes a colleague's."""
         _set_rls(org_a)
-        others = Invoice.objects.create(
-            invoice_title="Admin's overdue invoice",
+        others = Task.objects.create(
+            title="Admin's overdue invoice",
             org=org_a,
-            currency="USD",
-            total_amount=500,
-            status="Sent",
+            status="New",
+            priority="Medium",
             due_date=_today() - _days(3),
         )
-        Invoice.objects.filter(id=others.id).update(created_by=admin_user)
-        mine = Invoice.objects.create(
-            invoice_title="My overdue invoice",
+        Task.objects.filter(id=others.id).update(created_by=admin_user)
+        mine = Task.objects.create(
+            title="My overdue invoice",
             org=org_a,
-            currency="USD",
-            total_amount=700,
-            status="Sent",
+            status="New",
+            priority="Medium",
             due_date=_today() - _days(3),
         )
-        Invoice.objects.filter(id=mine.id).update(created_by=regular_user)
+        Task.objects.filter(id=mine.id).update(created_by=regular_user)
 
         resp = user_client.get(self.url)
         ids = _ids(resp.data["queue"])
-        assert f"invoice-{mine.id}" in ids
-        assert f"invoice-{others.id}" not in ids
+        assert f"task-{mine.id}" in ids
+        assert f"task-{others.id}" not in ids
 
     def test_admin_sees_colleague_items(self, admin_client, org_a, regular_user):
         """The same colleague-owned row the member is scoped to IS visible to an
         admin. Proving the member exclusion above is scoping, not a dropped row."""
         _set_rls(org_a)
-        inv = Invoice.objects.create(
-            invoice_title="Someone else's overdue invoice",
+        inv = Task.objects.create(
+            title="Someone else's overdue invoice",
             org=org_a,
-            currency="USD",
-            total_amount=500,
-            status="Sent",
+            status="New",
+            priority="Medium",
             due_date=_today() - _days(3),
         )
-        Invoice.objects.filter(id=inv.id).update(created_by=regular_user)
+        Task.objects.filter(id=inv.id).update(created_by=regular_user)
         resp = admin_client.get(self.url)
-        assert f"invoice-{inv.id}" in _ids(resp.data["queue"])
+        assert f"task-{inv.id}" in _ids(resp.data["queue"])
 
     def test_cross_tenant_isolation(self, admin_client, org_a, org_b):
         """org_a's Today never includes an org_b row."""
         _set_rls(org_b)
-        foreign = Invoice.objects.create(
-            invoice_title="Org B invoice",
+        foreign = Task.objects.create(
+            title="Org B invoice",
             org=org_b,
-            currency="USD",
-            total_amount=999,
-            status="Sent",
+            status="New",
+            priority="Medium",
             due_date=_today() - _days(4),
         )
         _set_rls(org_a)
         resp = admin_client.get(self.url)
-        assert f"invoice-{foreign.id}" not in _ids(resp.data["queue"])
+        assert f"task-{foreign.id}" not in _ids(resp.data["queue"])
 
 
 @pytest.mark.django_db
@@ -312,22 +304,21 @@ class TestTheHeaderCountMatchesThePage:
 
     url = "/api/dashboard/today/"
 
-    def _overdue_invoices(self, org, n, created_by=None):
+    def _overdue_tasks(self, org, n, created_by=None):
         for i in range(n):
-            inv = Invoice.objects.create(
-                invoice_title=f"Overdue {i}",
+            task = Task.objects.create(
+                title=f"Overdue {i}",
                 org=org,
-                currency="USD",
-                total_amount=100 + i,
-                status="Sent",
+                status="New",
+                priority="Medium",
                 due_date=_today() - _days(i + 1),
             )
             if created_by is not None:
-                Invoice.objects.filter(id=inv.id).update(created_by=created_by)
+                Task.objects.filter(id=task.id).update(created_by=created_by)
 
     def test_the_count_is_the_total_and_shown_is_the_rows(self, admin_client, org_a):
         _set_rls(org_a)
-        self._overdue_invoices(org_a, 12)
+        self._overdue_tasks(org_a, 12)
 
         summary = admin_client.get(self.url).data["summary"]
 
@@ -339,11 +330,11 @@ class TestTheHeaderCountMatchesThePage:
         draws from. With more than fits, shown < count; with fewer, they agree
         and the page may say "that's everything" truthfully."""
         _set_rls(org_a)
-        self._overdue_invoices(org_a, 12)
+        self._overdue_tasks(org_a, 12)
         assert admin_client.get(self.url).data["summary"]["shown"] < 12
 
-        Invoice.objects.filter(org=org_a).delete()
-        self._overdue_invoices(org_a, 3)
+        Task.objects.filter(org=org_a).delete()
+        self._overdue_tasks(org_a, 3)
         summary = admin_client.get(self.url).data["summary"]
         assert summary["shown"] == summary["count"] == 3
 
@@ -351,7 +342,7 @@ class TestTheHeaderCountMatchesThePage:
         """The old count read the queue list, so an org past the 25-per-source
         cap got 25: not its total, and not what it could see either."""
         _set_rls(org_a)
-        self._overdue_invoices(org_a, TODAY_SOURCE_LIMIT + 5)
+        self._overdue_tasks(org_a, TODAY_SOURCE_LIMIT + 5)
 
         summary = admin_client.get(self.url).data["summary"]
 
@@ -361,7 +352,7 @@ class TestTheHeaderCountMatchesThePage:
         self, admin_client, org_a, admin_user
     ):
         _set_rls(org_a)
-        self._overdue_invoices(org_a, 10)
+        self._overdue_tasks(org_a, 10)
         for i in range(4):
             Task.objects.create(
                 title=f"Due today {i}",
@@ -375,20 +366,18 @@ class TestTheHeaderCountMatchesThePage:
         summary = admin_client.get(self.url).data["summary"]
         by_label = {s["label"]: s for s in summary["sources"]}
 
-        assert by_label["overdue invoices"]["count"] == 10
-        assert by_label["overdue invoices"]["href"] == "/invoices"
-        assert by_label["tasks due"]["count"] == 4
+        assert by_label["tasks due"]["count"] == 14
         assert by_label["tasks due"]["href"] == "/tasks"
         assert sum(s["count"] for s in summary["sources"]) == summary["count"] == 14
 
     def test_a_source_with_nothing_in_it_is_not_listed(self, admin_client, org_a):
         """An empty source would render as a link to a page with nothing on it."""
         _set_rls(org_a)
-        self._overdue_invoices(org_a, 2)
+        self._overdue_tasks(org_a, 2)
 
         summary = admin_client.get(self.url).data["summary"]
 
-        assert [s["label"] for s in summary["sources"]] == ["overdue invoices"]
+        assert [s["label"] for s in summary["sources"]] == ["tasks due"]
 
     def test_the_count_is_scoped_to_the_member(
         self, user_client, org_a, regular_user, admin_user
@@ -396,8 +385,8 @@ class TestTheHeaderCountMatchesThePage:
         """The count is derived from the same querysets the queue is, so a
         member's header cannot leak the size of a colleague's workload."""
         _set_rls(org_a)
-        self._overdue_invoices(org_a, 9, created_by=admin_user)
-        self._overdue_invoices(org_a, 2, created_by=regular_user)
+        self._overdue_tasks(org_a, 9, created_by=admin_user)
+        self._overdue_tasks(org_a, 2, created_by=regular_user)
 
         summary = user_client.get(self.url).data["summary"]
 
@@ -406,9 +395,9 @@ class TestTheHeaderCountMatchesThePage:
 
     def test_the_count_stops_at_the_org_boundary(self, admin_client, org_a, org_b):
         _set_rls(org_b)
-        self._overdue_invoices(org_b, 6)
+        self._overdue_tasks(org_b, 6)
         _set_rls(org_a)
-        self._overdue_invoices(org_a, 1)
+        self._overdue_tasks(org_a, 1)
 
         summary = admin_client.get(self.url).data["summary"]
 

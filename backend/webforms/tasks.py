@@ -1,6 +1,8 @@
 """Deliver accepted web form submissions without blocking website visitors."""
 
 import logging
+from datetime import timedelta
+from uuid import uuid4
 
 from celery import shared_task
 from django.db import transaction
@@ -9,8 +11,7 @@ from django.utils import timezone
 
 from common.links import frontend_url
 from common.models import Org
-from common.tasks import clear_rls_context, set_rls_context
-from leads.tasks import send_email
+from common.tasks import clear_rls_context, send_email, set_rls_context
 from webforms.models import WebFormSubmission
 from webforms.notifications import recipients, record_link
 
@@ -28,7 +29,7 @@ def send_webform_submission_email(submission_id, org_id):
 
 
 def _deliver(submission_id, org_id):
-    # One lock per recipient send, so a retry keeps previously delivered mail.
+    # Claim a recipient briefly; delivery must not hold a database lock.
     # As with any mail transport, a crash after acceptance but before the DB
     # acknowledgement can still result in a repeated email.
     while True:
@@ -45,6 +46,11 @@ def _deliver(submission_id, org_id):
                 not submission
                 or submission.status not in WebFormSubmission.ACCEPTED_STATUSES
                 or submission.email_completed_at
+            ):
+                return
+            if (
+                submission.email_claimed_at
+                and submission.email_claimed_at > timezone.now() - timedelta(minutes=5)
             ):
                 return
             form = submission.form
@@ -73,13 +79,39 @@ def _deliver(submission_id, org_id):
                     == WebFormSubmission.ACCEPTED_DUPLICATE,
                 },
             )
+            claim = uuid4()
+            submission.email_claim_id = claim
+            submission.email_claimed_at = timezone.now()
+            submission.save(update_fields=["email_claim_id", "email_claimed_at"])
+        try:
             send_email(
                 subject=f"New submission: {form.name}",
                 html_content=html,
                 recipients=[profile.user.email],
             )
-            submission.email_delivered_to.append(str(profile.pk))
-            submission.save(update_fields=["email_delivered_to"])
+        except Exception:
+            WebFormSubmission.objects.filter(
+                pk=submission_id, org_id=org_id, email_claim_id=claim
+            ).update(email_claim_id=None, email_claimed_at=None)
+            raise
+        with transaction.atomic():
+            current = (
+                WebFormSubmission.objects.select_for_update()
+                .filter(pk=submission_id, org_id=org_id, email_claim_id=claim)
+                .first()
+            )
+            if not current:
+                return
+            current.email_delivered_to.append(str(profile.pk))
+            current.email_claim_id = None
+            current.email_claimed_at = None
+            current.save(
+                update_fields=[
+                    "email_delivered_to",
+                    "email_claim_id",
+                    "email_claimed_at",
+                ]
+            )
 
 
 def queue_notification(submission_id, org_id):

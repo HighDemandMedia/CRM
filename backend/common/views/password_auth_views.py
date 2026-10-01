@@ -98,9 +98,7 @@ class RegisterInput(LoginInput):
 
 def session_response(user, request, status=200):
     profiles = list(
-        accessible_profiles(user)
-        .select_related("org")
-        .order_by("org__name")
+        accessible_profiles(user).select_related("org").order_by("org__name")
     )
     profile = profiles[0] if len(profiles) == 1 else None
     if request.auth and request.auth.get("org_id"):
@@ -156,16 +154,22 @@ class InvitationPreviewView(APIView):
         raw = request.data.get("token")
         invitation = None
         if isinstance(raw, str) and 20 <= len(raw) <= 128:
-            invitation = OrganizationInvitation.objects.select_related("org").filter(
-                token_hash=digest(raw),
-                accepted_at__isnull=True,
-                revoked_at__isnull=True,
-                expires_at__gt=timezone.now(),
-                org__is_active=True,
-            ).first()
+            invitation = (
+                OrganizationInvitation.objects.select_related("org")
+                .filter(
+                    token_hash=digest(raw),
+                    accepted_at__isnull=True,
+                    revoked_at__isnull=True,
+                    expires_at__gt=timezone.now(),
+                    org__is_active=True,
+                )
+                .first()
+            )
         if not invitation:
             return Response(
-                {"error": "This invitation is invalid, expired, cancelled, or already accepted. Ask your administrator for a new invitation."},
+                {
+                    "error": "This invitation is invalid, expired, cancelled, or already accepted. Ask your administrator for a new invitation."
+                },
                 status=400,
                 headers={"Cache-Control": "no-store"},
             )
@@ -173,7 +177,9 @@ class InvitationPreviewView(APIView):
             {
                 "email": invitation.email,
                 "organization": invitation.org.name,
-                "existing_account": User.objects.filter(email__iexact=invitation.email).exists(),
+                "existing_account": User.objects.filter(
+                    email__iexact=invitation.email
+                ).exists(),
             },
             headers={"Cache-Control": "no-store"},
         )

@@ -38,7 +38,7 @@
 
 <div class="compact-heading">
   <a class="compact-name" draggable="false" href={resolve(asInternalPath(href))} title={name}
-    >{name || `Record · ${href.split("/").pop()?.slice(0, 8)}`}</a
+    >{name || `Record · ${href.split('/').pop()?.slice(0, 8)}`}</a
   >
   {#if valueText}<span class="compact-value" title={`${valueLabel}: ${valueText}`}>{valueText}</span
     >{/if}
@@ -62,8 +62,17 @@
 {/if}
 
 <style>
-  .compact-tags { display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin-top:8px; }
-  .compact-tags :global(.tag-badge) { font-size:10px; padding:2px 6px; }
+  .compact-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .compact-tags :global(.tag-badge) {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
 
   .compact-heading {
     display: flex;

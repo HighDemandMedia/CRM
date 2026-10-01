@@ -45,7 +45,12 @@ export const actions = {
     try {
       await updateAccount({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this company.') });
+      return fail(400, {
+        values,
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not save this company.')
+      });
     }
 
     redirect(303, `/accounts/${params.id}`);

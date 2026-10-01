@@ -57,7 +57,8 @@ export async function apiRequest(endpoint, options = {}, locals) {
   /** @type {RequestInit} */
   const requestOptions = {
     method,
-    headers: requestHeaders
+    headers: requestHeaders,
+    signal: AbortSignal.timeout(isFormData ? 60000 : 30000)
   };
 
   // Add body for non-GET requests
@@ -110,7 +111,6 @@ export async function apiRequest(endpoint, options = {}, locals) {
         }
       }
 
-      console.error(`API Error Response:`, errorData);
       /*
        * The status travels with the error.
        *
@@ -135,9 +135,24 @@ export async function apiRequest(endpoint, options = {}, locals) {
     }
 
     // Return JSON response
-    return await response.json();
+    try {
+      return await response.json();
+    } catch (error) {
+      if (requestOptions.signal?.aborted) throw error;
+      throw Object.assign(
+        new Error('The service returned an incomplete response. Please try again.'),
+        { status: 502 }
+      );
+    }
   } catch (error) {
-    console.error(`API request failed: ${method} ${endpoint}`, error);
+    if (requestOptions.signal?.aborted) {
+      throw Object.assign(
+        new Error(
+          'The service took too long to respond. Check whether your change was saved before retrying.'
+        ),
+        { status: 504 }
+      );
+    }
     throw error;
   }
 }

@@ -70,7 +70,9 @@ class OrgAwareRefreshToken(RefreshToken):
             token["user_email"] = user.email
             token["is_platform_owner"] = bool(user.is_active and user.is_superuser)
             # Build display name from email (User model doesn't have first/last name)
-            token["user_name"] = user.name or (user.email.split("@")[0] if user.email else "")
+            token["user_name"] = user.name or (
+                user.email.split("@")[0] if user.email else ""
+            )
             token["user_profile_pic"] = user.profile_pic or ""
 
         # Add org context to the token payload
@@ -96,6 +98,7 @@ class OrgAwareRefreshToken(RefreshToken):
             token["is_super_admin"] = profile.is_super_admin
             token["is_demo"] = profile.is_demo
             from common.platform_access import can_preview
+
             token["can_preview"] = can_preview(profile)
 
         return token
@@ -398,8 +401,14 @@ class CustomFieldDefinitionSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "created_at", "updated_at")
 
     def validate_is_required(self, value):
-        target = self.initial_data.get("target_model", getattr(self.instance, "target_model", None))
-        return False if target in {"Contact", "Account", "Opportunity", "Task", "Case"} else value
+        target = self.initial_data.get(
+            "target_model", getattr(self.instance, "target_model", None)
+        )
+        return (
+            False
+            if target in {"Contact", "Account", "Opportunity", "Task", "Case"}
+            else value
+        )
 
     def validate_target_model(self, value):
         if not is_supported_target(value):
@@ -438,10 +447,13 @@ class CustomFieldDefinitionSerializer(serializers.ModelSerializer):
         key = attrs.get("key", getattr(self.instance, "key", None))
         if self.instance is None and target_model and key:
             from common.property_catalog import target_model as resolve_model
+
             model = resolve_model(target_model)
             reserved = {f.name for f in model._meta.get_fields()} if model else set()
             if key in reserved or key == "name":
-                raise serializers.ValidationError({"key": "This key belongs to a system property."})
+                raise serializers.ValidationError(
+                    {"key": "This key belongs to a system property."}
+                )
         if org is not None and target_model and key:
             qs = CustomFieldDefinition.objects.filter(
                 org=org, target_model=target_model, key=key
@@ -623,11 +635,12 @@ class CreateProfileSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         from common.rbac import ensure_default_roles
-        role = validated_data.get('role', instance.role)
-        if role == 'ADMIN':
-            validated_data['access_role'] = None
+
+        role = validated_data.get("role", instance.role)
+        if role == "ADMIN":
+            validated_data["access_role"] = None
         elif not instance.access_role_id:
-            validated_data['access_role'] = ensure_default_roles(instance.org)[0]
+            validated_data["access_role"] = ensure_default_roles(instance.org)[0]
         return super().update(instance, validated_data)
 
     # The fields that grant access rather than describe a person. Only an admin
@@ -715,7 +728,9 @@ class UserSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     is_super_admin = serializers.BooleanField(read_only=True)
     access_role_id = serializers.UUIDField(read_only=True, allow_null=True)
-    access_role_name = serializers.CharField(source="access_role.name", read_only=True, default=None)
+    access_role_name = serializers.CharField(
+        source="access_role.name", read_only=True, default=None
+    )
     # address = BillingAddressSerializer()
     user_details = serializers.SerializerMethodField()
 
@@ -758,14 +773,38 @@ class ProfileSelfUpdateSerializer(serializers.Serializer):
     which requires 7-25 characters.
     """
 
-    timezone = serializers.CharField(required=False, allow_blank=True, max_length=64, validators=[validate_iana_timezone])
+    timezone = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=64,
+        validators=[validate_iana_timezone],
+    )
     notify_in_app = serializers.BooleanField(required=False)
     notify_mentions = serializers.BooleanField(required=False)
     notify_comments = serializers.BooleanField(required=False)
-    email_integration_mode = serializers.ChoiceField(choices=["send", "read_send"], required=False, allow_blank=True)
+    email_integration_mode = serializers.ChoiceField(
+        choices=["send", "read_send"], required=False, allow_blank=True
+    )
 
     name = serializers.CharField(required=False, allow_blank=True, max_length=255)
-    language = serializers.ChoiceField(choices=["English", "Spanish", "French", "Portuguese", "Chinese", "Arabic", "Haitian Creole", "Russian", "German", "Italian", "Hindi", "Other"], required=False, allow_blank=True)
+    language = serializers.ChoiceField(
+        choices=[
+            "English",
+            "Spanish",
+            "French",
+            "Portuguese",
+            "Chinese",
+            "Arabic",
+            "Haitian Creole",
+            "Russian",
+            "German",
+            "Italian",
+            "Hindi",
+            "Other",
+        ],
+        required=False,
+        allow_blank=True,
+    )
     phone = serializers.CharField(
         required=False,
         allow_blank=True,
@@ -783,6 +822,7 @@ class AttachmentsSerializer(serializers.ModelSerializer):
 
     def get_can_delete(self, obj):
         from crum import get_current_request
+
         from common.views.attachment_views import may_delete_attachment
 
         request = self.context.get("request") or get_current_request()
@@ -1108,20 +1148,40 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def get_is_platform_owner(self, obj):
         from common.platform_access import is_platform_owner
+
         return is_platform_owner(obj)
 
     class Meta:
         model = User
-        fields = ["id", "email", "profile_pic", "is_active", "organizations", "is_platform_owner"]
+        fields = [
+            "id",
+            "email",
+            "profile_pic",
+            "is_active",
+            "organizations",
+            "is_platform_owner",
+        ]
 
     @extend_schema_field(list)
     def get_organizations(self, obj):
         """Get all organizations the user belongs to"""
-        from common.platform_access import accessible_profiles, available_organizations, is_platform_owner
+        from common.platform_access import (
+            accessible_profiles,
+            available_organizations,
+            is_platform_owner,
+        )
+
         if is_platform_owner(obj):
-            return [{"id": str(org.pk), "name": org.name, "role": "ADMIN",
-                     "is_organization_admin": True, "is_demo": False}
-                    for org in available_organizations(obj)]
+            return [
+                {
+                    "id": str(org.pk),
+                    "name": org.name,
+                    "role": "ADMIN",
+                    "is_organization_admin": True,
+                    "is_demo": False,
+                }
+                for org in available_organizations(obj)
+            ]
         profiles = accessible_profiles(obj)
         return [
             {
@@ -1248,7 +1308,14 @@ class TeamsSerializer(serializers.ModelSerializer):
 
 
 class TeamCreateSerializer(serializers.ModelSerializer):
-    assign_users = serializers.PrimaryKeyRelatedField(source="users", many=True, queryset=Profile.objects.none(), required=False, write_only=True)
+    assign_users = serializers.PrimaryKeyRelatedField(
+        source="users",
+        many=True,
+        queryset=Profile.objects.none(),
+        required=False,
+        write_only=True,
+    )
+
     def __init__(self, *args, **kwargs):
         request_obj = kwargs.pop("request_obj", None)
         super().__init__(*args, **kwargs)
@@ -1257,7 +1324,9 @@ class TeamCreateSerializer(serializers.ModelSerializer):
         # Preserve existing inactive members during edits without allowing new
         # inactive memberships to be assigned.
         if self.instance:
-            eligible = eligible | self.instance.users.filter(org=self.org, removed_at__isnull=True)
+            eligible = eligible | self.instance.users.filter(
+                org=self.org, removed_at__isnull=True
+            )
         self.fields["assign_users"].child_relation.queryset = eligible
 
         self.fields["name"].required = True

@@ -95,15 +95,17 @@ class TestAccountCreateWithCustomFields:
         account = Account.objects.get(name="Unknown Key Co", org=org_a)
         assert account.custom_fields == {"tier": "gold"}
 
-    def test_create_required_missing_returns_400(self, admin_client, org_a):
+    def test_creation_defers_required_properties_to_pipeline_rules(
+        self, admin_client, org_a
+    ):
         _make_tier_def(org_a, is_required=True)
         response = admin_client.post(
             ACCOUNTS_LIST_URL,
             {"name": "No CF Co"},
             format="json",
         )
-        assert response.status_code == 400
-        assert "tier" in response.json()["errors"]["custom_fields"]
+        assert response.status_code == 200
+        assert Account.objects.get(name="No CF Co", org=org_a).custom_fields == {}
 
 
 @pytest.mark.django_db

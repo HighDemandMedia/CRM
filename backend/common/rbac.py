@@ -213,7 +213,10 @@ def scoped(qs, profile, action="view", limit=None):
     )
     if new_ids:
         own |= Q(pk__in=new_ids)
-    return qs.filter(own).distinct()
+    # Keep many-to-many joins inside the subquery. PostgreSQL cannot lock a
+    # DISTINCT result; callers must be able to lock the authorized base rows.
+    authorized = qs.model._base_manager.filter(org_id=profile.org_id).filter(own)
+    return qs.filter(pk__in=authorized.values("pk"))
 
 
 def permitted(profile, obj, action="view"):
@@ -327,8 +330,10 @@ def check_request(request):
         and parts[1] in ("comment", "attachment")
     ):
         action = (
-            "notes" if parts[1] == "comment"
-            else "delete_attachments" if request.method == "DELETE"
+            "notes"
+            if parts[1] == "comment"
+            else "delete_attachments"
+            if request.method == "DELETE"
             else "attachments"
         )
     require(profile, module, action)
@@ -587,7 +592,8 @@ def calendar_scoped(qs, profile, action="view", limit=None):
     if scope == "team":
         team_ids = profile.user_teams.filter(org_id=profile.org_id).values("pk")
         visible |= Q(host__user_teams__in=team_ids)
-    return qs.filter(visible).distinct()
+    authorized = qs.model._base_manager.filter(org_id=profile.org_id).filter(visible)
+    return qs.filter(pk__in=authorized.values("pk"))
 
 
 def calendar_hosts(profile):

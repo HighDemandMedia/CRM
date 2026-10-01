@@ -42,8 +42,8 @@
     field.key === 'country'
       ? countryOptions(value)
       : field.relation
-      ? options
-      : (field.options || []).map((o) => (typeof o === 'string' ? { value: o, label: o } : o))
+        ? options
+        : (field.options || []).map((o) => (typeof o === 'string' ? { value: o, label: o } : o))
   );
   let kind = $derived(
     {
@@ -64,98 +64,107 @@
 <div class="requirement-field">
   {#if field.is_read_only === true || field.is_read_only === 'True'}
     <strong>{field.label}</strong>
-    <p>Schedule the appointment in <a href="/calendar">Calendar</a>, then return to change the stage.</p>
+    <p>
+      Schedule the appointment in <a href="/calendar">Calendar</a>, then return to change the stage.
+    </p>
   {:else}
-  <label for={`requirement-${field.key}`}>{field.label} {#if required}<span>*</span>{/if}</label>
-  {#if field.relation && field.relation !== 'Tags'}<input
-      class="v2-input"
-      aria-label={`Search ${field.label}`}
-      placeholder="Search by name…"
-      bind:value={search}
-      oninput={() => {
-        clearTimeout(timer);
-        timer = setTimeout(load, 250);
-      }}
-    />{/if}
-  {#if field.relation === 'Tags'}
-    <TagPicker
-      inputId={`requirement-${field.key}`}
-      options={options.map(option => ({id: String(option.value), name: option.label, color: option.color}))}
-      bind:selected={value}
-      onSearch={(query) => {
-        search = query;
-        clearTimeout(timer);
-        timer = setTimeout(load, 250);
-      }}
-    />
-  {:else if field.key === 'pages'}
-    {#each value || [] as entry, index}<div class="page-link">
-        <input
-          class="v2-input"
-          aria-label="Page name"
-          placeholder="Page name"
-          bind:value={entry.name}
-          {required}
-        /><input
-          class="v2-input"
-          type="url"
-          aria-label="Page URL"
-          placeholder="https://…"
-          bind:value={entry.url}
-          {required}
-        /><button
-          class="v2-btn"
-          type="button"
-          aria-label="Remove page"
-          onclick={() => (value = value.filter((_, i) => i !== index))}>×</button
-        >
-      </div>{/each}
-    <button
-      type="button"
-      class="v2-btn"
-      onclick={() => (value = [...(value || []), { name: '', url: '' }])}>Add page</button
+    <label for={`requirement-${field.key}`}
+      >{field.label}
+      {#if required}<span>*</span>{/if}</label
     >
-  {:else if field.relation || ['dropdown', 'multi_select'].includes(field.field_type)}
-    {#if multiple}<div class="options">
-        {#each choices as option}<label
-            ><input
-              type="checkbox"
-              value={String(option.value)}
-              bind:group={value}
-            />{option.label}</label
-          >{/each}
-      </div>
-    {:else}<select id={`requirement-${field.key}`} class="v2-input" bind:value {required}
-        ><option value="">Select…</option>{#each choices as option}<option
-            value={String(option.value)}>{option.label}</option
-          >{/each}</select
+    {#if field.relation && field.relation !== 'Tags'}<input
+        class="v2-input"
+        aria-label={`Search ${field.label}`}
+        placeholder="Search by name…"
+        bind:value={search}
+        oninput={() => {
+          clearTimeout(timer);
+          timer = setTimeout(load, 250);
+        }}
+      />{/if}
+    {#if field.relation === 'Tags'}
+      <TagPicker
+        inputId={`requirement-${field.key}`}
+        options={options.map((option) => ({
+          id: String(option.value),
+          name: option.label,
+          color: option.color
+        }))}
+        bind:selected={value}
+        onSearch={(query) => {
+          search = query;
+          clearTimeout(timer);
+          timer = setTimeout(load, 250);
+        }}
+      />
+    {:else if field.key === 'pages'}
+      {#each value || [] as entry, index}<div class="page-link">
+          <input
+            class="v2-input"
+            aria-label="Page name"
+            placeholder="Page name"
+            bind:value={entry.name}
+            {required}
+          /><input
+            class="v2-input"
+            type="url"
+            aria-label="Page URL"
+            placeholder="https://…"
+            bind:value={entry.url}
+            {required}
+          /><button
+            class="v2-btn"
+            type="button"
+            aria-label="Remove page"
+            onclick={() => (value = value.filter((_, i) => i !== index))}>×</button
+          >
+        </div>{/each}
+      <button
+        type="button"
+        class="v2-btn"
+        onclick={() => (value = [...(value || []), { name: '', url: '' }])}>Add page</button
+      >
+    {:else if field.relation || ['dropdown', 'multi_select'].includes(field.field_type)}
+      {#if multiple}<div class="options">
+          {#each choices as option}<label
+              ><input
+                type="checkbox"
+                value={String(option.value)}
+                bind:group={value}
+              />{option.label}</label
+            >{/each}
+        </div>
+      {:else}<select id={`requirement-${field.key}`} class="v2-input" bind:value {required}
+          ><option value="">Select…</option>{#each choices as option}<option
+              value={String(option.value)}>{option.label}</option
+            >{/each}</select
+        >{/if}
+    {:else if field.field_type === 'checkbox'}<select
+        id={`requirement-${field.key}`}
+        class="v2-input"
+        bind:value
+        {required}
+        ><option value="">Select…</option><option value="true">Yes</option><option value="false"
+          >No</option
+        ></select
+      >
+    {:else if ['textarea', 'list'].includes(field.field_type)}<textarea
+        id={`requirement-${field.key}`}
+        class="v2-input"
+        bind:value
+        {required}
+        rows="3"
+        placeholder={field.field_type === 'list' ? 'JSON list' : ''}></textarea>
+    {:else}<input
+        id={`requirement-${field.key}`}
+        class="v2-input"
+        type={kind}
+        bind:value
+        {required}
+        step={field.field_type === 'integer' ? '1' : 'any'}
+      />{/if}
+    {#if loading}<small>Loading options…</small>{:else if error}<small role="alert">{error}</small
       >{/if}
-  {:else if field.field_type === 'checkbox'}<select
-      id={`requirement-${field.key}`}
-      class="v2-input"
-      bind:value
-      {required}
-      ><option value="">Select…</option><option value="true">Yes</option><option value="false"
-        >No</option
-      ></select
-    >
-  {:else if ['textarea', 'list'].includes(field.field_type)}<textarea
-      id={`requirement-${field.key}`}
-      class="v2-input"
-      bind:value
-      {required}
-      rows="3"
-      placeholder={field.field_type === 'list' ? 'JSON list' : ''}></textarea>
-  {:else}<input
-      id={`requirement-${field.key}`}
-      class="v2-input"
-      type={kind}
-      bind:value
-      {required}
-      step={field.field_type === 'integer' ? '1' : 'any'}
-    />{/if}
-  {#if loading}<small>Loading options…</small>{:else if error}<small role="alert">{error}</small
-    >{/if}
   {/if}
 </div>
 

@@ -89,22 +89,6 @@ describe('range param names are exact, not derived', () => {
   });
 });
 
-describe('invoices uses the single-underscore date convention', () => {
-  // Pinned against backend/invoices/api_views.py:149-152
-  // (`InvoiceListView.filter_queryset`), which reads `due_date_gte` /
-  // `due_date_lte`, one underscore. Every other v2 module's date range uses
-  // two (`due_date__gte`). Re-check that line before "correcting" either spelling.
-  it('accepts due_date_gte', () => {
-    const url = new URL('http://x/invoices?due_date_gte=2026-01-01');
-    expect(readFilters(url, 'invoices')).toEqual({ due_date_gte: '2026-01-01' });
-  });
-
-  it('ignores the double-underscore spelling that every other page uses', () => {
-    const url = new URL('http://x/invoices?due_date__gte=2026-01-01');
-    expect(readFilters(url, 'invoices')).toEqual({});
-  });
-});
-
 describe('opaque id fields: shape-checked before they reach the API', () => {
   // Every list endpoint answers 500 on a malformed id, because the value
   // reaches Django as `id__in=['x']` and psycopg raises before any handler

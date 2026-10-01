@@ -22,6 +22,8 @@ import { apiRequest } from '$lib/api-helpers.js';
 /** Verbs the backend actually dispatches. Everything else has no copy and is
  *  flagged on the page as "no producer" rather than shown as a raw identifier. */
 export const PRODUCED_VERBS = [
+  'task.reminder',
+  'calendar.reminder',
   'webform.submitted',
   'case.mentioned',
   'case.commented',
@@ -39,15 +41,8 @@ export const PRODUCED_VERBS = [
  * @param {unknown} link
  * @returns {string}
  */
-export function resolvedLink(link) {
-  if (typeof link !== 'string') return '';
-  const m = link.match(/^\/(?:cases|tickets)\/([^/?#]+)\/?$/);
-  if (m) return `/tickets/${encodeURIComponent(m[1])}`;
-  const record = link.match(/^\/(contacts|leads)\/([^/?#]+)\/?$/);
-  if (record) return `/${record[1]}/${encodeURIComponent(record[2])}`;
-  const help = link.match(/^\/(?:support|help)\/([^/?#]+)\/?$/);
-  return help ? `/help/${encodeURIComponent(help[1])}` : '';
-}
+export { resolvedLink } from '$lib/v2/notification-content.js';
+import { resolvedLink } from '$lib/v2/notification-content.js';
 
 /** One API notification → the row shape the page renders. */
 function toRow(/** @type {any} */ n) {
@@ -68,14 +63,24 @@ const FEED_LIMIT = 20;
 export async function getNotifications({ cookies, url }) {
   const requested = Number(url?.searchParams.get('page') || 1);
   const page = Number.isSafeInteger(requested) && requested > 0 ? Math.min(requested, 1000000) : 1;
-  const status = ['read', 'unread'].includes(url?.searchParams.get('status') || '') ? url.searchParams.get('status') : 'all';
-  const params = new URLSearchParams({limit: String(FEED_LIMIT), offset: String((page - 1) * FEED_LIMIT)});
+  const status = ['read', 'unread'].includes(url?.searchParams.get('status') || '')
+    ? url.searchParams.get('status')
+    : 'all';
+  const params = new URLSearchParams({
+    limit: String(FEED_LIMIT),
+    offset: String((page - 1) * FEED_LIMIT)
+  });
   if (status !== 'all') params.set(status, 'true');
   const resp = await apiRequest(`/notifications/?${params}`, {}, { cookies });
   const results = (resp.results || []).map(toRow);
   return {
     results,
-    pagination: { page, size: FEED_LIMIT, status, pages: Math.max(1, Math.ceil((resp.count || 0) / FEED_LIMIT)) },
+    pagination: {
+      page,
+      size: FEED_LIMIT,
+      status,
+      pages: Math.max(1, Math.ceil((resp.count || 0) / FEED_LIMIT))
+    },
     totals: {
       count: resp.count ?? results.length,
       unread: resp.unread_count ?? results.filter((n) => n.read_at === null).length,

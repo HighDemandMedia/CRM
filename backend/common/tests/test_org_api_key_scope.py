@@ -29,7 +29,7 @@ def _key_client(org):
 @pytest.mark.django_db
 class TestOrgApiKeyIsReadOnly:
     def test_key_can_read(self, org_a, admin_profile):
-        assert _key_client(org_a).get("/api/leads/").status_code == 200
+        assert _key_client(org_a).get("/api/contacts/").status_code == 200
 
     def test_key_cannot_create(self, org_a, admin_profile):
         from leads.models import Lead
@@ -101,16 +101,16 @@ class TestOrgApiKeyCannotReachCredentials:
 class TestOrgApiKeyKillSwitch:
     @override_settings(ORG_API_KEY_AUTH_ENABLED=False)
     def test_disabled_refuses_even_reads(self, org_a, admin_profile):
-        assert _key_client(org_a).get("/api/leads/").status_code == 403
+        assert _key_client(org_a).get("/api/contacts/").status_code == 403
 
     @override_settings(ORG_API_KEY_AUTH_ENABLED=True)
     def test_enabled_is_the_default_behaviour(self, org_a, admin_profile):
-        assert _key_client(org_a).get("/api/leads/").status_code == 200
+        assert _key_client(org_a).get("/api/contacts/").status_code == 200
 
     def test_a_jwt_session_is_unaffected_by_the_switch(self, admin_client):
         """The switch keys on the credential, not on the endpoint or the person."""
         with override_settings(ORG_API_KEY_AUTH_ENABLED=False):
-            assert admin_client.get("/api/leads/").status_code == 200
+            assert admin_client.get("/api/contacts/").status_code == 200
 
 
 @pytest.mark.django_db
@@ -122,7 +122,7 @@ class TestAuthClassCarriesTheSameLimits:
         self.auth = APIKeyAuthentication()
 
     def test_read_authenticates(self, org_a, admin_profile, admin_user):
-        request = self.factory.get("/api/leads/", HTTP_TOKEN=org_a.api_key)
+        request = self.factory.get("/api/contacts/", HTTP_TOKEN=org_a.api_key)
         user, _ = self.auth.authenticate(request)
         assert user == admin_user
 
@@ -138,9 +138,9 @@ class TestAuthClassCarriesTheSameLimits:
 
     @override_settings(ORG_API_KEY_AUTH_ENABLED=False)
     def test_kill_switch_is_refused(self, org_a, admin_profile):
-        request = self.factory.get("/api/leads/", HTTP_TOKEN=org_a.api_key)
+        request = self.factory.get("/api/contacts/", HTTP_TOKEN=org_a.api_key)
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
     def test_no_token_header_defers(self):
-        assert self.auth.authenticate(self.factory.get("/api/leads/")) is None
+        assert self.auth.authenticate(self.factory.get("/api/contacts/")) is None

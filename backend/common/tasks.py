@@ -5,7 +5,7 @@ from botocore.exceptions import ClientError
 from celery import shared_task
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.validators import validate_email
 from django.db import connection
 from django.template.loader import render_to_string
@@ -475,37 +475,63 @@ def flush_expired_refresh_tokens():
 
 @shared_task(soft_time_limit=240, time_limit=270)
 def sync_google_connection(org_id, connection_id):
+    from django.db.models import Q
+    from rest_framework.exceptions import PermissionDenied
+
     from common.google_integration import GoogleAPI, GoogleError
     from common.google_sync import sync_calendar, sync_gmail
     from common.models import GoogleConnection
-    from rest_framework.exceptions import PermissionDenied
-    from django.db.models import Q
+
     set_rls_context(org_id)
     conn = None
     try:
         now = timezone.now()
-        rows = GoogleConnection.objects.filter(pk=connection_id, org_id=org_id, status='connected', profile__is_active=True, profile__user__is_active=True)
-        if not rows.filter(Q(sync_started_at__isnull=True) | Q(sync_started_at__lt=now-timedelta(minutes=5))).update(sync_started_at=now):
+        rows = GoogleConnection.objects.filter(
+            pk=connection_id,
+            org_id=org_id,
+            status="connected",
+            profile__is_active=True,
+            profile__user__is_active=True,
+        )
+        if not rows.filter(
+            Q(sync_started_at__isnull=True)
+            | Q(sync_started_at__lt=now - timedelta(minutes=5))
+        ).update(sync_started_at=now):
             return
-        conn = rows.select_related('profile__user', 'profile__org', 'org').get()
+        conn = rows.select_related("profile__user", "profile__org", "org").get()
         api = GoogleAPI(conn)
-        (sync_gmail if conn.service == 'gmail' else sync_calendar)(conn, api)
-        rows.filter(generation=conn.generation).update(last_sync=timezone.now(), error='', sync_started_at=None)
+        (sync_gmail if conn.service == "gmail" else sync_calendar)(conn, api)
+        rows.filter(generation=conn.generation).update(
+            last_sync=timezone.now(), error="", sync_started_at=None
+        )
         # Continue a large initial import in short jobs; normal updates run every five minutes.
-        pending = rows.filter(generation=conn.generation, service='gmail').exclude(mail_page_token='').exists()
+        pending = (
+            rows.filter(generation=conn.generation, service="gmail")
+            .exclude(mail_page_token="")
+            .exists()
+        )
         if pending:
-            sync_google_connection.apply_async(args=[org_id, connection_id], countdown=5)
+            sync_google_connection.apply_async(
+                args=[org_id, connection_id], countdown=5
+            )
     except (GoogleError, PermissionDenied) as exc:
         if conn:
-            fields = {'error': str(exc)[:255], 'sync_started_at': None}
+            fields = {"error": str(exc)[:255], "sync_started_at": None}
             if isinstance(exc, GoogleError) and exc.reconnect:
-                fields['status'] = 'reconnect'
-            GoogleConnection.objects.filter(pk=conn.pk, generation=conn.generation).update(**fields)
+                fields["status"] = "reconnect"
+            GoogleConnection.objects.filter(
+                pk=conn.pk, generation=conn.generation
+            ).update(**fields)
     except Exception:
         if conn:
-            GoogleConnection.objects.filter(pk=conn.pk, generation=conn.generation).update(error='Sync did not finish. It will retry automatically.', sync_started_at=None)
+            GoogleConnection.objects.filter(
+                pk=conn.pk, generation=conn.generation
+            ).update(
+                error="Sync did not finish. It will retry automatically.",
+                sync_started_at=None,
+            )
         # Intentionally omit provider responses and exception text (may contain tokens/mail).
-        logger.warning('Google synchronization failed for connection %s', connection_id)
+        logger.warning("Google synchronization failed for connection %s", connection_id)
     finally:
         clear_rls_context()
 
@@ -513,13 +539,84 @@ def sync_google_connection(org_id, connection_id):
 @shared_task
 def schedule_google_sync():
     from common.google_integration import configured
+
     if not configured():
         return
     from common.models import GoogleConnection
-    for org_id in Org.objects.filter(is_active=True).values_list('pk', flat=True).iterator():
+
+    for org_id in (
+        Org.objects.filter(is_active=True).values_list("pk", flat=True).iterator()
+    ):
         set_rls_context(org_id)
         try:
-            for pk in GoogleConnection.objects.filter(org_id=org_id, status='connected', profile__is_active=True, profile__user__is_active=True).values_list('pk', flat=True):
+            for pk in GoogleConnection.objects.filter(
+                org_id=org_id,
+                status="connected",
+                profile__is_active=True,
+                profile__user__is_active=True,
+            ).values_list("pk", flat=True):
                 sync_google_connection.delay(str(org_id), str(pk))
         finally:
             clear_rls_context()
+
+
+@shared_task
+def send_due_reminders():
+    """Check each active organization independently; failed scans retry next minute."""
+    from common.reminders import deliver_org_reminders
+
+    for org in Org.objects.filter(is_active=True).iterator():
+        try:
+            set_rls_context(org.pk)
+            deliver_org_reminders(org)
+        except Exception:
+            logger.exception("Reminder scan failed for organization %s", org.pk)
+        finally:
+            clear_rls_context()
+
+
+@shared_task
+def send_email(
+    subject,
+    html_content,
+    text_content=None,
+    from_email=None,
+    recipients=None,
+    attachments=None,
+    bcc=None,
+    cc=None,
+):
+    # send email to user with attachment
+    if recipients is None:
+        recipients = []
+    if attachments is None:
+        attachments = []
+    if bcc is None:
+        bcc = []
+    if cc is None:
+        cc = []
+    if not from_email:
+        from_email = settings.DEFAULT_FROM_EMAIL
+    if not text_content:
+        text_content = ""
+    email = EmailMultiAlternatives(
+        subject, text_content, from_email, recipients, bcc=bcc, cc=cc
+    )
+    email.attach_alternative(html_content, "text/html")
+    for attachment in attachments:
+        # Example: email.attach('design.png', img_data, 'image/png')
+        email.attach(*attachment)
+    email.send()
+
+
+@shared_task(name="leads.tasks.send_email")
+def send_legacy_queued_email(*args, **kwargs):
+    """Drain pre-separation generic email jobs; no Lead module is imported."""
+    return send_email(*args, **kwargs)
+
+
+@shared_task
+def purge_deleted_attachment_files():
+    from common.attachment_cleanup import purge_files
+
+    purge_files()

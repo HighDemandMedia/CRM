@@ -1,6 +1,5 @@
 import os
 
-
 DEBUG = False
 
 AWS_STORAGE_BUCKET_NAME = AWS_BUCKET_NAME = os.environ["AWS_BUCKET_NAME"]

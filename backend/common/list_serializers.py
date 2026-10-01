@@ -1,11 +1,12 @@
 """Small relation labels for list screens; keep the normal visibility checks."""
 
 from rest_framework import serializers
+
 from accounts.models import Account
-from contacts.models import Contact
 from common.models import Profile
 from common.rbac import VisibleCRMSerializerMixin
 from common.serializer import UserSerializer
+from contacts.models import Contact
 
 
 class AccountLabelSerializer(VisibleCRMSerializerMixin, serializers.ModelSerializer):

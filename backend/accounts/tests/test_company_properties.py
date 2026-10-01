@@ -48,10 +48,20 @@ def test_company_properties_and_contacts(admin_client, org_a, org_b, admin_profi
     response = admin_client.patch(url, {"pages": [], "contacts": []}, format="json")
     assert response.status_code == 200, response.data
     account.refresh_from_db()
-    response = admin_client.patch(url, {"preferred_communication_channel":"EMAIL", "phone":"", "email":"", "tag_ids":[], "assigned_to":[]}, format="json")
+    response = admin_client.patch(
+        url,
+        {
+            "preferred_communication_channel": "EMAIL",
+            "phone": "",
+            "email": "",
+            "tag_ids": [],
+            "assigned_to": [],
+        },
+        format="json",
+    )
     assert response.status_code == 200, response.data
     account.refresh_from_db()
-    assert account.preferred_communication_channel == 'EMAIL'
+    assert account.preferred_communication_channel == "EMAIL"
     assert not account.tags.exists() and not account.assigned_to.exists()
     assert not account.phone and not account.email
     assert account.pages == []
@@ -144,7 +154,9 @@ def test_company_numeric_order_before_pagination(admin_client, org_a):
 
 def test_company_stage_moves_preserve_source_and_reset_age(admin_client, org_a):
     from datetime import timedelta
+
     from django.utils import timezone
+
     from contacts.choices import CONTACT_STAGES
 
     account = Account.objects.create(name="Stage test", org=org_a, source="META")

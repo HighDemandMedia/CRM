@@ -141,7 +141,7 @@ class TestCsatSurveyEmail:
         body = mailoutbox[0].body
         # From root_email_template_new.html, which only an extending template
         # can produce.
-        assert "Sent by BottleCRM" in body
+        assert "Sent by High Demand Media CRM" in body
         assert closed_case.name in body
 
     def test_one_star_link_per_point_on_the_scale(self, closed_case, mailoutbox):

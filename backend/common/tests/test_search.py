@@ -73,13 +73,10 @@ class TestGlobalSearch:
         body = admin_client.get(f"{URL}?q=Zephyr").json()
         types = {r["type"] for r in body["results"]}
         assert types == {
-            "lead",
             "deal",
             "account",
             "contact",
             "ticket",
-            "invoice",
-            "solution",
         }
         for row in body["results"]:
             assert row["id"] and row["title"]
@@ -123,7 +120,7 @@ class TestGlobalSearch:
         }
         assert {"Beta AdminOwned", "Beta UserOwned"} <= titles
 
-    def test_solutions_visible_to_every_member(
+    def test_archived_solutions_not_in_search(
         self, user_client, admin_user, user_profile, org_a
     ):
         """Knowledge base is org-wide, a non-admin who owns nothing still finds it."""
@@ -136,4 +133,4 @@ class TestGlobalSearch:
                 is_published=True,
             )
         results = user_client.get(f"{URL}?q=SharedKB").json()["results"]
-        assert any(r["type"] == "solution" for r in results)
+        assert results == []

@@ -167,8 +167,13 @@ export async function mergeTags({ cookies }, id, into) {
 export async function updateTag({ cookies }, id, values) {
   const name = (values.name ?? '').trim();
   if (!id || !name) throw new Error('A tag needs a name.');
-  const response = await apiRequest(`/tags/${id}/`, {
-    method: 'PUT', body: {name, color: values.color}
-  }, {cookies});
+  const response = await apiRequest(
+    `/tags/${id}/`,
+    {
+      method: 'PUT',
+      body: { name, color: values.color }
+    },
+    { cookies }
+  );
   return response.tag ?? response;
 }

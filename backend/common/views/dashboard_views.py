@@ -1,7 +1,6 @@
-from common.rbac import activity_scoped
 from datetime import timedelta
 
-from django.db.models import DecimalField, F, Q, Sum
+from django.db.models import DecimalField, Q, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
@@ -10,19 +9,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.models import Account
 from cases.models import Case
 from common import serializer, swagger_params
 from common.models import Activity
 from common.permissions import HasOrgContext, is_org_admin
+from common.rbac import activity_scoped
 from common.utils import STAGES
-from contacts.models import Contact
-from invoices.models import UNPAID_STATUSES, Invoice
-from leads.models import Lead
 from opportunity.models import Opportunity, StageAgingConfig
 from opportunity.workflow import DEFAULT_STAGE_EXPECTED_DAYS, ROTTEN_MULTIPLIER
 from tasks.models import Task
-from tasks.serializer import TaskSerializer
 
 # Sales stages a deal can still be worked (and therefore "age") in: mirrors
 # the open-stage list ApiHomeView uses for its revenue metrics.
@@ -84,264 +79,18 @@ def _owned_or_assigned(queryset, profile):
     )
 
 
-class ApiHomeView(APIView):
-    permission_classes = (IsAuthenticated, HasOrgContext)
-
-    @extend_schema(
-        tags=["home"],
-        parameters=swagger_params.organization_params,
-        responses={
-            200: inline_serializer(
-                name="ApiHomeResponse",
-                fields={
-                    "accounts_count": serializers.IntegerField(),
-                    "contacts_count": serializers.IntegerField(),
-                    "leads_count": serializers.IntegerField(),
-                    "opportunities_count": serializers.IntegerField(),
-                    "urgent_counts": serializers.DictField(),
-                    "pipeline_by_stage": serializers.DictField(),
-                    "revenue_metrics": serializers.DictField(),
-                    "hot_leads": serializers.ListField(),
-                    "tasks": TaskSerializer(many=True),
-                    "activities": serializer.DashboardActivitySerializer(many=True),
-                    "goal_summary": serializers.ListField(),
-                },
-            )
-        },
-    )
-    def get(self, request, format=None):
-        org = request.profile.org
-        profile = request.profile
-        today = timezone.localdate()
-
-        accounts = Account.objects.filter(is_active=True, org=org)
-        contacts = Contact.objects.filter(org=org)
-        # Kept separate from `leads` because the conversion rate below needs
-        # converted leads, which `leads` deliberately excludes.
-        all_leads = Lead.objects.filter(org=org)
-        leads = all_leads.exclude(Q(status="converted") | Q(status="closed"))
-        opportunities = Opportunity.objects.filter(org=org)
-        tasks = Task.objects.filter(org=org)
-
-        is_admin = is_org_admin(profile) or request.user.is_superuser
-
-        if not is_admin:
-            accounts = _owned_or_assigned(accounts, profile)
-            contacts = _owned_or_assigned(contacts, profile)
-            all_leads = _owned_or_assigned(all_leads, profile)
-            leads = _owned_or_assigned(leads, profile).exclude(status="closed")
-            opportunities = _owned_or_assigned(opportunities, profile)
-            tasks = _owned_or_assigned(tasks, profile)
-
-        # Counts only. This used to serialize every account, contact, lead and
-        # opportunity in the org in full beside them: 372 KB of a 384 KB
-        # response, measured against the seeded org, none of which any caller
-        # read. The screens below want counts, the pipeline, the urgent numbers,
-        # ten hot leads and ten tasks. Whoever needs a list calls its own
-        # endpoint, which pages; these four never did.
-        context = {}
-        context["accounts_count"] = accounts.count()
-        context["contacts_count"] = contacts.count()
-        context["leads_count"] = leads.count()
-        context["opportunities_count"] = opportunities.count()
-
-        # NEW: Urgent counts for Focus Bar
-        overdue_tasks = tasks.filter(
-            status__in=["New", "In Progress"], due_date__lt=today
-        ).count()
-
-        tasks_due_today = tasks.filter(
-            status__in=["New", "In Progress"], due_date=today
-        ).count()
-
-        followups_today = leads.filter(next_follow_up=today).count()
-
-        hot_leads = leads.filter(
-            rating="HOT", status__in=["assigned", "in process"]
-        ).count()
-
-        context["urgent_counts"] = {
-            "overdue_tasks": overdue_tasks,
-            "tasks_due_today": tasks_due_today,
-            "followups_today": followups_today,
-            "hot_leads": hot_leads,
-        }
-
-        # Get org's default currency for filtering
-        org_currency = org.default_currency or "USD"
-
-        # NEW: Pipeline by stage (filtered by org's default currency)
-        # Only sum amounts that match org's currency for accurate totals
-        pipeline_by_stage = {}
-        for stage_code, stage_label in STAGES:
-            stage_opps = opportunities.filter(stage=stage_code)
-            # Filter by currency for value calculation (include null as matching org currency)
-            stage_opps_with_currency = stage_opps.filter(
-                Q(currency=org_currency) | Q(currency__isnull=True) | Q(currency="")
-            )
-            stage_value = stage_opps_with_currency.aggregate(
-                total=Coalesce(Sum("amount"), 0, output_field=DecimalField())
-            )["total"]
-            pipeline_by_stage[stage_code] = {
-                "count": stage_opps.count(),  # Count all opportunities
-                "value": float(stage_value or 0),  # Value only for matching currency
-                "label": stage_label,
-            }
-        context["pipeline_by_stage"] = pipeline_by_stage
-
-        # NEW: Revenue metrics (filtered by org's default currency)
-        open_stages = ["PROSPECTING", "QUALIFICATION", "PROPOSAL", "NEGOTIATION"]
-        open_opps = opportunities.filter(stage__in=open_stages)
-        # Filter by currency for value calculations
-        open_opps_with_currency = open_opps.filter(
-            Q(currency=org_currency) | Q(currency__isnull=True) | Q(currency="")
-        )
-
-        pipeline_value = open_opps_with_currency.aggregate(
-            total=Coalesce(Sum("amount"), 0, output_field=DecimalField())
-        )["total"]
-
-        # Weighted pipeline = sum of (amount * probability / 100)
-        weighted_pipeline = open_opps_with_currency.aggregate(
-            total=Coalesce(
-                Sum(F("amount") * F("probability") / 100),
-                0,
-                output_field=DecimalField(),
-            )
-        )["total"]
-
-        # Won this month (use timezone-aware datetime for updated_at comparison)
-        now = timezone.now()
-        first_day_of_month = now.replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0
-        )
-        won_opps = opportunities.filter(
-            stage="CLOSED_WON", updated_at__gte=first_day_of_month
-        )
-        won_opps_with_currency = won_opps.filter(
-            Q(currency=org_currency) | Q(currency__isnull=True) | Q(currency="")
-        )
-        won_this_month = won_opps_with_currency.aggregate(
-            total=Coalesce(Sum("amount"), 0, output_field=DecimalField())
-        )["total"]
-
-        # Conversion rate over the caller's own leads. It used to query
-        # `Lead.objects.filter(org=org)` directly, which skipped the narrowing
-        # above and printed an org-wide percentage beside a member's own lead
-        # count, on the same row of the same card.
-        total_leads_all = all_leads.count()
-        converted_leads = all_leads.filter(status="converted").count()
-        conversion_rate = (
-            (converted_leads / total_leads_all * 100) if total_leads_all > 0 else 0
-        )
-
-        # Count opportunities in other currencies (for info)
-        other_currency_count = opportunities.exclude(
-            Q(currency=org_currency) | Q(currency__isnull=True) | Q(currency="")
-        ).count()
-
-        context["revenue_metrics"] = {
-            "pipeline_value": float(pipeline_value or 0),
-            # How many deals that pipeline value is made of. Counted from
-            # `open_opps` rather than the currency-filtered set, because a deal
-            # in another currency is still an open deal. `opportunities_count`
-            # above counts every stage, closed ones included, so it is not the
-            # number to put under an "Open Deals" label.
-            "open_opportunities_count": open_opps.count(),
-            "weighted_pipeline": float(weighted_pipeline or 0),
-            "won_this_month": float(won_this_month or 0),
-            "conversion_rate": round(conversion_rate, 1),
-            "currency": org_currency,
-            "other_currency_count": other_currency_count,
-        }
-
-        # NEW: Hot leads list for dedicated panel
-        hot_leads_qs = leads.filter(
-            rating="HOT", status__in=["assigned", "in process"]
-        ).order_by("-created_at")[:10]
-
-        context["hot_leads"] = [
-            {
-                "id": str(lead.id),
-                "first_name": lead.first_name,
-                "last_name": lead.last_name,
-                "company": lead.company_name,
-                "rating": lead.rating,
-                "next_follow_up": (
-                    lead.next_follow_up.isoformat() if lead.next_follow_up else None
-                ),
-                "last_contacted": (
-                    lead.last_contacted.isoformat() if lead.last_contacted else None
-                ),
-            }
-            for lead in hot_leads_qs
-        ]
-
-        # Include tasks in dashboard response (avoid separate API call)
-        upcoming_tasks = tasks.filter(
-            status__in=["New", "In Progress"], due_date__isnull=False
-        ).order_by("due_date")[:10]
-        context["tasks"] = TaskSerializer(upcoming_tasks, many=True).data
-
-        # Goal summary for current user
-        from opportunity.models import SalesGoal
-
-        goal_filter = Q(assigned_to=profile) | Q(team__in=profile.user_teams.all())
-        if is_admin:
-            goal_filter |= Q(assigned_to__isnull=True, team__isnull=True)
-
-        active_goals = SalesGoal.attach_progress(
-            SalesGoal.objects.filter(
-                org=org,
-                is_active=True,
-                period_start__lte=today,
-                period_end__gte=today,
-            )
-            .filter(goal_filter)
-            .select_related("assigned_to", "team")
-            .distinct()[:3]
-        )
-        context["goal_summary"] = [
-            {
-                "id": str(g.id),
-                "name": g.name,
-                "goal_type": g.goal_type,
-                "target_value": float(g.target_value),
-                "progress_value": float(g.compute_progress()),
-                "progress_percent": g.progress_percent,
-                "status": g.status,
-            }
-            for g in active_goals
-        ]
-
-        # Include recent activities (avoid separate API call)
-        activities = (
-            activity_scoped(Activity.objects.all(),request.profile)
-            .select_related("user", "user__user")
-            .order_by("-created_at")[:10]
-        )
-        context["activities"] = serializer.DashboardActivitySerializer(
-            activities, many=True
-        ).data
-
-        return Response(context, status=status.HTTP_200_OK)
-
-
 class ApiTodayView(APIView):
     """The v2 home ("Today"): one prioritised, cross-model action queue.
 
-    This is NOT the KPI dashboard (that is ``ApiHomeView`` at
-    ``/api/dashboard/``). It answers "what wants me right now" by folding four
-    sources into a single ranked list:
+    Combines active workflows into a single ranked list:
 
       * support cases still awaiting a first response (SLA-breached first),
-      * invoices past their due date and still unpaid,
       * open deals that have gone quiet (stage-aging yellow/red),
       * tasks overdue or due today.
 
     Security: every query is org-scoped. The org comes from the JWT via
     middleware, never the client, and a member sees only rows assigned to or
-    created by them, the same visibility ``ApiHomeView`` applies. Admins see the
+    created by them. Admins see the
     whole org. ``HasOrgContext`` guarantees ``request.profile``/``org`` are set,
     so this never dereferences a ``None`` profile.
     """
@@ -397,16 +146,12 @@ class ApiTodayView(APIView):
         # ── base, org-scoped querysets ──────────────────────────────────────
         opportunities = Opportunity.objects.filter(org=org, stage__in=OPEN_STAGES)
         cases = Case.objects.filter(org=org, status__in=OPEN_CASE_STATUSES)
-        invoices = Invoice.objects.filter(
-            org=org, status__in=UNPAID_STATUSES, due_date__lt=today
-        )
         tasks = Task.objects.filter(
             org=org, status__in=["New", "In Progress"], due_date__lte=today
         )
         if not is_admin:
             opportunities = mine(opportunities)
             cases = mine(cases)
-            invoices = mine(invoices)
             tasks = mine(tasks)
 
         # ── deal aging as DB date cutoffs (no per-row Python) ───────────────
@@ -467,23 +212,6 @@ class ApiTodayView(APIView):
                     "detail": f"{c.priority} · {c.account.name if c.account_id else 'No account'} · awaiting first reply",
                     "action": "Reply",
                     "href": f"/tickets/{c.id}",
-                }
-            )
-
-        # 2. Overdue invoices.
-        for inv in invoices.select_related("account").order_by("due_date")[
-            :TODAY_SOURCE_LIMIT
-        ]:
-            queue.append(
-                {
-                    "_rank": 1,
-                    "id": f"invoice-{inv.id}",
-                    "tone": "clay",
-                    "due": "Overdue",
-                    "title": inv.invoice_title or inv.invoice_number,
-                    "detail": f"{_fmt_money(inv.total_amount, inv.currency)} · {inv.account.name if inv.account_id else 'No account'} · due {_fmt_date(inv.due_date)}",
-                    "action": "Send a reminder",
-                    "href": f"/invoices/{inv.id}",
                 }
             )
 
@@ -548,11 +276,6 @@ class ApiTodayView(APIView):
                 "count": awaiting_cases.count(),
                 "href": "/tickets",
             },
-            {
-                "label": "overdue invoices",
-                "count": invoices.count(),
-                "href": "/invoices",
-            },
             {"label": "quiet deals", "count": quiet_deals, "href": "/pipeline"},
             {"label": "tasks due", "count": tasks.count(), "href": "/tasks"},
         ]
@@ -589,16 +312,9 @@ class ApiTodayView(APIView):
         later_opps = Opportunity.objects.filter(
             org=org, stage__in=OPEN_STAGES, closed_on__gt=today, closed_on__lte=week_end
         )
-        later_invoices = Invoice.objects.filter(
-            org=org,
-            status__in=UNPAID_STATUSES,
-            due_date__gt=today,
-            due_date__lte=week_end,
-        )
         if not is_admin:
             later_tasks = mine(later_tasks)
             later_opps = mine(later_opps)
-            later_invoices = mine(later_invoices)
 
         later_rows = []
         for t in later_tasks.order_by("due_date")[:10]:
@@ -622,18 +338,6 @@ class ApiTodayView(APIView):
                         "day": o.closed_on.strftime("%a"),
                         "title": f"{o.name} expected to close",
                         "meta": f"{stage_labels.get(o.stage, o.stage)} · {_fmt_money(o.amount, o.currency)}",
-                    },
-                )
-            )
-        for inv in later_invoices.order_by("due_date")[:10]:
-            later_rows.append(
-                (
-                    inv.due_date,
-                    {
-                        "id": f"invoice-{inv.id}",
-                        "day": inv.due_date.strftime("%a"),
-                        "title": f"{inv.invoice_title or inv.invoice_number} due",
-                        "meta": _fmt_money(inv.total_amount, inv.currency),
                     },
                 )
             )
@@ -685,7 +389,7 @@ class ActivityListView(APIView):
         entity_type = request.query_params.get("entity_type", None)
 
         # Query activities for this organization
-        queryset = activity_scoped(Activity.objects.all(),request.profile)
+        queryset = activity_scoped(Activity.objects.all(), request.profile)
 
         # Filter by entity type if specified
         if entity_type:

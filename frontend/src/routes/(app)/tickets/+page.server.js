@@ -47,8 +47,13 @@ export async function load({ cookies, url, locals, parent }) {
   if (status) {
     params.set('status', status);
   } else if (!showAll) {
-    for (const stage of configuredStages((await parent()).pipelineConfig, 'Case', OPEN_STATUSES.map(value => ({value})))) {
-      if (!['Resolved', 'Closed', 'Rejected', 'Duplicate'].includes(stage.value)) params.append('status', stage.value);
+    for (const stage of configuredStages(
+      (await parent()).pipelineConfig,
+      'Case',
+      OPEN_STATUSES.map((value) => ({ value }))
+    )) {
+      if (!['Resolved', 'Closed', 'Rejected', 'Duplicate'].includes(stage.value))
+        params.append('status', stage.value);
     }
   }
 
@@ -88,7 +93,10 @@ export const actions = {
     try {
       await updateTicket({ cookies }, id, values);
     } catch (err) {
-      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not move ticket.') });
+      return fail(400, {
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not move ticket.')
+      });
     }
     return { moved: true };
   },

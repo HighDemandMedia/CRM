@@ -152,6 +152,7 @@ async function performTokenRefresh() {
 
   try {
     const response = await fetch(`${API_BASE_URL}/auth/refresh-token/`, {
+      signal: AbortSignal.timeout(15000),
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -220,7 +221,8 @@ export async function apiRequest(endpoint, options = {}) {
   /** @type {RequestInit} */
   const fetchOptions = {
     method,
-    headers: requestHeaders
+    headers: requestHeaders,
+    signal: AbortSignal.timeout(30000)
   };
 
   if (body && method !== 'GET') {

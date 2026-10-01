@@ -1,7 +1,7 @@
 <script>
   import { can } from '$lib/v2/permissions.js';
   import ContactActions from '$lib/components/contacts/ContactActions.svelte';
-  import { showStageRequirements } from "$lib/components/pipelines/feedback.js";
+  import { showStageRequirements } from '$lib/components/pipelines/feedback.js';
   import PipelineTotal from '$lib/v2/components/PipelineTotal.svelte';
   import PipelineCardSummary from '$lib/v2/components/PipelineCardSummary.svelte';
   import '$lib/v2/styles/pipeline.css';
@@ -93,7 +93,10 @@
       });
       const result = deserialize(await response.text());
       if (result.type !== 'success') {
-        if (showStageRequirements(result, 'Contact', id, {stage})) { moveStatus = ''; return; }
+        if (showStageRequirements(result, 'Contact', id, { stage })) {
+          moveStatus = '';
+          return;
+        }
         moveError =
           result.type === 'failure'
             ? String(result.data?.error ?? 'Could not move this contact.')
@@ -462,13 +465,16 @@
 <PageHeader title="Contacts">
   {#snippet sub()}<span class="v2-num">{count(data.totals.count)}</span>
     contacts{#if data.view === 'pipeline'}
-      {' · '} <PipelineTotal
+      &nbsp;· <PipelineTotal
         currency={data.org.currency}
         values={data.totals.money_totals}
         label="Associated deal total (each deal counted once)"
       />{/if}{/snippet}
   {#snippet actions()}
-    {#if can(page.data.permissions, 'contacts', 'create')}<a class="v2-btn v2-btn-primary" href={resolve('/contacts/new')}><Plus />New contact</a>{/if}
+    {#if can(page.data.permissions, 'contacts', 'create')}<a
+        class="v2-btn v2-btn-primary"
+        href={resolve('/contacts/new')}><Plus />New contact</a
+      >{/if}
   {/snippet}
 </PageHeader>
 
@@ -598,16 +604,16 @@
   </details>
   {#if data.view === 'list'}
     {#if can(page.data.permissions, 'contacts', 'export')}<a
-      class="v2-btn"
-      data-sveltekit-reload
-      href={resolve('/contacts/export') +
-        '?' +
-        new URLSearchParams(
-          [...page.url.searchParams.entries()]
-            .filter(([key]) => key !== 'columns')
-            .concat([['columns', selected.join(',')]])
-        ).toString()}>Export CSV</a
-    >{/if}
+        class="v2-btn"
+        data-sveltekit-reload
+        href={resolve('/contacts/export') +
+          '?' +
+          new URLSearchParams(
+            [...page.url.searchParams.entries()]
+              .filter(([key]) => key !== 'columns')
+              .concat([['columns', selected.join(',')]])
+          ).toString()}>Export CSV</a
+      >{/if}
   {/if}
   <div class="view-actions">
     <nav class="view-toggle" aria-label="Contact views">
@@ -804,7 +810,8 @@
                 >
                   {#if key === 'name'}<a
                       class="v2-row-link v2-table-primary"
-                      href={resolve(`/contacts/${contact.id}`)}>{contact.name || `Contact · ${contact.id.slice(0, 8)}`}</a
+                      href={resolve(`/contacts/${contact.id}`)}
+                      >{contact.name || `Contact · ${contact.id.slice(0, 8)}`}</a
                     >
                   {:else if key === 'stage_label'}<StageProgress
                       stage={contact.stage}
@@ -817,7 +824,7 @@
                   {:else}{cell(contact, key)}{/if}
                 </td>
               {/each}
-              <td class="list-row-actions"><ContactActions {contact} list/></td>
+              <td class="list-row-actions"><ContactActions {contact} list /></td>
             </tr>
           {:else}<tr><td colspan={selected.length + 1}>No contacts on this page.</td></tr>{/each}
         </tbody>

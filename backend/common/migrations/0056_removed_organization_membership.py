@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('common', '0055_organization_creator_owner'),
+        ("common", "0055_organization_creator_owner"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='profile',
-            name='removed_at',
+            model_name="profile",
+            name="removed_at",
             field=models.DateTimeField(blank=True, editable=False, null=True),
         ),
     ]

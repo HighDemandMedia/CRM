@@ -80,7 +80,12 @@ export const actions = {
     } catch (/** @type {any} */ err) {
       // The API's field errors are the ones that count: this form's own
       // checks are a UX hint and the serializer is the rule.
-      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save the deal.') });
+      return fail(400, {
+        values,
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not save the deal.')
+      });
     }
 
     return { saved: true };
@@ -120,7 +125,11 @@ export const actions = {
       if (Object.keys(changes).length) await updateDeal(event, event.params.id, changes);
       return { saved: true };
     } catch (/** @type {any} */ err) {
-      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save changes.') });
+      return fail(400, {
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not save changes.')
+      });
     }
   }
 };

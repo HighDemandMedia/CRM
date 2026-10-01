@@ -9,6 +9,10 @@ on:
     # keeps tag pushes from triggering a second run of the same commit.
     branches: ['**']
     paths:
+      - 'Dockerfile'
+      - 'docker/**'
+      - 'docker-compose*.yml'
+      - '.dockerignore'
       - 'backend/**'
       - 'frontend/**'
       - 'docs/**'
@@ -19,6 +23,10 @@ on:
   pull_request:
     branches: [main, master]
     paths:
+      - 'Dockerfile'
+      - 'docker/**'
+      - 'docker-compose*.yml'
+      - '.dockerignore'
       - 'backend/**'
       - 'frontend/**'
       - 'docs/**'
@@ -50,15 +58,6 @@ jobs:
           enable-cache: true
           cache-dependency-glob: 'backend/uv.lock'
 
-      - name: Install system dependencies (WeasyPrint)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libpango-1.0-0 \
-            libpangocairo-1.0-0 \
-            libgdk-pixbuf-2.0-0 \
-            libffi-dev \
-            shared-mime-info
 
       - name: Install Python dependencies
         working-directory: backend
@@ -134,15 +133,6 @@ jobs:
           enable-cache: true
           cache-dependency-glob: 'backend/uv.lock'
 
-      - name: Install system dependencies (WeasyPrint)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libpango-1.0-0 \
-            libpangocairo-1.0-0 \
-            libgdk-pixbuf-2.0-0 \
-            libffi-dev \
-            shared-mime-info
 
       # A superuser bypasses RLS, and the policies use FORCE ROW LEVEL
       # SECURITY so even the owning role is subject to them. Running the
@@ -193,6 +183,7 @@ jobs:
       # anything: as a superuser they pass whether or not a single policy
       # exists.
       - name: Run the RLS tests as a policy-bound role
+        if: ${{ !cancelled() }}
         working-directory: backend
         env:
           DJANGO_SETTINGS_MODULE: crm.test_settings_postgres
@@ -203,7 +194,9 @@ jobs:
           DBPASSWORD: crm_ci
           DBHOST: localhost
           DBPORT: '5432'
-        run: uv run pytest --no-cov --tb=short -q -m postgres_only
+        run: |
+          uv run pytest --no-cov --tb=short -q -m postgres_only
+          uv run pytest --no-cov --tb=short -q common/tests/test_crm_roles.py common/tests/test_expanded_permissions.py common/tests/test_attachment_permissions.py common/tests/test_record_delete.py common/tests/test_record_associations.py common/tests/test_google_integrations.py
 
       # Bare `ruff check .`, so the gate is whatever `backend/ruff.toml` selects
       # (E, F, I with E501 ignored) rather than a CLI override that can silently
@@ -219,6 +212,7 @@ jobs:
       # developer's machine check against the same version and a ruff release
       # cannot turn this red overnight.
       - name: Lint
+        if: ${{ !cancelled() }}
         working-directory: backend
         run: uv run ruff check .
 
@@ -229,6 +223,7 @@ jobs:
       # The tree was formatted in full when this step was added, so the gate
       # starts green rather than as a warning nobody acts on.
       - name: Format check
+        if: ${{ !cancelled() }}
         working-directory: backend
         run: uv run ruff format --check .
 
@@ -253,15 +248,6 @@ jobs:
       # `check` walks the URLconf, which reaches the invoices views, which import
       # WeasyPrint at module scope. Without these it fails on a missing .so and
       # says nothing about packaging.
-      - name: Install system dependencies (WeasyPrint)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libpango-1.0-0 \
-            libpangocairo-1.0-0 \
-            libgdk-pixbuf-2.0-0 \
-            libffi-dev \
-            shared-mime-info
 
       - name: Build the wheel
         working-directory: backend
@@ -316,7 +302,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v6
         with:
-          version: 10
+          version: 11.17.0
 
       - name: Install dependencies
         working-directory: frontend
@@ -375,3 +361,12 @@ jobs:
           SECRET_KEY: test-secret-key-for-ci
           ADMIN_EMAIL: admin@test.com
         run: uv run pytest common/tests/test_docs_build_excludes_internal.py --no-cov -v
+
+  runtime-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build production image
+        run: docker build --target runtime -t crm-runtime .
+      - name: Check runtime excludes test tools
+        run: docker run --rm crm-runtime python -c "import importlib.util; assert importlib.util.find_spec('pytest') is None; assert importlib.util.find_spec('ruff') is None"

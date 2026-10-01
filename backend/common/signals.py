@@ -74,18 +74,6 @@ def account_post_delete(sender, instance, **kwargs):
     create_activity(instance, "DELETE", "Account")
 
 
-# Lead signals
-@receiver(post_save, sender="leads.Lead")
-def lead_post_save(sender, instance, created, **kwargs):
-    action = "CREATE" if created else "UPDATE"
-    create_activity(instance, action, "Lead")
-
-
-@receiver(post_delete, sender="leads.Lead")
-def lead_post_delete(sender, instance, **kwargs):
-    create_activity(instance, "DELETE", "Lead")
-
-
 # Opportunity signals
 @receiver(post_save, sender="opportunity.Opportunity")
 def opportunity_post_save(sender, instance, created, **kwargs):
@@ -112,15 +100,3 @@ def task_post_save(sender, instance, created, **kwargs):
 @receiver(post_delete, sender="tasks.Task")
 def task_post_delete(sender, instance, **kwargs):
     create_activity(instance, "DELETE", "Task")
-
-
-# Invoice signals
-@receiver(post_save, sender="invoices.Invoice")
-def invoice_post_save(sender, instance, created, **kwargs):
-    action = "CREATE" if created else "UPDATE"
-    create_activity(instance, action, "Invoice")
-
-
-@receiver(post_delete, sender="invoices.Invoice")
-def invoice_post_delete(sender, instance, **kwargs):
-    create_activity(instance, "DELETE", "Invoice")

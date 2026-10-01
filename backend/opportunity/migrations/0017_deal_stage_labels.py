@@ -4,20 +4,42 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('opportunity', '0016_salesgoal_type_weights_alter_salesgoal_goal_type'),
+        ("opportunity", "0016_salesgoal_type_weights_alter_salesgoal_goal_type"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='opportunity',
-            name='stage',
-            field=models.CharField(choices=[('PROSPECTING', 'Prospecting'), ('PROPOSAL', 'Proposal'), ('QUALIFICATION', 'Follow Up'), ('NEGOTIATION', 'Stan By'), ('CLOSED_WON', 'Close Won'), ('CLOSED_LOST', 'Close Lost')], default='PROSPECTING', max_length=64, verbose_name='Stage'),
+            model_name="opportunity",
+            name="stage",
+            field=models.CharField(
+                choices=[
+                    ("PROSPECTING", "Prospecting"),
+                    ("PROPOSAL", "Proposal"),
+                    ("QUALIFICATION", "Follow Up"),
+                    ("NEGOTIATION", "Stan By"),
+                    ("CLOSED_WON", "Close Won"),
+                    ("CLOSED_LOST", "Close Lost"),
+                ],
+                default="PROSPECTING",
+                max_length=64,
+                verbose_name="Stage",
+            ),
         ),
         migrations.AlterField(
-            model_name='stageagingconfig',
-            name='stage',
-            field=models.CharField(choices=[('PROSPECTING', 'Prospecting'), ('PROPOSAL', 'Proposal'), ('QUALIFICATION', 'Follow Up'), ('NEGOTIATION', 'Stan By'), ('CLOSED_WON', 'Close Won'), ('CLOSED_LOST', 'Close Lost')], max_length=64, verbose_name='Stage'),
+            model_name="stageagingconfig",
+            name="stage",
+            field=models.CharField(
+                choices=[
+                    ("PROSPECTING", "Prospecting"),
+                    ("PROPOSAL", "Proposal"),
+                    ("QUALIFICATION", "Follow Up"),
+                    ("NEGOTIATION", "Stan By"),
+                    ("CLOSED_WON", "Close Won"),
+                    ("CLOSED_LOST", "Close Lost"),
+                ],
+                max_length=64,
+                verbose_name="Stage",
+            ),
         ),
     ]

@@ -9,41 +9,70 @@
 
   let { data, form } = $props();
   let deleteDialog;
-  let deleting = $state(null), deleteConfirmation = $state(''), deleteError = $state(''), deleteBusy = $state(false);
+  let deleting = $state(null),
+    deleteConfirmation = $state(''),
+    deleteError = $state(''),
+    deleteBusy = $state(false);
   function openDelete(property) {
-    deleting = property; deleteConfirmation = ''; deleteError = '';
+    deleting = property;
+    deleteConfirmation = '';
+    deleteError = '';
     deleteDialog.showModal();
   }
   function submitDelete() {
-    deleteBusy = true; deleteError = '';
-    return async ({result, update}) => {
+    deleteBusy = true;
+    deleteError = '';
+    return async ({ result, update }) => {
       try {
         if (result.type === 'success') {
-          await update({reset: false});
-          deleteDialog.close(); deleting = null;
+          await update({ reset: false });
+          deleteDialog.close();
+          deleting = null;
         } else {
           deleteError = result.data?.delete?.error || 'Could not delete the property.';
         }
-      } finally { deleteBusy = false; }
+      } finally {
+        deleteBusy = false;
+      }
     };
   }
-  let dragging = $state(''), dropTarget = $state(''), ordering = $state(false), orderError = $state('');
-  const propertyKey = p => p.is_system ? p.key : `custom_fields.${p.key}`;
+  let dragging = $state(''),
+    dropTarget = $state(''),
+    ordering = $state(false),
+    orderError = $state('');
+  const propertyKey = (p) => (p.is_system ? p.key : `custom_fields.${p.key}`);
   async function reorder(from, to) {
     if (!from || from === to || ordering) return;
     const keys = data.properties.map(propertyKey);
-    const start = keys.indexOf(from), end = keys.indexOf(to);
+    const start = keys.indexOf(from),
+      end = keys.indexOf(to);
     if (start < 0 || end < 0) return;
     keys.splice(end, 0, keys.splice(start, 1)[0]);
-    ordering = true; orderError = ''; dragging = ''; dropTarget = '';
+    ordering = true;
+    orderError = '';
+    dragging = '';
+    dropTarget = '';
     try {
       const body = new FormData();
-      body.set('target_model', data.target_model); body.set('revision', data.revision); body.set('order', JSON.stringify(keys));
-      const response = await fetch('?/reorder', {method: 'POST', body, headers: {'x-sveltekit-action':'true'}});
+      body.set('target_model', data.target_model);
+      body.set('revision', data.revision);
+      body.set('order', JSON.stringify(keys));
+      const response = await fetch('?/reorder', {
+        method: 'POST',
+        body,
+        headers: { 'x-sveltekit-action': 'true' }
+      });
       const result = deserialize(await response.text());
-      if (result.type !== 'success') throw new Error(result.type === 'failure' ? String(result.data?.error) : 'Could not save the order.');
+      if (result.type !== 'success')
+        throw new Error(
+          result.type === 'failure' ? String(result.data?.error) : 'Could not save the order.'
+        );
       await invalidateAll();
-    } catch (err) { orderError = err.message; } finally { ordering = false; }
+    } catch (err) {
+      orderError = err.message;
+    } finally {
+      ordering = false;
+    }
   }
   let query = $state('');
   let kind = $state('all');
@@ -168,16 +197,47 @@
       >
       <tbody>
         {#each rows as property (property.id)}
-          <tr class:inactive={!property.is_active} class:drop-position={dropTarget === propertyKey(property)}
-            ondragover={event => {if(dragging && !ordering){event.preventDefault(); dropTarget = propertyKey(property);}}}
-            ondrop={event => {event.preventDefault(); void reorder(dragging, propertyKey(property));}}>
-
+          <tr
+            class:inactive={!property.is_active}
+            class:drop-position={dropTarget === propertyKey(property)}
+            ondragover={(event) => {
+              if (dragging && !ordering) {
+                event.preventDefault();
+                dropTarget = propertyKey(property);
+              }
+            }}
+            ondrop={(event) => {
+              event.preventDefault();
+              void reorder(dragging, propertyKey(property));
+            }}
+          >
             <td
-              >{#if data.can_edit}<button type="button" class="drag-property" aria-label={`Move ${property.label}`} title="Drag to reorder; Alt + arrow keys also move this property"
-                draggable={!ordering} disabled={ordering}
-                ondragstart={event => {dragging = propertyKey(property); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', dragging);}}
-                ondragend={() => {dragging = ''; dropTarget = '';}}
-                onkeydown={event => {if(event.altKey && ['ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault(); const index = data.properties.indexOf(property); const other = data.properties[index + (event.key === 'ArrowUp' ? -1 : 1)]; if(other) void reorder(propertyKey(property), propertyKey(other));}}}><GripVertical size={15}/></button>{/if}<strong>{property.label}</strong>{#if !property.is_active}<small>Inactive</small
+              >{#if data.can_edit}<button
+                  type="button"
+                  class="drag-property"
+                  aria-label={`Move ${property.label}`}
+                  title="Drag to reorder; Alt + arrow keys also move this property"
+                  draggable={!ordering}
+                  disabled={ordering}
+                  ondragstart={(event) => {
+                    dragging = propertyKey(property);
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', dragging);
+                  }}
+                  ondragend={() => {
+                    dragging = '';
+                    dropTarget = '';
+                  }}
+                  onkeydown={(event) => {
+                    if (event.altKey && ['ArrowUp', 'ArrowDown'].includes(event.key)) {
+                      event.preventDefault();
+                      const index = data.properties.indexOf(property);
+                      const other = data.properties[index + (event.key === 'ArrowUp' ? -1 : 1)];
+                      if (other) void reorder(propertyKey(property), propertyKey(other));
+                    }
+                  }}><GripVertical size={15} /></button
+                >{/if}<strong>{property.label}</strong>{#if !property.is_active}<small
+                  >Inactive</small
                 >{/if}</td
             >
             <td><code class="internal-name">{property.key}</code></td>
@@ -207,8 +267,12 @@
                     >{property.is_active ? 'Turn off' : 'Turn on'}</button
                   >
                 </form>
-                <button class="v2-btn v2-btn-quiet toggle delete-property" type="button"
-                  aria-label={`Delete ${property.label}`} onclick={() => openDelete(property)}>Delete</button>
+                <button
+                  class="v2-btn v2-btn-quiet toggle delete-property"
+                  type="button"
+                  aria-label={`Delete ${property.label}`}
+                  onclick={() => openDelete(property)}>Delete</button
+                >
               {/if}
             </td>
           </tr>
@@ -222,19 +286,44 @@
   </div>
 </div>
 
-<dialog class="delete-dialog" bind:this={deleteDialog} aria-labelledby="delete-property-title"
-  oncancel={event => {if(deleteBusy) event.preventDefault();}}>
+<dialog
+  class="delete-dialog"
+  bind:this={deleteDialog}
+  aria-labelledby="delete-property-title"
+  oncancel={(event) => {
+    if (deleteBusy) event.preventDefault();
+  }}
+>
   <form method="POST" action="?/delete" use:enhance={submitDelete}>
     <h2 id="delete-property-title">Delete property?</h2>
-    <p>This permanently deletes <strong>{deleting?.label}</strong> and its saved values from {objectLabel.toLowerCase()}. Any pipeline requirements using this property will also be removed. This cannot be undone.</p>
-    <input type="hidden" name="id" value={deleting?.id || ''}/>
-    <label>Type <strong>{deleting?.key}</strong> to confirm.
-      <input class="v2-input" name="confirmation" bind:value={deleteConfirmation} autocomplete="off" disabled={deleteBusy}/>
+    <p>
+      This permanently deletes <strong>{deleting?.label}</strong> and its saved values from {objectLabel.toLowerCase()}.
+      Any pipeline requirements using this property will also be removed. This cannot be undone.
+    </p>
+    <input type="hidden" name="id" value={deleting?.id || ''} />
+    <label
+      >Type <strong>{deleting?.key}</strong> to confirm.
+      <input
+        class="v2-input"
+        name="confirmation"
+        bind:value={deleteConfirmation}
+        autocomplete="off"
+        disabled={deleteBusy}
+      />
     </label>
     {#if deleteError}<p class="error" role="alert">{deleteError}</p>{/if}
     <div class="delete-actions">
-      <button class="v2-btn" type="button" disabled={deleteBusy} onclick={() => deleteDialog.close()}>Cancel</button>
-      <button class="v2-btn delete-confirm" disabled={deleteBusy || !deleting || deleteConfirmation.trim() !== deleting.key}>{deleteBusy ? 'Deleting…' : 'Delete permanently'}</button>
+      <button
+        class="v2-btn"
+        type="button"
+        disabled={deleteBusy}
+        onclick={() => deleteDialog.close()}>Cancel</button
+      >
+      <button
+        class="v2-btn delete-confirm"
+        disabled={deleteBusy || !deleting || deleteConfirmation.trim() !== deleting.key}
+        >{deleteBusy ? 'Deleting…' : 'Delete permanently'}</button
+      >
     </div>
   </form>
 </dialog>
@@ -350,17 +439,65 @@
 {/if}
 
 <style>
-  .delete-property { color: #b42318; }
-  .delete-dialog { margin: auto; width: min(460px, calc(100vw - 32px)); max-height: 90dvh; overflow: auto; padding: 24px; border: 1px solid var(--v2-line); border-radius: 12px; background: var(--v2-card, #fff); color: var(--v2-ink); box-shadow: 0 20px 60px #0003; }
-  .delete-dialog::backdrop { background: #0006; }
-  .delete-dialog h2 { font-size: 19px; margin: 0 0 12px; }
-  .delete-dialog p { font-size: 13px; line-height: 1.6; color: var(--v2-slate); }
-  .delete-dialog label { display: block; font-size: 13px; margin-top: 20px; overflow-wrap: anywhere; }
-  .delete-dialog input { margin-top: 10px; width: 100%; }
-  .delete-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
-  .delete-confirm { background: #b42318; color: white; }
-  .drag-property { border: 0; background: transparent; color: var(--v2-slate); cursor: grab; padding: 5px; margin-right: 5px; vertical-align: middle; }
-  .drop-position { box-shadow: inset 0 3px #3b82f6; }
+  .delete-property {
+    color: #b42318;
+  }
+  .delete-dialog {
+    margin: auto;
+    width: min(460px, calc(100vw - 32px));
+    max-height: 90dvh;
+    overflow: auto;
+    padding: 24px;
+    border: 1px solid var(--v2-line);
+    border-radius: 12px;
+    background: var(--v2-card, #fff);
+    color: var(--v2-ink);
+    box-shadow: 0 20px 60px #0003;
+  }
+  .delete-dialog::backdrop {
+    background: #0006;
+  }
+  .delete-dialog h2 {
+    font-size: 19px;
+    margin: 0 0 12px;
+  }
+  .delete-dialog p {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--v2-slate);
+  }
+  .delete-dialog label {
+    display: block;
+    font-size: 13px;
+    margin-top: 20px;
+    overflow-wrap: anywhere;
+  }
+  .delete-dialog input {
+    margin-top: 10px;
+    width: 100%;
+  }
+  .delete-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 22px;
+  }
+  .delete-confirm {
+    background: #b42318;
+    color: white;
+  }
+  .drag-property {
+    border: 0;
+    background: transparent;
+    color: var(--v2-slate);
+    cursor: grab;
+    padding: 5px;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .drop-position {
+    box-shadow: inset 0 3px #3b82f6;
+  }
   .catalog {
     display: flex;
     flex-direction: column;
@@ -369,7 +506,8 @@
     overflow-y: auto;
     padding: 24px 30px;
   }
-  .toolbar, .summary {
+  .toolbar,
+  .summary {
     flex-shrink: 0;
   }
   .toolbar {

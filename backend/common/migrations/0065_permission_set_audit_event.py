@@ -4,15 +4,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('common', '0064_expanded_crm_permissions'),
+        ("common", "0064_expanded_crm_permissions"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='securityauditlog',
-            name='event_type',
-            field=models.CharField(choices=[('LOGIN_SUCCESS', 'Login Success'), ('LOGIN_FAILURE', 'Login Failure'), ('LOGOUT', 'Logout'), ('ORG_SWITCH', 'Organization Switch'), ('TOKEN_REFRESH', 'Token Refresh'), ('TOKEN_REVOKED', 'Token Revoked'), ('PERMISSION_DENIED', 'Permission Denied'), ('PERMISSION_SET_CHANGED', 'Permission Set Changed'), ('CROSS_ORG_ATTEMPT', 'Cross-Org Access Attempt'), ('API_KEY_USED', 'API Key Used'), ('API_KEY_INVALID', 'Invalid API Key'), ('MEMBERSHIP_REVOKED', 'Membership Revoked'), ('SUSPICIOUS_ACTIVITY', 'Suspicious Activity'), ('SAMPLE_DATA_CLEARED', 'Vertical Pack Sample Data Cleared')], db_index=True, max_length=50),
+            model_name="securityauditlog",
+            name="event_type",
+            field=models.CharField(
+                choices=[
+                    ("LOGIN_SUCCESS", "Login Success"),
+                    ("LOGIN_FAILURE", "Login Failure"),
+                    ("LOGOUT", "Logout"),
+                    ("ORG_SWITCH", "Organization Switch"),
+                    ("TOKEN_REFRESH", "Token Refresh"),
+                    ("TOKEN_REVOKED", "Token Revoked"),
+                    ("PERMISSION_DENIED", "Permission Denied"),
+                    ("PERMISSION_SET_CHANGED", "Permission Set Changed"),
+                    ("CROSS_ORG_ATTEMPT", "Cross-Org Access Attempt"),
+                    ("API_KEY_USED", "API Key Used"),
+                    ("API_KEY_INVALID", "Invalid API Key"),
+                    ("MEMBERSHIP_REVOKED", "Membership Revoked"),
+                    ("SUSPICIOUS_ACTIVITY", "Suspicious Activity"),
+                    ("SAMPLE_DATA_CLEARED", "Vertical Pack Sample Data Cleared"),
+                ],
+                db_index=True,
+                max_length=50,
+            ),
         ),
     ]

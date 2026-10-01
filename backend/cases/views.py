@@ -1,5 +1,3 @@
-from cases.workflow import TERMINAL_STATUSES
-from common.rbac import configured, permitted
 import json
 import statistics
 from datetime import timedelta
@@ -44,6 +42,7 @@ from cases.serializer import (
 )
 from cases.solution_serializers import SolutionSerializer
 from cases.tasks import send_email_to_assigned_user
+from cases.workflow import TERMINAL_STATUSES
 from common.custom_fields import validate_payload as validate_custom_fields_payload
 from common.models import (
     Activity,
@@ -55,6 +54,7 @@ from common.models import (
     Teams,
 )
 from common.permissions import HasOrgContext
+from common.rbac import configured
 from common.serializer import (
     ActivitySerializer,
     AttachmentsSerializer,
@@ -105,7 +105,9 @@ def apply_case_list_filters(queryset, params):
         if params.get(field):
             queryset = queryset.filter(**{field: params[field]})
     if params.get("overdue") == "true":
-        queryset = queryset.filter(due_at__lt=timezone.now()).exclude(status__in=TERMINAL_STATUSES)
+        queryset = queryset.filter(due_at__lt=timezone.now()).exclude(
+            status__in=TERMINAL_STATUSES
+        )
     if params.get("name"):
         queryset = queryset.filter(name__icontains=params.get("name"))
     # Status can be a single value or a list. Mobile uses the list form for
@@ -130,7 +132,13 @@ def apply_case_list_filters(queryset, params):
         queryset = queryset.filter(tags__id__in=tags).distinct()
     if params.get("search"):
         search = params.get("search")
-        match = Q(name__icontains=search) | Q(description__icontains=search) | Q(account__name__icontains=search) | Q(contacts__first_name__icontains=search) | Q(contacts__last_name__icontains=search)
+        match = (
+            Q(name__icontains=search)
+            | Q(description__icontains=search)
+            | Q(account__name__icontains=search)
+            | Q(contacts__first_name__icontains=search)
+            | Q(contacts__last_name__icontains=search)
+        )
         number = search.upper().removeprefix("TKT-").strip()
         if number.isdigit():
             match |= Q(ticket_number=int(number))
@@ -212,7 +220,9 @@ class CaseListView(APIView, LimitOffsetPagination):
         accounts = Account.objects.filter(org=self.request.profile.org).order_by("-id")
         contacts = Contact.objects.filter(org=self.request.profile.org).order_by("-id")
         profiles = Profile.objects.filter(is_active=True, org=self.request.profile.org)
-        if not configured(self.request.profile) and not is_org_admin(self.request.profile):
+        if not configured(self.request.profile) and not is_org_admin(
+            self.request.profile
+        ):
             # Watcher allowance: a non-admin who is a watcher must still be
             # able to see the case even when un-assigned. The rule now lives
             # in `cases.access` so the detail view enforces the same one. It
@@ -1065,6 +1075,7 @@ class CaseAttachmentView(APIView):
     )
     def delete(self, request, pk, format=None):
         from common.views.attachment_views import delete_attachment
+
         return delete_attachment(request, pk, expected_model="case")
 
 

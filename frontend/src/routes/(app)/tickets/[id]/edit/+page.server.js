@@ -51,7 +51,12 @@ export const actions = {
     try {
       await updateTicket({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save this ticket.') });
+      return fail(400, {
+        values,
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not save this ticket.')
+      });
     }
 
     redirect(303, `/tickets/${params.id}`);

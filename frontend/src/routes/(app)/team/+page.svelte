@@ -111,10 +111,7 @@
       {#if form?.invited}<p class="notice" role="status">
           Invitation sent to {form.invited}.
         </p>{:else if form?.error}<p class="error" role="alert">{form.error}</p>{/if}
-      {#if data.totals.tokens_on_deactivated}<p class="notice">
-          Deactivated users have {data.totals.tokens_on_deactivated} dormant access tokens.
-          <a href={resolve('/settings/api-tokens')}>Review tokens</a>
-        </p>{/if}
+
       <div class="toolbar">
         <label class="search"
           ><Search size={16} /><input
@@ -629,9 +626,6 @@
   }
   .error {
     color: var(--v2-rust);
-  }
-  .notice a {
-    text-decoration: underline;
   }
   @media (max-width: 900px) {
     .access-table {

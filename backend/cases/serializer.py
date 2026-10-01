@@ -1,8 +1,3 @@
-from common.pipeline_settings import PipelineMoveChoicesMixin
-from common.last_activity import LastActivitySerializerMixin, ActivityListSerializer
-from common.pipeline_settings import PipelineRulesMixin
-from common.rbac import VisibleCRMSerializerMixin
-from django.db.models import Sum
 from rest_framework import serializers
 
 from accounts.serializer import AccountSerializer
@@ -19,8 +14,11 @@ from cases.models import (
     TimeEntry,
 )
 from cases.parent_guards import check_parent_link
+from common.last_activity import ActivityListSerializer, LastActivitySerializerMixin
 from common.models import Profile, Teams
 from common.permissions import is_org_admin
+from common.pipeline_settings import PipelineMoveChoicesMixin, PipelineRulesMixin
+from common.rbac import VisibleCRMSerializerMixin
 from common.serializer import (
     OrganizationSerializer,
     ProfileSerializer,
@@ -35,7 +33,9 @@ from contacts.serializer import ContactSerializer
 # - created_on_arrow (frontend computes its own humanized timestamps)
 
 
-class CaseSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer):
+class CaseSerializer(
+    VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer
+):
     ticket_code = serializers.CharField(read_only=True)
     account = AccountSerializer()
     contacts = ContactSerializer(read_only=True, many=True)
@@ -57,7 +57,6 @@ class CaseSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, ser
     child_count = serializers.SerializerMethodField()
 
     # Tier 3 time-tracking
-    time_summary = serializers.SerializerMethodField()
 
     def get_parent_summary(self, obj):
         if not obj.parent_id:
@@ -71,44 +70,19 @@ class CaseSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, ser
             return obj._child_count
         return obj.children.count()
 
-    def get_time_summary(self, obj):
-        # Only stopped entries contribute to the summary; running timers
-        # would otherwise double-count when the user keeps hitting refresh.
-        qs = obj.time_entries.filter(ended_at__isnull=False)
-        total = qs.aggregate(total=Sum("duration_minutes"))["total"] or 0
-        billable = (
-            qs.filter(billable=True).aggregate(s=Sum("duration_minutes"))["s"] or 0
-        )
-        last_entry_at = (
-            qs.order_by("-started_at").values_list("started_at", flat=True).first()
-        )
-        by_profile = []
-        rows = (
-            qs.values("profile_id", "profile__user__email")
-            .annotate(minutes=Sum("duration_minutes"))
-            .order_by("-minutes")
-        )
-        for row in rows:
-            by_profile.append(
-                {
-                    "profile_id": str(row["profile_id"]),
-                    "name": row.get("profile__user__email") or "",
-                    "minutes": row["minutes"] or 0,
-                }
-            )
-        return {
-            "total_minutes": total,
-            "billable_minutes": billable,
-            "last_entry_at": last_entry_at,
-            "by_profile": by_profile,
-        }
-
     class Meta:
         list_serializer_class = ActivityListSerializer
         model = Case
         fields = (
             "id",
-            "ticket_code", "category", "source", "due_at", "waiting_reason", "resolution_note", "deal", "updated_at",
+            "ticket_code",
+            "category",
+            "source",
+            "due_at",
+            "waiting_reason",
+            "resolution_note",
+            "deal",
+            "updated_at",
             "name",
             "status",
             "priority",
@@ -145,7 +119,6 @@ class CaseSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, ser
             "parent_summary",
             "child_count",
             # Tier 3 time-tracking
-            "time_summary",
         )
 
 
@@ -157,7 +130,6 @@ class CaseCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
         request_obj = kwargs.pop("request_obj", None)
         super().__init__(*args, **kwargs)
         self.org = request_obj.profile.org
-
 
     def validate_deal(self, deal):
         if deal is not None and deal.org_id != self.org.id:
@@ -199,13 +171,20 @@ class CaseCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
         """
         attrs = super().validate(attrs)
         if self.initial_data.get("deal"):
-            raise serializers.ValidationError({"deal": "Tickets can only associate with contacts or companies."})
+            raise serializers.ValidationError(
+                {"deal": "Tickets can only associate with contacts or companies."}
+            )
 
         new_status = attrs.get("status", getattr(self.instance, "status", None))
 
-        if new_status == "Resolved" and getattr(self.instance, "status", None) != "Resolved":
+        if (
+            new_status == "Resolved"
+            and getattr(self.instance, "status", None) != "Resolved"
+        ):
             if not attrs.get("resolution_note", "").strip():
-                raise serializers.ValidationError({"resolution_note": "Describe how this ticket was resolved."})
+                raise serializers.ValidationError(
+                    {"resolution_note": "Describe how this ticket was resolved."}
+                )
 
         # Parent linking, only when this request carries `parent`. Judging the
         # stored parent on every save would reject an ordinary rename of a case
@@ -300,7 +279,12 @@ class CaseCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
         model = Case
         fields = (
             "name",
-            "category", "source", "due_at", "waiting_reason", "resolution_note", "deal",
+            "category",
+            "source",
+            "due_at",
+            "waiting_reason",
+            "resolution_note",
+            "deal",
             "status",
             "priority",
             "case_type",

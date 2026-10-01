@@ -25,7 +25,12 @@ export const actions = {
     try {
       created = await createTicket({ cookies }, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { values, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not raise this ticket.') });
+      return fail(400, {
+        values,
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not raise this ticket.')
+      });
     }
 
     // `CaseListView.post` returns the new id, so this lands on the ticket

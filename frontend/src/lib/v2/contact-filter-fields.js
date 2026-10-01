@@ -42,5 +42,5 @@ export const advancedContactFilters = [
   { key: 'description', label: 'Notes' },
   { key: 'created_at', label: 'Created date', type: 'range' },
   { key: 'last_activity_at', label: 'Last activity date', type: 'range' },
-  { key: 'appointment_at', label: 'Appointment date', type: 'range' },
+  { key: 'appointment_at', label: 'Appointment date', type: 'range' }
 ];

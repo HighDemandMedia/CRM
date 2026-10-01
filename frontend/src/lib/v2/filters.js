@@ -26,16 +26,9 @@
 import {
   CASE_PRIORITIES,
   CASE_TYPES,
-  DOCUMENT_STATUSES,
-  ESTIMATE_STATUSES,
   INDUSTRIES,
-  INVOICE_STATUSES,
-  LEAD_LIST_STATUSES,
-  LEAD_STATUS_LABEL,
   LEAD_SOURCES,
   LEAD_SOURCE_LABEL,
-  SOLUTION_STATUS,
-  SOLUTION_STATUS_LABEL,
   STAGES,
   STAGE_LABEL,
   TASK_PRIORITY,
@@ -62,31 +55,6 @@ export const FILTERS = {
       { key: 'priority', label: 'Priority', type: 'select', options: CASE_PRIORITIES },
       { key: 'case_type', label: 'Type', type: 'select', options: CASE_TYPES },
       { key: 'sla_breached', label: 'Breaching SLA', type: 'boolean' },
-      { key: 'tags', label: 'Tag', type: 'tag' }
-    ]
-  },
-
-  leads: {
-    presets: [
-      { key: 'open', label: 'Open leads', params: {} },
-      { key: 'mine', label: 'Mine', params: { assigned_to: '@me' } }
-    ],
-    fields: [
-      { key: 'assigned_to', label: 'Owner', type: 'person' },
-      {
-        key: 'status',
-        label: 'Status',
-        type: 'select',
-        options: LEAD_LIST_STATUSES,
-        labelFor: (v) => LEAD_STATUS_LABEL[v] ?? v
-      },
-      {
-        key: 'source',
-        label: 'Source',
-        type: 'select',
-        options: LEAD_SOURCES,
-        labelFor: (v) => LEAD_SOURCE_LABEL[v] ?? v
-      },
       { key: 'tags', label: 'Tag', type: 'tag' }
     ]
   },
@@ -175,97 +143,6 @@ export const FILTERS = {
       },
       { key: 'city', label: 'City', type: 'text' }
     ]
-  },
-
-  invoices: {
-    presets: [
-      { key: 'overdue', label: 'Overdue', params: { status: 'Overdue' } },
-      { key: 'draft', label: 'Draft', params: { status: 'Draft' } },
-      { key: 'all', label: 'All invoices', params: {} }
-    ],
-    fields: [
-      {
-        key: 'status',
-        label: 'Status',
-        type: 'select',
-        options: INVOICE_STATUSES,
-        labelFor: invoiceStatusLabel
-      },
-      { key: 'account', label: 'Account', type: 'account' },
-      { key: 'assigned_to', label: 'Owner', type: 'person' },
-      // Invoices uses a SINGLE underscore (`due_date_gte`/`due_date_lte`,
-      // `backend/invoices/api_views.py:149-152`). Every other date-range field
-      // in this file uses a DOUBLE underscore. Never build this key by
-      // concatenation; a shared helper that did would silently return an
-      // unfiltered list here while working everywhere else.
-      {
-        key: 'due_date',
-        label: 'Due date',
-        type: 'date-range',
-        gteKey: 'due_date_gte',
-        lteKey: 'due_date_lte'
-      }
-    ]
-  },
-
-  estimates: {
-    presets: [
-      { key: 'accepted', label: 'Accepted', params: { status: 'Accepted' } },
-      { key: 'all', label: 'All estimates', params: {} }
-    ],
-    fields: [
-      { key: 'status', label: 'Status', type: 'select', options: ESTIMATE_STATUSES },
-      { key: 'account', label: 'Account', type: 'account' }
-      // No Owner field: `EstimateListView.get` (backend/invoices/api_views.py
-      // :1028-1036) reads only `status` and `account`, never `assigned_to`.
-      // Offering one here would draw a chip that filters nothing underneath it.
-    ]
-  },
-
-  solutions: {
-    presets: [
-      { key: 'published', label: 'Published', params: { visibility: 'published' } },
-      { key: 'drafts', label: 'Drafts', params: { status: 'draft' } },
-      { key: 'all', label: 'All articles, last edited first', params: {} }
-    ],
-    fields: [
-      {
-        key: 'status',
-        label: 'Status',
-        type: 'select',
-        options: SOLUTION_STATUS,
-        labelFor: (v) => SOLUTION_STATUS_LABEL[v] ?? v
-      },
-      { key: 'tags', label: 'Tag', type: 'tag' }
-    ]
-  },
-
-  documents: {
-    // `active` is the empty-params default, and `all` opts in with
-    // `archived=1`, the same shape `/contacts` uses for `inactive`. The load
-    // applies `status=active` unless that opt-in or an explicit Status choice
-    // is present. Written the other way round, with `all` as the default,
-    // archived documents come back alongside the live ones on a bare URL,
-    // which undoes the only thing archiving does.
-    presets: [
-      { key: 'active', label: 'Active documents', params: {} },
-      { key: 'all', label: 'Including archived', params: { archived: '1' } }
-    ],
-    // `tags` and `created_by` are deliberately absent: `DocumentListView.get`
-    // (backend/common/views/document_views.py:71-79) reads only `title`,
-    // `status` and `shared_to`, `Document` has no `tags` relation at all, and
-    // `shared_to` is passed straight to `json.loads`, so a plain
-    // `?shared_to=<uuid>` throws `JSONDecodeError` and answers 500. Status is
-    // the only filter this endpoint actually honours.
-    fields: [{ key: 'status', label: 'Status', type: 'select', options: DOCUMENT_STATUSES }]
-  },
-
-  recurring: {
-    presets: [
-      { key: 'active', label: 'Active schedules', params: { is_active: 'true' } },
-      { key: 'all', label: 'All schedules', params: {} }
-    ],
-    fields: [{ key: 'is_active', label: 'Active', type: 'boolean' }]
   }
 };
 

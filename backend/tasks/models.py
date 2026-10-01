@@ -1,4 +1,4 @@
-from common.rbac import CRMRecordManager
+from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator
 from django.db import models
@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from accounts.models import Account
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
 from common.models import Org, Profile, Tags, Teams
+from common.rbac import CRMRecordManager
 from contacts.models import Contact
 
 # Cleanup notes:
@@ -299,6 +300,8 @@ class TaskStage(BaseModel):
 
 
 class Task(AssignableMixin, BaseModel):
+    file_attachments = GenericRelation("common.Attachments")
+
     objects = CRMRecordManager()
     STATUS_CHOICES = (
         ("New", "New"),
@@ -309,10 +312,16 @@ class Task(AssignableMixin, BaseModel):
     PRIORITY_CHOICES = (("Low", "Low"), ("Medium", "Medium"), ("High", "High"))
 
     title = models.CharField(_("title"), max_length=200)
-    status = models.CharField(_("status"), max_length=50, choices=STATUS_CHOICES, default="New")
-    priority = models.CharField(_("priority"), max_length=50, choices=PRIORITY_CHOICES, blank=True)
+    status = models.CharField(
+        _("status"), max_length=50, choices=STATUS_CHOICES, default="New"
+    )
+    priority = models.CharField(
+        _("priority"), max_length=50, choices=PRIORITY_CHOICES, blank=True
+    )
     due_date = models.DateField(blank=True, null=True)
-    reminder_days = models.PositiveSmallIntegerField(null=True, blank=True, validators=[MaxValueValidator(365)])
+    reminder_days = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=[MaxValueValidator(365)]
+    )
     description = models.TextField(_("Notes"), blank=True, null=True)
     custom_fields = models.JSONField(
         default=dict,
@@ -411,9 +420,12 @@ class Task(AssignableMixin, BaseModel):
 
     def save(self, *args, **kwargs):
         from common.pipeline_settings import stages_for
-        if self.org_id and self.status not in {s['key'] for s in stages_for(self.org, 'Task')}:
-            raise ValidationError({'status': 'Choose an available pipeline stage.'})
-        self.full_clean(exclude=['status'])
+
+        if self.org_id and self.status not in {
+            s["key"] for s in stages_for(self.org, "Task")
+        }:
+            raise ValidationError({"status": "Choose an available pipeline stage."})
+        self.full_clean(exclude=["status"])
         super().save(*args, **kwargs)
 
     @property

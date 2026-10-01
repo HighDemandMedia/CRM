@@ -70,10 +70,10 @@
         {/each}
 
         {#if data.canCreateOrganization}
-        <a href={resolve('/org/new')} class="v2-auth-add">
-          <Plus />
-          Create new organisation
-        </a>
+          <a href={resolve('/org/new')} class="v2-auth-add">
+            <Plus />
+            Create new organisation
+          </a>
         {/if}
       {:else}
         <div class="v2-state" style="padding:22px 0 8px">

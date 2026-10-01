@@ -11,6 +11,9 @@ export async function GET({ url, cookies }) {
     const result = await apiRequest(`/contacts/duplicates/?${query}`, {}, { cookies });
     return json(result, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
-    return json({ results: [], error: 'Could not check existing contacts.' }, { status: error.status || 400 });
+    return json(
+      { results: [], error: 'Could not check existing contacts.' },
+      { status: error.status || 400 }
+    );
   }
 }

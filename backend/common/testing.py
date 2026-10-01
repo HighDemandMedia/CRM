@@ -164,6 +164,21 @@ def _restore_rls_context_after_each_request(db):
 
 
 @pytest.fixture
+def required_deal_close_fields(org_a):
+    """An organization that explicitly requires amount/date at closing."""
+    from common.pipeline_settings import stages_for
+
+    stages = stages_for(org_a, "Opportunity")
+    for stage in stages:
+        if stage["key"] == "CLOSED_WON":
+            stage["required_fields"] = ["amount", "closed_on"]
+        elif stage["key"] == "CLOSED_LOST":
+            stage["required_fields"] = ["closed_on"]
+    org_a.pipeline_settings = {"Opportunity": stages}
+    org_a.save(update_fields=["pipeline_settings"])
+
+
+@pytest.fixture
 def org_a():
     """The org a test acts as by default.
 
@@ -243,3 +258,22 @@ def org_b_client(user_b, org_b, profile_b):
 @pytest.fixture
 def unauthenticated_client():
     return APIClient()
+
+
+@pytest.fixture
+def attachment_delete_role(user_profile):
+    """Explicit grant for legacy success tests; uploader status alone grants nothing."""
+    from common.models import CRMRole
+    from common.rbac import default_rules
+
+    rules = default_rules("organization")
+    for module in ("contacts", "companies", "deals", "tasks", "tickets"):
+        rules[module]["delete_attachments"] = "organization"
+    user_profile.access_role = CRMRole.objects.create(
+        org=user_profile.org,
+        name="Attachment deletion test",
+        scope="organization",
+        rules=rules,
+    )
+    user_profile.save(update_fields=["access_role"])
+    return user_profile.access_role

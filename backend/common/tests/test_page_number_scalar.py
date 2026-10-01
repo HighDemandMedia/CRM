@@ -13,7 +13,6 @@ thing that was wrong is what clients received.
 import pytest
 
 LIST_ENDPOINTS = [
-    "/api/leads/",
     "/api/contacts/",
     "/api/opportunities/",
     "/api/accounts/",

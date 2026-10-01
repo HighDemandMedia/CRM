@@ -25,11 +25,8 @@ from rest_framework.views import APIView
 
 from accounts.models import Account
 from cases.access import is_org_admin, visible_cases_qs
-from cases.models import Solution
 from common.permissions import HasOrgContext
 from contacts.models import Contact
-from invoices.models import Invoice
-from leads.models import Lead
 from opportunity.models import Opportunity
 
 # Rows per type. Small on purpose. The palette shows a handful per group and
@@ -77,25 +74,6 @@ class GlobalSearchView(APIView):
         org = profile.org
         user = request.user
         results = []
-
-        # Leads
-        leads = _scope_superuser(Lead.objects.filter(org=org), profile, user).filter(
-            Q(title__icontains=q)
-            | Q(first_name__icontains=q)
-            | Q(last_name__icontains=q)
-            | Q(email__icontains=q)
-            | Q(company_name__icontains=q)
-        )[:PER_TYPE]
-        for lead in leads:
-            name = lead.title or f"{lead.first_name} {lead.last_name}".strip()
-            results.append(
-                {
-                    "type": "lead",
-                    "id": str(lead.id),
-                    "title": name or lead.email or "Untitled lead",
-                    "subtitle": lead.company_name or lead.email or "",
-                }
-            )
 
         # Deals (Opportunity)
         deals = _scope_superuser(
@@ -176,47 +154,4 @@ class GlobalSearchView(APIView):
                 }
             )
 
-        # Invoices
-        invoices = _scope_superuser(
-            Invoice.objects.filter(org=org).select_related("account"),
-            profile,
-            user,
-        ).filter(
-            Q(invoice_number__icontains=q)
-            | Q(invoice_title__icontains=q)
-            | Q(client_name__icontains=q)
-            | Q(account__name__icontains=q)
-        )[:PER_TYPE]
-        for invoice in invoices:
-            results.append(
-                {
-                    "type": "invoice",
-                    "id": str(invoice.id),
-                    "title": invoice.invoice_number
-                    or invoice.invoice_title
-                    or "Invoice",
-                    "subtitle": invoice.client_name
-                    or (invoice.account.name if invoice.account_id else "")
-                    or invoice.status
-                    or "",
-                }
-            )
-
-        # Knowledge base (Solution): org-wide, every member reads
-        solutions = Solution.objects.filter(org=org).filter(
-            Q(title__icontains=q) | Q(description__icontains=q)
-        )[:PER_TYPE]
-        for solution in solutions:
-            results.append(
-                {
-                    "type": "solution",
-                    "id": str(solution.id),
-                    "title": solution.title,
-                    "subtitle": solution.status or "",
-                }
-            )
-
-        from common.platform_access import can_preview
-        if not can_preview(profile):
-            results = [item for item in results if item['type'] in ('contact', 'account', 'deal', 'ticket')]
         return Response({"query": q, "results": results})

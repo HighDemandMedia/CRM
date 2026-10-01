@@ -5,7 +5,8 @@
   import TeamPanel from './TeamPanel.svelte';
   let { team, people, onclose } = $props();
   let selected = $state(untrack(() => [...(team.members ?? [])]));
-  let busy = $state(false), error = $state('');
+  let busy = $state(false),
+    error = $state('');
 </script>
 
 <TeamPanel
@@ -59,7 +60,13 @@
           disabled={busy}>{team.description ?? ''}</textarea
         ></label
       >
-      <TaskAssignees label="Members" fieldName="members" people={people.filter(p => p.is_active || selected.includes(p.id))} bind:selected disabled={busy} />
+      <TaskAssignees
+        label="Members"
+        fieldName="members"
+        people={people.filter((p) => p.is_active || selected.includes(p.id))}
+        bind:selected
+        disabled={busy}
+      />
       {#if error}<p role="alert" class="panel-error">{error}</p>{/if}
     </div>
     <footer class="panel-footer">

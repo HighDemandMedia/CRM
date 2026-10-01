@@ -27,7 +27,7 @@ from __future__ import annotations
 import csv
 import io
 import re
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any, Iterable
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -35,14 +35,14 @@ from django.core.validators import URLValidator
 from django.db import IntegrityError, transaction
 from django.db.models.functions import Lower
 from django.utils.text import slugify
+from rest_framework.exceptions import ValidationError as APIValidationError
 
 from accounts.models import Account
 from common.models import Profile, Tags, Teams
+from common.pipeline_settings import validate_entry
 from common.utils import COUNTRIES
 from common.validators import normalize_phone
 from contacts.models import Contact
-from common.pipeline_settings import validate_entry
-from rest_framework.exceptions import ValidationError as APIValidationError
 from contacts.services.account_link import link_primary_account
 
 REQUIRED_HEADERS = ("first_name",)
@@ -283,12 +283,16 @@ def parse_and_validate(file_bytes: bytes, org) -> ImportResult:
         if row_errors:
             errors.extend(row_errors)
             continue
-        values = {**asdict(validated), 'account': validated.account_id,
-                  'assigned_to': validated.assigned_ids, 'tags': validated.tag_names}
+        values = {
+            **asdict(validated),
+            "account": validated.account_id,
+            "assigned_to": validated.assigned_ids,
+            "tags": validated.tag_names,
+        }
         try:
-            validate_entry(org, 'Contact', None, values)
+            validate_entry(org, "Contact", None, values)
         except APIValidationError as exc:
-            errors.append(RowError(idx, 'stage', str(exc.detail)))
+            errors.append(RowError(idx, "stage", str(exc.detail)))
             continue
         valid.append(validated)
         if validated.email:

@@ -13,7 +13,11 @@ from contacts.models import Contact
 
 
 def record(contact, action, description, changes=None, actor=None, resource=None):
-    if action not in ("UPDATE", "ASSIGN") or not changes or (resource and resource.get("type") in ("Note", "Attachment")):
+    if (
+        action not in ("UPDATE", "ASSIGN")
+        or not changes
+        or (resource and resource.get("type") in ("Note", "Attachment"))
+    ):
         return
     request = get_current_request()
     profile = getattr(request, "profile", None)
@@ -65,7 +69,9 @@ def before_contact(sender, instance, raw=False, update_fields=None, **kwargs):
             "updated_by",
             "stage_entered_at",
             "phone_match_key",
-            "merged_into", "merged_at", "merge_snapshot",
+            "merged_into",
+            "merged_at",
+            "merge_snapshot",
         }:
             continue
         if (

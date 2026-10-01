@@ -41,7 +41,4 @@ export const INDUSTRIES = [
 ];
 
 /** @type {{ value: string, label: string }[]} */
-export const COUNTRIES = [
-  { value: '', label: 'Select Country' },
-  ...countryOptions()
-];
+export const COUNTRIES = [{ value: '', label: 'Select Country' }, ...countryOptions()];

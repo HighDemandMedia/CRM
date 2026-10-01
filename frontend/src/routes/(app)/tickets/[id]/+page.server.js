@@ -9,14 +9,6 @@ import {
   updateTicket
 } from '$lib/server/v2/tickets.js';
 import { getOrgSettings } from '$lib/server/v2/organization.js';
-import {
-  listTicketTime,
-  startTicketTimer,
-  stopTimer,
-  logTicketTime,
-  setEntryBillable,
-  deleteEntry
-} from '$lib/server/v2/timesheet.js';
 import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 import { openDescendants, subtreeTruncated, cascadedCount, closeResultMessage } from './close.js';
 
@@ -32,38 +24,18 @@ import { openDescendants, subtreeTruncated, cascadedCount, closeResultMessage } 
  * falls back to the plain one. Both fall back quietly, and the close action
  * re-derives everything server-side anyway, so nothing here is trusted.
  *
- * The time entries ride along in the same wave. They are their own request,
- * the ticket envelope carries only the `time_summary` totals, and they are
- * allowed to fail: a ticket that will not render because the time panel could
- * not load is the same bad trade as the tree below. `null` means the fetch
- * failed and the panel says so; `[]` means nobody has logged anything.
- *
  * @type {import('./$types').PageServerLoad}
  */
-export async function load({ cookies, params, locals }) {
-  const [data, timeEntries, editOptions] = await Promise.all([
+export async function load({ cookies, params }) {
+  const [data, editOptions] = await Promise.all([
     getTicket({ cookies }, params.id),
-    listTicketTime({ cookies }, params.id).catch(() => null),
     getTicketForEdit({ cookies }, params.id)
   ]);
-
-  const time = {
-    entries: timeEntries,
-    // Server-derived from the JWT, never the client. Display-only: it tells
-    // the panel which running timer is this person's to stop, since an admin
-    // sees the whole team's rows. The API decides who may actually stop one.
-    viewerUserId: locals.user?.id ?? null,
-    // What a running timer's elapsed minutes are counted from. The browser
-    // clock only adds the minutes since this page loaded, the same split the
-    // timesheet page uses: how long somebody has been working is not a
-    // question a machine with the wrong date gets to answer.
-    now: new Date().toISOString()
-  };
 
   // `child_count` sits on the ticket itself here. The `server` block with a
   // `child_count` of its own belongs to the EDIT page's loader, and reading it
   // from this one is silently always-undefined, so the panel never appeared.
-  if (!data.ticket?.child_count) return { ...data, time, editOptions };
+  if (!data.ticket?.child_count) return { ...data, editOptions };
 
   const [tree, settings] = await Promise.all([
     getTicketTree({ cookies }, params.id).catch(() => null),
@@ -72,7 +44,6 @@ export async function load({ cookies, params, locals }) {
 
   return {
     ...data,
-    time,
     editOptions,
     close: {
       descendants: openDescendants(tree?.root, params.id),
@@ -117,7 +88,11 @@ export const actions = {
       );
       if (Object.keys(changes).length) await updateTicket({ cookies }, params.id, changes);
     } catch (err) {
-      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not save properties.') });
+      return fail(400, {
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not save properties.')
+      });
     }
     return { saved: true };
   },
@@ -127,7 +102,11 @@ export const actions = {
     try {
       await updateTicket({ cookies }, params.id, { status: 'Resolved', resolution_note });
     } catch (err) {
-      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not resolve ticket.') });
+      return fail(400, {
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not resolve ticket.')
+      });
     }
     return { resolved: true };
   },
@@ -163,7 +142,13 @@ export const actions = {
     try {
       await replyToTicket({ cookies }, params.id, { body, internal, file });
     } catch (/** @type {any} */ err) {
-      return fail(400, { body, internal, fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not post this reply.') });
+      return fail(400, {
+        body,
+        internal,
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not post this reply.')
+      });
     }
 
     if (status) {
@@ -172,7 +157,9 @@ export const actions = {
       } catch (/** @type {any} */ err) {
         return fail(400, {
           sent: true,
-          fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, `Reply posted, but the status stayed put.`)
+          fieldErrors: fieldErrors(err),
+          stageRequirements: stageRequirements(err),
+          error: readableError(err, `Reply posted, but the status stayed put.`)
         });
       }
     }
@@ -200,7 +187,11 @@ export const actions = {
     try {
       await updateTicket({ cookies }, params.id, values);
     } catch (/** @type {any} */ err) {
-      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not change the status.') });
+      return fail(400, {
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not change the status.')
+      });
     }
 
     return { moved: status };
@@ -239,14 +230,18 @@ export const actions = {
         resolution_comment: comment
       });
     } catch (/** @type {any} */ err) {
-      return fail(400, { fieldErrors: fieldErrors(err), stageRequirements: stageRequirements(err), error: readableError(err, 'Could not close this ticket.') });
+      return fail(400, {
+        fieldErrors: fieldErrors(err),
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not close this ticket.')
+      });
     }
 
     return {
       moved: 'Closed',
       closed: closeResultMessage({ cascade, cascaded: cascadedCount(result) })
     };
-  },
+  }
 
   /*
    * The five time-panel writes below all report through `timeError` rather
@@ -264,93 +259,4 @@ export const actions = {
    * panel can link to it, because the fix for "you already have a timer
    * running" is on that other ticket, not this one.
    */
-  startTimer: async ({ cookies, params }) => {
-    try {
-      await startTicketTimer({ cookies }, params.id);
-    } catch (/** @type {any} */ err) {
-      return fail(err?.status === 409 ? 409 : 400, {
-        timeError: readableError(err, 'Could not start the timer.'),
-        runningTicketId: err?.body?.running_case_id ?? null
-      });
-    }
-
-    return { timeStarted: true };
-  },
-
-  /** Stop a running timer. The API rejects one that is already stopped, which
-   *  is what a double-submit looks like, so the panel disables the button
-   *  while this is in flight. */
-  stopTimer: async ({ cookies, request }) => {
-    const form = await request.formData();
-    const entryId = form.get('entry_id')?.toString() ?? '';
-
-    try {
-      await stopTimer({ cookies }, entryId);
-    } catch (/** @type {any} */ err) {
-      return fail(400, { timeError: readableError(err, 'Could not stop the timer.') });
-    }
-
-    return { timeStopped: true };
-  },
-
-  /**
-   * Log time that was worked without the timer running.
-   *
-   * The currency is the org's, from the JWT, not from the form: what an entry
-   * is billed in is a fact about the org, and a client that could name it
-   * could bill an hour in a currency nobody trades.
-   */
-  logTime: async ({ cookies, params, request, locals }) => {
-    const form = await request.formData();
-    const minutes = form.get('minutes')?.toString() ?? '';
-    const description = form.get('description')?.toString() ?? '';
-    const billable = form.get('billable') === 'on';
-    const hourlyRate = form.get('hourly_rate')?.toString() ?? '';
-
-    try {
-      await logTicketTime({ cookies }, params.id, {
-        minutes,
-        description,
-        billable,
-        hourlyRate,
-        currency: /** @type {any} */ (locals).org_settings?.default_currency ?? null
-      });
-    } catch (/** @type {any} */ err) {
-      return fail(400, { timeError: readableError(err, 'Could not log this time.') });
-    }
-
-    return { timeLogged: true };
-  },
-
-  /** Flip one entry between billable and not. The next value comes from the
-   *  form rather than being derived from what was rendered, so two clicks in
-   *  quick succession cannot land on the same value twice. */
-  setBillable: async ({ cookies, request }) => {
-    const form = await request.formData();
-    const entryId = form.get('entry_id')?.toString() ?? '';
-    const billable = form.get('billable') === 'true';
-
-    try {
-      await setEntryBillable({ cookies }, entryId, billable);
-    } catch (/** @type {any} */ err) {
-      return fail(400, { timeError: readableError(err, 'Could not change this entry.') });
-    }
-
-    return { timeUpdated: true };
-  },
-
-  /** Delete an entry. Refused by the API once the entry has been invoiced,
-   *  and that message is worth showing as it is: it says what to undo first. */
-  deleteTime: async ({ cookies, request }) => {
-    const form = await request.formData();
-    const entryId = form.get('entry_id')?.toString() ?? '';
-
-    try {
-      await deleteEntry({ cookies }, entryId);
-    } catch (/** @type {any} */ err) {
-      return fail(400, { timeError: readableError(err, 'Could not delete this entry.') });
-    }
-
-    return { timeDeleted: true };
-  }
 };

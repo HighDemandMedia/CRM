@@ -25,8 +25,6 @@ WELL_FORMED = "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
 
 # (label, url, param). One row per endpoint-and-filter that takes an id.
 ID_FILTERS = [
-    ("leads.tags", "/api/leads/", "tags"),
-    ("leads.assigned_to", "/api/leads/", "assigned_to"),
     ("accounts.tags", "/api/accounts/", "tags"),
     ("accounts.assigned_to", "/api/accounts/", "assigned_to"),
     ("contacts.tags", "/api/contacts/", "tags"),
@@ -40,10 +38,6 @@ ID_FILTERS = [
     ("opportunities.tags", "/api/opportunities/", "tags"),
     ("opportunities.assigned_to", "/api/opportunities/", "assigned_to"),
     ("opportunities.account", "/api/opportunities/", "account"),
-    ("invoices.account", "/api/invoices/", "account"),
-    ("invoices.assigned_to", "/api/invoices/", "assigned_to"),
-    ("invoices.created_by", "/api/invoices/", "created_by"),
-    ("documents.shared_to", "/api/documents/", "shared_to"),
     ("teams.assigned_users", "/api/teams/", "assigned_users"),
     ("teams.created_by", "/api/teams/", "created_by"),
 ]
@@ -109,16 +103,3 @@ class TestKanbanBoardsRejectMalformedIds:
             status.HTTP_200_OK,
             status.HTTP_404_NOT_FOUND,
         )
-
-
-@pytest.mark.django_db
-class TestSharedToAcceptsABareId:
-    """``?shared_to=<id>`` used to be a 500 because only JSON text parsed."""
-
-    def test_bare_id_is_accepted(self, admin_client):
-        response = admin_client.get(f"/api/documents/?shared_to={WELL_FORMED}")
-        assert response.status_code == status.HTTP_200_OK
-
-    def test_json_array_is_still_accepted(self, admin_client):
-        response = admin_client.get(f'/api/documents/?shared_to=["{WELL_FORMED}"]')
-        assert response.status_code == status.HTTP_200_OK

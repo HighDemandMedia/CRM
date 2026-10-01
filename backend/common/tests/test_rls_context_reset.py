@@ -30,7 +30,7 @@ class _FakeOrg:
 
 
 class _FakeRequest:
-    def __init__(self, path="/api/leads/"):
+    def __init__(self, path="/api/contacts/"):
         self.path = path
         self.org = _FakeOrg()
 

@@ -63,7 +63,10 @@ export const actions = {
     try {
       await updateTask(event, id, { status });
     } catch (err) {
-      return fail(400, { stageRequirements: stageRequirements(err), error: readableError(err, 'Could not move the task. Please try again.') });
+      return fail(400, {
+        stageRequirements: stageRequirements(err),
+        error: readableError(err, 'Could not move the task. Please try again.')
+      });
     }
     return { saved: true };
   },

@@ -22,7 +22,6 @@ import pytest
 from django.db import connection
 from rest_framework import status as http
 
-from leads.models import Lead
 from tasks.models import Task
 
 
@@ -42,13 +41,6 @@ DATE_PARAMS = [
     ("/api/tasks/", "created_at__lte"),
     ("/api/tasks/kanban/", "due_date__gte"),
     ("/api/tasks/kanban/", "due_date__lte"),
-    ("/api/leads/", "created_at__gte"),
-    ("/api/leads/", "created_at__lte"),
-    ("/api/leads/", "close_date__gte"),
-    ("/api/leads/", "close_date__lte"),
-    ("/api/leads/", "next_follow_up"),
-    ("/api/leads/kanban/", "created_at__gte"),
-    ("/api/leads/kanban/", "created_at__lte"),
     ("/api/accounts/", "created_at__gte"),
     ("/api/accounts/", "created_at__lte"),
     ("/api/contacts/", "created_at__gte"),
@@ -152,7 +144,7 @@ class TestAMalformedRangeFilterIsRefusedNotCrashed:
     ):
         """`created_at` is a datetime, and callers do send one."""
         resp = admin_client.get(
-            "/api/leads/", {"created_at__gte": "2026-08-01T09:30:00Z"}
+            "/api/contacts/", {"created_at__gte": "2026-08-01T09:30:00Z"}
         )
 
         assert resp.status_code == http.HTTP_200_OK
@@ -220,73 +212,6 @@ class TestStatusAcceptsMoreThanOneValue:
         resp = admin_client.get("/api/tasks/?status=New&status=Nope")
 
         assert {t["title"] for t in resp.data["tasks"]} == {"Fresh"}
-
-    def test_leads_take_two_statuses_too(self, admin_client, org_a, admin_user):
-        """Hot Leads counts `assigned` or `in process`, which is narrower than
-        the open-leads list's own "not converted, not closed"."""
-        _set_rls(org_a)
-        for first_name, lead_status in (
-            ("Ada", "assigned"),
-            ("Grace", "in process"),
-            ("Alan", "recycled"),
-        ):
-            Lead.objects.create(
-                first_name=first_name,
-                last_name="Tester",
-                org=org_a,
-                status=lead_status,
-                created_by=admin_user,
-            )
-
-        resp = admin_client.get("/api/leads/?status=assigned&status=in+process")
-
-        names = {row["first_name"] for row in resp.data["open_leads"]["open_leads"]}
-        assert names == {"Ada", "Grace"}
-
-
-@pytest.mark.django_db
-class TestFollowUpsDueOnADay:
-    def test_a_lead_is_found_by_its_follow_up_date(
-        self, admin_client, org_a, admin_user
-    ):
-        _set_rls(org_a)
-        Lead.objects.create(
-            first_name="Calls",
-            last_name="Today",
-            org=org_a,
-            status="assigned",
-            next_follow_up="2026-08-07",
-            created_by=admin_user,
-        )
-        Lead.objects.create(
-            first_name="Calls",
-            last_name="Tomorrow",
-            org=org_a,
-            status="assigned",
-            next_follow_up="2026-08-08",
-            created_by=admin_user,
-        )
-
-        resp = admin_client.get("/api/leads/", {"next_follow_up": "2026-08-07"})
-
-        names = {row["last_name"] for row in resp.data["open_leads"]["open_leads"]}
-        assert names == {"Today"}
-
-    def test_a_lead_with_no_follow_up_set_is_not_matched(
-        self, admin_client, org_a, admin_user
-    ):
-        _set_rls(org_a)
-        Lead.objects.create(
-            first_name="No",
-            last_name="Followup",
-            org=org_a,
-            status="assigned",
-            created_by=admin_user,
-        )
-
-        resp = admin_client.get("/api/leads/", {"next_follow_up": "2026-08-07"})
-
-        assert resp.data["open_leads"]["open_leads"] == []
 
 
 # Every analytics endpoint takes its window through the same `_parse_dt`, so

@@ -48,7 +48,13 @@ METADATA_BYTE_CAP = 4096
 # metadata.changes describing the field diff.
 _TRACKED_SCALAR_FIELDS = (
     "name",
-    "category", "source", "due_at", "waiting_reason", "resolution_note", "deal_id", "deal_id",
+    "category",
+    "source",
+    "due_at",
+    "waiting_reason",
+    "resolution_note",
+    "deal_id",
+    "deal_id",
     "case_type",
     "description",
     "closed_on",
@@ -309,7 +315,6 @@ def _maybe_stamp_first_response(case, comment):
 def case_post_save_emit_activity(sender, instance, created, **kwargs):
     if created:
         _create_activity(instance, "CREATE")
-        _maybe_route(instance)
         return
 
     old = getattr(instance, "_audit_old", None)
@@ -363,18 +368,6 @@ def case_post_save_emit_activity(sender, instance, created, **kwargs):
             changes[field] = {"before": before, "after": after}
     if changes:
         _create_activity(instance, "UPDATE", {"changes": changes})
-
-
-def _maybe_route(case):
-    """Run the auto-routing engine. Failures must not break case creation."""
-    if getattr(case, "_routing_skip", False):
-        return
-    try:
-        from cases.routing import evaluate
-
-        evaluate(case)
-    except Exception:
-        logger.exception("Auto-routing failed for case=%s", case.pk)
 
 
 def _notify_portal_of_status(case):

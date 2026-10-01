@@ -1,7 +1,7 @@
-from common.last_activity import with_last_activity
 from django.db.models import Case, CharField, F, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Lower
 
+from common.last_activity import with_last_activity
 from common.models import Profile
 from common.utils import COUNTRIES, STAGES
 from common.validators import date_param, uuid_list_param
@@ -39,7 +39,8 @@ def filter_and_sort(queryset, params):
     }:
         expression = (
             F(sort)
-            if sort in {"amount", "closed_on", "created_at", "updated_at", "last_activity_at"}
+            if sort
+            in {"amount", "closed_on", "created_at", "updated_at", "last_activity_at"}
             else Lower(sort)
         )
     elif sort == "account":

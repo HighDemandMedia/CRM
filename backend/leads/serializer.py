@@ -96,6 +96,7 @@ class LeadCreateSerializer(serializers.ModelSerializer):
 
     def run_validation(self, data=serializers.empty):
         from common.record_validation import clean_record_values
+
         return super().run_validation(clean_record_values(data, "Lead"))
 
     def __init__(self, *args, **kwargs):

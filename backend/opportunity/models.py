@@ -1,8 +1,6 @@
-from common.rbac import CRMRecordManager
-from common.languages import LANGUAGES
-from common.validators import flexible_phone_validator
 from decimal import Decimal
 
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import Coalesce
@@ -12,7 +10,9 @@ from django.utils.translation import gettext_lazy as _
 
 from accounts.models import Account
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
+from common.languages import LANGUAGES
 from common.models import Org, Profile, Tags, Teams
+from common.rbac import CRMRecordManager
 from common.utils import (
     COUNTRIES,
     CURRENCY_CODES,
@@ -21,6 +21,7 @@ from common.utils import (
     PERIOD_TYPES,
     STAGES,
 )
+from common.validators import flexible_phone_validator
 from contacts.choices import CONTACT_SOURCES
 from contacts.models import Contact
 
@@ -38,6 +39,8 @@ DISCOUNT_TYPES = (
 
 
 class Opportunity(AssignableMixin, BaseModel):
+    file_attachments = GenericRelation("common.Attachments")
+
     objects = CRMRecordManager()
     """
     Opportunity model for CRM - Sales pipeline management
@@ -90,9 +93,13 @@ class Opportunity(AssignableMixin, BaseModel):
         null=True,
     )
     address_line = models.CharField(max_length=255, blank=True, null=True)
-    phone = models.CharField(max_length=25, blank=True, null=True, validators=[flexible_phone_validator])
+    phone = models.CharField(
+        max_length=25, blank=True, null=True, validators=[flexible_phone_validator]
+    )
     email = models.EmailField(blank=True, null=True)
-    language = models.CharField("Language", max_length=100, choices=LANGUAGES, blank=True, default="")
+    language = models.CharField(
+        "Language", max_length=100, choices=LANGUAGES, blank=True, default=""
+    )
     city = models.CharField(max_length=255, blank=True, null=True)
     state = models.CharField(max_length=255, blank=True, null=True)
     postcode = models.CharField(max_length=64, blank=True, null=True)
@@ -285,13 +292,23 @@ class Opportunity(AssignableMixin, BaseModel):
             if not self.stage_changed_at:
                 self.stage_changed_at = timezone.now()
 
-        if self.org_id and (self.org.pipeline_settings or {}).get('Opportunity'):
+        if self.org_id and (self.org.pipeline_settings or {}).get("Opportunity"):
             from common.pipeline_settings import stages_for
-            configured = next((s for s in stages_for(self.org, 'Opportunity') if s['key'] == self.stage), None)
+
+            configured = next(
+                (
+                    s
+                    for s in stages_for(self.org, "Opportunity")
+                    if s["key"] == self.stage
+                ),
+                None,
+            )
             if configured:
-                self.probability = configured['percentage']
-                if kwargs.get('update_fields') is not None:
-                    kwargs['update_fields'] = set(kwargs['update_fields']) | {'probability'}
+                self.probability = configured["percentage"]
+                if kwargs.get("update_fields") is not None:
+                    kwargs["update_fields"] = set(kwargs["update_fields"]) | {
+                        "probability"
+                    }
         super().save(*args, **kwargs)
 
 

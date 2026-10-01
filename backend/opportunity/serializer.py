@@ -1,12 +1,15 @@
-from common.pipeline_settings import PipelineMoveChoicesMixin
-from common.last_activity import LastActivitySerializerMixin, ActivityListSerializer
-from common.pipeline_settings import PipelineRulesMixin, stages_for
-from common.rbac import VisibleCRMSerializerMixin
 from django.db.models import Sum
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from accounts.serializer import AccountSerializer
+from common.last_activity import ActivityListSerializer, LastActivitySerializerMixin
+from common.pipeline_settings import (
+    PipelineMoveChoicesMixin,
+    PipelineRulesMixin,
+    stages_for,
+)
+from common.rbac import VisibleCRMSerializerMixin
 from common.serializer import (
     OrganizationSerializer,
     ProfileSerializer,
@@ -131,15 +134,19 @@ class OpportunityLineItemCreateSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
-class OpportunitySerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer):
+class OpportunitySerializer(
+    VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer
+):
     """Serializer for reading Opportunity data"""
 
     stage_label = serializers.SerializerMethodField()
 
     def get_stage_label(self, obj):
-        cache = self.__dict__.setdefault('_pipeline_labels', {})
+        cache = self.__dict__.setdefault("_pipeline_labels", {})
         if obj.org_id not in cache:
-            cache[obj.org_id] = {s['key']: s['label'] for s in stages_for(obj.org, 'Opportunity')}
+            cache[obj.org_id] = {
+                s["key"]: s["label"] for s in stages_for(obj.org, "Opportunity")
+            }
         return cache[obj.org_id].get(obj.stage, obj.get_stage_display())
 
     lead_source_label = serializers.CharField(
@@ -240,7 +247,12 @@ class OpportunitySerializer(VisibleCRMSerializerMixin, LastActivitySerializerMix
 
 class OpportunityListSerializer(OpportunitySerializer):
     """List/card fields without unrelated detail panels or nested full records."""
-    from common.list_serializers import OwnerLabelSerializer, ContactLabelSerializer, AccountLabelSerializer
+
+    from common.list_serializers import (
+        AccountLabelSerializer,
+        ContactLabelSerializer,
+        OwnerLabelSerializer,
+    )
 
     assigned_to = OwnerLabelSerializer(read_only=True, many=True)
     contacts = ContactLabelSerializer(read_only=True, many=True)
@@ -248,8 +260,17 @@ class OpportunityListSerializer(OpportunitySerializer):
 
     class Meta(OpportunitySerializer.Meta):
         fields = tuple(
-            field for field in OpportunitySerializer.Meta.fields
-            if field not in ('org', 'teams', 'closed_by', 'line_items', 'line_items_total', 'created_on_arrow')
+            field
+            for field in OpportunitySerializer.Meta.fields
+            if field
+            not in (
+                "org",
+                "teams",
+                "closed_by",
+                "line_items",
+                "line_items_total",
+                "created_on_arrow",
+            )
         )
 
 
@@ -307,8 +328,12 @@ class OpportunityCreateSerializer(PipelineRulesMixin, serializers.ModelSerialize
         from contacts.models import Contact
 
         if "assigned_to" in self.initial_data:
-            ids = payload_id_list(self.initial_data.get("assigned_to") or [], "assigned_to")
-            if Profile.objects.filter(org=self.org, is_active=True, pk__in=ids).count() != len(set(ids)):
+            ids = payload_id_list(
+                self.initial_data.get("assigned_to") or [], "assigned_to"
+            )
+            if Profile.objects.filter(
+                org=self.org, is_active=True, pk__in=ids
+            ).count() != len(set(ids)):
                 errors["assigned_to"] = "Choose a deal owner from this organization."
         if "contacts" in self.initial_data:
             ids = payload_id_list(self.initial_data.get("contacts") or [], "contacts")

@@ -34,9 +34,20 @@
     body.set('additions', JSON.stringify(additions));
     body.set('removals', JSON.stringify(removals));
     try {
-      const response = await fetch('?/save', {method: 'POST', body, headers: {'x-sveltekit-action': 'true'}});
+      const response = await fetch('?/save', {
+        method: 'POST',
+        body,
+        headers: { 'x-sveltekit-action': 'true' }
+      });
       const result = deserialize(await response.text());
-      if (result.type !== 'success') throw new Error(String(result.type === 'failure' ? result.data?.error || 'Could not save. Your change was not applied.' : 'Could not save. Please reload and try again.'));
+      if (result.type !== 'success')
+        throw new Error(
+          String(
+            result.type === 'failure'
+              ? result.data?.error || 'Could not save. Your change was not applied.'
+              : 'Could not save. Please reload and try again.'
+          )
+        );
       revision = result.data.revision;
       drafts[target].stages = next;
       // Refresh shared configuration and counts only after the write succeeds.
@@ -60,11 +71,15 @@
     if (!input.reportValidity()) return;
     const value = field === 'percentage' ? Number(input.value) : input.value.trim();
     if (stage[field] === value) return;
-    const next = stages.map(row => row.key === stage.key ? {...row, [field]: value} : {...row});
-    void persist(next).then(ok => { if (!ok) input.value = String(stage[field]); });
+    const next = stages.map((row) =>
+      row.key === stage.key ? { ...row, [field]: value } : { ...row }
+    );
+    void persist(next).then((ok) => {
+      if (!ok) input.value = String(stage[field]);
+    });
   }
   function move(index, offset) {
-    const next = stages.map(stage => ({...stage}));
+    const next = stages.map((stage) => ({ ...stage }));
     [next[index], next[index + offset]] = [next[index + offset], next[index]];
     void persist(next);
   }
@@ -76,9 +91,12 @@
   }
   async function saveRules() {
     await tick();
-    const next = stages.map(stage => stage.key === expanded
-      ? {...stage, required_fields: [...requiredFields], allowed_from: [...allowedFrom]} : {...stage});
-    if (!await persist(next)) {
+    const next = stages.map((stage) =>
+      stage.key === expanded
+        ? { ...stage, required_fields: [...requiredFields], allowed_from: [...allowedFrom] }
+        : { ...stage }
+    );
+    if (!(await persist(next))) {
       requiredFields = [...selectedStage.required_fields];
       allowedFrom = [...selectedStage.allowed_from];
     }
@@ -86,18 +104,45 @@
   async function addStage(event) {
     event.preventDefault();
     const label = stageName.trim();
-    if (!label || stages.some(stage => stage.label.toLowerCase() === label.toLowerCase())) {
+    if (!label || stages.some((stage) => stage.label.toLowerCase() === label.toLowerCase())) {
       error = 'Choose a unique stage name.';
       return;
     }
-    const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 18) || 'stage';
+    const slug =
+      label
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_|_$/g, '')
+        .slice(0, 18) || 'stage';
     const key = 'custom_' + slug + '_' + crypto.randomUUID().slice(0, 6);
-    if (await persist([...stages, {key, label, percentage: stagePercentage, required_fields: [], allowed_from: [], record_count: 0, protected: false}], [key])) stagePanel = '';
+    if (
+      await persist(
+        [
+          ...stages,
+          {
+            key,
+            label,
+            percentage: stagePercentage,
+            required_fields: [],
+            allowed_from: [],
+            record_count: 0,
+            protected: false
+          }
+        ],
+        [key]
+      )
+    )
+      stagePanel = '';
   }
   async function removeStage(event) {
     event.preventDefault();
-    const next = stages.filter(stage => stage.key !== removing.key).map(stage => ({...stage, allowed_from: stage.allowed_from.filter(key => key !== removing.key)}));
-    if (await persist(next, [], {[removing.key]: destination || null})) {
+    const next = stages
+      .filter((stage) => stage.key !== removing.key)
+      .map((stage) => ({
+        ...stage,
+        allowed_from: stage.allowed_from.filter((key) => key !== removing.key)
+      }));
+    if (await persist(next, [], { [removing.key]: destination || null })) {
       removing = null;
       stagePanel = '';
     }
@@ -120,84 +165,109 @@
         {#each data.objects as object}<option value={object.value}>{object.label}</option>{/each}
       </select></label
     >
-    {#if data.can_edit}<button class="v2-btn v2-btn-primary add-stage" disabled={busy} onclick={() => {stageName = ''; stagePercentage = 0; error = ''; stagePanel = 'add';}}><Plus size={16} />Add stage</button>{/if}
+    {#if data.can_edit}<button
+        class="v2-btn v2-btn-primary add-stage"
+        disabled={busy}
+        onclick={() => {
+          stageName = '';
+          stagePercentage = 0;
+          error = '';
+          stagePanel = 'add';
+        }}><Plus size={16} />Add stage</button
+      >{/if}
   </div>
-    <div class="table-wrap">
-      <table>
-        <thead
-          ><tr
-            ><th>Order</th><th>Stage name</th><th>Internal name</th><th
-              >{target === 'Opportunity' ? 'Close probability' : 'Progress'}</th
-            ><th>Entry rules</th><th><span class="sr-only">Remove stage</span></th></tr
-          ></thead
-        >
-        <tbody>
-          {#each stages as stage, index (stage.key)}
-            <tr>
-              <td
-                ><div class="order">
-                  <span>{index + 1}</span><button
-                    type="button"
-                    class="v2-btn v2-btn-quiet"
-                    disabled={!data.can_edit || busy || index === 0}
-                    aria-label={`Move ${stage.label} up`}
-                    onclick={() => move(index, -1)}><ArrowUp size={14} /></button
-                  ><button
-                    type="button"
-                    class="v2-btn v2-btn-quiet"
-                    disabled={!data.can_edit || busy || index === stages.length - 1}
-                    aria-label={`Move ${stage.label} down`}
-                    onclick={() => move(index, 1)}><ArrowDown size={14} /></button
-                  >
-                </div></td
-              >
-              <td
-                ><input
-                  class="v2-input"
-                  aria-label={`Stage name ${stage.key}`}
-                  value={stage.label}
-                  onchange={(event) => editField(stage, 'label', event)}
-                  required
-                  maxlength="100"
-                  disabled={!data.can_edit || busy}
-                /></td
-              >
-              <td><code>{stage.key}</code></td>
-              <td
-                ><div class="percentage">
-                  <input
-                    class="v2-input"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    required
-                    aria-label={`Percentage ${stage.label}`}
-                    value={stage.percentage}
-                    onchange={(event) => editField(stage, 'percentage', event)}
-                    disabled={!data.can_edit || busy}
-                  /><span>%</span>
-                </div></td
-              >
-              <td
-                ><button
-                  class="v2-btn v2-btn-quiet"
+  <div class="table-wrap">
+    <table>
+      <thead
+        ><tr
+          ><th>Order</th><th>Stage name</th><th>Internal name</th><th
+            >{target === 'Opportunity' ? 'Close probability' : 'Progress'}</th
+          ><th>Entry rules</th><th><span class="sr-only">Remove stage</span></th></tr
+        ></thead
+      >
+      <tbody>
+        {#each stages as stage, index (stage.key)}
+          <tr>
+            <td
+              ><div class="order">
+                <span>{index + 1}</span><button
                   type="button"
-                  aria-haspopup="dialog"
-                  disabled={busy}
-                  onclick={() => openRules(stage)}
-                  >{stage.required_fields.length + stage.allowed_from.length
-                    ? `${stage.required_fields.length} required · ${stage.allowed_from.length || 'Any'} origin`
-                    : 'Configure'}<ChevronRight size={14} /></button
-                ></td
-              >
-              <td>{#if data.can_edit}<button type="button" class="v2-btn v2-btn-quiet" aria-label={`Remove ${stage.label}`} title={stage.protected ? 'System default stages cannot be removed' : 'Remove stage'} disabled={busy || stage.protected} onclick={() => {removing = stage; destination = ''; error = ''; stagePanel = 'remove';}}><Trash2 size={16}/></button>{/if}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-    {#if error}<p class="error" role="alert">{error}</p>{/if}
+                  class="v2-btn v2-btn-quiet"
+                  disabled={!data.can_edit || busy || index === 0}
+                  aria-label={`Move ${stage.label} up`}
+                  onclick={() => move(index, -1)}><ArrowUp size={14} /></button
+                ><button
+                  type="button"
+                  class="v2-btn v2-btn-quiet"
+                  disabled={!data.can_edit || busy || index === stages.length - 1}
+                  aria-label={`Move ${stage.label} down`}
+                  onclick={() => move(index, 1)}><ArrowDown size={14} /></button
+                >
+              </div></td
+            >
+            <td
+              ><input
+                class="v2-input"
+                aria-label={`Stage name ${stage.key}`}
+                value={stage.label}
+                onchange={(event) => editField(stage, 'label', event)}
+                required
+                maxlength="100"
+                disabled={!data.can_edit || busy}
+              /></td
+            >
+            <td><code>{stage.key}</code></td>
+            <td
+              ><div class="percentage">
+                <input
+                  class="v2-input"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  required
+                  aria-label={`Percentage ${stage.label}`}
+                  value={stage.percentage}
+                  onchange={(event) => editField(stage, 'percentage', event)}
+                  disabled={!data.can_edit || busy}
+                /><span>%</span>
+              </div></td
+            >
+            <td
+              ><button
+                class="v2-btn v2-btn-quiet"
+                type="button"
+                aria-haspopup="dialog"
+                disabled={busy}
+                onclick={() => openRules(stage)}
+                >{stage.required_fields.length + stage.allowed_from.length
+                  ? `${stage.required_fields.length} required · ${stage.allowed_from.length || 'Any'} origin`
+                  : 'Configure'}<ChevronRight size={14} /></button
+              ></td
+            >
+            <td
+              >{#if data.can_edit}<button
+                  type="button"
+                  class="v2-btn v2-btn-quiet"
+                  aria-label={`Remove ${stage.label}`}
+                  title={stage.protected
+                    ? 'System default stages cannot be removed'
+                    : 'Remove stage'}
+                  disabled={busy || stage.protected}
+                  onclick={() => {
+                    removing = stage;
+                    destination = '';
+                    error = '';
+                    stagePanel = 'remove';
+                  }}><Trash2 size={16} /></button
+                >{/if}</td
+            >
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
+  {#if error}<p class="error" role="alert">{error}</p>{/if}
 </div>
 
 {#if selectedStage}
@@ -218,9 +288,12 @@
           <div class="choices">
             {#each properties as property}
               <label
-                ><input type="checkbox" value={property.key} bind:group={requiredFields} onchange={saveRules} /><span
-                  >{property.label}<code>{property.key}</code></span
-                ></label
+                ><input
+                  type="checkbox"
+                  value={property.key}
+                  bind:group={requiredFields}
+                  onchange={saveRules}
+                /><span>{property.label}<code>{property.key}</code></span></label
               >
             {/each}
           </div>
@@ -234,7 +307,8 @@
                 ><input
                   type="checkbox"
                   value={source.key}
-                  bind:group={allowedFrom} onchange={saveRules}
+                  bind:group={allowedFrom}
+                  onchange={saveRules}
                 />{source.label}</label
               >
             {/each}
@@ -243,41 +317,118 @@
       </div>
       {#if error}<p class="panel-error" role="alert">{error}</p>{/if}
       <div class="panel-footer">
-        <button class="v2-btn" type="button" disabled={busy} onclick={() => {expanded = ''; error = '';}}>Close</button>
+        <button
+          class="v2-btn"
+          type="button"
+          disabled={busy}
+          onclick={() => {
+            expanded = '';
+            error = '';
+          }}>Close</button
+        >
       </div>
     </div>
   </TeamPanel>
 {/if}
 
 {#if stagePanel}
-  <TeamPanel title={stagePanel === 'add' ? 'Add stage' : 'Remove stage'} subtitle={data.objects.find(object => object.value === target)?.label} {busy} onclose={() => {stagePanel = ''; error = '';}}>
+  <TeamPanel
+    title={stagePanel === 'add' ? 'Add stage' : 'Remove stage'}
+    subtitle={data.objects.find((object) => object.value === target)?.label}
+    {busy}
+    onclose={() => {
+      stagePanel = '';
+      error = '';
+    }}
+  >
     <form class="panel-form" onsubmit={stagePanel === 'add' ? addStage : removeStage}>
       <fieldset class="panel-body stage-fields" disabled={busy}>
         {#if stagePanel === 'add'}
-          <label>Stage name<input class="v2-input" bind:value={stageName} required maxlength="100" /></label>
-          <label>{target === 'Opportunity' ? 'Close probability (%)' : 'Progress (%)'}<input class="v2-input" type="number" min="0" max="100" step="1" required bind:value={stagePercentage} /></label>
-          <p class="hint">An internal name is generated once and stays fixed. Configure entry rules after adding the stage.</p>
+          <label
+            >Stage name<input
+              class="v2-input"
+              bind:value={stageName}
+              required
+              maxlength="100"
+            /></label
+          >
+          <label
+            >{target === 'Opportunity' ? 'Close probability (%)' : 'Progress (%)'}<input
+              class="v2-input"
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              required
+              bind:value={stagePercentage}
+            /></label
+          >
+          <p class="hint">
+            An internal name is generated once and stays fixed. Configure entry rules after adding
+            the stage.
+          </p>
         {:else if removing}
           <p>Remove <strong>{removing.label}</strong> from this pipeline?</p>
-          <p class="hint">{removing.record_count || 0} records currently in this stage. Records will be moved, never deleted. References to this stage in entry rules will be removed. A rule left with no source stages allows entry from any stage.</p>
-          <label>Move records to<select class="v2-input" bind:value={destination} required={Boolean(removing.record_count)}>
-            <option value="">{removing.record_count ? 'Select a destination' : 'No records to move'}</option>
-            {#each stages.filter(stage => stage.key !== removing.key) as stage}<option value={stage.key}>{stage.label}</option>{/each}
-          </select></label>
-          <p class="hint">Destination requirements still apply. Confirming removes this stage and moves its records.</p>
+          <p class="hint">
+            {removing.record_count || 0} records currently in this stage. Records will be moved, never
+            deleted. References to this stage in entry rules will be removed. A rule left with no source
+            stages allows entry from any stage.
+          </p>
+          <label
+            >Move records to<select
+              class="v2-input"
+              bind:value={destination}
+              required={Boolean(removing.record_count)}
+            >
+              <option value=""
+                >{removing.record_count ? 'Select a destination' : 'No records to move'}</option
+              >
+              {#each stages.filter((stage) => stage.key !== removing.key) as stage}<option
+                  value={stage.key}>{stage.label}</option
+                >{/each}
+            </select></label
+          >
+          <p class="hint">
+            Destination requirements still apply. Confirming removes this stage and moves its
+            records.
+          </p>
         {/if}
         {#if error}<p class="error" role="alert">{error}</p>{/if}
       </fieldset>
-      <div class="panel-footer"><button class="v2-btn" type="button" disabled={busy} onclick={() => {stagePanel = ''; error = '';}}>Cancel</button><button class="v2-btn v2-btn-primary" disabled={busy}>{busy ? 'Saving…' : stagePanel === 'add' ? 'Add stage' : 'Remove stage'}</button></div>
+      <div class="panel-footer">
+        <button
+          class="v2-btn"
+          type="button"
+          disabled={busy}
+          onclick={() => {
+            stagePanel = '';
+            error = '';
+          }}>Cancel</button
+        ><button class="v2-btn v2-btn-primary" disabled={busy}
+          >{busy ? 'Saving…' : stagePanel === 'add' ? 'Add stage' : 'Remove stage'}</button
+        >
+      </div>
     </form>
   </TeamPanel>
 {/if}
 
 <style>
-  .add-stage { margin-left: auto; }
-  .stage-fields { display: grid; align-content: start; gap: 20px; padding: 24px; }
-  .stage-fields label { display: grid; gap: 8px; }
-  .stage-fields p { margin: 0; }
+  .add-stage {
+    margin-left: auto;
+  }
+  .stage-fields {
+    display: grid;
+    align-content: start;
+    gap: 20px;
+    padding: 24px;
+  }
+  .stage-fields label {
+    display: grid;
+    gap: 8px;
+  }
+  .stage-fields p {
+    margin: 0;
+  }
   .pipeline-settings {
     padding: 24px 30px;
   }

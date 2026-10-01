@@ -4,20 +4,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('contacts', '0019_contact_language'),
+        ("contacts", "0019_contact_language"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='contact',
-            name='first_name',
-            field=models.CharField(blank=True, max_length=255, verbose_name='First name'),
+            model_name="contact",
+            name="first_name",
+            field=models.CharField(
+                blank=True, max_length=255, verbose_name="First name"
+            ),
         ),
         migrations.AlterField(
-            model_name='contact',
-            name='stage',
-            field=models.CharField(blank=True, choices=[('LEAD', 'Lead'), ('FOLLOW_UP', 'Follow Up'), ('QUALIFIED', 'Qualified'), ('NOT_QUALIFIED', 'Not Qualified'), ('LOST', 'Lost')], default='LEAD', max_length=32, null=True),
+            model_name="contact",
+            name="stage",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("LEAD", "Lead"),
+                    ("FOLLOW_UP", "Follow Up"),
+                    ("QUALIFIED", "Qualified"),
+                    ("NOT_QUALIFIED", "Not Qualified"),
+                    ("LOST", "Lost"),
+                ],
+                default="LEAD",
+                max_length=32,
+                null=True,
+            ),
         ),
     ]

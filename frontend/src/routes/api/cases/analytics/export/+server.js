@@ -5,7 +5,6 @@ import { API_ORIGIN } from '$lib/server/api-origin.js';
  * because DRF's content negotiation eats `?format=`.
  */
 
-
 const API_BASE_URL = `${API_ORIGIN}/api`;
 
 /** @type {import('./$types').RequestHandler} */

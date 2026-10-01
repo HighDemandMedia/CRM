@@ -21,7 +21,13 @@ Cada organización configura sus formularios en **Settings → Channels & integr
 7. Copia **Connect to website → I already have a form** en la página. Pon `id="contact-form"` en el formulario, o cambia `data-form="#contact-form"` al selector que identifique exactamente ese formulario.
 8. Envía una consulta de prueba y revisa **Submissions**, el contacto, la campana de notificaciones y el correo de los destinatarios.
 
-El código mantiene el diseño del formulario, pero **se encarga de su envío**. Debes sustituir cualquier manejador de envío anterior. Si un formulario de una plataforma ya tiene procesamiento propio, integra el endpoint desde ese procesamiento; no añadas dos manejadores que compitan. El código se instala una sola vez por formulario.
+El código se instala una sola vez por formulario, antes de `</body>`, y mantiene su diseño. Elige el modo según quién procesa el envío:
+
+- **Copy / `data-mode="copy"`:** conserva el procesamiento, correo y página de gracias existentes. Intenta mandar una copia al CRM al pulsar enviar. No confirma que el procesamiento original haya terminado bien; una navegación, validación adicional o restricción del navegador puede impedir la copia. Comprueba siempre la pestaña Submissions durante la instalación.
+- **Managed / `data-mode="managed"`:** el CRM procesa el envío y muestra su confirmación o página de gracias. En este modo debes retirar el manejador anterior. No conserva automáticamente un correo de la web a `info@...`; configura los destinatarios en el CRM.
+- **Entrega confirmada desde tu servidor:** si la web ya procesa formularios y necesitas entrega fiable, haz el POST al CRM después de aceptar el formulario en ese servidor. Guarda un `request_id` y reintenta con el mismo ID si hay interrupciones. Confirma HTTP 200 y `status: "ok"` antes de marcarlo entregado. No dependas de la copia del navegador para esta garantía.
+
+El conector detecta formularios HTML añadidos después de cargar la página. Formularios dentro de otro iframe o Shadow DOM necesitan integrar el código dentro de ese contexto, o usar la entrega desde el servidor.
 
 También puedes copiar el iframe o el script del CRM para añadir un formulario nuevo a una página.
 
@@ -39,7 +45,7 @@ También puedes copiar el iframe o el script del CRM para añadir un formulario 
 
 - El conector solo recoge los campos mapeados del formulario seleccionado. No recoge contraseñas, archivos ni campos ocultos. Usa propiedades de texto, selecciones y casillas apropiadas al tipo de propiedad del CRM.
 - Incluye un campo señuelo y límites de frecuencia. Puedes configurar Cloudflare Turnstile por formulario; autoriza también los dominios de tu web en Turnstile.
-- Si falla la entrega, se conservan los datos escritos y se muestra un error. Cada envío lleva un identificador reutilizado al reintentar: los reintentos no generan otra entrada ni otro aviso dentro del CRM.
+- En modo Managed, si falla la entrega se conservan los datos escritos y se muestra un error. En Copy, el resultado original de la web sigue su curso; el conector emite `hdm:error` si no puede confirmar la copia y `hdm:submitted` cuando el CRM la acepta. Cada envío lleva un identificador reutilizado al reintentar.
 - Dos consultas distintas del mismo correo sí generan dos entradas de historial. La respuesta pública no revela si el contacto ya existía.
 - Los formularios existentes que creaban Leads conservan su destino. Los nuevos creados desde la interfaz crean Contacts.
 - “Views” y la conversión corresponden a los formularios incrustados del CRM. Los envíos de HTML externo cuentan como submissions, pero el conector no mide vistas de la página.

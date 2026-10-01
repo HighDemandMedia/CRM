@@ -6,26 +6,32 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('accounts', '0015_account_communication_channel'),
-        ('common', '0061_retire_contact_marketing_property'),
-        ('contacts', '0020_optional_record_properties'),
+        ("accounts", "0015_account_communication_channel"),
+        ("common", "0061_retire_contact_marketing_property"),
+        ("contacts", "0020_optional_record_properties"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.RemoveConstraint(
-            model_name='account',
-            name='unique_account_name_per_org',
+            model_name="account",
+            name="unique_account_name_per_org",
         ),
         migrations.AlterField(
-            model_name='account',
-            name='name',
-            field=models.CharField(blank=True, max_length=255, verbose_name='Account Name'),
+            model_name="account",
+            name="name",
+            field=models.CharField(
+                blank=True, max_length=255, verbose_name="Account Name"
+            ),
         ),
         migrations.AddConstraint(
-            model_name='account',
-            constraint=models.UniqueConstraint(django.db.models.functions.text.Lower('name'), models.F('org'), condition=models.Q(('name', ''), _negated=True), name='unique_account_name_per_org'),
+            model_name="account",
+            constraint=models.UniqueConstraint(
+                django.db.models.functions.text.Lower("name"),
+                models.F("org"),
+                condition=models.Q(("name", ""), _negated=True),
+                name="unique_account_name_per_org",
+            ),
         ),
     ]

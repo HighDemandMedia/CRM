@@ -1,5 +1,3 @@
-from common.pipeline_settings import validate_entry
-from rest_framework.exceptions import ValidationError as PipelineValidationError
 """Bulk update / bulk delete endpoints for the Cases module."""
 
 import uuid
@@ -7,6 +5,7 @@ import uuid
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from rest_framework import status
+from rest_framework.exceptions import ValidationError as PipelineValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,6 +14,7 @@ from cases.access import has_case_write_access, is_org_admin
 from cases.models import Case
 from common.models import Activity, Profile, Tags
 from common.permissions import HasOrgContext
+from common.pipeline_settings import validate_entry
 
 ALLOWED_FIELDS = {"status", "priority", "case_type", "closed_on"}
 ALLOWED_M2M = {"assigned_to": Profile, "tags": Tags}
@@ -169,7 +169,9 @@ class BulkUpdateCasesView(APIView):
                         else:
                             manager.set(related)
             except PipelineValidationError as exc:
-                results.append({"id": str(case.pk), "status": "blocked", "errors": exc.detail})
+                results.append(
+                    {"id": str(case.pk), "status": "blocked", "errors": exc.detail}
+                )
                 continue
             except ValidationError as exc:
                 results.append(_close_gate_outcome(str(case.pk), exc))

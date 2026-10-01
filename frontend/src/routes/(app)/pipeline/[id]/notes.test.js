@@ -6,12 +6,22 @@ beforeEach(() => vi.clearAllMocks());
 async function addNote(comment) {
   const form = new FormData();
   form.set('comment', comment);
-  return actions.note(/** @type {any} */ ({ cookies: {}, params: { id: 'deal-id' }, request: { formData: async () => form } }));
+  return actions.note(
+    /** @type {any} */ ({
+      cookies: {},
+      params: { id: 'deal-id' },
+      request: { formData: async () => form }
+    })
+  );
 }
 it('creates a separate note without overwriting the description', async () => {
   vi.mocked(apiRequest).mockResolvedValue({});
   expect(await addNote(' Follow up tomorrow ')).toEqual({ noted: true });
-  expect(apiRequest).toHaveBeenCalledWith('/opportunities/deal-id/', { method: 'POST', body: { comment: 'Follow up tomorrow' } }, { cookies: {} });
+  expect(apiRequest).toHaveBeenCalledWith(
+    '/opportunities/deal-id/',
+    { method: 'POST', body: { comment: 'Follow up tomorrow' } },
+    { cookies: {} }
+  );
 });
 it('rejects empty notes', async () => {
   const result = /** @type {any} */ (await addNote('   '));

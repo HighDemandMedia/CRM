@@ -1,9 +1,9 @@
 from django.urls import path
 
 from contacts import import_views, views
+from contacts.association_views import ContactAssociationView
 from contacts.duplicates import ContactDuplicatesView
 from contacts.merge_views import ContactMergeView
-from contacts.association_views import ContactAssociationView
 
 app_name = "api_contacts"
 

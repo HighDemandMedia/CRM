@@ -212,14 +212,6 @@
               <div class="v2-bar"><i style="width:{share}%"></i></div>
             </div>
           {/each}
-
-          {#if data.byType.find((t) => t.case_type === 'Question')}
-            <p class="v2-sub" style="font-size:11.5px;margin:16px 0 0">
-              <a href={resolve('/solutions')} style="color:inherit">
-                {data.byType.find((t) => t.case_type === 'Question').count} questions in this window
-              </a>. The ones that repeat belong in the knowledge base.
-            </p>
-          {/if}
         </div>
       </div>
 
@@ -279,14 +271,9 @@
           {#if totals.business_hours_applied}
             Elapsed time is counted inside {totals.calendar_name}, so evenings, weekends and
             holidays do not count against a target.
-            <a href={resolve('/settings/business-hours')} style="color:inherit"
-              >Change the calendar</a
-            >.
           {:else}
             Elapsed time is counted around the clock, no business-hours calendar is set, so evenings
             and weekends count against a target.
-            <a href={resolve('/settings/business-hours')} style="color:inherit">Set up a calendar</a
-            >.
           {/if}
         </p>
       </div>

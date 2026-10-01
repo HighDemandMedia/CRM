@@ -60,7 +60,12 @@
   }
 </script>
 
-{#if can(page.data.permissions,{contact:'contacts',company:'companies',deal:'deals'}[kind],'delete')}<button class="v2-btn delete-trigger" class:in-flow={inFlow} type="button" onclick={open}>Delete</button>{/if}
+{#if can(page.data.permissions, { contact: 'contacts', company: 'companies', deal: 'deals' }[kind], 'delete')}<button
+    class="v2-btn delete-trigger"
+    class:in-flow={inFlow}
+    type="button"
+    onclick={open}>Delete</button
+  >{/if}
 <dialog
   bind:this={dialog}
   aria-labelledby={`delete-${kind}-title`}
@@ -99,8 +104,9 @@
         {#each impact.counts as item}<li>{item.label}: <strong>{item.count}</strong></li>{/each}
       </ul>
       <p>
-        Invoices, estimates and recurring invoices are kept with their stored details. Associations to surviving records will be removed. Any calendar events that survive will
-        lose their link to this record.
+        Invoices, estimates and recurring invoices are kept with their stored details. Associations
+        to surviving records will be removed. Any calendar events that survive will lose their link
+        to this record.
       </p>
       <label
         >Type <strong>{impact.name || impact.id}</strong> to confirm<input
@@ -206,7 +212,15 @@
     color: #b42318;
   }
   @media (max-width: 767px) {
-    .delete-trigger { bottom: 76px; right: 82px; }
+    .delete-trigger {
+      bottom: 76px;
+      right: 82px;
+    }
   }
-  .delete-trigger.in-flow { position: static; display: flex; margin: 28px 0 0 auto; width: fit-content; }
+  .delete-trigger.in-flow {
+    position: static;
+    display: flex;
+    margin: 28px 0 0 auto;
+    width: fit-content;
+  }
 </style>

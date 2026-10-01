@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('opportunity', '0021_optional_record_properties'),
+        ("opportunity", "0021_optional_record_properties"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='opportunity',
-            name='name',
-            field=models.CharField(max_length=255, verbose_name='Opportunity Name'),
+            model_name="opportunity",
+            name="name",
+            field=models.CharField(max_length=255, verbose_name="Opportunity Name"),
         ),
     ]

@@ -25,7 +25,13 @@
   let { data, form } = $props();
 
   let { deal, lineItems, contacts } = $derived(data);
-  let stageOptions = $derived(configuredStages(page.data.pipelineConfig, 'Opportunity', STAGES.map(value => ({value,label:STAGE_LABEL[value]}))));
+  let stageOptions = $derived(
+    configuredStages(
+      page.data.pipelineConfig,
+      'Opportunity',
+      STAGES.map((value) => ({ value, label: STAGE_LABEL[value] }))
+    )
+  );
 
   /**
    * The discount is per line item: `OpportunityLineItem.save()` computes
@@ -185,7 +191,9 @@
         }}
       />
     {:else}
-      <PropertySummary target="Opportunity" record={deal}
+      <PropertySummary
+        target="Opportunity"
+        record={deal}
         tags={deal.tags}
         entries={[
           ['Name', deal.name],
@@ -195,7 +203,7 @@
           ['Tags', deal.tags?.map((t) => t.name).join(', ') || '—'],
           ['Amount', deal.amount != null ? money(deal.amount, deal.currency) : '—'],
           ['Language', deal.language || '—'],
-          ['Stage', stageOptions.find(s => s.value === deal.stage)?.label || '—'],
+          ['Stage', stageOptions.find((s) => s.value === deal.stage)?.label || '—'],
           ['Close date', deal.closed_on ? longDate(deal.closed_on) : '—'],
           ['Deal owner', deal.owner || '—'],
           ['Priority', deal.priority_label || '—'],

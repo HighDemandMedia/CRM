@@ -1,5 +1,6 @@
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+
 from accounts.models import Account
 
 

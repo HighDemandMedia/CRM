@@ -1,10 +1,3 @@
-from common.pipeline_board import pipeline_board
-from common.pipeline_settings import stages_for
-from common.last_activity import with_last_activity
-from common.rbac import configured, permitted
-from common.money_totals import money_totals
-from common.models import Activity
-from common.calendar_filters import filter_calendar
 import json
 from decimal import Decimal, InvalidOperation
 
@@ -43,11 +36,11 @@ from rest_framework.views import APIView
 from accounts import access, swagger_params
 from accounts.choices import COMPANY_INDUSTRIES
 from accounts.models import Account
-from accounts.serializer import AccountListSerializer
 from accounts.serializer import (
     AccountCommentEditSwaggerSerializer,
     AccountCreateSerializer,
     AccountDetailEditSwaggerSerializer,
+    AccountListSerializer,
     AccountSerializer,
     AccountWriteSerializer,
     EmailSerializer,
@@ -58,9 +51,12 @@ from accounts.tasks import send_email, send_email_to_assigned_user
 from cases.models import Case
 from cases.serializer import CaseSerializer
 from cases.workflow import TERMINAL_STATUSES
+from common.calendar_filters import filter_calendar
 from common.custom_fields import validate_payload as validate_custom_fields_payload
+from common.last_activity import with_last_activity
 from common.lookups import get_scoped_or_404
 from common.models import (
+    Activity,
     Attachments,
     Comment,
     CustomFieldDefinition,
@@ -68,7 +64,11 @@ from common.models import (
     Tags,
     Teams,
 )
+from common.money_totals import money_totals
 from common.permissions import HasOrgContext, is_org_admin
+from common.pipeline_board import pipeline_board
+from common.pipeline_settings import stages_for
+from common.rbac import configured
 from common.serializer import (
     AttachmentsSerializer,
     CommentSerializer,
@@ -89,13 +89,9 @@ from common.utils import (
     handle_m2m_assignment,
 )
 from common.validators import date_param, payload_id_list, uuid_list_param
-from contacts.choices import CONTACT_SOURCES, CONTACT_STAGES
+from contacts.choices import CONTACT_SOURCES
 from contacts.models import Contact
 from contacts.serializer import ContactSerializer
-from invoices.models import UNPAID_STATUSES, Invoice
-from invoices.serializer import InvoiceListSerializer
-from leads.models import Lead
-from leads.serializer import LeadSerializer
 from opportunity.models import Opportunity
 from opportunity.serializer import OpportunitySerializer
 from opportunity.workflow import CLOSED_STAGES
@@ -112,7 +108,6 @@ ROLLUP_FIELDS = (
     "won_count",
     "open_pipeline",
     "open_deal_count",
-    "overdue_amount",
     "overdue_deal_count",
     "open_tickets",
     "first_won_on",
@@ -134,7 +129,8 @@ def _per_account(model, aggregate, output_field, exclude=None, **filters):
     a reader of the page, and should.
     """
     return Subquery(
-        model.objects.filter(account=OuterRef("pk"), **filters).exclude(**(exclude or {}))
+        model.objects.filter(account=OuterRef("pk"), **filters)
+        .exclude(**(exclude or {}))
         .values("account")
         .annotate(value=aggregate)
         .values("value")[:1],
@@ -163,11 +159,6 @@ def annotate_rollups(queryset):
     zero = Decimal("0")
     won = {"stage": "CLOSED_WON"}
     unclosed = {"exclude": {"stage__in": CLOSED_STAGES}}
-    past_due = {
-        "status__in": UNPAID_STATUSES,
-        "due_date__lt": timezone.localdate(),
-        "amount_due__gt": 0,
-    }
 
     return queryset.annotate(
         # Booked revenue: deals actually won. Not cash collected; the invoices
@@ -187,16 +178,22 @@ def annotate_rollups(queryset):
         # Past due and still owed. The due date is the fact; the "Overdue"
         # status is a nightly task's opinion about that fact, and can be a day
         # behind it. See UNPAID_STATUSES.
-        overdue_amount=Coalesce(
-            _per_account(Invoice, Sum("amount_due"), MONEY, **past_due), zero
-        ),
         overdue_deal_count=Coalesce(
-            _per_account(Opportunity, Count("id"), IntegerField(),
-                         exclude={"stage__in": CLOSED_STAGES}, closed_on__lt=timezone.localdate()), 0
+            _per_account(
+                Opportunity,
+                Count("id"),
+                IntegerField(),
+                exclude={"stage__in": CLOSED_STAGES},
+                closed_on__lt=timezone.localdate(),
+            ),
+            0,
         ),
         open_tickets=Coalesce(
             _per_account(
-                Case, Count("id"), IntegerField(), exclude={"status__in": TERMINAL_STATUSES}
+                Case,
+                Count("id"),
+                IntegerField(),
+                exclude={"status__in": TERMINAL_STATUSES},
             ),
             0,
         ),
@@ -221,7 +218,9 @@ class AccountsListView(APIView, LimitOffsetPagination):
             .select_related("org", "created_by")
             .prefetch_related("assigned_to__user", "contacts", "tags")
         )
-        if not configured(self.request.profile) and not is_org_admin(self.request.profile):
+        if not configured(self.request.profile) and not is_org_admin(
+            self.request.profile
+        ):
             queryset = queryset.filter(
                 Q(created_by=self.request.profile.user)
                 | Q(assigned_to=self.request.profile)
@@ -351,7 +350,13 @@ class AccountsListView(APIView, LimitOffsetPagination):
             expression = (
                 F(sort)
                 if sort
-                in {"number_of_employees", "annual_revenue", "created_at", "updated_at", "last_activity_at"}
+                in {
+                    "number_of_employees",
+                    "annual_revenue",
+                    "created_at",
+                    "updated_at",
+                    "last_activity_at",
+                }
                 else Lower(sort)
             )
         elif sort == "owner":
@@ -381,7 +386,13 @@ class AccountsListView(APIView, LimitOffsetPagination):
                 else ("country", COUNTRIES)
             )
             if sort == "stage_label":
-                field, choices = "stage", [(s["key"], s["label"]) for s in stages_for(self.request.profile.org, "Account")]
+                field, choices = (
+                    "stage",
+                    [
+                        (s["key"], s["label"])
+                        for s in stages_for(self.request.profile.org, "Account")
+                    ],
+                )
             expression = Lower(
                 SortCase(
                     *[
@@ -409,16 +420,40 @@ class AccountsListView(APIView, LimitOffsetPagination):
             context["money_totals"] = money_totals(queryset_active, "annual_revenue")
         if params.get("board") == "true":
             contacts = Contact.objects.filter(org=self.request.profile.org)
-            if not configured(self.request.profile) and not is_org_admin(self.request.profile):
-                contacts = contacts.filter(Q(created_by=self.request.profile.user) | Q(assigned_to=self.request.profile)).distinct()
-            context.update({
-                "board": pipeline_board(queryset_active, self.request, AccountListSerializer,
-                                        lambda qs: money_totals(qs, "annual_revenue")),
-                "active_accounts": {"open_accounts": [], "open_accounts_count": queryset_active.distinct().count()},
-                "closed_accounts": {"close_accounts": [], "close_accounts_count": queryset.filter(is_active=False).distinct().count()},
-                "contacts": list(contacts.values("id", "first_name", "last_name", "email")) if params.get("include_choices") != "false" else [],
-                "countries": COUNTRIES, "industries": COMPANY_INDUSTRIES,
-            })
+            if not configured(self.request.profile) and not is_org_admin(
+                self.request.profile
+            ):
+                contacts = contacts.filter(
+                    Q(created_by=self.request.profile.user)
+                    | Q(assigned_to=self.request.profile)
+                ).distinct()
+            context.update(
+                {
+                    "board": pipeline_board(
+                        queryset_active,
+                        self.request,
+                        AccountListSerializer,
+                        lambda qs: money_totals(qs, "annual_revenue"),
+                    ),
+                    "active_accounts": {
+                        "open_accounts": [],
+                        "open_accounts_count": queryset_active.distinct().count(),
+                    },
+                    "closed_accounts": {
+                        "close_accounts": [],
+                        "close_accounts_count": queryset.filter(is_active=False)
+                        .distinct()
+                        .count(),
+                    },
+                    "contacts": list(
+                        contacts.values("id", "first_name", "last_name", "email")
+                    )
+                    if params.get("include_choices") != "false"
+                    else [],
+                    "countries": COUNTRIES,
+                    "industries": COMPANY_INDUSTRIES,
+                }
+            )
             return context
         results_accounts_active = self.paginate_queryset(
             queryset_active.distinct(), self.request, view=self
@@ -431,7 +466,11 @@ class AccountsListView(APIView, LimitOffsetPagination):
                 offset = None
         else:
             offset = 0
-        serializer_class = AccountListSerializer if params.get("compact") == "true" else AccountSerializer
+        serializer_class = (
+            AccountListSerializer
+            if params.get("compact") == "true"
+            else AccountSerializer
+        )
         accounts_active = serializer_class(results_accounts_active, many=True).data
         context["per_page"] = 10
         page_number = int(self.offset / 10) + 1
@@ -468,7 +507,9 @@ class AccountsListView(APIView, LimitOffsetPagination):
         member_scope = Q(created_by=self.request.profile.user) | Q(
             assigned_to=self.request.profile
         )
-        narrow_to_member = not configured(self.request.profile) and not is_org_admin(self.request.profile)
+        narrow_to_member = not configured(self.request.profile) and not is_org_admin(
+            self.request.profile
+        )
 
         contact_qs = Contact.objects.filter(org=self.request.profile.org)
         if narrow_to_member:
@@ -500,12 +541,6 @@ class AccountsListView(APIView, LimitOffsetPagination):
             is_active=True, org=self.request.profile.org
         ).values("id", "user__email", "user__name")
         context["users"] = users
-        leads = Lead.objects.filter(org=self.request.profile.org).exclude(
-            Q(status="converted") | Q(status="closed")
-        )
-        if narrow_to_member:
-            leads = leads.filter(member_scope).distinct()
-        context["leads"] = LeadSerializer(leads, many=True).data
         context["status"] = ["active", "inactive"]  # Maps to is_active field
         return context
 
@@ -754,7 +789,9 @@ class AccountDetailView(APIView):
     )
     def delete(self, request, pk, format=None):
         self.object = self.get_object(pk)
-        if not configured(self.request.profile) and not is_org_admin(self.request.profile):
+        if not configured(self.request.profile) and not is_org_admin(
+            self.request.profile
+        ):
             if self.request.profile.user_id != self.object.created_by_id:
                 return Response(
                     {
@@ -820,9 +857,6 @@ class AccountDetailView(APIView):
                 users_mention = []
         else:
             users_mention = []
-        leads = Lead.objects.filter(org=self.request.profile.org).exclude(
-            Q(status="converted") | Q(status="closed")
-        )
         account_content_type = ContentType.objects.get_for_model(Account)
         comments = Comment.objects.filter(
             content_type=account_content_type,
@@ -835,8 +869,18 @@ class AccountDetailView(APIView):
             org=self.request.profile.org,
         ).order_by("-id")
         context["history"] = [
-            {"id":str(entry.pk),"created_at":entry.created_at,"actor":entry.metadata.get("actor"),"description":entry.description}
-            for entry in Activity.objects.filter(org=self.request.profile.org, entity_type="Account", entity_id=self.account.id, action__in=["UPDATE", "ASSIGN"]).order_by("-created_at","-id")
+            {
+                "id": str(entry.pk),
+                "created_at": entry.created_at,
+                "actor": entry.metadata.get("actor"),
+                "description": entry.description,
+            }
+            for entry in Activity.objects.filter(
+                org=self.request.profile.org,
+                entity_type="Account",
+                entity_id=self.account.id,
+                action__in=["UPDATE", "ASSIGN"],
+            ).order_by("-created_at", "-id")
         ]
         context.update(
             {
@@ -871,14 +915,10 @@ class AccountDetailView(APIView):
                 "tasks": TaskSerializer(
                     self.account.accounts_tasks.all(), many=True
                 ).data,
-                "invoices": InvoiceListSerializer(
-                    self.account.invoices.all(), many=True
-                ).data,
                 "emails": EmailSerializer(
                     self.account.sent_email.all(), many=True
                 ).data,
                 "users_mention": users_mention,
-                "leads": LeadSerializer(leads, many=True).data,
                 "status": ["open", "close"],
             }
         )
@@ -1159,6 +1199,7 @@ class AccountAttachmentView(APIView):
     @extend_schema(tags=["Accounts"], parameters=swagger_params.organization_params)
     def delete(self, request, pk, format=None):
         from common.views.attachment_views import delete_attachment
+
         return delete_attachment(request, pk, expected_model="account")
 
 

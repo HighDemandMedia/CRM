@@ -363,6 +363,7 @@ class TestAttachmentDeleteIsScoped:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert Attachments.objects.filter(id=their_attachment.id).exists()
 
+    @pytest.mark.usefixtures("attachment_delete_role")
     def test_the_uploader_can_delete_their_own(
         self, user_client, contact, regular_user, org_a
     ):

@@ -16,8 +16,14 @@
     '/tickets/new': ['New ticket', () => import('../../../routes/(app)/tickets/new/+page.svelte')]
   };
   const editors = {
-    contacts: ['Edit contact', () => import('../../../routes/(app)/contacts/[id]/edit/+page.svelte')],
-    accounts: ['Edit company', () => import('../../../routes/(app)/accounts/[id]/edit/+page.svelte')],
+    contacts: [
+      'Edit contact',
+      () => import('../../../routes/(app)/contacts/[id]/edit/+page.svelte')
+    ],
+    accounts: [
+      'Edit company',
+      () => import('../../../routes/(app)/accounts/[id]/edit/+page.svelte')
+    ],
     pipeline: ['Edit deal', () => import('../../../routes/(app)/pipeline/[id]/edit/+page.svelte')],
     tasks: ['Edit task', () => import('../../../routes/(app)/tasks/[id]/edit/+page.svelte')],
     tickets: ['Edit ticket', () => import('../../../routes/(app)/tickets/[id]/edit/+page.svelte')]
@@ -31,8 +37,7 @@
     const key = path.replace(/\/$/, '');
     if (routes[key]) return routes[key];
     const match = key.match(/^\/(contacts|accounts|pipeline|tasks|tickets)\/[0-9a-f-]{36}\/edit$/i);
-    if (match && page.url.pathname.replace(/\/$/, '') === `/${match[1]}`)
-      return editors[match[1]];
+    if (match && page.url.pathname.replace(/\/$/, '') === `/${match[1]}`) return editors[match[1]];
     return null;
   }
   async function open(url) {
@@ -55,8 +60,7 @@
   beforeNavigate((navigation) => {
     if (navigation.type === 'popstate' || navigation.willUnload) return;
     const target = navigation.to?.url;
-    if (!target || target.origin !== page.url.origin || !formRoute(target.pathname))
-      return;
+    if (!target || target.origin !== page.url.origin || !formRoute(target.pathname)) return;
     navigation.cancel();
     if (!panel && !loading) void open(target);
   });

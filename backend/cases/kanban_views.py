@@ -1,10 +1,9 @@
-from common.pipeline_settings import stages_for
-from copy import copy
-from common.pipeline_settings import validate_entry
 """
 Kanban views for case management.
 Supports both status-based (default) and custom pipeline-based kanban boards.
 """
+
+from copy import copy
 
 from django.db import transaction
 from django.db.models import Q
@@ -25,7 +24,7 @@ from cases.serializer import (
 )
 from common.kanban import place_in_column
 from common.permissions import HasOrgContext, is_org_admin
-from common.utils import STATUS_CHOICE
+from common.pipeline_settings import stages_for, validate_entry
 from common.validators import date_param, uuid_param
 
 
@@ -154,8 +153,8 @@ class CaseKanbanView(APIView):
         }
 
         columns = []
-        for configured_stage in stages_for(self.request.profile.org, 'Case'):
-            status_value, label = configured_stage['key'], configured_stage['label']
+        for configured_stage in stages_for(self.request.profile.org, "Case"):
+            status_value, label = configured_stage["key"], configured_stage["label"]
             config = status_config.get(
                 status_value, {"order": 99, "color": "#6B7280", "type": "open"}
             )
@@ -294,7 +293,7 @@ class CaseMoveView(APIView):
         # Calculate new order
         # `case.stage`/`case.status` are already the destination by this
         # point, so the column queryset describes where the card is landing.
-        validate_entry(org, 'Case', previous, {'status': case.status})
+        validate_entry(org, "Case", previous, {"status": case.status})
         case.kanban_order = place_in_column(
             self._column_qs(case, org),
             above_id=data.get("above_case_id"),

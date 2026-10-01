@@ -1,12 +1,11 @@
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+
 from opportunity.models import Opportunity
 
 
 @pytest.mark.django_db
-def test_deal_upload_list_and_download(
-    admin_client, org_a, org_b, settings, tmp_path
-):
+def test_deal_upload_list_and_download(admin_client, org_a, org_b, settings, tmp_path):
     settings.MEDIA_ROOT = str(tmp_path)
     account = Opportunity.objects.create(name="Attachment test", org=org_a)
     url = f"/api/opportunities/{account.pk}/"

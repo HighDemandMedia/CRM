@@ -1,8 +1,14 @@
 <script>
-  import StageRuleNotice from "$lib/components/pipelines/StageRuleNotice.svelte";
-  import { page } from "$app/state";
-  import { configuredStages } from "$lib/v2/pipeline-config.js";
-  const statusOptions = $derived(configuredStages(page.data.pipelineConfig, "Task", ["New", "In Progress", "Completed"].map(value => ({value,label:value}))));
+  import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
+  import { page } from '$app/state';
+  import { configuredStages } from '$lib/v2/pipeline-config.js';
+  const statusOptions = $derived(
+    configuredStages(
+      page.data.pipelineConfig,
+      'Task',
+      ['New', 'In Progress', 'Completed'].map((value) => ({ value, label: value }))
+    )
+  );
   import TaskReminder from '$lib/components/tasks/TaskReminder.svelte';
   import TaskAssignees from '$lib/components/tasks/TaskAssignees.svelte';
   import TaskParent from '$lib/components/tasks/TaskParent.svelte';
@@ -51,8 +57,8 @@
     class="v2-pad"
     style="padding-top:18px;padding-bottom:36px;max-width:62ch;margin-left:auto;margin-right:auto"
   >
-    <StageRuleNotice issue={form?.stageRequirements}/>
-{#if form?.error && !form?.stageRequirements}
+    <StageRuleNotice issue={form?.stageRequirements} />
+    {#if form?.error && !form?.stageRequirements}
       <p style="color:var(--v2-rust);font-size:12.5px;margin:0 0 14px" role="alert">{form.error}</p>
     {/if}
 
@@ -67,7 +73,8 @@
     <div style="display:flex;gap:12px;flex-wrap:wrap">
       <label class="v2-field" style="flex:1;min-width:150px">
         <span class="v2-label">Priority</span>
-        <select class="v2-input" name="priority" value={values.priority ?? 'Medium'}><option value="">None</option>
+        <select class="v2-input" name="priority" value={values.priority ?? 'Medium'}
+          ><option value="">None</option>
           <option value="Low">Low</option>
           <option value="Medium">Medium</option>
           <option value="High">High</option>

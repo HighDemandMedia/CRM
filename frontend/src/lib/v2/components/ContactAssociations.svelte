@@ -19,7 +19,14 @@
           ? 'Tickets'
           : 'Contacts'
   );
-  const editable = $derived(kind !== 'ticket' && can(page.data.permissions,{contact:'contacts',company:'companies',deal:'deals'}[parentKind],'associations'));
+  const editable = $derived(
+    kind !== 'ticket' &&
+      can(
+        page.data.permissions,
+        { contact: 'contacts', company: 'companies', deal: 'deals' }[parentKind],
+        'associations'
+      )
+  );
   let adding = $state(false),
     search = $state(''),
     results = $state(/** @type {any[]} */ ([])),

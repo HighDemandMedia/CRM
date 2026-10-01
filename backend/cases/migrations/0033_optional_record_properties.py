@@ -4,25 +4,45 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('cases', '0032_number_tickets_with_tenant_context'),
+        ("cases", "0032_number_tickets_with_tenant_context"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='case',
-            name='name',
-            field=models.CharField(blank=True, max_length=64, verbose_name='Name'),
+            model_name="case",
+            name="name",
+            field=models.CharField(blank=True, max_length=64, verbose_name="Name"),
         ),
         migrations.AlterField(
-            model_name='case',
-            name='priority',
-            field=models.CharField(blank=True, choices=[('Low', 'Low'), ('Normal', 'Normal'), ('High', 'High'), ('Urgent', 'Urgent')], max_length=64),
+            model_name="case",
+            name="priority",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("Low", "Low"),
+                    ("Normal", "Normal"),
+                    ("High", "High"),
+                    ("Urgent", "Urgent"),
+                ],
+                max_length=64,
+            ),
         ),
         migrations.AlterField(
-            model_name='case',
-            name='status',
-            field=models.CharField(choices=[('New', 'New'), ('Assigned', 'In Progress'), ('Pending', 'Waiting'), ('Resolved', 'Resolved'), ('Closed', 'Closed'), ('Rejected', 'Rejected'), ('Duplicate', 'Duplicate')], default='New', max_length=64),
+            model_name="case",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("New", "New"),
+                    ("Assigned", "In Progress"),
+                    ("Pending", "Waiting"),
+                    ("Resolved", "Resolved"),
+                    ("Closed", "Closed"),
+                    ("Rejected", "Rejected"),
+                    ("Duplicate", "Duplicate"),
+                ],
+                default="New",
+                max_length=64,
+            ),
         ),
     ]

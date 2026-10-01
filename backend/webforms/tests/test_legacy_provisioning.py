@@ -44,40 +44,14 @@ def api_setting(org_a, admin_user):
 
 
 @pytest.mark.django_db
-class TestKeysMintedAfterTheMigration:
-    @pytest.fixture(autouse=True)
-    def _platform_owner(self, admin_user):
-        admin_user.is_superuser = True
-        admin_user.save(update_fields=["is_superuser"])
+@pytest.mark.parametrize("url", [SITE_URL, SETTINGS_URL])
+def test_retired_key_endpoints_cannot_create_records(admin_client, org_a, url):
+    from leads.models import Lead
 
-    def test_a_key_created_through_the_settings_api_captures_a_lead(
-        self, admin_client, org_a
-    ):
-        """The regression in full. Creating a key through the screen that
-        exists for it, then posting to the endpoint it exists for, answered
-        409 'not configured for lead capture'."""
-        created = admin_client.post(
-            SETTINGS_URL,
-            {"title": "My site", "website": "https://example.com"},
-            format="json",
-        )
-        assert created.status_code in (200, 201)
-        setting = APISettings.objects.get(org=org_a)
-
-        response = admin_client.post(
-            SITE_URL,
-            {"apikey": setting.apikey, "email": "visitor@example.com"},
-            format="json",
-        )
-        assert response.status_code == 200, response.data
-
-    def test_a_key_created_in_the_orm_captures_a_lead(self, admin_client, api_setting):
-        response = admin_client.post(
-            SITE_URL,
-            {"apikey": api_setting.apikey, "email": "orm@example.com"},
-            format="json",
-        )
-        assert response.status_code == 200, response.data
+    before = Lead.objects.filter(org=org_a).count()
+    response = admin_client.post(url, {"email": "visitor@example.com"}, format="json")
+    assert response.status_code == 404
+    assert Lead.objects.filter(org=org_a).count() == before
 
 
 @pytest.mark.django_db

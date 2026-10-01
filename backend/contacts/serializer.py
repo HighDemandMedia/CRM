@@ -1,9 +1,9 @@
-from common.last_activity import LastActivitySerializerMixin, ActivityListSerializer
-from common.pipeline_settings import PipelineRulesMixin, stages_for
-from common.rbac import VisibleCRMSerializerMixin
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from common.last_activity import ActivityListSerializer, LastActivitySerializerMixin
+from common.pipeline_settings import PipelineRulesMixin, stages_for
+from common.rbac import VisibleCRMSerializerMixin
 from common.serializer import (
     AttachmentsSerializer,
     OrganizationSerializer,
@@ -18,7 +18,9 @@ from contacts.models import Contact
 # - created_on_arrow (frontend computes its own humanized timestamps)
 
 
-class ContactSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer):
+class ContactSerializer(
+    VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer
+):
     """Serializer for reading Contact data"""
 
     last_activity_at = serializers.DateTimeField(read_only=True)
@@ -31,11 +33,12 @@ class ContactSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, 
     stage_label = serializers.SerializerMethodField()
 
     def get_stage_label(self, obj):
-        cache = self.__dict__.setdefault('_pipeline_labels', {})
+        cache = self.__dict__.setdefault("_pipeline_labels", {})
         key = (obj.org_id, obj.__class__.__name__)
         if key not in cache:
-            cache[key] = {s['key']: s['label'] for s in stages_for(obj.org, key[1])}
+            cache[key] = {s["key"]: s["label"] for s in stages_for(obj.org, key[1])}
         return cache[key].get(obj.stage, obj.get_stage_display())
+
     preferred_communication_channel_label = serializers.CharField(
         source="get_preferred_communication_channel_display", read_only=True
     )
@@ -140,14 +143,16 @@ class ContactSerializer(VisibleCRMSerializerMixin, LastActivitySerializerMixin, 
 
 class ContactListSerializer(ContactSerializer):
     """List/card fields without unrelated detail panels or nested full records."""
+
     from common.list_serializers import OwnerLabelSerializer
 
     assigned_to = OwnerLabelSerializer(read_only=True, many=True)
 
     class Meta(ContactSerializer.Meta):
         fields = tuple(
-            field for field in ContactSerializer.Meta.fields
-            if field not in ('org', 'contact_attachment')
+            field
+            for field in ContactSerializer.Meta.fields
+            if field not in ("org", "contact_attachment")
         )
 
 

@@ -274,6 +274,7 @@ class TestAttachmentDeleteIsScoped:
         assert response.status_code == 200
         assert not Attachments.objects.filter(pk=mine.pk).exists()
 
+    @pytest.mark.usefixtures("attachment_delete_role")
     def test_uploader_can_delete_their_own_attachment(
         self, user_client, user_profile, org_a, account
     ):
@@ -423,7 +424,7 @@ class TestAccountRollups:
 
         assert Decimal(str(rollups["won_amount"])) == Decimal("0")
         assert Decimal(str(rollups["open_pipeline"])) == Decimal("0")
-        assert Decimal(str(rollups["overdue_amount"])) == Decimal("0")
+        assert "overdue_amount" not in rollups
         assert rollups["won_count"] == 0
         assert rollups["open_deal_count"] == 0
         assert rollups["open_tickets"] == 0
@@ -456,7 +457,7 @@ class TestAccountRollups:
 
         assert Decimal(str(rollups["open_pipeline"])) == Decimal("200")
         assert rollups["open_deal_count"] == 2
-        assert Decimal(str(rollups["overdue_amount"])) == Decimal("150")
+        assert "overdue_amount" not in rollups
 
     def test_overdue_counts_a_past_due_invoice_still_marked_sent(
         self, admin_client, org_a, account
@@ -470,7 +471,7 @@ class TestAccountRollups:
 
         rollups = self._rollups(admin_client, account)
 
-        assert Decimal(str(rollups["overdue_amount"])) == Decimal("400")
+        assert "overdue_amount" not in rollups
 
     def test_paid_and_future_invoices_are_not_overdue(
         self, admin_client, org_a, account
@@ -489,7 +490,7 @@ class TestAccountRollups:
 
         rollups = self._rollups(admin_client, account)
 
-        assert Decimal(str(rollups["overdue_amount"])) == Decimal("0")
+        assert "overdue_amount" not in rollups
 
     def test_open_tickets_uses_the_ticket_modules_definition(
         self, admin_client, org_a, account
@@ -637,50 +638,14 @@ class TestSidePayloadsRespectRole:
             **kwargs,
         )
 
-    def test_admin_sees_every_lead_in_the_catalogue(
-        self, admin_client, org_a, admin_user
+    @pytest.mark.parametrize("client_fixture", ["admin_client", "user_client"])
+    def test_retired_leads_are_absent_from_side_payload(
+        self, request, client_fixture, org_a
     ):
-        mine = self._lead(org_a, "Mine")
-        theirs = self._lead(org_a, "Theirs")
-
-        payload = admin_client.get("/api/accounts/").json()
-
-        ids = {row["id"] for row in payload["leads"]}
-        assert {str(mine.id), str(theirs.id)} <= ids
-
-    def test_member_sees_only_leads_they_own(
-        self, user_client, user_profile, org_a, admin_user
-    ):
-        assigned = self._lead(org_a, "Assigned")
-        assigned.assigned_to.add(user_profile)
-        created = self._lead(org_a, "Created")
-        Lead.objects.filter(pk=created.pk).update(created_by=user_profile.user)
-        stranger = self._lead(org_a, "Stranger")
-        Lead.objects.filter(pk=stranger.pk).update(created_by=admin_user)
-
-        payload = user_client.get("/api/accounts/").json()
-
-        ids = {row["id"] for row in payload["leads"]}
-        assert str(assigned.id) in ids
-        assert str(created.id) in ids
-        assert str(stranger.id) not in ids
-
-    def test_catalogue_cannot_outrun_the_detail_route(
-        self, user_client, org_a, admin_user
-    ):
-        """The two doors must agree.
-
-        This is the actual defect: the same lead id, refused by its own
-        endpoint and handed over by this one. Asserting the 403 here rather
-        than only the absence keeps the test honest if the detail rule moves.
-        """
-        stranger = self._lead(org_a, "Stranger")
-        Lead.objects.filter(pk=stranger.pk).update(created_by=admin_user)
-
-        assert user_client.get(f"/api/leads/{stranger.id}/").status_code == 403
-
-        payload = user_client.get("/api/accounts/").json()
-        assert str(stranger.id) not in {row["id"] for row in payload["leads"]}
+        client = request.getfixturevalue(client_fixture)
+        lead = self._lead(org_a, "Archived")
+        assert client.get(f"/api/leads/{lead.id}/").status_code == 404
+        assert "leads" not in client.get("/api/accounts/").json()
 
     def test_member_sees_only_contacts_they_own(
         self, user_client, user_profile, org_a, admin_user

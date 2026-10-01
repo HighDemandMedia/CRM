@@ -1,5 +1,4 @@
 <script>
-  import { DEMO_MAIN } from '$lib/v2/demo-view.js';
   import NotificationBell from '$lib/v2/components/NotificationBell.svelte';
   import { afterNavigate } from '$app/navigation';
   import { onMount } from 'svelte';
@@ -12,18 +11,13 @@
     ChartNoAxesCombined,
     CalendarDays,
     Columns3,
-    Target,
     Building2,
     Users,
     CircleCheck,
     LifeBuoy,
-    Receipt,
-    Clock,
     CircleUser,
     CircleHelp,
-    FileText,
     Search,
-    Smartphone,
     LogOut
   } from '@lucide/svelte';
   import { t } from '$lib/terminology.js';
@@ -83,12 +77,15 @@
     organizationError = '';
     selectedOrganization = accountId;
     try {
-      const response = await fetch(`${base}/api/organizations`, {cache:'no-store'});
+      const response = await fetch(`${base}/api/organizations`, { cache: 'no-store' });
       if (!response.ok) throw new Error();
       const result = await response.json();
       organizations = result.organizations;
-    } catch { organizationError = 'Could not load organizations.'; }
-    finally { organizationLoading = false; }
+    } catch {
+      organizationError = 'Could not load organizations.';
+    } finally {
+      organizationLoading = false;
+    }
   }
   function positionAccount(event) {
     if (!accountOpen) void loadOrganizations();
@@ -102,13 +99,17 @@
     try {
       const saved = JSON.parse(localStorage.getItem('crm.nav.groups') || '[]');
       if (Array.isArray(saved)) folded = saved.filter((x) => typeof x === 'string');
-    } catch {}
+    } catch {
+      /* Keep navigation usable when browser storage is unavailable. */
+    }
   });
   function toggleGroup(label) {
     folded = folded.includes(label) ? folded.filter((x) => x !== label) : [...folded, label];
     try {
       localStorage.setItem('crm.nav.groups', JSON.stringify(folded));
-    } catch {}
+    } catch {
+      /* Keep navigation usable when browser storage is unavailable. */
+    }
   }
   const GROUPS = [
     {
@@ -124,8 +125,7 @@
           termKey: 'opportunity.plural'
         },
         { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-        { href: '/reports', label: 'Reports', icon: ChartNoAxesCombined },
-        { href: '/leads', label: 'Leads', icon: Target, count: 'leads', termKey: 'lead.plural' }
+        { href: '/reports', label: 'Reports', icon: ChartNoAxesCombined }
       ]
     },
     {
@@ -135,21 +135,7 @@
         // Approvals and Analytics live under Tickets as section tabs. They are
         // not separate destinations, so they do not get separate nav entries,
         // one level of navigation, and the tab strip carries the rest.
-        { href: '/tickets', label: 'Tickets', icon: LifeBuoy },
-        { href: '/documents', label: 'Documents', icon: FileText }
-      ]
-    },
-    {
-      label: 'Bill',
-      items: [
-        {
-          href: '/invoices',
-          label: 'Invoices',
-          icon: Receipt,
-          count: 'invoices',
-          termKey: 'invoice.plural'
-        },
-        { href: '/timesheet', label: 'Timesheet', icon: Clock }
+        { href: '/tickets', label: 'Tickets', icon: LifeBuoy }
       ]
     }
   ];
@@ -158,9 +144,26 @@
   let groups = $derived(
     GROUPS.map((group) => ({
       ...group,
-      items: group.items.filter(item => page.data.canPreview || DEMO_MAIN.includes(item.href)).filter(item => { const module = {'/contacts':'contacts','/accounts':'companies','/pipeline':'deals','/tasks':'tasks','/tickets':'tickets','/calendar':'calendar','/reports':'reports'}[item.href]; return !module || !!page.data.permissions?.rules?.[module]?.view && page.data.permissions.rules[module].view !== 'none'; }).map((item) =>
-        item.termKey ? { ...item, label: t(terminology, item.termKey, item.label) } : item
-      )
+      items: group.items
+        .filter((item) => {
+          const module = {
+            '/contacts': 'contacts',
+            '/accounts': 'companies',
+            '/pipeline': 'deals',
+            '/tasks': 'tasks',
+            '/tickets': 'tickets',
+            '/calendar': 'calendar',
+            '/reports': 'reports'
+          }[item.href];
+          return (
+            !module ||
+            (!!page.data.permissions?.rules?.[module]?.view &&
+              page.data.permissions.rules[module].view !== 'none')
+          );
+        })
+        .map((item) =>
+          item.termKey ? { ...item, label: t(terminology, item.termKey, item.label) } : item
+        )
     })).filter((group) => group.items.length > 0)
   );
 
@@ -215,33 +218,34 @@
             class="v2-link"
             href={resolve(asInternalPath(item.href))}
             aria-label={item.label}
-            title={collapsed
-              ? `${item.label}${!['/', '/contacts', '/accounts', '/pipeline', '/calendar', '/tickets', '/tasks', '/reports'].includes(item.href) ? ' · Review' : ''}`
-              : undefined}
+            title={collapsed ? item.label : undefined}
             aria-current={isActive(item.href, item.exact) ? 'page' : undefined}
           >
             <item.icon />
             <span class="nav-text">{item.label}</span>
-            {#if !['/', '/contacts', '/accounts', '/pipeline', '/calendar', '/tickets', '/tasks', '/reports'].includes(item.href)}
-              <span class="review-badge" title="Pending review">Review</span>
-            {/if}
+
             {#if item.count}
               {#await counts then readyCounts}
-                {#if readyCounts[item.count]}<span class="v2-count">{readyCounts[item.count]}</span>{/if}
+                {#if readyCounts[item.count]}<span class="v2-count">{readyCounts[item.count]}</span
+                  >{/if}
               {/await}
             {/if}
           </a>
         {/each}
       {/if}
     {/each}
-
-
   </div>
   <div class="account-footer">
-    <a class="v2-link" href={resolve('/help')} aria-label="Help" title={collapsed ? 'Help' : undefined} aria-current={isActive('/help',false)?'page':undefined}>
-      <CircleHelp/><span class="nav-text">Help</span>
+    <a
+      class="v2-link"
+      href={resolve('/help')}
+      aria-label="Help"
+      title={collapsed ? 'Help' : undefined}
+      aria-current={isActive('/help', false) ? 'page' : undefined}
+    >
+      <CircleHelp /><span class="nav-text">Help</span>
     </a>
-    {#key accountId + (user.email || '')}<NotificationBell {collapsed}/>{/key}
+    {#key accountId + (user.email || '')}<NotificationBell {collapsed} />{/key}
     <button
       type="button"
       class="account-trigger"
@@ -278,11 +282,18 @@
     >
       <CircleUser size={17} /> Profile &amp; Preferences
     </a>
-    <form class="account-details" method="POST" action={resolve('/settings/organization?/switchOrg')} onsubmit={() => (switchingOrganization = true)}>
+    <form
+      class="account-details"
+      method="POST"
+      action={resolve('/settings/organization?/switchOrg')}
+      onsubmit={() => (switchingOrganization = true)}
+    >
       <label for={`${uid}-organization`}>Organization</label>
       <div class="organization-name">
         <input type="hidden" name="org_id" value={selectedOrganization || accountId} />
-        <select id={`${uid}-organization`} value={selectedOrganization || accountId}
+        <select
+          id={`${uid}-organization`}
+          value={selectedOrganization || accountId}
           disabled={organizationLoading || switchingOrganization}
           onchange={(event) => {
             selectedOrganization = event.currentTarget.value;
@@ -292,16 +303,31 @@
               if (input instanceof HTMLInputElement) input.value = selectedOrganization;
               form?.requestSubmit();
             }
-          }}>
-          {#if !organizations.some(organization => organization.id === accountId)}<option value={accountId}>{org.name}</option>{/if}
-          {#each organizations as organization (organization.id)}<option value={organization.id}>{organization.name}</option>{/each}
+          }}
+        >
+          {#if !organizations.some((organization) => organization.id === accountId)}<option
+              value={accountId}>{org.name}</option
+            >{/if}
+          {#each organizations as organization (organization.id)}<option value={organization.id}
+              >{organization.name}</option
+            >{/each}
         </select>
         <ChevronDown size={14} aria-hidden="true" />
       </div>
       {#if accountId}<span class="account-id">ID: {accountId}</span>{/if}
-      <span>{page.data.isPlatformOwner ? 'Platform owner' : isSuperAdmin ? 'Super Admin' : role === 'ADMIN' ? 'Admin' : 'Member'}</span>
+      <span
+        >{page.data.isPlatformOwner
+          ? 'Platform owner'
+          : isSuperAdmin
+            ? 'Super Admin'
+            : role === 'ADMIN'
+              ? 'Admin'
+              : 'Member'}</span
+      >
       {#if switchingOrganization}<small role="status">Switching organization…</small>{/if}
-      {#if organizationError}<p class="organization-error" role="alert">{organizationError}</p><button class="account-action" type="button" onclick={loadOrganizations}>Try again</button>{/if}
+      {#if organizationError}<p class="organization-error" role="alert">{organizationError}</p>
+        <button class="account-action" type="button" onclick={loadOrganizations}>Try again</button
+        >{/if}
     </form>
     <div class="account-signout">
       <a class="account-action" href={resolve('/logout')} data-sveltekit-reload
@@ -441,15 +467,54 @@
     font-size: 12px;
     color: #706c75;
   }
-  .account-details label { font-size:11px; }
-  .account-id { overflow-wrap:anywhere; font-size:10px; }
-  .organization-name { position:relative; display:flex; align-items:center; }
-  .organization-name select { appearance:none; width:100%; min-width:0; padding:7px 24px 7px 0; border:0; border-radius:4px; background:transparent; color:#302e33; font:inherit; font-size:13px; font-weight:600; cursor:pointer; text-overflow:ellipsis; }
-  .organization-name select:hover { background:#f5f3f6; }
-  .organization-name select:focus-visible { outline:2px solid #81778c; outline-offset:2px; }
-  .organization-name select:disabled { cursor:wait; opacity:.65; }
-  .organization-name :global(svg) { position:absolute; right:4px; pointer-events:none; }
-  .organization-error { color:var(--v2-rust); font-size:12px; margin:0; }
+  .account-details label {
+    font-size: 11px;
+  }
+  .account-id {
+    overflow-wrap: anywhere;
+    font-size: 10px;
+  }
+  .organization-name {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .organization-name select {
+    appearance: none;
+    width: 100%;
+    min-width: 0;
+    padding: 7px 24px 7px 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #302e33;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-overflow: ellipsis;
+  }
+  .organization-name select:hover {
+    background: #f5f3f6;
+  }
+  .organization-name select:focus-visible {
+    outline: 2px solid #81778c;
+    outline-offset: 2px;
+  }
+  .organization-name select:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+  .organization-name :global(svg) {
+    position: absolute;
+    right: 4px;
+    pointer-events: none;
+  }
+  .organization-error {
+    color: var(--v2-rust);
+    font-size: 12px;
+    margin: 0;
+  }
   .account-signout {
     border-top: 1px solid #eeebef;
     padding-top: 6px;
@@ -549,29 +614,6 @@
     min-height: 34px;
     flex-shrink: 0;
     padding: 8px;
-  }
-  .collapsed .review-badge {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    padding: 0;
-    font-size: 0;
-    background: #b58a36;
-  }
-
-  .review-badge {
-    margin-left: auto;
-    flex-shrink: 0;
-    font-size: 9px;
-    line-height: 1.3;
-    font-weight: 500;
-    padding: 2px 4px;
-    color: #d2bb89;
-    background: #39342d;
-    border-radius: 4px;
   }
 
   /* Search opens an overlay rather than navigating, so it is a button. It

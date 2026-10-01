@@ -1,6 +1,3 @@
-from common.pipeline_board import pipeline_board
-from common.rbac import configured, permitted
-from common.money_totals import money_totals
 import json
 from datetime import timedelta
 from decimal import Decimal
@@ -27,7 +24,10 @@ from common.models import (
     Tags,
     Teams,
 )
+from common.money_totals import money_totals
 from common.permissions import HasOrgContext, is_org_admin
+from common.pipeline_board import pipeline_board
+from common.rbac import configured
 from common.serializer import (
     AttachmentsSerializer,
     CommentSerializer,
@@ -48,11 +48,11 @@ from contacts.serializer import ContactSerializer
 from opportunity import access, swagger_params
 from opportunity.list_properties import filter_and_sort, search_properties
 from opportunity.models import Opportunity, StageAgingConfig
-from opportunity.serializer import OpportunityListSerializer
 from opportunity.serializer import (
     OpportunityCreateSerializer,
     OpportunityCreateSwaggerSerializer,
     OpportunityDetailEditSwaggerSerializer,
+    OpportunityListSerializer,
     OpportunitySerializer,
 )
 from opportunity.tasks import send_email_to_assigned_user
@@ -122,7 +122,9 @@ class OpportunityListView(APIView, LimitOffsetPagination):
         return {
             "count": totals_queryset.count(),
             "amount_sum": aggregates["amount_sum"],
-            "money_totals": money_totals(totals_queryset) if self.request.query_params.get("include_pipeline_totals") == "true" else [],
+            "money_totals": money_totals(totals_queryset)
+            if self.request.query_params.get("include_pipeline_totals") == "true"
+            else [],
             "weighted_sum": aggregates["weighted_sum"],
             # Closed deals are never stalled; `get_aging_status()` returns
             # green for them, so the count excludes them regardless of whether
@@ -139,9 +141,9 @@ class OpportunityListView(APIView, LimitOffsetPagination):
             "-id"
         )
         if params.get("compact") == "true":
-            queryset = queryset.select_related("org", "account", "created_by").prefetch_related(
-                "assigned_to__user", "contacts", "tags"
-            )
+            queryset = queryset.select_related(
+                "org", "account", "created_by"
+            ).prefetch_related("assigned_to__user", "contacts", "tags")
         accounts = Account.objects.filter(org=self.request.profile.org)
         contacts = Contact.objects.filter(org=self.request.profile.org)
         if (
@@ -231,18 +233,35 @@ class OpportunityListView(APIView, LimitOffsetPagination):
         org = self.request.profile.org
         aging_configs = {c.stage: c for c in StageAgingConfig.objects.filter(org=org)}
         if params.get("board") == "true":
-            context.update({
-                "board": pipeline_board(queryset, self.request, OpportunityListSerializer, money_totals,
-                                        context={"aging_configs": aging_configs}),
-                "opportunities": [],
-                "accounts_list": list(accounts.values("id", "name")) if params.get("include_choices") != "false" else [],
-                "contacts_list": list(contacts.values("id", "first_name", "last_name", "email")) if params.get("include_choices") != "false" else [],
-            })
+            context.update(
+                {
+                    "board": pipeline_board(
+                        queryset,
+                        self.request,
+                        OpportunityListSerializer,
+                        money_totals,
+                        context={"aging_configs": aging_configs},
+                    ),
+                    "opportunities": [],
+                    "accounts_list": list(accounts.values("id", "name"))
+                    if params.get("include_choices") != "false"
+                    else [],
+                    "contacts_list": list(
+                        contacts.values("id", "first_name", "last_name", "email")
+                    )
+                    if params.get("include_choices") != "false"
+                    else [],
+                }
+            )
             return context
         results_opportunities = self.paginate_queryset(
             queryset.distinct(), self.request, view=self
         )
-        serializer_class = OpportunityListSerializer if params.get("compact") == "true" else OpportunitySerializer
+        serializer_class = (
+            OpportunityListSerializer
+            if params.get("compact") == "true"
+            else OpportunitySerializer
+        )
         opportunities = serializer_class(
             results_opportunities, many=True, context={"aging_configs": aging_configs}
         ).data
@@ -266,7 +285,9 @@ class OpportunityListView(APIView, LimitOffsetPagination):
             return context
         if params.get("compact") == "true":
             context["accounts_list"] = list(accounts.values("id", "name"))
-            context["contacts_list"] = list(contacts.values("id", "first_name", "last_name", "email"))
+            context["contacts_list"] = list(
+                contacts.values("id", "first_name", "last_name", "email")
+            )
         else:
             context["accounts_list"] = AccountSerializer(accounts, many=True).data
             context["contacts_list"] = ContactSerializer(contacts, many=True).data
@@ -595,7 +616,8 @@ class OpportunityDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
         if (
-            not configured(self.request.profile) and not is_org_admin(self.request.profile)
+            not configured(self.request.profile)
+            and not is_org_admin(self.request.profile)
             and not self.request.user.is_superuser
         ):
             if self.request.profile.user != self.object.created_by:
