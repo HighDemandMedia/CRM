@@ -75,7 +75,7 @@
     display: flex;
     gap: 28px;
     border-bottom: 1px solid var(--v2-line);
-    margin-bottom: 22px;
+    margin-bottom: var(--crm-space-6);
   }
   .tabs button {
     background: none;

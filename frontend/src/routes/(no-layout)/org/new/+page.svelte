@@ -192,8 +192,8 @@
 <style>
   .pack-choice {
     border: 1px solid var(--v2-line-soft);
-    border-radius: 8px;
-    padding: 14px 16px;
+    border-radius: var(--crm-radius-md);
+    padding: 14px var(--crm-space-4);
   }
   .pack-choice legend {
     font-weight: 600;
@@ -205,14 +205,14 @@
     gap: 9px;
     padding: 9px 10px;
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
     cursor: pointer;
   }
   .pack-opt + .pack-opt {
     margin-top: 7px;
   }
   .pack-opt:has(input:checked) {
-    border-color: var(--v2-ember);
+    border-color: var(--crm-link);
     background: var(--v2-ember-soft);
   }
   .pack-opt:has(input:disabled) {
@@ -221,7 +221,7 @@
   }
   .pack-opt input[type='radio'] {
     margin-top: 2px;
-    accent-color: var(--v2-ember);
+    accent-color: var(--crm-link);
     flex: none;
   }
   .pack-opt-body {

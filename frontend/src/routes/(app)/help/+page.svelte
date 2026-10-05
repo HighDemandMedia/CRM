@@ -317,20 +317,20 @@
   .help-layout {
     max-width: 1160px;
     margin: 0 auto;
-    padding: 26px 28px 40px;
+    padding: 26px 28px var(--crm-space-10);
     display: grid;
     grid-template-columns: 280px minmax(0, 1fr);
     gap: 30px;
     align-items: start;
   }
   h2 {
-    font-size: 18px;
+    font-size: var(--crm-text-lg);
     font-weight: 650;
     margin: 0;
   }
   .request-sidebar h2 {
-    font-size: 15px;
-    margin-bottom: 16px;
+    font-size: var(--crm-text-sm);
+    margin-bottom: var(--crm-space-4);
   }
   .request-types {
     display: grid;
@@ -339,18 +339,18 @@
   .request-types button {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--crm-space-3);
     text-align: left;
-    background: var(--v2-surface, #fff);
+    background: var(--v2-surface, var(--crm-surface));
     border: 1px solid var(--v2-line);
-    border-radius: 10px;
-    padding: 16px 13px;
+    border-radius: var(--crm-radius-md);
+    padding: var(--crm-space-4) 13px;
     color: var(--v2-slate);
   }
   .request-types button.active {
-    border-color: #81778c;
-    background: #eeebf1;
-    color: #343137;
+    border-color: var(--crm-focus);
+    background: var(--crm-surface-selected);
+    color: var(--crm-text);
   }
   .request-types button > span {
     flex: 1;
@@ -359,13 +359,13 @@
   .request-types strong,
   .guide-link strong {
     display: block;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
   }
   .request-types small,
   .guide-link small {
     display: block;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     line-height: 1.5;
     margin-top: 5px;
     color: var(--v2-slate);
@@ -376,7 +376,7 @@
   }
   .guide-link {
     display: flex;
-    gap: 12px;
+    gap: var(--crm-space-3);
     margin-top: 25px;
     padding: 15px 0;
     border-top: 1px solid var(--v2-line);
@@ -387,9 +387,9 @@
     display: flex;
     gap: 10px;
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     line-height: 1.7;
-    margin-top: 12px;
+    margin-top: var(--crm-space-3);
   }
   .support-address a {
     text-decoration: underline;
@@ -397,24 +397,24 @@
   }
   .request-panel {
     border: 1px solid var(--v2-line);
-    border-radius: 13px;
-    background: var(--v2-surface, #fff);
+    border-radius: var(--crm-radius-lg);
+    background: var(--v2-surface, var(--crm-surface));
     padding: 26px;
     min-width: 0;
   }
   .form-heading p {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-slate);
-    margin: 7px 0 24px;
+    margin: 7px 0 var(--crm-space-6);
   }
   .delivery-note {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     line-height: 1.6;
-    background: #f5f2e9;
-    border-radius: 8px;
+    background: var(--crm-warning-bg);
+    border-radius: var(--crm-radius-md);
     padding: 10px 13px;
-    margin: 0 0 20px;
-    color: #716143;
+    margin: 0 0 var(--crm-space-5);
+    color: var(--crm-warning);
   }
   .delivery-note a {
     text-decoration: underline;
@@ -428,8 +428,8 @@
   }
   label {
     display: grid;
-    gap: 8px;
-    font-size: 13px;
+    gap: var(--crm-space-2);
+    font-size: var(--crm-text-sm);
     font-weight: 500;
   }
   label > span {
@@ -439,12 +439,12 @@
   }
   label small {
     color: var(--v2-slate);
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     font-weight: 400;
   }
   .v2-input {
     width: 100%;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     min-height: 40px;
   }
   textarea {
@@ -456,8 +456,8 @@
     display: grid;
     gap: 5px;
     color: var(--v2-slate);
-    font-size: 11px;
-    margin-top: 24px;
+    font-size: var(--crm-text-xs);
+    margin-top: var(--crm-space-6);
   }
   .sender strong {
     font-weight: 500;
@@ -467,40 +467,40 @@
     gap: 15px;
     justify-content: space-between;
     align-items: center;
-    margin-top: 20px;
-    padding-top: 20px;
+    margin-top: var(--crm-space-5);
+    padding-top: var(--crm-space-5);
     border-top: 1px solid var(--v2-line);
   }
   .form-footer > span {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .form-error {
-    padding: 12px;
-    background: #fff2ef;
-    color: #973d32;
-    font-size: 13px;
-    border-radius: 8px;
+    padding: var(--crm-space-3);
+    background: var(--crm-danger-bg);
+    color: var(--crm-danger);
+    font-size: var(--crm-text-sm);
+    border-radius: var(--crm-radius-md);
     margin-top: 18px;
   }
   .success {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
-    padding: 20px 0;
+    gap: var(--crm-space-4);
+    padding: var(--crm-space-5) 0;
   }
   .success :global(svg) {
-    color: #55705e;
+    color: var(--crm-success);
   }
   .success p {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-slate);
     line-height: 1.7;
     margin: 0;
   }
   .reference {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   button:disabled {
@@ -508,19 +508,19 @@
   }
   button:focus-visible,
   a:focus-visible {
-    outline: 2px solid #81778c;
+    outline: 2px solid var(--crm-focus);
     outline-offset: 3px;
   }
   .form-section {
     display: grid;
-    gap: 16px;
+    gap: var(--crm-space-4);
   }
   .form-section + .form-section {
     border-top: 1px solid var(--v2-line);
-    padding-top: 20px;
+    padding-top: var(--crm-space-5);
   }
   h3 {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
     margin: 0;
     display: flex;
@@ -533,25 +533,25 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: #eeebf1;
-    color: #655c70;
-    font-size: 11px;
+    background: var(--crm-surface-selected);
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-xs);
   }
   .field-pair {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
+    gap: var(--crm-space-4);
   }
   .idea-story {
-    border-left: 2px solid #b1a7bc;
+    border-left: 2px solid var(--crm-text-muted);
     padding-left: 18px;
     display: grid;
-    gap: 24px;
+    gap: var(--crm-space-6);
   }
   .story-label {
     display: block;
-    font-size: 11px;
-    color: #71657e;
+    font-size: var(--crm-text-xs);
+    color: var(--crm-text-muted);
     margin-bottom: 7px;
     font-weight: 600;
     text-transform: uppercase;
@@ -563,39 +563,39 @@
   }
   summary {
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 500;
   }
   summary span {
     color: var(--v2-slate);
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     font-weight: 400;
-    margin-left: 8px;
+    margin-left: var(--crm-space-2);
   }
   summary:focus-visible {
-    outline: 2px solid #81778c;
+    outline: 2px solid var(--crm-focus);
     outline-offset: 4px;
   }
   .optional-fields {
     display: grid;
-    gap: 16px;
-    padding-top: 16px;
+    gap: var(--crm-space-4);
+    padding-top: var(--crm-space-4);
   }
   .suggested-guides {
-    border-radius: 8px;
-    padding: 16px;
-    background: #f6f4f8;
+    border-radius: var(--crm-radius-md);
+    padding: var(--crm-space-4);
+    background: var(--crm-canvas);
   }
   .suggested-guides h3 {
     margin-bottom: 9px;
-    color: #655c70;
+    color: var(--crm-text-muted);
   }
   .suggested-guides a {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    font-size: 12px;
+    gap: var(--crm-space-3);
+    font-size: var(--crm-text-xs);
     padding: 9px 0;
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -617,7 +617,7 @@
       display: none;
     }
     .guide-link {
-      margin-top: 12px;
+      margin-top: var(--crm-space-3);
     }
     .support-address {
       display: none;
@@ -625,7 +625,7 @@
   }
   @media (max-width: 640px) {
     .help-layout {
-      padding: 20px 16px;
+      padding: var(--crm-space-5) var(--crm-space-4);
     }
     .request-types {
       grid-template-columns: 1fr;

@@ -61,6 +61,7 @@ function ownerName(deal) {
 function toRow(deal) {
   return {
     id: deal.id,
+    created_by: userName(deal.created_by, ''),
     custom_fields: deal.custom_fields ?? {},
     name: deal.name ?? '',
     account: {

@@ -98,12 +98,12 @@
     z-index: 100;
     background: var(--v2-card);
     color: var(--v2-ink);
-    padding: 12px 16px;
+    padding: var(--crm-space-3) var(--crm-space-4);
     border: 1px solid var(--v2-line);
-    border-radius: 9px;
-    box-shadow: 0 4px 20px #0001;
+    border-radius: var(--crm-radius-md);
+    box-shadow: var(--crm-shadow-sm);
     display: flex;
-    gap: 16px;
+    gap: var(--crm-space-4);
     max-width: 90vw;
   }
   .notice button {

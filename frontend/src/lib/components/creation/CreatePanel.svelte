@@ -118,7 +118,7 @@
     border-left: 1px solid var(--v2-line);
     background: var(--v2-bg);
     color: var(--v2-ink);
-    box-shadow: -12px 0 40px #0002;
+    box-shadow: var(--crm-shadow-lg);
     overflow: hidden;
   }
   .create-panel[open] {
@@ -127,26 +127,27 @@
     animation: enter 0.18s ease-out;
   }
   .create-panel::backdrop {
-    background: #15151b26;
+    background: var(--crm-overlay);
   }
   header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 24px;
+    padding: 18px var(--crm-space-6);
     border-bottom: 1px solid var(--v2-line);
     flex-shrink: 0;
     background: var(--v2-card);
   }
   h2 {
-    font-size: 19px;
+    font-size: var(--crm-text-lg);
     margin: 0;
   }
   .body {
     flex: 1;
     min-height: 0;
     overflow: auto;
-    padding: 0 24px;
+    scroll-padding-block: var(--crm-space-12);
+    padding: 0 var(--crm-space-6);
   }
   .body :global(.v2-header) {
     display: none;
@@ -168,7 +169,7 @@
     position: sticky;
     bottom: 0;
     background: var(--v2-bg);
-    padding: 16px 0;
+    padding: var(--crm-space-4) 0;
     margin-bottom: 0;
     border-top: 1px solid var(--v2-line);
     z-index: 10;
@@ -179,7 +180,7 @@
     left: 0;
     right: 0;
     background: var(--v2-card);
-    padding: 18px 24px;
+    padding: 18px var(--crm-space-6);
     border-top: 1px solid var(--v2-line);
   }
   @keyframes enter {
@@ -199,10 +200,10 @@
   }
   @media (max-width: 600px) {
     .body {
-      padding: 0 16px;
+      padding: 0 var(--crm-space-4);
     }
     header {
-      padding: 16px;
+      padding: var(--crm-space-4);
     }
   }
 </style>

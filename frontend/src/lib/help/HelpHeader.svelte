@@ -21,7 +21,7 @@
 <style>
   .help-tabs {
     display: flex;
-    gap: 24px;
+    gap: var(--crm-space-6);
     margin: 0 28px;
     border-bottom: 1px solid var(--v2-line);
     flex-shrink: 0;
@@ -29,25 +29,25 @@
   .help-tabs a {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
     padding: 14px 0;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-slate);
     border-bottom: 2px solid transparent;
     text-decoration: none;
   }
   .help-tabs a[aria-current] {
-    border-color: var(--v2-ink, #343137);
-    color: var(--v2-ink, #343137);
+    border-color: var(--v2-ink, var(--crm-text));
+    color: var(--v2-ink, var(--crm-text));
     font-weight: 600;
   }
   .help-tabs a:focus-visible {
-    outline: 2px solid #81778c;
+    outline: 2px solid var(--crm-focus);
     outline-offset: 3px;
   }
   @media (max-width: 600px) {
     .help-tabs {
-      margin: 0 16px;
+      margin: 0 var(--crm-space-4);
       gap: 18px;
     }
   }

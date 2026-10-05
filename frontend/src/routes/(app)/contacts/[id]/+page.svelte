@@ -198,20 +198,20 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: var(--crm-space-4);
   }
   .properties-heading h2 {
     margin: 0;
   }
   .scheduled-message {
-    padding: 8px 22px;
-    font-size: 14px;
-    background: #f0fdf4;
-    color: #166534;
+    padding: var(--crm-space-2) var(--crm-space-6);
+    font-size: var(--crm-text-sm);
+    background: var(--crm-success-bg);
+    color: var(--crm-success);
   }
   .scheduled-message a {
     color: inherit;
-    margin-left: 8px;
+    margin-left: var(--crm-space-2);
     text-decoration: underline;
   }
 
@@ -232,7 +232,7 @@
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior-y: contain;
-    padding: 16px;
+    padding: var(--crm-space-4);
   }
   .properties {
     border-right: 1px solid var(--v2-line);
@@ -241,35 +241,35 @@
     border-left: 1px solid var(--v2-line);
   }
   h2 {
-    font-size: 15px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
-    margin: 0 0 16px;
+    margin: 0 0 var(--crm-space-4);
   }
   .profile-section {
-    margin-bottom: 24px;
+    margin-bottom: var(--crm-space-6);
   }
   .activity-feed {
     min-height: 180px;
     padding: 0;
   }
   .history-entry {
-    padding: 12px 0;
+    padding: var(--crm-space-3) 0;
     border-bottom: 1px solid var(--v2-line-soft);
   }
   .history-body {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
   }
   .entry-meta {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin-top: 6px;
   }
 
   form {
     display: grid;
-    gap: 8px;
+    gap: var(--crm-space-2);
     margin-bottom: 14px;
   }
   .add-note {
@@ -281,7 +281,7 @@
     .properties,
     .contact-center,
     .contact-relations {
-      padding: 12px;
+      padding: var(--crm-space-3);
     }
   }
 </style>

@@ -398,18 +398,18 @@
 <style>
   .tags-label {
     display: block;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     margin-bottom: 6px;
   }
 
   .save-status {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     min-height: 18px;
-    margin-bottom: 8px;
+    margin-bottom: var(--crm-space-2);
   }
 
   .notes-field {
-    margin-bottom: 20px;
+    margin-bottom: var(--crm-space-5);
   }
   .notes-field textarea {
     resize: vertical;
@@ -420,24 +420,24 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     min-width: 0;
   }
   .options {
     max-height: 200px;
     overflow: auto;
-    padding: 12px;
+    padding: var(--crm-space-3);
     border: 1px solid var(--v2-line);
   }
   .choice {
     flex-direction: row;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: var(--crm-space-2);
   }
   .actions {
     display: flex;
-    gap: 8px;
-    margin-bottom: 24px;
+    gap: var(--crm-space-2);
+    margin-bottom: var(--crm-space-6);
   }
   summary {
     cursor: pointer;

@@ -16,10 +16,12 @@
   import { page } from '$app/state';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import SectionTabs from '$lib/v2/components/SectionTabs.svelte';
+  import { listColumns, columnValue } from '$lib/v2/list-columns.js';
+  import { columnSelection } from '$lib/v2/column-selection.svelte.js';
+  import ColumnPicker from '$lib/v2/components/ColumnPicker.svelte';
   import TaskFilters from '$lib/components/tasks/TaskFilters.svelte';
   import '$lib/v2/styles/list-view.css';
   import Pill from '$lib/v2/components/Pill.svelte';
-  import Avatar from '$lib/v2/components/Avatar.svelte';
   import EmptyState from '$lib/v2/components/EmptyState.svelte';
   import { count, relativeDays, daysSince } from '$lib/v2/format.js';
   import { TASK_PRIORITY_TONE, TASK_STATUS_TONE } from '$lib/v2/enums.js';
@@ -30,6 +32,14 @@
 
   /** @type {{ data: any, form: any }} */
   let { data, form } = $props();
+
+  const catalog = $derived(listColumns('Task', page.data.propertyLayout?.Task));
+  const fields = $derived(catalog.map((c) => [c.key, c.label]));
+  const selection = columnSelection(
+    () => catalog,
+    () => `${page.data.accountId}.${page.data.accountUser?.email}.Task`
+  );
+  const columns = $derived(selection.selected);
 
   const statuses = $derived(
     configuredStages(
@@ -109,6 +119,15 @@
   >
 </div>
 <TaskFilters url={page.url} people={data.people} />
+{#if !pipeline}<div class="list-column-tools">
+    <ColumnPicker
+      {fields}
+      selected={columns}
+      onToggle={(key) => selection.toggle(key)}
+      onShowAll={selection.showAll}
+      onReset={selection.reset}
+    />
+  </div>{/if}
 
 {#if form?.error}
   <p class="v2-pad v2-form-error" role="alert">{form.error}</p>
@@ -213,25 +232,26 @@
       {/snippet}
     </EmptyState>
   {:else}
-    <div class="v2-table-wrap hdm-list">
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this overflow region to scroll the table.) -->
+    <div
+      class="v2-table-wrap hdm-list"
+      role="region"
+      aria-label="Tasks; scroll horizontally to see all columns"
+      tabindex="0"
+    >
       <table class="v2-table">
         <thead>
           <tr>
             <th style="width:38px"><span class="v2-sr-only">Done</span></th>
-            <th>Task</th>
-            <th>Association</th>
-            <th>Priority</th>
-            <th>Status</th>
-            <th>Owner</th>
-            <th class="v2-r">Due</th>
-            <th>Last Activity</th>
+            {#each columns as key (key)}<th scope="col">{fields.find(([id]) => id === key)?.[1]}</th
+              >{/each}
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {#each tasks as t (t.id)}
             {@const late = overdueDays(t)}
-            <tr style={t.is_done ? 'opacity:.5' : ''}>
+            <tr>
               <!-- Not the identifier, so it must not take the title slot, but it
                    is the one control on this row, so it stays on the title line
                    at the left rather than dropping into the meta run. -->
@@ -263,54 +283,34 @@
                   </button>
                 </form>
               </td>
-              <td data-m="title" style="white-space:normal;max-width:420px">
-                <a
-                  href={resolve(`/tasks/${t.id}`)}
-                  class="v2-table-primary"
-                  style={t.is_done ? 'text-decoration:line-through' : ''}
-                  >{t.title || `Task · ${t.id.slice(0, 8)}`}</a
-                >
-                {#if t.description}
-                  <span class="v2-table-secondary v2-task-note">{t.description}</span>
-                {/if}
-              </td>
-              <td>
-                {#if t.related}
-                  <a href={resolve(t.related.href)} style="color:inherit">{t.related.name}</a>
-                  <span class="v2-table-secondary v2-task-kind">{t.related.kind}</span>
-                {:else}
-                  <span class="v2-muted">—</span>
-                {/if}
-              </td>
-              <td><Pill tone={TASK_PRIORITY_TONE[t.priority]}>{t.priority}</Pill></td>
-              <td data-m="tag">
-                <Pill tone={TASK_STATUS_TONE[t.status]}>{statusName(t.status)}</Pill>
-              </td>
-              <td data-m="hide">
-                {#if t.assigned_names.length}
-                  <span>{t.assigned_names.join(', ')}</span>
-                {:else}
-                  <span class="v2-muted">nobody</span>
-                {/if}
-              </td>
-              <td
-                class="v2-r"
-                class:v2-muted={!late}
-                style={late ? 'color:var(--v2-rust);font-weight:600' : ''}
-              >
-                {#if !t.due_date}
-                  <span class="v2-muted">no due date</span>
-                {:else if late}
-                  {late}d late
-                {:else}
-                  {relativeDays(t.due_date)}
-                {/if}
-              </td>
-              <td
-                title={t.last_activity_at
-                  ? new Date(t.last_activity_at).toLocaleString()
-                  : undefined}>{t.last_activity_at ? relativeDays(t.last_activity_at) : '—'}</td
-              >
+              {#each columns as key (key)}
+                <td data-field={key}>
+                  {#if key === 'title'}
+                    <a
+                      href={resolve(`/tasks/${t.id}`)}
+                      class="v2-table-primary"
+                      style={t.is_done ? 'text-decoration:line-through' : ''}
+                      >{t.title || `Task · ${t.id.slice(0, 8)}`}</a
+                    >
+                  {:else if key === 'priority'}
+                    <Pill tone={TASK_PRIORITY_TONE[t.priority]}>{t.priority}</Pill>
+                  {:else if key === 'status'}
+                    <Pill tone={TASK_STATUS_TONE[t.status]}>{statusName(t.status)}</Pill>
+                  {:else if key === 'due_date'}
+                    <span class:overdue={late > 0}
+                      >{!t.due_date ? '—' : late ? `${late}d late` : relativeDays(t.due_date)}</span
+                    >
+                  {:else if ['account', 'opportunity', 'case'].includes(key) && t.related && t[key]?.id === t.related.id}
+                    <a href={resolve(t.related.href)}>{t.related.name}</a>
+                  {:else if key === 'last_activity_at' || key === 'created_at'}
+                    <span title={t[key] ? new Date(t[key]).toLocaleString() : undefined}
+                      >{t[key] ? relativeDays(t[key]) : '—'}</span
+                    >
+                  {:else}
+                    {columnValue(t, key, catalog)}
+                  {/if}
+                </td>
+              {/each}
               <td class="list-row-actions"
                 >{#if can(page.data.permissions, 'tasks', 'edit')}<a
                     aria-label={`Edit ${t.title}`}
@@ -331,31 +331,31 @@
     margin-top: 10px;
     padding: 6px;
     border: 1px solid var(--v2-line);
-    border-radius: 5px;
+    border-radius: var(--crm-radius-sm);
     background: transparent;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .task-parent {
     display: block;
-    margin-top: 8px;
+    margin-top: var(--crm-space-2);
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .pipeline-column.drop-target {
-    outline: 2px solid #6c86b5;
+    outline: 2px solid var(--crm-info);
     outline-offset: -2px;
   }
 
   .task-totals {
     display: flex;
-    gap: 20px;
-    padding: 12px 22px 0;
+    gap: var(--crm-space-5);
+    padding: var(--crm-space-3) var(--crm-space-6) 0;
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .task-list {
-    padding: 0 22px 20px;
+    padding: 0 var(--crm-space-6) var(--crm-space-5);
   }
   :global(.task-list .hdm-list) {
     overflow: auto;
@@ -363,12 +363,16 @@
   :global(.task-list .v2-table) {
     min-width: 850px;
   }
-  :global(.v2-root a.v2-btn-primary) {
-    color: white;
+  :global(.task-list .v2-table td[data-field='title']) {
+    min-width: 14rem;
+    overflow-wrap: anywhere;
   }
-  .v2-task-note,
-  .v2-task-kind {
-    display: block;
+  :global(.v2-root a.v2-btn-primary) {
+    color: var(--crm-primary-text);
+  }
+  .overdue {
+    color: var(--crm-danger);
+    font-weight: 600;
   }
   .v2-tick {
     border: 0;
@@ -394,20 +398,6 @@
       min-width: 40px;
       min-height: 40px;
       margin: -9px 0 -9px -11px;
-    }
-    /* A note long enough to explain itself is long enough to bury the next
-       three tasks. Two lines here, the rest on the task itself. */
-    .v2-task-note {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    /* Hidden here rather than with data-m="hide", which would tie at equal
-       specificity with the rule above and resolve on stylesheet order. */
-    .v2-task-kind {
-      display: none;
     }
   }
 </style>

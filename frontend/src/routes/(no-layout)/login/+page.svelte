@@ -3,20 +3,30 @@
   import '../../../app.css';
   import '$lib/v2/styles/v2.css';
   import { authForm } from '$lib/utils/auth-form.js';
-  import { ArrowLeft, Check } from '@lucide/svelte';
+  import { ArrowLeft, Check, Eye, EyeOff } from '@lucide/svelte';
   import imgGoogle from '$lib/assets/images/google.svg';
   let { data = {}, form } = $props();
   let busy = $state(false);
   let recoveryBusy = $state(false);
   let transportError = $state('');
   let recoveryTransportError = $state('');
+  let showPassword = $state(false);
+  let capsLock = $state(false);
   const isRecovery = $derived(Boolean(data['recovery'] || form?.recovery));
+  const signInError = $derived(
+    transportError ||
+      form?.error ||
+      (data['error'] ? 'Sign-in could not be completed. Please try again.' : '')
+  );
+  function checkCapsLock(event) {
+    capsLock = event.getModifierState('CapsLock');
+  }
 </script>
 
 <svelte:head>
   <title>{isRecovery ? 'Recover access' : 'Sign in'} · High Demand Media CRM</title>
 </svelte:head>
-<div class="v2-root v2-auth">
+<main class="v2-root v2-auth login-page" aria-labelledby="login-title">
   <div class="v2-auth-box">
     <a href={resolve('/')} class="v2-auth-brand">
       <img src={`${base}/brand/hdm-symbol.png`} alt="" /><b>High Demand Media CRM</b>
@@ -25,11 +35,11 @@
       {#if isRecovery}
         <a href={resolve('/login')} class="back-link"><ArrowLeft size={16} />Back to sign in</a>
         <div class="v2-auth-head">
-          <h1>{form?.success ? 'Check your email' : 'Forgot your password?'}</h1>
+          <h1 id="login-title">{form?.success ? 'Check your email' : 'Recover access'}</h1>
           <p>
             {form?.success
               ? 'Your next step is in your inbox.'
-              : 'Enter your email to receive a secure sign-in link.'}
+              : 'We’ll email you a sign-in link. Then you can set a new password in Profile.'}
           </p>
         </div>
         {#if form?.success}
@@ -49,6 +59,7 @@
           <form
             method="POST"
             action="?/recovery"
+            aria-busy={recoveryBusy}
             use:authForm={{
               setBusy: (value) => (recoveryBusy = value),
               setError: (value) => (recoveryTransportError = value)
@@ -64,14 +75,23 @@
                   name="email"
                   required
                   autocomplete="email"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  aria-describedby={recoveryTransportError || form?.error
+                    ? 'recovery-error'
+                    : undefined}
                   placeholder="you@company.com"
                   value={form?.email || ''}
                 />
               </label>
-              {#if recoveryTransportError || form?.error}<p class="v2-error" role="alert">
+              {#if recoveryTransportError || form?.error}<p
+                  id="recovery-error"
+                  class="v2-error auth-error"
+                  role="alert"
+                >
                   {recoveryTransportError || form.error}
                 </p>{/if}
-              <button class="v2-btn v2-btn-primary v2-btn-block"
+              <button type="submit" class="v2-btn v2-btn-primary v2-btn-block"
                 >{recoveryBusy ? 'Sending…' : 'Send recovery link'}</button
               >
             </fieldset>
@@ -79,12 +99,13 @@
         {/if}
       {:else}
         <div class="v2-auth-head">
-          <h1>Welcome back</h1>
-          <p>Sign in to your CRM.</p>
+          <h1 id="login-title">Sign in</h1>
+          <p>Welcome back. Use the email associated with your account.</p>
         </div>
         <form
           method="POST"
           action="?/password"
+          aria-busy={busy}
           use:authForm={{
             setBusy: (value) => (busy = value),
             setError: (value) => (transportError = value)
@@ -100,6 +121,9 @@
                 type="email"
                 required
                 autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
+                aria-describedby={signInError ? 'signin-error' : undefined}
                 placeholder="you@company.com"
                 value={form?.email || ''}
               />
@@ -110,22 +134,42 @@
                   href={`${resolve('/login')}?recover=1`}>Forgot password?</a
                 >
               </div>
-              <input
-                id="login-password"
-                class="v2-input"
-                name="password"
-                type="password"
-                required
-                maxlength="128"
-                autocomplete="current-password"
-              />
+              <div class="password-control">
+                <input
+                  id="login-password"
+                  class="v2-input"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  maxlength="128"
+                  autocomplete="current-password"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  aria-describedby={[capsLock ? 'caps-lock' : '', signInError ? 'signin-error' : '']
+                    .filter(Boolean)
+                    .join(' ') || undefined}
+                  onkeydown={checkCapsLock}
+                  onkeyup={checkCapsLock}
+                  onblur={() => (capsLock = false)}
+                /><button
+                  type="button"
+                  class="password-toggle"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-controls="login-password"
+                  onclick={() => (showPassword = !showPassword)}
+                >
+                  {#if showPassword}<EyeOff size={18} />{:else}<Eye size={18} />{/if}
+                  <span>{showPassword ? 'Hide' : 'Show'}</span>
+                </button>
+              </div>
+              {#if capsLock}<p id="caps-lock" class="caps-lock" role="status">
+                  Caps Lock is on.
+                </p>{/if}
             </div>
-            {#if transportError || form?.error || data['error']}<p class="v2-error" role="alert">
-                {transportError ||
-                  form?.error ||
-                  'Sign-in could not be completed. Please try again.'}
+            {#if signInError}<p id="signin-error" class="v2-error auth-error" role="alert">
+                {signInError}
               </p>{/if}
-            <button class="v2-btn v2-btn-primary v2-btn-block"
+            <button type="submit" class="v2-btn v2-btn-primary v2-btn-block"
               >{busy ? 'Signing in…' : 'Sign in'}</button
             >
           </fieldset>
@@ -138,14 +182,93 @@
         {/if}
       {/if}
     </div>
+    {#if !isRecovery}<p class="access-help">
+        Need access? Ask your organization administrator.
+      </p>{/if}
+    <p class="v2-sr-only" role="status">
+      {busy ? 'Signing in. Please wait.' : recoveryBusy ? 'Sending your recovery link.' : ''}
+    </p>
   </div>
-</div>
+</main>
 
 <style>
+  .login-page .v2-auth-box {
+    max-width: 30rem;
+  }
+  .login-page .v2-auth-card {
+    padding: clamp(1.25rem, 4vw, 2rem);
+    border-radius: var(--crm-radius-xl);
+    box-shadow: var(--crm-shadow-md);
+  }
+  .login-page .v2-auth-head {
+    text-align: left;
+    margin-bottom: var(--crm-space-8);
+  }
+  .login-page h1 {
+    font-size: var(--crm-text-2xl);
+    line-height: var(--crm-leading-title);
+  }
+  .login-page .v2-input {
+    min-height: 3rem;
+    font-size: var(--crm-text-base);
+  }
+  .login-page .v2-btn-block {
+    min-height: 3rem;
+  }
+  .password-control {
+    position: relative;
+  }
+  .password-control input {
+    width: 100%;
+    padding-right: 6rem;
+  }
+  .password-toggle {
+    position: absolute;
+    inset-block: 2px;
+    right: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--crm-space-2);
+    min-width: 5.5rem;
+    padding-inline: var(--crm-space-2);
+    border-radius: var(--crm-radius-sm);
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-xs);
+    cursor: pointer;
+  }
+  .password-toggle:hover:not(:disabled) {
+    background: var(--crm-surface-hover);
+    color: var(--crm-text);
+  }
+  .auth-error {
+    padding: var(--crm-space-3);
+    background: var(--crm-danger-bg);
+    border-radius: var(--crm-radius-sm);
+    overflow-wrap: anywhere;
+  }
+  .caps-lock {
+    color: var(--crm-warning);
+    font-size: var(--crm-text-xs);
+    margin: 0;
+  }
+  .access-help {
+    text-align: center;
+    font-size: var(--crm-text-xs);
+    line-height: var(--crm-leading);
+    color: var(--crm-text-muted);
+    margin: var(--crm-space-6) var(--crm-space-3) 0;
+  }
+  @media (max-width: 480px), (max-height: 680px) {
+    .login-page {
+      justify-content: flex-start;
+      padding: var(--crm-space-6) var(--crm-space-4);
+    }
+  }
   form,
   fieldset {
     display: grid;
-    gap: 20px;
+    gap: var(--crm-space-5);
   }
   fieldset {
     border: 0;
@@ -156,20 +279,25 @@
   label,
   .password-field {
     display: grid;
-    gap: 8px;
-    font-size: 13px;
+    gap: var(--crm-space-2);
+    font-size: var(--crm-text-sm);
   }
   .password-label {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--crm-space-3);
+    flex-wrap: wrap;
   }
   .password-label a,
   .back-link,
   .recovery-retry {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
+  }
+  .password-label a {
+    padding-block: var(--crm-space-2);
+    color: var(--crm-link);
   }
   .password-label a:hover,
   .back-link:hover,
@@ -186,10 +314,10 @@
     display: flex;
     gap: 10px;
     align-items: flex-start;
-    padding: 16px;
-    border-radius: 10px;
+    padding: var(--crm-space-4);
+    border-radius: var(--crm-radius-md);
     background: var(--v2-paper);
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     line-height: 1.6;
   }
   .recovery-confirmation :global(svg) {
@@ -201,10 +329,10 @@
     overflow-wrap: anywhere;
   }
   .recovery-guidance {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     line-height: 1.6;
     color: var(--v2-slate);
-    margin: 16px 0 24px;
+    margin: var(--crm-space-4) 0 var(--crm-space-6);
   }
   .recovery-retry {
     display: block;

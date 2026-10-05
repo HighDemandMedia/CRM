@@ -5,7 +5,7 @@
   export const buttonVariants = tv({
     base: [
       'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap',
-      'rounded-[var(--r-md)] text-[13px] font-medium leading-none tracking-[-0.01em]',
+      'rounded-[var(--r-md)] text-sm font-medium leading-none tracking-[-0.01em]',
       'outline-none transition-[background-color,color,border-color,box-shadow] duration-150',
       'disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50',
       "[&_svg:not([class*='size-'])]:size-[14px] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:stroke-[1.7]",
@@ -20,22 +20,22 @@
         ].join(' '),
         ghost: [
           'bg-[color:var(--bg-elevated)] text-[color:var(--text-muted)]',
-          'border border-[color:var(--border-faint)]',
-          'hover:border-[color:var(--border)] hover:text-[color:var(--text)]'
+          'border border-[color:var(--crm-control-border)]',
+          'hover:border-[color:var(--crm-control-border)] hover:text-[color:var(--text)]'
         ].join(' '),
         outline: [
           'bg-[color:var(--bg-elevated)] text-[color:var(--text-muted)]',
-          'border border-[color:var(--border-faint)]',
-          'hover:border-[color:var(--border)] hover:text-[color:var(--text)]'
+          'border border-[color:var(--crm-control-border)]',
+          'hover:border-[color:var(--crm-control-border)] hover:text-[color:var(--text)]'
         ].join(' '),
         secondary: [
           'bg-[color:var(--bg-elevated)] text-[color:var(--text-muted)]',
-          'border border-[color:var(--border-faint)]',
-          'hover:border-[color:var(--border)] hover:text-[color:var(--text)]'
+          'border border-[color:var(--crm-control-border)]',
+          'hover:border-[color:var(--crm-control-border)] hover:text-[color:var(--text)]'
         ].join(' '),
         destructive: [
           'bg-[color:var(--bg-elevated)] text-[color:var(--red)]',
-          'border border-[color:var(--border-faint)]',
+          'border border-[color:var(--crm-control-border)]',
           'hover:border-[color:var(--red)]'
         ].join(' '),
         link: [
@@ -45,7 +45,7 @@
       },
       size: {
         default: 'h-8 px-3 has-[>svg]:px-2.5',
-        sm: 'h-7 gap-1.5 px-2.5 has-[>svg]:px-2 text-[12px]',
+        sm: 'h-7 gap-1.5 px-2.5 has-[>svg]:px-2 text-xs',
         lg: 'h-9 px-4 has-[>svg]:px-3.5',
         icon: 'size-8',
         'icon-sm': 'size-7',

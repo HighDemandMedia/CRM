@@ -1,56 +1,37 @@
-/* High Demand Media: warm neutral workspace with graphite navigation. */
+/* Shared CRM primitives. Palette and metrics come from the visual foundation. */
+:root,
+.dark {
+  --v2-ember: var(--crm-primary);
+  --v2-ember-soft: var(--crm-surface-selected);
+  --v2-ember-line: var(--crm-control-border);
+  --v2-ink: var(--crm-text);
+  --v2-slate: var(--crm-text-muted);
+  --v2-paper: var(--crm-canvas);
+  --v2-bg: var(--crm-surface);
+  --v2-card: var(--crm-surface);
+  --v2-clay: var(--crm-warning);
+  --v2-rust: var(--crm-danger);
+  --v2-moss: var(--crm-success);
+  --v2-line: var(--crm-border);
+  --v2-line-soft: var(--crm-canvas);
+  --v2-hover: var(--crm-surface-hover);
+  --v2-sans: var(--crm-font-ui);
+  --v2-mono: var(--crm-font-mono);
+  --v2-fs: var(--crm-text-sm);
+  --v2-row: var(--crm-row-height);
+  --v2-pad: var(--crm-space-6);
+  --v2-radius: var(--crm-radius-lg);
+  --v2-accent: var(--crm-link);
+  --v2-muted: var(--crm-text-muted);
+}
 
 .v2-root {
-  /* ── palette ────────────────────────────────────────────────────────── */
-  --v2-ember: #343236; /* primary action, due-now */
-  --v2-ember-soft: #e9e5e1;
-  --v2-ember-line: #d3ccd4;
-  --v2-ink: #29272b; /* all primary text, bulk-action bar */
-  --v2-slate: #746d77; /* labels, secondary text, on-pace aging */
-  --v2-paper: #f6f5f3; /* app canvas */
-  --v2-bg: #ffffff;
-  --v2-card: #ffffff; /* cards sit on paper in pure white */
-  --v2-clay: #b45309; /* aging_status "yellow": past expected_days */
-  --v2-rust: #9a3412; /* aging_status "red", overdue, destructive */
-  --v2-moss: #3f6212; /* won, completed, positive delta. Sparingly. */
-
-  --v2-line: #e3dfdb; /* stone-200 */
-  --v2-line-soft: #f0eeec; /* stone-100 */
-  --v2-hover: rgba(28, 25, 23, 0.025);
-
-  /* ── type ───────────────────────────────────────────────────────────── */
-  --v2-sans: 'Manrope Variable', Manrope, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --v2-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'DejaVu Sans Mono', Menlo, monospace;
-  --v2-fs: 14.4px; /* the base everything else is derived from */
-
-  /* ── metrics (density dial) ─────────────────────────────────────────── */
-  --v2-row: 44px;
-  --v2-pad: 22px;
-  --v2-radius: 10px;
-
   background: var(--v2-paper);
   color: var(--v2-ink);
   font-family: var(--v2-sans);
   font-size: var(--v2-fs);
-  line-height: 1.45;
+  line-height: var(--crm-leading);
   -webkit-font-smoothing: antialiased;
-}
-
-.dark .v2-root {
-  --v2-ember: #cbc4ce;
-  --v2-ember-soft: rgba(251, 140, 60, 0.14);
-  --v2-ember-line: rgba(251, 140, 60, 0.32);
-  --v2-ink: #f6f5f3;
-  --v2-slate: #a8a29e;
-  --v2-paper: #29272b;
-  --v2-bg: #262322;
-  --v2-card: #262322;
-  --v2-clay: #e0a83b;
-  --v2-rust: #f2705b;
-  --v2-moss: #9bcb3c;
-  --v2-line: #33302e;
-  --v2-line-soft: #2a2726;
-  --v2-hover: rgba(250, 250, 249, 0.035);
 }
 
 .v2-root *,
@@ -66,14 +47,15 @@
    `record` prop stays meaningful for screen readers and future divergence. */
 .v2-page-title,
 .v2-record-title {
-  font-size: calc(var(--v2-fs) + 7.5px); /* 21.9px */
+  font-family: var(--crm-font-title);
+  font-size: var(--crm-text-xl);
   font-weight: 640;
   letter-spacing: -0.023em;
   line-height: 1.2;
   margin: 0;
 }
 .v2-section {
-  font-size: calc(var(--v2-fs) + 1px); /* 15.4px */
+  font-size: var(--crm-text-base);
   font-weight: 640;
   letter-spacing: -0.015em;
   margin: 0;
@@ -81,7 +63,7 @@
 /* Quiet sans micro-caps. Used for section headings, nav groups and lane
    titles, anywhere a word labels the block beneath it. */
 .v2-label {
-  font-size: 10px;
+  font-size: var(--crm-text-xs);
   font-weight: 650;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -99,7 +81,7 @@
   color: var(--v2-slate);
 }
 .v2-sub {
-  font-size: calc(var(--v2-fs) - 1px); /* 13.4px */
+  font-size: var(--crm-text-sm);
   color: var(--v2-slate);
 }
 
@@ -107,6 +89,7 @@
 .v2-shell {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 .v2-main {
@@ -141,40 +124,40 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 5px 8px 13px;
+  padding: 5px var(--crm-space-2) 13px;
 }
 .v2-org b {
-  font-size: 13.5px;
+  font-size: var(--crm-text-sm);
   font-weight: 650;
   letter-spacing: -0.012em;
 }
 .v2-mark {
   width: 24px;
   height: 24px;
-  border-radius: 7px;
+  border-radius: var(--crm-radius-md);
   background: var(--v2-ink);
   color: var(--v2-paper);
   display: grid;
   place-items: center;
-  font-size: 12px;
+  font-size: var(--crm-text-xs);
   font-weight: 700;
   flex: none;
 }
 .v2-nav-group {
   margin-top: 13px;
-  padding: 0 8px 5px;
+  padding: 0 var(--crm-space-2) 5px;
 }
 .v2-nav-group:first-of-type {
-  margin-top: 4px;
+  margin-top: var(--crm-space-1);
 }
 .v2-link {
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 6.5px 8px;
-  border-radius: 7px;
+  padding: 6.5px var(--crm-space-2);
+  border-radius: var(--crm-radius-md);
   color: var(--v2-ink);
-  font-size: 13px;
+  font-size: var(--crm-text-sm);
   text-decoration: none;
   margin-bottom: 1px;
 }
@@ -188,7 +171,7 @@
 .v2-link .v2-count {
   margin-left: auto;
   font-family: var(--v2-mono);
-  font-size: 11px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-slate);
 }
 .v2-link:hover {
@@ -212,8 +195,8 @@
 .v2-header {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px var(--v2-pad) 0;
+  gap: var(--crm-space-3);
+  padding: var(--crm-space-4) var(--v2-pad) 0;
   flex: none;
 }
 /* Header for a centred form page. It matches the form's column so the title
@@ -234,7 +217,7 @@
   padding-top: 2px;
 }
 .v2-crumb {
-  font-size: 12px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-slate);
   margin-bottom: 3px;
   display: flex;
@@ -252,18 +235,25 @@
 
 /* ── buttons ──────────────────────────────────────────────────────────── */
 .v2-btn {
-  border: 1px solid var(--v2-line);
+  min-height: var(--crm-control-height);
+  justify-content: center;
+  transition:
+    background-color var(--crm-duration),
+    border-color var(--crm-duration),
+    color var(--crm-duration);
+  border: 1px solid var(--crm-control-border);
   background: var(--v2-card);
   color: var(--v2-ink);
-  border-radius: 8px;
+  border-radius: var(--crm-radius-md);
   padding: 7px 13px;
   font-family: inherit;
-  font-size: calc(var(--v2-fs) - 1.6px); /* 12.8px */
+  font-size: var(--crm-text-sm);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
   text-decoration: none;
 }
 .v2-btn svg {
@@ -277,16 +267,13 @@
 /* The only ember button. One per view. */
 .v2-btn-primary {
   background: var(--v2-ember);
-  border-color: var(--v2-ember);
-  color: #fff;
+  border-color: var(--crm-link);
+  color: var(--crm-primary-text);
   font-weight: 600;
 }
-.dark .v2-btn-primary {
-  color: #29272b;
-}
-.v2-btn-primary:hover {
-  filter: brightness(1.06);
-  border-color: var(--v2-ember);
+.v2-btn-primary:hover:not(:disabled) {
+  background: var(--crm-primary-hover);
+  border-color: var(--crm-link);
 }
 .v2-btn-quiet {
   border-color: transparent;
@@ -299,20 +286,21 @@
   border-color: transparent;
 }
 .v2-btn-sm {
-  padding: 4px 9px;
-  font-size: calc(var(--v2-fs) - 2.6px); /* 11.8px */
-  border-radius: 7px;
+  min-height: 2rem;
+  padding: var(--crm-space-1) 9px;
+  font-size: var(--crm-text-xs);
+  border-radius: var(--crm-radius-md);
 }
 .v2-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.65;
   cursor: not-allowed;
 }
 .v2-kbd {
   font-family: var(--v2-mono);
-  font-size: 9.5px;
+  font-size: var(--crm-text-xs);
   border: 1px solid var(--v2-line);
-  border-radius: 4px;
-  padding: 1px 4px;
+  border-radius: var(--crm-radius-sm);
+  padding: 1px var(--crm-space-1);
   color: var(--v2-slate);
 }
 
@@ -321,10 +309,10 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: calc(var(--v2-fs) - 3px); /* 11.4px */
+  font-size: var(--crm-text-xs);
   font-weight: 600;
   padding: 2.5px 9px;
-  border-radius: 20px;
+  border-radius: var(--crm-radius-xl);
   white-space: nowrap;
   letter-spacing: 0.005em;
   line-height: 1.4;
@@ -340,18 +328,18 @@
 .v2-next {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--crm-space-3);
   background: var(--v2-ember-soft);
   border: 1px solid var(--v2-ember-line);
   border-radius: var(--v2-radius);
-  padding: 12px 15px;
+  padding: var(--crm-space-3) 15px;
 }
 .v2-next-body {
   flex: 1;
   min-width: 0;
 }
 .v2-next .v2-label {
-  color: var(--v2-ember);
+  color: var(--crm-link);
 }
 .v2-next-text {
   font-weight: 600;
@@ -374,7 +362,7 @@
 }
 .v2-card-head a {
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-slate);
   text-decoration: none;
 }
@@ -400,7 +388,7 @@
    with the data underneath it; this recedes and lets the rows read. */
 .v2-table th {
   text-align: left;
-  font-size: 11px;
+  font-size: var(--crm-text-xs);
   font-weight: 600;
   color: var(--v2-slate);
   padding: 9px 14px;
@@ -432,7 +420,7 @@
   letter-spacing: -0.01em;
 }
 .v2-table-secondary {
-  font-size: 12px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-slate);
   margin-top: 1px;
 }
@@ -465,8 +453,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 11px 8px;
-  font-size: 12.5px;
+  padding: 9px 11px var(--crm-space-2);
+  font-size: var(--crm-text-sm);
   font-weight: 550;
   color: var(--v2-slate);
   text-decoration: none;
@@ -483,11 +471,11 @@
   border-bottom-color: var(--v2-ink);
 }
 .v2-tab-count {
-  font-size: 10.5px;
+  font-size: var(--crm-text-xs);
   font-weight: 650;
   color: var(--v2-slate);
   background: var(--v2-hover);
-  border-radius: 20px;
+  border-radius: var(--crm-radius-xl);
   padding: 1px 6px;
 }
 
@@ -499,14 +487,14 @@
 .v2-bar {
   position: relative;
   height: 7px;
-  border-radius: 4px;
+  border-radius: var(--crm-radius-sm);
   background: var(--v2-hover);
   overflow: hidden;
 }
 .v2-bar > i {
   display: block;
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--crm-radius-sm);
   background: var(--v2-slate);
 }
 .v2-bar-pace {
@@ -516,13 +504,13 @@
   width: 2px;
   background: var(--v2-ink);
   opacity: 0.55;
-  border-radius: 2px;
+  border-radius: var(--crm-radius-sm);
 }
 .v2-bar-legend {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  font-size: 11px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-slate);
   margin-top: 5px;
 }
@@ -533,7 +521,7 @@
 .v2-cols {
   display: flex;
   align-items: flex-end;
-  gap: 4px;
+  gap: var(--crm-space-1);
   height: 104px;
 }
 /* Two bars per day, SIDE BY SIDE. Stacking them would make the column's
@@ -550,7 +538,7 @@
 .v2-cols .v2-col i {
   flex: 1;
   display: block;
-  border-radius: 2px;
+  border-radius: var(--crm-radius-sm);
   min-height: 2px;
 }
 .v2-cols .v2-col .in {
@@ -562,13 +550,13 @@
 }
 .v2-cols-axis {
   display: flex;
-  gap: 4px;
+  gap: var(--crm-space-1);
   margin-top: 6px;
 }
 .v2-cols-axis span {
   flex: 1;
   text-align: center;
-  font-size: 10px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-slate);
   min-width: 0;
 }
@@ -581,9 +569,9 @@
   display: inline-block;
   width: 9px;
   height: 9px;
-  border-radius: 2px;
+  border-radius: var(--crm-radius-sm);
   background: var(--v2-line);
-  margin-right: 4px;
+  margin-right: var(--crm-space-1);
 }
 .v2-swatch-in {
   background: var(--v2-ink);
@@ -628,9 +616,9 @@
   border-bottom-color: transparent;
 }
 .v2-entry {
-  padding: 8px 10px;
+  padding: var(--crm-space-2) 10px;
   border-bottom: 1px solid var(--v2-line-soft);
-  font-size: 12px;
+  font-size: var(--crm-text-xs);
 }
 .v2-entry:last-child {
   border-bottom: 0;
@@ -648,7 +636,7 @@
 .v2-split,
 .v2-split-wide {
   display: grid;
-  gap: 20px;
+  gap: var(--crm-space-5);
   align-items: start;
 }
 .v2-split {
@@ -669,7 +657,7 @@
   display: flex;
   gap: 14px;
   align-items: center;
-  padding: 13px 16px;
+  padding: 13px var(--crm-space-4);
   border-bottom: 1px solid var(--v2-line-soft);
   color: inherit;
   text-decoration: none;
@@ -686,7 +674,7 @@ a.v2-setting:hover {
 }
 .v2-setting-body b {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--crm-text-sm);
   display: block;
 }
 
@@ -706,10 +694,10 @@ a.v2-setting:hover {
   border: 1px solid var(--v2-line);
   background: var(--v2-card);
   color: var(--v2-ink);
-  border-radius: 8px;
+  border-radius: var(--crm-radius-md);
   padding: 4.5px 10px;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: var(--crm-text-sm);
   font-weight: 600;
   cursor: pointer;
 }
@@ -718,9 +706,9 @@ a.v2-setting:hover {
   align-items: center;
   gap: 6px;
   border: 1px solid var(--v2-line);
-  border-radius: 20px;
+  border-radius: var(--crm-radius-xl);
   padding: 3.5px 9px 3.5px 10px;
-  font-size: 12px;
+  font-size: var(--crm-text-xs);
   background: var(--v2-card);
 }
 .v2-chip b {
@@ -732,7 +720,7 @@ a.v2-setting:hover {
   color: var(--v2-slate);
   cursor: pointer;
   padding: 0 1px;
-  font-size: 13px;
+  font-size: var(--crm-text-sm);
   line-height: 1;
   display: grid;
   place-items: center;
@@ -756,7 +744,7 @@ a.v2-setting:hover {
 .v2-meter i {
   width: 15px;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--crm-radius-sm);
   background: var(--v2-line);
   display: block;
 }
@@ -774,7 +762,7 @@ a.v2-setting:hover {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 10px;
+  font-size: var(--crm-text-xs);
   font-weight: 650;
   flex: none;
   background: var(--v2-line);
@@ -804,7 +792,7 @@ a.v2-setting:hover {
      record sideways. Fixture data was all short enough never to show it. */
   grid-template-columns: 100px minmax(0, 1fr);
   gap: 7px 10px;
-  font-size: calc(var(--v2-fs) - 1.2px); /* 13.2px */
+  font-size: var(--crm-text-sm);
   margin: 0;
 }
 .v2-kv dt {
@@ -858,7 +846,7 @@ a.v2-setting:hover {
   background: var(--v2-ink);
 }
 .v2-event-meta {
-  font-size: 11.5px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-slate);
   margin-top: 2px;
 }
@@ -866,8 +854,8 @@ a.v2-setting:hover {
 /* ── board ────────────────────────────────────────────────────────────── */
 .v2-board {
   display: flex;
-  gap: 12px;
-  padding: 0 var(--v2-pad) 16px;
+  gap: var(--crm-space-3);
+  padding: 0 var(--v2-pad) var(--crm-space-4);
   overflow-x: auto;
   flex: 1;
   min-height: 0;
@@ -882,17 +870,17 @@ a.v2-setting:hover {
 .v2-lane-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--crm-space-2);
   padding: 0 3px 9px;
   flex: none;
 }
 .v2-lane-head .v2-label {
-  font-size: 11px;
+  font-size: var(--crm-text-xs);
   letter-spacing: 0.08em;
 }
 .v2-lane-head .v2-num {
   margin-left: auto;
-  font-size: 11.5px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-slate);
 }
 .v2-lane-body {
@@ -904,8 +892,8 @@ a.v2-setting:hover {
   background: var(--v2-card);
   border: 1px solid var(--v2-line);
   border-radius: var(--v2-radius);
-  padding: 11px 12px;
-  margin-bottom: 8px;
+  padding: 11px var(--crm-space-3);
+  margin-bottom: var(--crm-space-2);
   display: block;
   color: inherit;
   text-decoration: none;
@@ -929,7 +917,7 @@ a.v2-setting:hover {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 11px;
-  margin-bottom: 16px;
+  margin-bottom: var(--crm-space-4);
 }
 .v2-stat {
   background: var(--v2-card);
@@ -940,23 +928,23 @@ a.v2-setting:hover {
 .v2-stat-value {
   font-family: var(--v2-mono);
   font-variant-numeric: tabular-nums;
-  font-size: calc(var(--v2-fs) + 4.5px); /* 18.9px */
+  font-size: var(--crm-text-lg);
   font-weight: 600;
   letter-spacing: -0.02em;
-  margin-top: 4px;
+  margin-top: var(--crm-space-1);
 }
 
 /* ── queue (Today) ────────────────────────────────────────────────────── */
 .v2-queue-item {
   display: flex;
   gap: 13px;
-  padding: 12px 15px;
+  padding: var(--crm-space-3) 15px;
   align-items: center;
 }
 .v2-queue-spine {
   width: 3px;
   align-self: stretch;
-  border-radius: 3px;
+  border-radius: var(--crm-radius-sm);
   flex: none;
 }
 .v2-queue-body {
@@ -978,7 +966,7 @@ a.v2-setting:hover {
      `.is-centered` (see the page-header block) so the title stays directly
      above the form's left edge. */
   margin-inline: auto;
-  padding: 4px 0 30px;
+  padding: var(--crm-space-1) 0 30px;
 }
 .v2-field {
   margin-bottom: 15px;
@@ -996,22 +984,23 @@ a.v2-setting:hover {
 }
 .v2-field > label {
   display: block;
-  font-size: 12.5px;
+  font-size: var(--crm-text-sm);
   font-weight: 600;
   margin-bottom: 5px;
 }
 .v2-input {
+  min-height: var(--crm-control-height);
   width: 100%;
-  border: 1px solid var(--v2-line);
-  border-radius: 8px;
+  border: 1px solid var(--crm-control-border);
+  border-radius: var(--crm-radius-md);
   padding: 9px 11px;
   background: var(--v2-card);
   color: var(--v2-ink);
   font-family: inherit;
-  font-size: calc(var(--v2-fs) - 0.5px); /* 13.9px */
+  font-size: var(--crm-text-sm);
 }
 .v2-input:focus {
-  outline: 2px solid var(--v2-ember);
+  outline: 2px solid var(--crm-focus);
   outline-offset: -1px;
   border-color: transparent;
 }
@@ -1029,13 +1018,13 @@ a.v2-setting:hover {
   cursor: not-allowed;
 }
 .v2-hint {
-  font-size: 11.5px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-slate);
   margin-top: 5px;
   line-height: 1.45;
 }
 .v2-error {
-  font-size: 12px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-rust);
   margin-top: 5px;
   display: flex;
@@ -1045,7 +1034,7 @@ a.v2-setting:hover {
 /* "More fields". Everything the form does not need to open with. */
 .v2-disclosure {
   border-top: 1px solid var(--v2-line);
-  margin-top: 20px;
+  margin-top: var(--crm-space-5);
   padding-top: 14px;
 }
 
@@ -1062,52 +1051,54 @@ a.v2-setting:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 34px 20px;
+  padding: 34px var(--crm-space-5);
 }
 .v2-auth-box {
   width: 100%;
-  max-width: 400px;
+  max-width: 28rem;
 }
 .v2-auth-brand {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 9px;
-  margin-bottom: 22px;
+  margin-bottom: var(--crm-space-6);
   color: inherit;
   text-decoration: none;
 }
 .v2-auth-brand img {
   width: 27px;
   height: 27px;
-  border-radius: 7px;
+  border-radius: var(--crm-radius-md);
   display: block;
   flex: none;
 }
 .v2-auth-brand b {
-  font-size: 17px;
+  font-size: var(--crm-text-base);
   font-weight: 680;
   letter-spacing: -0.02em;
 }
 .v2-auth-card {
+  box-shadow: var(--crm-shadow-sm);
   background: var(--v2-card);
   border: 1px solid var(--v2-line);
-  border-radius: 14px;
+  border-radius: var(--crm-radius-lg);
   padding: 27px 25px;
 }
 .v2-auth-head {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--crm-space-5);
 }
 .v2-auth-head h1 {
-  font-size: calc(var(--v2-fs) + 4px); /* 18.4px */
+  font-family: var(--crm-font-title);
+  font-size: var(--crm-text-xl);
   font-weight: 660;
   letter-spacing: -0.02em;
   margin: 0;
 }
 .v2-auth-head p {
   color: var(--v2-slate);
-  font-size: calc(var(--v2-fs) - 0.5px);
+  font-size: var(--crm-text-sm);
   margin: 5px 0 0;
   line-height: 1.5;
 }
@@ -1115,10 +1106,10 @@ a.v2-setting:hover {
 .v2-auth-divider {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--crm-space-3);
   margin: 15px 0;
   color: var(--v2-slate);
-  font-size: 11px;
+  font-size: var(--crm-text-xs);
 }
 .v2-auth-divider::before,
 .v2-auth-divider::after {
@@ -1133,11 +1124,11 @@ a.v2-setting:hover {
   justify-content: center;
   gap: 11px;
   flex-wrap: wrap;
-  margin-top: 22px;
+  margin-top: var(--crm-space-6);
 }
 .v2-auth-foot a {
   color: var(--v2-slate);
-  font-size: 12px;
+  font-size: var(--crm-text-xs);
   text-decoration: none;
 }
 .v2-auth-foot a:hover {
@@ -1163,8 +1154,8 @@ a.v2-setting:hover {
 .v2-auth-gicon {
   width: 18px;
   height: 18px;
-  background: #fff;
-  border-radius: 4px;
+  background: var(--crm-surface);
+  border-radius: var(--crm-radius-sm);
   padding: 2px;
   flex: none;
 }
@@ -1174,9 +1165,9 @@ a.v2-setting:hover {
 .v2-auth-org {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--crm-space-3);
   width: 100%;
-  padding: 12px 13px;
+  padding: var(--crm-space-3) 13px;
   background: var(--v2-card);
   border: 1px solid var(--v2-line);
   border-radius: var(--v2-radius);
@@ -1187,7 +1178,7 @@ a.v2-setting:hover {
   cursor: pointer;
 }
 .v2-auth-org + .v2-auth-org {
-  margin-top: 8px;
+  margin-top: var(--crm-space-2);
 }
 .v2-auth-org:hover {
   border-color: var(--v2-slate);
@@ -1225,14 +1216,14 @@ a.v2-setting:hover {
   justify-content: center;
   gap: 7px;
   width: 100%;
-  margin-top: 8px;
-  padding: 12px;
+  margin-top: var(--crm-space-2);
+  padding: var(--crm-space-3);
   border: 1px dashed var(--v2-line);
   border-radius: var(--v2-radius);
   background: none;
   color: var(--v2-slate);
   font-family: inherit;
-  font-size: calc(var(--v2-fs) - 1.4px);
+  font-size: var(--crm-text-sm);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
@@ -1269,9 +1260,9 @@ a.v2-setting:hover {
   display: flex;
   gap: 9px;
   align-items: flex-start;
-  padding: 11px 12px;
-  border-radius: 9px;
-  font-size: calc(var(--v2-fs) - 1.4px);
+  padding: 11px var(--crm-space-3);
+  border-radius: var(--crm-radius-md);
+  font-size: var(--crm-text-sm);
   line-height: 1.45;
 }
 .v2-auth-note b {
@@ -1295,10 +1286,11 @@ a.v2-setting:hover {
 @media (max-width: 480px) {
   .v2-auth {
     justify-content: flex-start;
-    padding-top: 40px;
+    padding-top: var(--crm-space-10);
   }
   .v2-auth-card {
-    padding: 22px 18px;
+    box-shadow: var(--crm-shadow-sm);
+    padding: var(--crm-space-6) 18px;
   }
 }
 
@@ -1310,7 +1302,7 @@ a.v2-setting:hover {
   backdrop-filter: blur(1.5px);
   display: grid;
   place-items: start center;
-  padding: 88px 16px 16px;
+  padding: 88px var(--crm-space-4) var(--crm-space-4);
   z-index: 60;
 }
 .v2-palette {
@@ -1321,7 +1313,7 @@ a.v2-setting:hover {
   flex-direction: column;
   background: var(--v2-card);
   border: 1px solid var(--v2-line);
-  border-radius: 14px;
+  border-radius: var(--crm-radius-lg);
   overflow: hidden;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
 }
@@ -1339,7 +1331,7 @@ a.v2-setting:hover {
   background: none;
   color: var(--v2-ink);
   font-family: inherit;
-  font-size: 15px;
+  font-size: var(--crm-text-sm);
   outline: none;
   min-width: 0;
 }
@@ -1367,7 +1359,7 @@ a.v2-setting:hover {
   width: 100%;
   padding: 7px 15px;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: var(--crm-text-sm);
   text-align: left;
   color: inherit;
   background: none;
@@ -1388,16 +1380,16 @@ a.v2-setting:hover {
 }
 .v2-palette-row .v2-palette-meta {
   margin-left: auto;
-  font-size: 11.5px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-slate);
   padding-left: 10px;
 }
 .v2-palette-foot {
   border-top: 1px solid var(--v2-line);
-  padding: 8px 15px;
+  padding: var(--crm-space-2) 15px;
   display: flex;
   gap: 14px;
-  font-size: 11px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-slate);
   flex: none;
 }
@@ -1412,7 +1404,7 @@ a.v2-setting:hover {
 .v2-state-icon {
   width: 46px;
   height: 46px;
-  border-radius: 13px;
+  border-radius: var(--crm-radius-lg);
   background: var(--v2-line-soft);
   color: var(--v2-slate);
   display: grid;
@@ -1421,14 +1413,14 @@ a.v2-setting:hover {
 }
 .v2-state h3 {
   margin: 0 0 7px;
-  font-size: calc(var(--v2-fs) + 3px); /* 17.4px */
+  font-size: var(--crm-text-lg);
   font-weight: 640;
   letter-spacing: -0.015em;
 }
 .v2-state p {
   margin: 0 0 17px;
   color: var(--v2-slate);
-  font-size: calc(var(--v2-fs) - 0.5px);
+  font-size: var(--crm-text-sm);
   line-height: 1.55;
 }
 
@@ -1443,14 +1435,14 @@ a.v2-setting:hover {
 .v2-mobile-top {
   align-items: center;
   gap: 10px;
-  padding: 8px var(--v2-pad);
+  padding: var(--crm-space-2) var(--v2-pad);
   flex: none;
   border-bottom: 1px solid var(--v2-line);
   background: var(--v2-paper);
 }
 .v2-mobile-top h2 {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--crm-text-lg);
   font-weight: 640;
   letter-spacing: -0.02em;
 }
@@ -1467,7 +1459,7 @@ a.v2-setting:hover {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  font-size: 9.5px;
+  font-size: var(--crm-text-xs);
   color: var(--v2-slate);
   text-decoration: none;
 }
@@ -1490,14 +1482,11 @@ a.v2-setting:hover {
   border: 0;
   border-radius: 50%;
   background: var(--v2-ember);
-  color: #fff;
+  color: var(--crm-primary-text);
   place-items: center;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
   z-index: 30;
   cursor: pointer;
-}
-.dark .v2-fab {
-  color: #29272b;
 }
 
 /* ── mobile nav drawer ────────────────────────────────────────────────── */
@@ -1551,9 +1540,9 @@ a.v2-setting:hover {
 
 /* ── a11y ─────────────────────────────────────────────────────────────── */
 .v2-root :focus-visible {
-  outline: 2px solid var(--v2-ember);
+  outline: 2px solid var(--crm-focus);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--crm-radius-sm);
 }
 .v2-sr-only {
   position: absolute;
@@ -1614,7 +1603,7 @@ a.v2-setting:hover {
   }
   .v2-page-title,
   .v2-record-title {
-    font-size: calc(var(--v2-fs) + 4.5px);
+    font-size: var(--crm-text-lg);
   }
   /* Rows become cards. A seven-column table is 836px wide in a 390px viewport,
      so two thirds of every row, including the name being scanned for, sat
@@ -1656,7 +1645,7 @@ a.v2-setting:hover {
     border: 0;
     margin-right: 9px;
     vertical-align: baseline;
-    font-size: 12.5px;
+    font-size: var(--crm-text-sm);
   }
   /* Beats `.v2-table .v2-r`; a right-aligned figure in a meta line reads as a
      gap rather than as a column. */
@@ -1680,7 +1669,7 @@ a.v2-setting:hover {
     display: inline-block;
     margin: 0 9px 0 0;
     padding-right: 0;
-    font-size: 12.5px;
+    font-size: var(--crm-text-sm);
   }
   /* The row's one control gets a gutter of its own rather than being floated
      into the text. Floating it indented only the lines that sat beside it, so
@@ -1706,7 +1695,7 @@ a.v2-setting:hover {
     /* Set explicitly because these cells are `.v2-num`, and a label inheriting
        that would put a word in the numeral face. Mono is numerals only. */
     font-family: var(--v2-sans);
-    font-size: 11.5px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     font-weight: 400;
   }
@@ -1717,14 +1706,14 @@ a.v2-setting:hover {
     top: 11px;
     right: 14px;
     margin: 0;
-    font-size: 12.5px;
+    font-size: var(--crm-text-sm);
   }
   /* A cell holding a meter rather than a value. It needs a width to mean
      anything, so it takes a line of its own instead of sharing the meta run. */
   .v2-table td[data-m='bar'] {
     display: block;
     clear: both;
-    margin: 4px 0 0;
+    margin: var(--crm-space-1) 0 0;
   }
   /* Last, and stated twice. Hiding has to beat every layout rule above it, and
      `.v2-table td:first-child` carries an element selector that a lone
@@ -1746,14 +1735,15 @@ a.v2-setting:hover {
   .v2-btn,
   .v2-view {
     min-height: 40px;
-    padding: 8px 14px;
+    padding: var(--crm-space-2) 14px;
   }
   .v2-btn-sm {
+    min-height: 2rem;
     min-height: 34px;
     padding: 6px 10px;
   }
   .v2-chip {
-    padding: 7px 10px 7px 12px;
+    padding: 7px 10px 7px var(--crm-space-3);
   }
   /* Was 12×14px, a target smaller than the fingertip aiming at it, sitting
      inside a chip that does something different when hit by mistake. */
@@ -1778,7 +1768,7 @@ a.v2-setting:hover {
   }
   .v2-queue-actions {
     width: 100%;
-    padding-left: 16px;
+    padding-left: var(--crm-space-4);
     margin-top: 10px;
   }
   .v2-queue-actions .v2-btn {
@@ -1788,7 +1778,7 @@ a.v2-setting:hover {
      needs the FAB clearance applied to the lane rather than to .v2-scroll. */
   .v2-board {
     scroll-snap-type: x mandatory;
-    padding-bottom: 8px;
+    padding-bottom: var(--crm-space-2);
   }
   .v2-lane {
     scroll-snap-align: start;
@@ -1809,7 +1799,7 @@ a.v2-setting:hover {
     min-height: 0;
   }
   .v2-scrim {
-    padding-top: 40px;
+    padding-top: var(--crm-space-10);
   }
 }
 
@@ -1818,8 +1808,8 @@ a.v2-setting:hover {
   display: grid;
   grid-template-columns: minmax(240px, 300px) minmax(300px, 1fr) minmax(250px, 320px);
   grid-template-rows: minmax(0, 1fr);
-  gap: 16px;
-  padding: 20px 22px 24px;
+  gap: var(--crm-space-4);
+  padding: var(--crm-space-5) var(--crm-space-6) var(--crm-space-6);
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -1827,8 +1817,8 @@ a.v2-setting:hover {
 .v2-root .hdm-profile > .hdm-panel {
   background: var(--v2-card);
   border: 0;
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: var(--crm-radius-lg);
+  padding: var(--crm-space-5);
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
@@ -1837,22 +1827,22 @@ a.v2-setting:hover {
 .v2-root .hdm-relations > section,
 .v2-root .hdm-relations > div,
 .v2-root .hdm-relations > details {
-  margin-bottom: 24px;
+  margin-bottom: var(--crm-space-6);
 }
 .v2-root .hdm-relations h2 {
-  font-size: 15px;
+  font-size: var(--crm-text-sm);
   font-weight: 650;
-  margin: 0 0 16px;
+  margin: 0 0 var(--crm-space-4);
 }
 .v2-root .hdm-relations summary,
 .v2-root .hdm-summary > summary {
   cursor: pointer;
-  padding: 12px 0;
+  padding: var(--crm-space-3) 0;
   font-weight: 600;
 }
 .v2-root .hdm-summary {
   border-top: 1px solid var(--v2-line);
-  margin-top: 22px;
+  margin-top: var(--crm-space-6);
 }
 .v2-root .hdm-summary .v2-stats {
   display: grid;
@@ -1869,7 +1859,7 @@ a.v2-setting:hover {
   font-variant-numeric: tabular-nums;
 }
 .v2-root :focus-visible {
-  outline: 2px solid #7e7485;
+  outline: 2px solid var(--crm-focus);
   outline-offset: 3px;
 }
 @media (max-width: 1150px) {
@@ -1890,8 +1880,8 @@ a.v2-setting:hover {
   .v2-root .hdm-profile {
     display: flex;
     flex-direction: column;
-    padding: 12px;
-    gap: 12px;
+    padding: var(--crm-space-3);
+    gap: var(--crm-space-3);
   }
   .v2-root .hdm-profile > .hdm-panel {
     flex-shrink: 0;
@@ -1899,7 +1889,7 @@ a.v2-setting:hover {
 }
 
 .v2-root .v2-record-title {
-  font-size: 27px;
+  font-size: var(--crm-text-2xl);
 }
 .v2-root .hdm-panel .v2-label {
   text-transform: none;
@@ -1911,13 +1901,13 @@ a.v2-setting:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--crm-space-2);
   min-height: 28px;
   margin: 0 0 6px;
 }
 .v2-root .association-heading h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--crm-text-sm);
   font-weight: 650;
   line-height: 20px;
 }
@@ -1931,7 +1921,7 @@ a.v2-setting:hover {
   min-height: 28px;
   padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--crm-radius-sm);
   background: transparent;
   color: var(--v2-slate);
   cursor: pointer;
@@ -1952,4 +1942,50 @@ a.v2-setting:hover {
 .v2-root .hdm-relations > div,
 .v2-root .hdm-relations > details {
   margin-bottom: 18px;
+}
+
+/* Shared interaction states; selectors stay on primitives, not individual screens. */
+.v2-btn-primary:active:not(:disabled) {
+  background: var(--crm-primary-active);
+}
+.v2-input:hover:not(:disabled) {
+  border-color: var(--crm-text-muted);
+}
+.v2-input::placeholder {
+  color: var(--crm-text-muted);
+  opacity: 1;
+}
+.v2-input[readonly] {
+  background: var(--crm-canvas);
+}
+.v2-root input[type='checkbox'],
+.v2-root input[type='radio'] {
+  accent-color: var(--crm-link);
+}
+.v2-root :is(h1, h2, h3, p, dd) {
+  overflow-wrap: anywhere;
+}
+.v2-root .v2-nav {
+  --crm-focus: var(--crm-coral);
+}
+.v2-header {
+  flex-wrap: wrap;
+  gap: var(--crm-space-4);
+}
+.v2-header > div {
+  min-width: 0;
+}
+.v2-tabs a[aria-current='page'] {
+  border-bottom-color: var(--crm-link);
+}
+@media (max-width: 767px), (pointer: coarse) {
+  .v2-root .v2-btn,
+  .v2-root .v2-view,
+  .v2-root .v2-link {
+    min-height: var(--crm-target-size);
+  }
+  .v2-root .v2-input {
+    min-height: var(--crm-target-size);
+    font-size: var(--crm-text-base);
+  }
 }

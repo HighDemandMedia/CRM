@@ -25,26 +25,26 @@
   legend {
     width: 100%;
     padding: 0 0 10px;
-    margin-bottom: 16px;
+    margin-bottom: var(--crm-space-4);
     border-bottom: 1px solid var(--v2-line);
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
     color: var(--v2-ink);
   }
   summary {
     cursor: pointer;
-    padding: 12px 0;
-    font-size: 14px;
+    padding: var(--crm-space-3) 0;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
     border-bottom: 1px solid var(--v2-line);
   }
   .optional-section[open] summary {
-    margin-bottom: 16px;
+    margin-bottom: var(--crm-space-4);
   }
   .record-fields {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
+    gap: var(--crm-space-4);
   }
   .record-fields :global(.v2-field) {
     margin-bottom: 0;

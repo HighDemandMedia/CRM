@@ -126,7 +126,7 @@
                 </tbody>
               </table>
               <div
-                style="display:flex;justify-content:flex-end;gap:24px;padding:11px 14px;border-top:1px solid var(--v2-line);font-size:13px"
+                style="display:flex;justify-content:flex-end;gap:24px;padding:11px 14px;border-top:1px solid var(--v2-line);font-size:var(--crm-text-sm)"
               >
                 {#if discount > 0}
                   <span class="v2-muted">Subtotal</span>
@@ -237,53 +237,53 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: var(--crm-space-4);
   }
   .properties-heading h2 {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
   }
 
   .deal-overview {
-    margin: 14px 22px 0;
+    margin: 14px var(--crm-space-6) 0;
     padding: 18px;
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
     gap: 18px 30px;
     background: var(--v2-card);
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
   }
   .deal-overview > div {
     min-width: 110px;
   }
   .deal-overview strong {
     display: block;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
     overflow-wrap: anywhere;
   }
   .overview-label,
   .deal-value > span {
     display: block;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin-bottom: 6px;
   }
   .deal-value strong {
-    font-size: 26px;
+    font-size: var(--crm-text-xl);
     font-weight: 650;
     letter-spacing: -0.5px;
   }
   .stage-age {
     margin: 0;
     flex-basis: 100%;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .deal-journal {
-    padding: 20px;
+    padding: var(--crm-space-5);
     margin-bottom: 14px;
   }
   .deal-history {
@@ -294,19 +294,19 @@
     margin-bottom: 14px;
   }
   .deal-secondary > summary {
-    padding: 14px 16px;
-    font-size: 14px;
+    padding: 14px var(--crm-space-4);
+    font-size: var(--crm-text-sm);
     font-weight: 600;
     cursor: pointer;
   }
   .deal-secondary > summary span {
-    margin-left: 8px;
-    font-size: 12px;
+    margin-left: var(--crm-space-2);
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     font-weight: 400;
   }
   .secondary-content {
-    padding: 0 16px 16px;
+    padding: 0 var(--crm-space-4) var(--crm-space-4);
   }
   .line-items-scroll {
     overflow-x: auto;
@@ -325,11 +325,11 @@
     display: block !important;
     width: 320px;
     flex-shrink: 0;
-    padding: 20px;
-    margin: 14px 22px 20px 0;
+    padding: var(--crm-space-5);
+    margin: 14px var(--crm-space-6) var(--crm-space-5) 0;
     background: var(--v2-card);
     border: 0;
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
     min-height: 0;
     overflow-y: auto;
   }
@@ -347,12 +347,12 @@
     }
     .deal-properties {
       width: auto;
-      margin: 0 15px 20px;
+      margin: 0 15px var(--crm-space-5);
       overflow: visible;
     }
     .deal-overview {
-      margin: 12px 15px 0;
-      gap: 16px 24px;
+      margin: var(--crm-space-3) 15px 0;
+      gap: var(--crm-space-4) var(--crm-space-6);
     }
   }
 </style>

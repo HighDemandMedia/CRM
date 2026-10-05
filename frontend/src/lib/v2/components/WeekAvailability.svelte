@@ -230,27 +230,27 @@
     flex-direction: column;
     height: 100%;
     overflow: hidden;
-    background: white;
+    background: var(--crm-surface);
   }
   header {
-    padding: 16px 20px 0;
+    padding: var(--crm-space-4) var(--crm-space-5) 0;
   }
   .week-nav {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   .week-nav strong {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
   }
   .legend {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
-    font-size: 11px;
+    gap: var(--crm-space-4);
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-    margin-top: 12px;
+    margin-top: var(--crm-space-3);
   }
   .legend span {
     display: flex;
@@ -263,19 +263,19 @@
   i {
     width: 9px;
     height: 9px;
-    border-radius: 3px;
+    border-radius: var(--crm-radius-sm);
   }
   .busy-key {
-    background: #cbd5e1;
+    background: var(--crm-control-border);
   }
   .selected-key {
-    background: #3b82f6;
+    background: var(--crm-info);
   }
   .status {
     min-height: 30px;
-    padding: 6px 20px;
-    font-size: 12px;
-    color: #b42318;
+    padding: 6px var(--crm-space-5);
+    font-size: var(--crm-text-xs);
+    color: var(--crm-danger);
   }
   .week-scroll {
     overflow: auto;
@@ -291,24 +291,24 @@
     position: sticky;
     top: 0;
     z-index: 4;
-    background: white;
-    border-bottom: 1px solid #e2e8f0;
+    background: var(--crm-surface);
+    border-bottom: 1px solid var(--crm-border);
     height: 58px;
   }
   .day-head div {
     text-align: center;
-    font-size: 11px;
-    color: #64748b;
+    font-size: var(--crm-text-xs);
+    color: var(--crm-text-muted);
     padding: 6px;
   }
   .day-head b {
     display: block;
-    font-size: 16px;
+    font-size: var(--crm-text-base);
     margin-top: 3px;
   }
   .day-head .chosen {
-    color: #2563eb;
-    background: #eff6ff;
+    color: var(--crm-info);
+    background: var(--crm-info-bg);
   }
   .hours {
     display: grid;
@@ -321,12 +321,12 @@
   .ruler span {
     position: absolute;
     right: 8px;
-    font-size: 10px;
-    color: #64748b;
+    font-size: var(--crm-text-xs);
+    color: var(--crm-text-muted);
   }
   .day {
     position: relative;
-    border-left: 1px solid #e2e8f0;
+    border-left: 1px solid var(--crm-border);
   }
   .slot {
     position: absolute;
@@ -334,17 +334,17 @@
     width: 100%;
     height: 30px;
     border: 0;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--crm-surface-secondary);
     background: transparent;
     cursor: pointer;
   }
   .slot:nth-child(odd) {
-    border-top-color: #e2e8f0;
+    border-top-color: var(--crm-border);
   }
   .slot:hover:not(:disabled),
   .slot:focus-visible {
-    background: #eff6ff;
-    outline: 2px solid #93c5fd;
+    background: var(--crm-info-bg);
+    outline: 2px solid var(--crm-info-bg);
     outline-offset: -2px;
   }
   .busy-block,
@@ -352,29 +352,29 @@
     position: absolute;
     left: 3px;
     right: 3px;
-    border-radius: 5px;
-    padding: 4px 5px;
+    border-radius: var(--crm-radius-sm);
+    padding: var(--crm-space-1) 5px;
     box-sizing: border-box;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     overflow: hidden;
   }
   .busy-block {
-    background: #e2e8f0;
-    border-left: 3px solid #94a3b8;
-    color: #475569;
+    background: var(--crm-border);
+    border-left: 3px solid var(--crm-text-muted);
+    color: var(--crm-text-muted);
     pointer-events: none;
   }
   .selection {
-    background: #dbeafe;
-    border: 1px solid #60a5fa;
-    border-left: 3px solid #2563eb;
-    color: #1d4ed8;
+    background: var(--crm-info-bg);
+    border: 1px solid var(--crm-info);
+    border-left: 3px solid var(--crm-info);
+    color: var(--crm-info);
     cursor: grab;
     z-index: 2;
   }
   .selection.conflict {
-    background: #fee2e2;
-    border-color: #ef4444;
-    color: #b91c1c;
+    background: var(--crm-danger-bg);
+    border-color: var(--crm-danger);
+    color: var(--crm-danger);
   }
 </style>

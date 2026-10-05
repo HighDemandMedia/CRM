@@ -3,7 +3,16 @@
   import { asInternalPath } from '$lib/utils/paths.js';
   import { goto } from '$app/navigation';
   import { Button } from '$lib/components/ui/button/index.js';
-  import { ArrowLeft, Home, Compass, Users, FileText, Ticket, BarChart3 } from '@lucide/svelte';
+  import {
+    ArrowLeft,
+    Home,
+    Compass,
+    Building2,
+    Users,
+    FileText,
+    Ticket,
+    BarChart3
+  } from '@lucide/svelte';
 
   /**
    * @typedef {Object} Props
@@ -38,7 +47,7 @@
 
   const quickLinks = [
     { href: '/', label: 'Dashboard', icon: BarChart3 },
-    { href: '/leads', label: 'Leads', icon: Users },
+    { href: '/accounts', label: 'Companies', icon: Building2 },
     { href: '/contacts', label: 'Contacts', icon: Users },
     { href: '/tickets', label: 'Tickets', icon: Ticket },
     { href: '/tasks', label: 'Tasks', icon: FileText }
@@ -60,7 +69,7 @@
       ></div>
       <div class="relative">
         <span
-          class="text-primary block text-[7rem] leading-none font-bold tracking-tighter md:text-[9rem]"
+          class="block text-[7rem] leading-none font-bold tracking-tighter text-[var(--crm-link)] md:text-[9rem]"
           style="font-feature-settings: 'tnum';"
         >
           {status}

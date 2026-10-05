@@ -134,6 +134,7 @@ function toRollups(rollups) {
 function toRow(account) {
   return {
     id: account.id,
+    created_by: userName(account.created_by, ''),
     name: account.name ?? '',
     industry: industryLabel(account.industry),
     industry_value: account.industry ?? '',

@@ -124,7 +124,7 @@
 </PageHeader>
 
 {#if page.url.search}
-  <p class="v2-sub" style="font-size:11.5px;margin:8px 0 0">
+  <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:8px 0 0">
     These numbers describe the filtered queue.
   </p>
 {/if}
@@ -135,7 +135,7 @@
 <SectionTabs set="tickets" />
 
 {#if banner}
-  <p class="v2-sub" style="font-size:12px;margin:8px 0 0">{banner}</p>
+  <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:8px 0 0">{banner}</p>
 {/if}
 {#if selected.size > 0}
   <BulkActionBar
@@ -223,10 +223,10 @@
               <td data-m="tag"><Pill tone={CASE_STATUS_TONE[t.status]}>{t.status}</Pill></td>
               <!-- Nullable on the model and null on plenty of rows, so it says
                    so rather than printing an empty cell. -->
-              <td class="v2-muted" data-m="hide" style="font-size:12.5px">
+              <td class="v2-muted" data-m="hide" style="font-size:var(--crm-text-sm)">
                 {t.case_type ?? '—'}
               </td>
-              <td class="v2-muted" style="font-size:12.5px">
+              <td class="v2-muted" style="font-size:var(--crm-text-sm)">
                 {#if t.account}
                   <a class="v2-row-link" href={resolve(`/accounts/${t.account.id}`)}
                     >{t.account.name}</a
@@ -239,7 +239,7 @@
                 {#if t.assignee}
                   <Avatar name={t.assignee} size={22} />
                 {:else}
-                  <span class="v2-muted" style="font-size:12.5px">Unassigned</span>
+                  <span class="v2-muted" style="font-size:var(--crm-text-sm)">Unassigned</span>
                 {/if}
               </td>
               <td class="v2-r v2-num v2-muted" data-m="meta">{shortAge(t.opened_at)}</td>
@@ -259,12 +259,13 @@
                         ]}"
                       ></i>
                     </span>
-                    <span class="v2-num" style="font-size:11px;color:{TONE_VAR[p.tone]}"
-                      >{p.label}</span
+                    <span
+                      class="v2-num"
+                      style="font-size:var(--crm-text-xs);color:{TONE_VAR[p.tone]}">{p.label}</span
                     >
                   </div>
                 {:else}
-                  <span class="v2-num" style="font-size:11.5px;color:{TONE_VAR[p.tone]}"
+                  <span class="v2-num" style="font-size:var(--crm-text-xs);color:{TONE_VAR[p.tone]}"
                     >{p.label}</span
                   >
                 {/if}
@@ -274,7 +275,7 @@
         </tbody>
       </table>
     </div>
-    <p class="v2-sub v2-pad" style="font-size:12px;padding-bottom:24px">
+    <p class="v2-sub v2-pad" style="font-size:var(--crm-text-xs);padding-bottom:24px">
       Showing <span class="v2-num">{tickets.length}</span> of
       <span class="v2-num">{count(totals.count)}</span>
       {#if !data.showAll}

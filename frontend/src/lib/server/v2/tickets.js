@@ -35,6 +35,7 @@ function toRow(row) {
   const assignees = row.assigned_to ?? [];
   return {
     id: row.id,
+    created_by: userName(row.created_by, ''),
     custom_fields: row.custom_fields ?? {},
     ticket_code: row.ticket_code ?? '',
     category: row.category ?? 'General',
@@ -59,6 +60,7 @@ function toRow(row) {
     assignee: assignees.length ? profileName(assignees[0]) : null,
     assignee_count: assignees.length,
     opened_at: row.created_at,
+    created_at: row.created_at,
     closed_on: row.closed_on ?? null,
     first_response_at: row.first_response_at ?? null,
     first_response_hours: row.sla_first_response_hours ?? null,

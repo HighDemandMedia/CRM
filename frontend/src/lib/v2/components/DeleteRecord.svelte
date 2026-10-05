@@ -141,11 +141,11 @@
   .associated-option {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   .associated-option input {
     width: auto;
-    margin-top: 4px;
+    margin-top: var(--crm-space-1);
   }
   .delete-trigger {
     position: fixed;
@@ -153,7 +153,7 @@
     bottom: 16px;
     z-index: 10;
     background: var(--v2-bg, white);
-    color: #b42318;
+    color: var(--crm-danger);
   }
   dialog {
     margin: auto;
@@ -161,34 +161,34 @@
     height: fit-content;
     max-height: 90vh;
     overflow: auto;
-    padding: 24px;
+    padding: var(--crm-space-6);
     border: 1px solid var(--v2-line);
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
     background: var(--v2-bg, white);
     color: var(--v2-ink);
-    box-shadow: 0 20px 60px #0003;
+    box-shadow: var(--crm-shadow-lg);
   }
   dialog::backdrop {
-    background: #0006;
+    background: var(--crm-overlay);
   }
   h2 {
-    font-size: 20px;
-    margin: 0 0 16px;
+    font-size: var(--crm-text-lg);
+    margin: 0 0 var(--crm-space-4);
   }
   p,
   li,
   label {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     line-height: 1.6;
   }
   ul {
-    padding-left: 20px;
+    padding-left: var(--crm-space-5);
     max-height: 180px;
     overflow: auto;
   }
   label {
     display: block;
-    margin-top: 16px;
+    margin-top: var(--crm-space-4);
   }
   input {
     margin-top: 6px;
@@ -196,20 +196,20 @@
   }
   .buttons {
     display: flex;
-    gap: 8px;
+    gap: var(--crm-space-2);
     justify-content: flex-end;
-    margin-top: 22px;
+    margin-top: var(--crm-space-6);
   }
   .danger {
-    background: #b42318;
-    color: white;
-    border-color: #b42318;
+    background: var(--crm-danger-bg);
+    color: var(--crm-danger);
+    border-color: var(--crm-danger);
   }
   .danger:disabled {
     opacity: 0.4;
   }
   .error {
-    color: #b42318;
+    color: var(--crm-danger);
   }
   @media (max-width: 767px) {
     .delete-trigger {

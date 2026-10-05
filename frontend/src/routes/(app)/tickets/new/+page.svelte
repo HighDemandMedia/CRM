@@ -57,12 +57,12 @@
     max-width: 660px;
     margin: 0 auto;
     background: var(--v2-bg);
-    padding: 24px;
-    border-radius: 12px;
+    padding: var(--crm-space-6);
+    border-radius: var(--crm-radius-lg);
   }
   .actions {
     display: flex;
-    gap: 8px;
-    margin-top: 24px;
+    gap: var(--crm-space-2);
+    margin-top: var(--crm-space-6);
   }
 </style>

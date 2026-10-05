@@ -144,21 +144,21 @@
     color: var(--v2-ink);
   }
   .person {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
-    margin: 0 0 24px;
+    margin: 0 0 var(--crm-space-6);
     overflow-wrap: anywhere;
   }
   .person span {
     display: block;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     font-weight: 400;
     color: var(--v2-slate);
     margin-top: 3px;
   }
   label {
     display: block;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     font-weight: 500;
     margin-bottom: 7px;
   }
@@ -168,10 +168,10 @@
   .access-summary {
     display: flex;
     justify-content: space-between;
-    gap: 20px;
+    gap: var(--crm-space-5);
     border-bottom: 1px solid var(--v2-line-soft);
     padding: 18px 0;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .access-summary span,
   .hint {
@@ -182,11 +182,11 @@
     text-align: right;
   }
   .hint {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     line-height: 1.5;
   }
   .error {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-rust);
   }
 </style>

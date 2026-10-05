@@ -79,15 +79,15 @@
 <style>
   .stage-notice {
     display: flex;
-    gap: 12px;
-    padding: 16px;
+    gap: var(--crm-space-3);
+    padding: var(--crm-space-4);
     margin: 0 0 18px;
-    background: #fff8ec;
-    border: 1px solid #dec493;
-    border-left: 4px solid #a77525;
-    border-radius: 8px;
-    color: #624618;
-    font-size: 13px;
+    background: var(--crm-warning-bg);
+    border: 1px solid var(--crm-warning);
+    border-left: 4px solid var(--crm-warning);
+    border-radius: var(--crm-radius-md);
+    color: var(--crm-warning);
+    font-size: var(--crm-text-sm);
     line-height: 1.5;
   }
   .stage-notice :global(svg) {
@@ -95,7 +95,7 @@
     margin-top: 2px;
   }
   strong {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
   }
   p {
     margin: 5px 0;
@@ -105,8 +105,8 @@
     margin: 6px 0 0;
   }
   :global(.stage-missing) {
-    border-color: #b37720 !important;
-    box-shadow: 0 0 0 2px #c18b3530 !important;
-    background-color: #fffaf0 !important;
+    border-color: var(--crm-warning) !important;
+    box-shadow: 0 0 0 2px var(--crm-warning-bg) !important;
+    background-color: var(--crm-warning-bg) !important;
   }
 </style>

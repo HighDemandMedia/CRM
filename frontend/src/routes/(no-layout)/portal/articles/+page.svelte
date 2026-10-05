@@ -51,12 +51,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--crm-space-3);
     margin-bottom: 18px;
   }
   h1 {
     margin: 0;
-    font-size: 21px;
+    font-size: var(--crm-text-xl);
     font-weight: 600;
   }
   .btn {
@@ -64,36 +64,36 @@
     align-items: center;
     min-height: 44px;
     padding: 0 14px;
-    font-size: 14px;
-    border: 1px solid var(--v2-rule, #d1d5db);
-    border-radius: 8px;
+    font-size: var(--crm-text-sm);
+    border: 1px solid var(--v2-rule, var(--crm-control-border));
+    border-radius: var(--crm-radius-md);
     text-decoration: none;
     color: inherit;
     white-space: nowrap;
   }
   .find {
     display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
+    gap: var(--crm-space-2);
+    margin-bottom: var(--crm-space-5);
   }
   input {
     flex: 1;
     min-width: 0;
     box-sizing: border-box;
     /* 16px stops iOS Safari zooming the viewport on focus. */
-    font-size: 16px;
+    font-size: var(--crm-text-base);
     padding: 11px;
-    border: 1px solid var(--v2-rule, #d1d5db);
-    border-radius: 8px;
+    border: 1px solid var(--v2-rule, var(--crm-control-border));
+    border-radius: var(--crm-radius-md);
   }
   .find button {
     min-height: 44px;
     padding: 0 14px;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     border: 0;
-    border-radius: 8px;
-    background: var(--v2-ink, #111827);
-    color: #fff;
+    border-radius: var(--crm-radius-md);
+    background: var(--v2-ink, var(--crm-text));
+    color: var(--crm-surface);
     cursor: pointer;
   }
   .list {
@@ -105,16 +105,16 @@
   }
   .list a {
     display: block;
-    padding: 14px 16px;
-    border: 1px solid var(--v2-rule, #e5e7eb);
-    border-radius: 10px;
+    padding: 14px var(--crm-space-4);
+    border: 1px solid var(--v2-rule, var(--crm-border));
+    border-radius: var(--crm-radius-md);
     text-decoration: none;
     color: inherit;
     font-weight: 500;
   }
   .empty {
-    color: var(--v2-slate, #6b7280);
-    font-size: 14px;
+    color: var(--v2-slate, var(--crm-text-muted));
+    font-size: var(--crm-text-sm);
   }
   .sr-only {
     position: absolute;

@@ -261,11 +261,11 @@
   .all-day-events {
     padding: 6px;
     border-bottom: 1px solid var(--v2-line);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .all-day-events {
     display: grid;
-    gap: 4px;
+    gap: var(--crm-space-1);
   }
   .time-grid {
     display: grid;
@@ -280,14 +280,14 @@
     background: var(--v2-bg, white);
     min-height: 50px;
     margin: 0;
-    padding: 8px;
+    padding: var(--crm-space-2);
     border-bottom: 1px solid var(--v2-line);
   }
   .time-corner {
     left: 0;
     z-index: 4;
     color: var(--v2-slate);
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     display: flex;
     align-items: center;
   }
@@ -305,7 +305,7 @@
   .hour-label {
     position: absolute;
     right: 8px;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     padding-top: 3px;
   }
@@ -345,24 +345,24 @@
   .calendar-toolbar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 14px 22px;
+    gap: var(--crm-space-2);
+    padding: 14px var(--crm-space-6);
     flex-wrap: wrap;
     border-bottom: 1px solid var(--v2-line);
   }
   h2 {
-    font-size: 18px;
-    margin: 0 12px;
+    font-size: var(--crm-text-lg);
+    margin: 0 var(--crm-space-3);
     font-weight: 600;
   }
   .views {
     margin-left: auto;
     display: flex;
-    gap: 4px;
+    gap: var(--crm-space-1);
   }
   .views .active {
-    background: var(--v2-ink);
-    color: white;
+    background: var(--crm-surface-selected);
+    color: var(--crm-text);
   }
   .calendar-scroll {
     flex: 1;
@@ -390,9 +390,9 @@
   header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
     margin-bottom: 10px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   header button {
@@ -405,13 +405,13 @@
     cursor: pointer;
   }
   header button.today {
-    background: #2563eb;
-    color: white;
+    background: var(--crm-primary);
+    color: var(--crm-primary-text);
   }
   .appointments {
     display: grid;
     align-content: start;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   .month .appointments {
     max-height: 210px;
@@ -424,15 +424,15 @@
     font-family: inherit;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--crm-space-1);
     padding: 9px;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-left: 3px solid #3b82f6;
-    border-radius: 6px;
-    color: #1e3a5f;
+    background: var(--crm-info-bg);
+    border: 1px solid var(--crm-info-bg);
+    border-left: 3px solid var(--crm-info);
+    border-radius: var(--crm-radius-sm);
+    color: var(--crm-info);
     text-decoration: none;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     overflow-wrap: anywhere;
   }
   .month .appointments {
@@ -451,63 +451,63 @@
   .month .event-time {
     flex: none;
     white-space: nowrap;
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
   }
   .month .appointment strong {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .appointment:hover {
     filter: brightness(0.97);
   }
   .event-legend {
     display: flex;
-    gap: 12px;
-    font-size: 12px;
+    gap: var(--crm-space-3);
+    font-size: var(--crm-text-xs);
   }
   .event-legend span {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--crm-space-1);
   }
   .contact-key {
-    color: #2563eb;
+    color: var(--crm-info);
   }
   .company-key {
-    color: #7c3aed;
+    color: var(--crm-calendar-external);
   }
   .appointment strong :global(svg) {
     display: inline-block;
     vertical-align: -1px;
-    margin-right: 4px;
+    margin-right: var(--crm-space-1);
   }
   .appointment.unlinked {
-    background: #f3f4f6;
-    border-color: #d1d5db;
-    border-left-color: #6b7280;
-    color: #374151;
+    background: var(--crm-surface-secondary);
+    border-color: var(--crm-control-border);
+    border-left-color: var(--crm-text-muted);
+    color: var(--crm-text);
   }
   .appointment.company {
-    background: #f5f3ff;
-    border-color: #ddd6fe;
-    border-left-color: #8b5cf6;
-    color: #4c1d95;
+    background: var(--crm-calendar-external-bg);
+    border-color: var(--crm-calendar-external-bg);
+    border-left-color: var(--crm-calendar-external);
+    color: var(--crm-calendar-external);
   }
   .event-time {
     display: flex;
     justify-content: space-between;
     gap: 5px;
     flex-wrap: wrap;
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
   }
   .appointment strong {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
 
   .calendar-message {
-    padding: 10px 22px;
+    padding: 10px var(--crm-space-6);
   }
 </style>

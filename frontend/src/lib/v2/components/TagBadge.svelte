@@ -14,11 +14,11 @@
     display: inline-block;
     max-width: 100%;
     overflow-wrap: anywhere;
-    padding: 3px 8px;
+    padding: 3px var(--crm-space-2);
     border: 1px solid;
-    border-radius: 12px;
-    color: #172033;
-    font-size: 12px;
+    border-radius: var(--crm-radius-lg);
+    color: var(--crm-text);
+    font-size: var(--crm-text-xs);
     line-height: 1.4;
   }
 </style>

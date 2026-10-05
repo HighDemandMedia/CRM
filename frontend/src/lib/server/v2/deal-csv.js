@@ -1,3 +1,5 @@
+import { apiRequest } from '$lib/api-helpers.js';
+import { listColumns, columnValue } from '$lib/v2/list-columns.js';
 import { dealColumns } from '$lib/v2/deal-columns.js';
 import { listDeals } from './deals.js';
 import { dealQuery } from './deal-query.js';
@@ -10,10 +12,10 @@ export function csvCell(value) {
   return '"' + text.replaceAll('"', '""') + '"';
 }
 /** @param {any} contact @param {string} key */
-function exportValue(contact, key) {
+function exportValue(contact, key, catalog) {
   if (key === 'contacts')
     return (contact.contacts ?? [])
-      .map((c) => [c.first_name, c.last_name].filter(Boolean).join(' '))
+      .map((c) => c.name || [c.first_name, c.last_name].filter(Boolean).join(' '))
       .join('; ');
   if (key === 'pages') return (contact.pages ?? []).map((p) => `${p.name}: ${p.url}`).join('; ');
   if (key === 'amount')
@@ -24,20 +26,28 @@ function exportValue(contact, key) {
       ? `${contact.owner}${contact.owner_count > 1 ? ` +${contact.owner_count - 1}` : ''}`
       : '';
   if (key === 'is_active' || key === 'do_not_call') return contact[key] ? 'Yes' : 'No';
-  return contact[key] ?? '';
+  if (!key.startsWith('custom_fields.') && (contact[key] === null || contact[key] === undefined))
+    return '';
+  return columnValue(contact, key, catalog);
 }
 /** @param {any} event */
 export async function exportDeals(event) {
+  const context = await apiRequest('/org/ui-context/', {}, { cookies: event.cookies });
+  const catalog = listColumns('Opportunity', context.property_layout?.Opportunity, dealColumns);
+  const available = catalog.map((c) => [c.key, c.label]);
   const requested = [
     ...new Set(
       (
         event.url.searchParams.get('columns') ??
-        'name,amount,stage_label,closed_on,owner,priority_label,account,contacts'
+        catalog
+          .filter((c) => c.system)
+          .map((c) => c.key)
+          .join(',')
       ).split(',')
     )
   ];
   const columns = requested
-    .map((key) => dealColumns.find(([id]) => id === key))
+    .map((key) => available.find(([id]) => id === key))
     .filter((column) => column !== undefined);
   if (!columns.length) throw new Error('Choose at least one valid column.');
   const lines = [columns.map(([, label]) => csvCell(label)).join(',')];
@@ -50,7 +60,7 @@ export async function exportDeals(event) {
     query.set('offset', String(offset));
     const page = await listDeals({ cookies: event.cookies }, query);
     for (const contact of page.results)
-      lines.push(columns.map(([key]) => csvCell(exportValue(contact, key))).join(','));
+      lines.push(columns.map(([key]) => csvCell(exportValue(contact, key, catalog))).join(','));
     offset += page.results.length;
     if (offset >= page.totals.count || !page.results.length) break;
   }

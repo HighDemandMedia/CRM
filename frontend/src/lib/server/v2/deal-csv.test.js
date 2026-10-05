@@ -1,3 +1,6 @@
+vi.mock('$lib/api-helpers.js', () => ({
+  apiRequest: vi.fn().mockResolvedValue({ property_layout: {} })
+}));
 import { expect, it, vi } from 'vitest';
 vi.mock('./deals.js', () => ({
   listDeals: vi.fn(),

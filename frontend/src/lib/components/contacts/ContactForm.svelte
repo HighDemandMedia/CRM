@@ -346,20 +346,20 @@
 <style>
   .tags-label {
     display: block;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     margin-bottom: 6px;
   }
 
   .save-status {
     min-height: 20px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
 
   .actions {
     display: flex;
     gap: 10px;
-    margin-top: 22px;
-    padding-bottom: 40px;
+    margin-top: var(--crm-space-6);
+    padding-bottom: var(--crm-space-10);
   }
 </style>

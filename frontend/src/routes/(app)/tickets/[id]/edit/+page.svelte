@@ -208,7 +208,7 @@
         bind:value={form.description}></textarea>
     </div>
 
-    <p class="v2-sub" style="font-size:12px;margin:6px 0 0">
+    <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:6px 0 0">
       {#if data.server.account}
         Linked to <a href={resolve(`/accounts/${data.server.account.id}`)}
           >{data.server.account.name}</a
@@ -248,8 +248,8 @@
     display: flex;
     align-items: center;
     gap: 9px;
-    margin-top: 22px;
-    padding-bottom: 40px;
+    margin-top: var(--crm-space-6);
+    padding-bottom: var(--crm-space-10);
   }
   @media (max-width: 720px) {
     .pair,

@@ -73,25 +73,25 @@
 
 <style>
   .card {
-    background: var(--v2-card, #fff);
-    border: 1px solid var(--v2-rule, #e5e7eb);
-    border-radius: 10px;
-    padding: 28px 24px;
+    background: var(--v2-card, var(--crm-surface));
+    border: 1px solid var(--v2-rule, var(--crm-border));
+    border-radius: var(--crm-radius-md);
+    padding: 28px var(--crm-space-6);
   }
   h1 {
     margin: 0 0 6px;
-    font-size: 21px;
+    font-size: var(--crm-text-xl);
     font-weight: 600;
   }
   .lede {
-    margin: 0 0 20px;
-    color: var(--v2-slate, #6b7280);
-    font-size: 14px;
+    margin: 0 0 var(--crm-space-5);
+    color: var(--v2-slate, var(--crm-text-muted));
+    font-size: var(--crm-text-sm);
   }
   label {
     display: block;
     margin-bottom: 6px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 500;
   }
   input {
@@ -99,10 +99,10 @@
     box-sizing: border-box;
     /* 16px keeps iOS Safari from zooming the viewport on focus, which on a
        phone reads as the page jumping when you tap the field. */
-    font-size: 16px;
-    padding: 12px;
-    border: 1px solid var(--v2-rule, #d1d5db);
-    border-radius: 8px;
+    font-size: var(--crm-text-base);
+    padding: var(--crm-space-3);
+    border: 1px solid var(--v2-rule, var(--crm-control-border));
+    border-radius: var(--crm-radius-md);
   }
   #code {
     letter-spacing: 8px;
@@ -110,30 +110,30 @@
     font-variant-numeric: tabular-nums;
   }
   button {
-    margin-top: 16px;
+    margin-top: var(--crm-space-4);
     width: 100%;
     /* Comfortably over the 44px tap target floor. */
     min-height: 46px;
-    font-size: 15px;
+    font-size: var(--crm-text-sm);
     border: 0;
-    border-radius: 8px;
-    background: var(--v2-ink, #111827);
-    color: #fff;
+    border-radius: var(--crm-radius-md);
+    background: var(--v2-ink, var(--crm-text));
+    color: var(--crm-surface);
     cursor: pointer;
   }
   .again {
-    margin-top: 4px;
+    margin-top: var(--crm-space-1);
   }
   button.link {
     background: none;
-    color: var(--v2-slate, #6b7280);
+    color: var(--v2-slate, var(--crm-text-muted));
     text-decoration: underline;
     min-height: 44px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .err {
     margin: 10px 0 0;
-    color: var(--v2-rust, #b91c1c);
-    font-size: 13px;
+    color: var(--v2-rust, var(--crm-danger));
+    font-size: var(--crm-text-sm);
   }
 </style>

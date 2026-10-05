@@ -261,7 +261,7 @@
     height: 28px;
     flex-shrink: 0;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
     background: transparent;
     color: var(--v2-slate);
     cursor: pointer;
@@ -274,6 +274,6 @@
     min-height: 42px;
   }
   .v2-palette-group {
-    padding-top: 12px;
+    padding-top: var(--crm-space-3);
   }
 </style>

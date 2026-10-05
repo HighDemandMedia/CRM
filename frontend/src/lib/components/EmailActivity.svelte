@@ -32,10 +32,10 @@
 
 <style>
   details {
-    margin-top: 8px;
-    padding: 10px 12px;
+    margin-top: var(--crm-space-2);
+    padding: 10px var(--crm-space-3);
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
   }
   summary {
     cursor: pointer;
@@ -43,7 +43,7 @@
   }
   .meta {
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     overflow-wrap: anywhere;
   }
   .email-body {
@@ -51,7 +51,7 @@
     overflow-wrap: anywhere;
     max-height: 480px;
     overflow: auto;
-    padding: 12px 0;
+    padding: var(--crm-space-3) 0;
     line-height: 1.6;
   }
 </style>

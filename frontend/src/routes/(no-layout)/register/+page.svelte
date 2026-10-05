@@ -122,13 +122,13 @@
     padding: 0;
     margin: 0;
     display: grid;
-    gap: 16px;
+    gap: var(--crm-space-4);
     min-width: 0;
   }
   label {
     display: grid;
     gap: 6px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   p {
     margin: 0;

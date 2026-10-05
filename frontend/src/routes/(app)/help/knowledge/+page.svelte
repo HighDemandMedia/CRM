@@ -79,25 +79,25 @@
   }
   .knowledge {
     max-width: 1200px;
-    padding: 28px 28px 40px;
+    padding: 28px 28px var(--crm-space-10);
     margin: 0 auto;
   }
   .intro {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 22px;
+    gap: var(--crm-space-6);
     flex-wrap: wrap;
   }
   h2 {
-    font-size: 21px;
+    font-size: var(--crm-text-xl);
     font-weight: 650;
     margin: 0;
   }
   .intro p {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-slate);
-    margin: 8px 0 0;
+    margin: var(--crm-space-2) 0 0;
   }
   .search {
     display: flex;
@@ -105,9 +105,9 @@
     gap: 9px;
     min-width: 260px;
     padding: 11px 13px;
-    background: #fff;
+    background: var(--crm-surface);
     border: 1px solid var(--v2-line);
-    border-radius: 9px;
+    border-radius: var(--crm-radius-md);
     color: var(--v2-slate);
   }
   .search input {
@@ -115,28 +115,28 @@
     width: 100%;
     outline: 0;
     background: none;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .search:focus-within {
-    outline: 2px solid #81778c;
+    outline: 2px solid var(--crm-focus);
   }
   .categories {
     display: flex;
     flex-wrap: wrap;
     gap: 7px;
-    margin: 24px 0;
+    margin: var(--crm-space-6) 0;
   }
   .categories button {
-    font-size: 12px;
-    padding: 8px 12px;
-    border-radius: 7px;
+    font-size: var(--crm-text-xs);
+    padding: var(--crm-space-2) var(--crm-space-3);
+    border-radius: var(--crm-radius-md);
     color: var(--v2-slate);
     border: 1px solid transparent;
   }
   .categories button.active {
-    background: #eae6ee;
-    color: #3d3545;
-    border-color: #dbd5e1;
+    background: var(--crm-surface-selected);
+    color: var(--crm-text);
+    border-color: var(--crm-border);
   }
   .articles {
     display: grid;
@@ -145,29 +145,29 @@
   }
   .article-card {
     display: block;
-    background: #fff;
+    background: var(--crm-surface);
     border: 1px solid var(--v2-line);
-    border-radius: 11px;
-    padding: 20px;
+    border-radius: var(--crm-radius-lg);
+    padding: var(--crm-space-5);
     text-decoration: none;
     color: inherit;
   }
   .article-card:hover {
-    border-color: #a69caf;
+    border-color: var(--crm-text-muted);
   }
   .category {
     text-transform: uppercase;
     letter-spacing: 0.6px;
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .article-card h3 {
     display: flex;
     justify-content: space-between;
     gap: 14px;
-    font-size: 15px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
-    margin: 12px 0 9px;
+    margin: var(--crm-space-3) 0 9px;
     line-height: 1.45;
   }
   .article-card h3 :global(svg) {
@@ -175,7 +175,7 @@
     color: var(--v2-slate);
   }
   .article-card p {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     line-height: 1.6;
     margin: 0;
     color: var(--v2-slate);
@@ -183,19 +183,19 @@
   .contact-prompt {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: var(--crm-space-3);
     align-items: center;
     border-top: 1px solid var(--v2-line);
     padding-top: 23px;
     margin-top: 27px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-slate);
   }
   .contact-prompt a {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--v2-ink, #343137);
+    color: var(--v2-ink, var(--crm-text));
     text-decoration: underline;
     text-underline-offset: 4px;
   }
@@ -209,20 +209,20 @@
     margin: auto;
   }
   .empty h3 {
-    font-size: 16px;
-    margin: 12px 0;
+    font-size: var(--crm-text-base);
+    margin: var(--crm-space-3) 0;
   }
   .empty p {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   a:focus-visible,
   button:focus-visible {
-    outline: 2px solid #81778c;
+    outline: 2px solid var(--crm-focus);
     outline-offset: 3px;
   }
   @media (max-width: 600px) {
     .knowledge {
-      padding: 22px 16px;
+      padding: var(--crm-space-6) var(--crm-space-4);
     }
     .search {
       width: 100%;

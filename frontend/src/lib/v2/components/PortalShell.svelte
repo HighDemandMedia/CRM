@@ -14,6 +14,7 @@
    * the component and nowhere else, the sibling `(no-layout)` routes (login,
    * bounce) are untouched.
    */
+  import '../../../app.css';
   import '$lib/v2/styles/v2.css';
 
   /** @type {{ children: import('svelte').Snippet }} */
@@ -44,11 +45,11 @@
        does not grow to fill a 27-inch monitor. */
     max-width: 720px;
     margin: 0 auto;
-    padding: 40px 20px 64px;
+    padding: var(--crm-space-10) var(--crm-space-5) 64px;
   }
   @media (max-width: 640px) {
     .v2-public-main {
-      padding: 24px 16px 48px;
+      padding: var(--crm-space-6) var(--crm-space-4) var(--crm-space-12);
     }
   }
 </style>

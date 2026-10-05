@@ -71,20 +71,20 @@
     display: inline-flex;
     align-items: center;
     min-height: 44px;
-    margin-bottom: 4px;
-    font-size: 13px;
-    color: var(--v2-slate, #6b7280);
+    margin-bottom: var(--crm-space-1);
+    font-size: var(--crm-text-sm);
+    color: var(--v2-slate, var(--crm-text-muted));
   }
   .head {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--crm-space-3);
     margin-bottom: 10px;
   }
   h1 {
     margin: 0;
-    font-size: 20px;
+    font-size: var(--crm-text-lg);
     font-weight: 600;
     /* Long summaries must wrap rather than push the tag off a 390px screen. */
     overflow-wrap: anywhere;
@@ -92,80 +92,80 @@
   .tag {
     flex: none;
     padding: 3px 10px;
-    border-radius: 999px;
-    background: var(--v2-rule, #f3f4f6);
-    font-size: 12.5px;
+    border-radius: var(--crm-radius-full);
+    background: var(--v2-rule, var(--crm-surface-secondary));
+    font-size: var(--crm-text-sm);
   }
   .tag.open {
-    background: var(--v2-moss-bg, #dcfce7);
+    background: var(--v2-moss-bg, var(--crm-success-bg));
   }
   .desc {
-    margin: 0 0 20px;
-    color: var(--v2-slate, #4b5563);
-    font-size: 14px;
+    margin: 0 0 var(--crm-space-5);
+    color: var(--v2-slate, var(--crm-text-muted));
+    font-size: var(--crm-text-sm);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
   .thread {
     display: grid;
-    gap: 12px;
-    margin-bottom: 24px;
+    gap: var(--crm-space-3);
+    margin-bottom: var(--crm-space-6);
   }
   .msg {
-    border: 1px solid var(--v2-rule, #e5e7eb);
-    border-radius: 10px;
-    padding: 12px 14px;
+    border: 1px solid var(--v2-rule, var(--crm-border));
+    border-radius: var(--crm-radius-md);
+    padding: var(--crm-space-3) 14px;
   }
   .msg.mine {
-    background: var(--v2-paper-2, #f9fafb);
+    background: var(--v2-paper-2, var(--crm-canvas));
   }
   .who {
     display: flex;
     justify-content: space-between;
     gap: 10px;
     margin-bottom: 6px;
-    font-size: 12.5px;
-    color: var(--v2-slate, #6b7280);
+    font-size: var(--crm-text-sm);
+    color: var(--v2-slate, var(--crm-text-muted));
   }
   .msg p {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
   .reply label {
     display: block;
     margin-bottom: 6px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 500;
   }
   textarea {
     width: 100%;
     box-sizing: border-box;
     /* 16px stops iOS Safari zooming the viewport on focus. */
-    font-size: 16px;
+    font-size: var(--crm-text-base);
     padding: 11px;
-    border: 1px solid var(--v2-rule, #d1d5db);
-    border-radius: 8px;
+    border: 1px solid var(--v2-rule, var(--crm-control-border));
+    border-radius: var(--crm-radius-md);
   }
   button {
-    margin-top: 12px;
+    margin-top: var(--crm-space-3);
     width: 100%;
     min-height: 46px;
-    font-size: 15px;
+    font-size: var(--crm-text-sm);
     border: 0;
-    border-radius: 8px;
-    background: var(--v2-ink, #111827);
-    color: #fff;
+    border-radius: var(--crm-radius-md);
+    background: var(--v2-ink, var(--crm-text));
+    color: var(--crm-surface);
     cursor: pointer;
   }
   .empty {
-    color: var(--v2-slate, #6b7280);
-    font-size: 14px;
+    color: var(--v2-slate, var(--crm-text-muted));
+    font-size: var(--crm-text-sm);
   }
   .err {
     margin: 10px 0 0;
-    color: var(--v2-rust, #b91c1c);
-    font-size: 13px;
+    color: var(--v2-rust, var(--crm-danger));
+    font-size: var(--crm-text-sm);
   }
 </style>

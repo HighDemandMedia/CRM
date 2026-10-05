@@ -342,8 +342,8 @@
   .team-tabs {
     display: flex;
     align-items: center;
-    gap: 24px;
-    padding: 0 24px;
+    gap: var(--crm-space-6);
+    padding: 0 var(--crm-space-6);
     border-bottom: 1px solid var(--v2-line);
     flex-wrap: wrap;
     flex-shrink: 0;
@@ -351,13 +351,13 @@
   .team-tabs > button {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
     border: 0;
     border-bottom: 2px solid transparent;
     background: none;
     padding: 14px 0;
     font: inherit;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-slate);
     cursor: pointer;
   }
@@ -367,10 +367,10 @@
     font-weight: 600;
   }
   .team-tabs button > span {
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     background: var(--v2-hover);
     padding: 1px 6px;
-    border-radius: 5px;
+    border-radius: var(--crm-radius-sm);
     color: var(--v2-slate);
   }
   .team-tabs a {
@@ -378,30 +378,30 @@
     align-items: center;
     gap: 5px;
     margin-left: auto;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .team-tabs button:focus:not(:focus-visible) {
     outline: none;
   }
   .team-content {
-    padding: 20px 24px 32px;
+    padding: var(--crm-space-5) var(--crm-space-6) var(--crm-space-8);
   }
   .toolbar {
     display: flex;
-    gap: 8px;
+    gap: var(--crm-space-2);
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 16px;
+    margin-bottom: var(--crm-space-4);
   }
   .search {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 9px 12px;
+    gap: var(--crm-space-2);
+    padding: 9px var(--crm-space-3);
     background: var(--v2-card);
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
     color: var(--v2-slate);
     width: 280px;
     max-width: 100%;
@@ -414,7 +414,7 @@
     width: 100%;
     min-width: 0;
     color: var(--v2-ink);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .search:focus-within {
     outline: 2px solid var(--v2-slate);
@@ -425,30 +425,30 @@
     min-width: 110px;
     max-width: 200px;
     height: 38px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .table-wrap {
     overflow-x: auto;
     border: 1px solid var(--v2-line);
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
     background: var(--v2-card);
   }
   .access-table {
     border-collapse: collapse;
     width: 100%;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     text-align: left;
   }
   .access-table th {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     font-weight: 500;
     background: var(--v2-hover);
-    padding: 12px 16px;
+    padding: var(--crm-space-3) var(--crm-space-4);
     white-space: nowrap;
   }
   .access-table td {
-    padding: 16px;
+    padding: var(--crm-space-4);
     border-top: 1px solid var(--v2-line-soft);
     vertical-align: middle;
   }
@@ -475,12 +475,12 @@
   .person span {
     display: block;
     color: var(--v2-slate);
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     margin-top: 3px;
     overflow-wrap: anywhere;
   }
   .you {
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     font-weight: 400;
     color: var(--v2-slate);
   }
@@ -488,16 +488,16 @@
     display: inline-flex;
     gap: 5px;
     align-items: center;
-    padding: 4px 8px;
-    border-radius: 6px;
+    padding: var(--crm-space-1) var(--crm-space-2);
+    border-radius: var(--crm-radius-sm);
     background: var(--v2-hover);
     color: var(--v2-slate);
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     white-space: nowrap;
   }
   .role-badge.admin {
-    background: #ece8f1;
-    color: #62576d;
+    background: var(--crm-surface-secondary);
+    color: var(--crm-text-muted);
   }
   .team-chips,
   .member-preview {
@@ -508,9 +508,9 @@
   }
   .team-chips button,
   .member-chip {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     border: 1px solid var(--v2-line);
-    border-radius: 5px;
+    border-radius: var(--crm-radius-sm);
     padding: 3px 7px;
     background: transparent;
     color: var(--v2-ink);
@@ -522,7 +522,7 @@
     display: inline-flex;
     gap: 6px;
     align-items: center;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     white-space: nowrap;
     color: var(--v2-slate);
   }
@@ -530,17 +530,17 @@
     width: 6px;
     height: 6px;
     border-radius: 100%;
-    background: var(--v2-moss, #61755b);
+    background: var(--v2-moss, var(--crm-success));
   }
   .status.inactive i {
     background: var(--v2-slate);
   }
   .muted {
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .protected {
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .row-actions {
@@ -551,7 +551,7 @@
   .team-name {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--crm-space-3);
     min-width: 200px;
   }
   .team-icon {
@@ -559,7 +559,7 @@
     place-items: center;
     width: 36px;
     height: 36px;
-    border-radius: 9px;
+    border-radius: var(--crm-radius-md);
     background: var(--v2-hover);
     color: var(--v2-slate);
     flex-shrink: 0;
@@ -577,15 +577,15 @@
     text-decoration: underline;
   }
   .team-name p {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-    margin: 4px 0 0;
+    margin: var(--crm-space-1) 0 0;
     max-width: 360px;
     overflow-wrap: anywhere;
   }
   .member-total {
     display: block;
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin-top: 6px;
   }
@@ -605,23 +605,23 @@
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    padding: 36px 16px;
+    padding: 36px var(--crm-space-4);
     color: var(--v2-slate);
     text-align: center;
   }
   .empty strong {
     color: var(--v2-ink);
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
   }
   .empty span {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .notice,
   .error {
-    font-size: 13px;
-    margin: 0 0 16px;
-    padding: 12px 14px;
-    border-radius: 8px;
+    font-size: var(--crm-text-sm);
+    margin: 0 0 var(--crm-space-4);
+    padding: var(--crm-space-3) 14px;
+    border-radius: var(--crm-radius-md);
     background: var(--v2-hover);
   }
   .error {
@@ -638,10 +638,10 @@
       display: none;
     }
     .team-content {
-      padding: 16px;
+      padding: var(--crm-space-4);
     }
     .team-tabs {
-      padding: 0 16px;
+      padding: 0 var(--crm-space-4);
       gap: 18px;
     }
     .search {

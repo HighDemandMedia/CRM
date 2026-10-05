@@ -87,8 +87,8 @@ class TaskListView(APIView, LimitOffsetPagination):
         # the creator clause is live, tasks they created and could not open.
         queryset = (
             visible_tasks_qs(self.request.profile)
-            .select_related("account", "opportunity", "case", "lead")
-            .prefetch_related("assigned_to__user", "tags")
+            .select_related("account", "opportunity", "case", "lead", "created_by")
+            .prefetch_related("assigned_to__user", "tags", "contacts")
             .order_by("-id")
         )
 

@@ -75,7 +75,7 @@
       <div class="v2-field">
         <label for="attachment">Attachment (optional)</label>
         <input id="attachment" class="v2-input" type="file" name="attachment" />
-        <span class="v2-sub" style="font-size:11.5px"
+        <span class="v2-sub" style="font-size:var(--crm-text-xs)"
           >Up to 25 MB. Remove secrets and personal data before uploading.</span
         >
       </div>
@@ -98,13 +98,13 @@
   }
   .error {
     padding: 10px 13px;
-    margin-bottom: 16px;
+    margin-bottom: var(--crm-space-4);
     color: var(--v2-rust);
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
 </style>

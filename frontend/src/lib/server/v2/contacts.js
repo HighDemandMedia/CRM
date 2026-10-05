@@ -88,6 +88,7 @@ function toRow(contact) {
   const { account, other_accounts } = accountLink(contact);
   return {
     id: contact.id,
+    created_by: contact.created_by_email || userName(contact.created_by, ''),
     first_name: contact.first_name ?? '',
     last_name: contact.last_name ?? '',
     name: contact.name ?? [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim(),

@@ -112,15 +112,15 @@
 <style>
   .back {
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .summary {
     margin-top: 14px;
     padding: 13px 15px;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    font-size: 12px;
+    gap: var(--crm-space-3);
+    font-size: var(--crm-text-xs);
   }
   .summary span,
   .summary b {
@@ -129,7 +129,7 @@
   .summary b {
     margin-bottom: 3px;
     color: var(--v2-slate);
-    font-size: 10.5px;
+    font-size: var(--crm-text-xs);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
@@ -149,14 +149,14 @@
   .meta {
     display: flex;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--crm-space-3);
     margin-bottom: 7px;
-    font-size: 11.5px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .body {
     white-space: pre-wrap;
-    font-size: 13.5px;
+    font-size: var(--crm-text-sm);
     line-height: 1.55;
   }
   .attachment {
@@ -164,7 +164,7 @@
     align-items: center;
     gap: 5px;
     margin-top: 10px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: inherit;
   }
   .composer,
@@ -178,8 +178,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    margin-top: 12px;
+    gap: var(--crm-space-3);
+    margin-top: var(--crm-space-3);
   }
   .compose-actions input {
     max-width: 430px;
@@ -188,8 +188,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    font-size: 13px;
+    gap: var(--crm-space-3);
+    font-size: var(--crm-text-sm);
   }
   .error {
     color: var(--v2-rust);

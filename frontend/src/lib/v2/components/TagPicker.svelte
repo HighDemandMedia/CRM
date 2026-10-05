@@ -176,14 +176,16 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 5px;
-    border: 1px solid var(--v2-line);
-    border-radius: 6px;
+    border: 1px solid var(--crm-control-border);
+    border-radius: var(--crm-radius-sm);
     padding: 7px;
     background: var(--v2-bg, white);
     min-height: 40px;
   }
   .input-shell:focus-within {
-    border-color: var(--v2-accent, #f15b2a);
+    border-color: var(--crm-focus);
+    outline: 2px solid var(--crm-focus);
+    outline-offset: 2px;
   }
   .input-shell input {
     flex: 1;
@@ -193,7 +195,7 @@
     outline: 0;
     background: transparent;
     font: inherit;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     padding: 3px;
     color: inherit;
   }
@@ -206,18 +208,18 @@
   .chip button {
     border: 0;
     background: transparent;
-    color: #64748b;
-    font-size: 18px;
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-lg);
     cursor: pointer;
     padding: 0 3px;
   }
   .menu {
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
     background: var(--v2-bg, white);
     margin-top: 5px;
-    padding: 8px;
-    box-shadow: 0 4px 12px #0001;
+    padding: var(--crm-space-2);
+    box-shadow: var(--crm-shadow-sm);
   }
   .options {
     max-height: 180px;
@@ -240,8 +242,8 @@
   .colors {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px 2px;
+    gap: var(--crm-space-2);
+    padding: var(--crm-space-2) 2px;
   }
   .swatch {
     width: 22px;
@@ -251,11 +253,11 @@
     padding: 0;
     cursor: pointer;
     color: white;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     text-shadow: 0 1px 2px #0009;
   }
   .swatch[aria-pressed='true'] {
-    outline: 2px solid #334155;
+    outline: 2px solid var(--crm-text);
     outline-offset: 2px;
   }
   .create-button {
@@ -263,24 +265,24 @@
     align-items: center;
     gap: 6px;
     width: 100%;
-    padding: 8px 4px;
+    padding: var(--crm-space-2) var(--crm-space-1);
     background: transparent;
     border: 0;
     cursor: pointer;
     font: inherit;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-ink);
   }
   p {
-    font-size: 12px;
-    padding: 4px;
+    font-size: var(--crm-text-xs);
+    padding: var(--crm-space-1);
     margin: 0;
   }
   .error {
-    color: #b91c1c;
+    color: var(--crm-danger);
   }
   button:focus-visible {
-    outline: 2px solid #2563eb;
+    outline: 2px solid var(--crm-info);
     outline-offset: 2px;
   }
 </style>

@@ -88,11 +88,11 @@
 
 <style>
   .invite-note {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     line-height: 1.65;
     color: var(--v2-slate);
-    padding: 16px;
+    padding: var(--crm-space-4);
     background: var(--v2-hover);
-    border-radius: 10px;
+    border-radius: var(--crm-radius-md);
   }
 </style>

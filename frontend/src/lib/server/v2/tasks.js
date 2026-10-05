@@ -115,6 +115,7 @@ function toRow(row) {
   const assigned = (row.assigned_to ?? []).map(toPerson);
   return {
     id: row.id,
+    created_by: userName(row.created_by, ''),
     custom_fields: row.custom_fields ?? {},
     title: row.title ?? '',
     status: row.status,
@@ -123,6 +124,10 @@ function toRow(row) {
     reminder_days: row.reminder_days ?? null,
     description: row.description ?? '',
     related: toRelated(row),
+    account: row.account,
+    opportunity: row.opportunity,
+    case: row.case,
+    contacts: row.contacts ?? [],
     assigned_to: assigned,
     // The list rows only ever render names; keeping both shapes here saves
     // every template from reaching through an object to get one.

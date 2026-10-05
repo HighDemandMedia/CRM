@@ -440,36 +440,36 @@
 
 <style>
   .delete-property {
-    color: #b42318;
+    color: var(--crm-danger);
   }
   .delete-dialog {
     margin: auto;
     width: min(460px, calc(100vw - 32px));
     max-height: 90dvh;
     overflow: auto;
-    padding: 24px;
+    padding: var(--crm-space-6);
     border: 1px solid var(--v2-line);
-    border-radius: 12px;
-    background: var(--v2-card, #fff);
+    border-radius: var(--crm-radius-lg);
+    background: var(--v2-card, var(--crm-surface));
     color: var(--v2-ink);
-    box-shadow: 0 20px 60px #0003;
+    box-shadow: var(--crm-shadow-lg);
   }
   .delete-dialog::backdrop {
-    background: #0006;
+    background: var(--crm-overlay);
   }
   .delete-dialog h2 {
-    font-size: 19px;
-    margin: 0 0 12px;
+    font-size: var(--crm-text-lg);
+    margin: 0 0 var(--crm-space-3);
   }
   .delete-dialog p {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     line-height: 1.6;
     color: var(--v2-slate);
   }
   .delete-dialog label {
     display: block;
-    font-size: 13px;
-    margin-top: 20px;
+    font-size: var(--crm-text-sm);
+    margin-top: var(--crm-space-5);
     overflow-wrap: anywhere;
   }
   .delete-dialog input {
@@ -479,12 +479,12 @@
   .delete-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 22px;
+    gap: var(--crm-space-2);
+    margin-top: var(--crm-space-6);
   }
   .delete-confirm {
-    background: #b42318;
-    color: white;
+    background: var(--crm-danger-bg);
+    color: var(--crm-danger);
   }
   .drag-property {
     border: 0;
@@ -496,7 +496,7 @@
     vertical-align: middle;
   }
   .drop-position {
-    box-shadow: inset 0 3px #3b82f6;
+    box-shadow: inset 0 3px var(--crm-info);
   }
   .catalog {
     display: flex;
@@ -504,7 +504,7 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 24px 30px;
+    padding: var(--crm-space-6) 30px;
   }
   .toolbar,
   .summary {
@@ -513,13 +513,13 @@
   .toolbar {
     display: flex;
     align-items: flex-end;
-    gap: 12px;
+    gap: var(--crm-space-3);
     flex-wrap: wrap;
   }
   .object-field {
     display: grid;
     gap: 7px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     min-width: 210px;
   }
@@ -547,22 +547,22 @@
     display: flex;
     justify-content: space-between;
     color: var(--v2-slate);
-    font-size: 12px;
-    margin: 22px 0 12px;
+    font-size: var(--crm-text-xs);
+    margin: var(--crm-space-6) 0 var(--crm-space-3);
   }
   .table-scroll {
     flex: 1;
     min-height: 160px;
     overflow: auto;
-    background: var(--v2-card, #fff);
+    background: var(--v2-card, var(--crm-surface));
     border: 1px solid var(--v2-line);
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
   }
   table {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   th {
     position: sticky;
@@ -570,7 +570,7 @@
     z-index: 1;
     color: var(--v2-slate);
     font-weight: 500;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     background: var(--v2-bg);
     white-space: nowrap;
   }
@@ -588,9 +588,9 @@
   }
   small {
     display: block;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-    margin-top: 4px;
+    margin-top: var(--crm-space-1);
   }
   .number {
     font-variant-numeric: tabular-nums;
@@ -599,10 +599,10 @@
     display: inline-flex;
     gap: 5px;
     align-items: center;
-    border-radius: 5px;
+    border-radius: var(--crm-radius-sm);
     background: var(--v2-bg);
-    padding: 4px 7px;
-    font-size: 11px;
+    padding: var(--crm-space-1) 7px;
+    font-size: var(--crm-text-xs);
   }
   .system {
     color: var(--v2-slate);
@@ -618,7 +618,7 @@
     padding: 6px;
   }
   .toggle {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .inactive {
     opacity: 0.6;
@@ -626,22 +626,22 @@
   .empty {
     text-align: center;
     color: var(--v2-slate);
-    padding: 40px;
+    padding: var(--crm-space-10);
   }
 
   fieldset {
     border: 0;
     padding: 0;
-    margin: 0 0 24px;
+    margin: 0 0 var(--crm-space-6);
   }
   legend {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     margin-bottom: 10px;
   }
   .option-row {
     display: flex;
     gap: 6px;
-    margin-bottom: 8px;
+    margin-bottom: var(--crm-space-2);
   }
   .option-row input {
     flex: 1;
@@ -649,7 +649,7 @@
   }
   .internal-name {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     overflow-wrap: anywhere;
   }
@@ -665,7 +665,7 @@
     }
     th,
     td {
-      padding: 12px;
+      padding: var(--crm-space-3);
     }
   }
 </style>

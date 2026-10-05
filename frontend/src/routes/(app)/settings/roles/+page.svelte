@@ -272,71 +272,72 @@
 
 <style>
   .roles-content {
-    padding: 24px 28px;
+    padding: var(--crm-space-6) 28px;
     max-width: 1150px;
+    container-type: inline-size;
   }
   .role {
     display: flex;
-    gap: 20px;
+    gap: var(--crm-space-5);
     align-items: center;
     justify-content: space-between;
-    padding: 22px 0;
+    padding: var(--crm-space-6) 0;
     border-bottom: 1px solid var(--v2-line-soft);
   }
   h2 {
-    font-size: 15px;
+    font-size: var(--crm-text-sm);
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   .role p,
   .hint {
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     line-height: 1.6;
   }
   .protected,
   .scope-badge {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .scope-badge {
     border: 1px solid var(--v2-line);
-    border-radius: 5px;
+    border-radius: var(--crm-radius-sm);
     padding: 3px 6px;
     font-weight: 400;
   }
   .identity {
     display: grid;
     grid-template-columns: 1fr 2fr;
-    gap: 20px;
-    margin-bottom: 24px;
+    gap: var(--crm-space-5);
+    margin-bottom: var(--crm-space-6);
   }
   label {
     display: grid;
-    gap: 8px;
-    font-size: 13px;
+    gap: var(--crm-space-2);
+    font-size: var(--crm-text-sm);
   }
   .scope-panel {
     display: flex;
     align-items: center;
     gap: 28px;
-    padding: 18px 20px;
-    background: var(--v2-surface, #fff);
+    padding: 18px var(--crm-space-5);
+    background: var(--v2-surface, var(--crm-surface));
     border: 1px solid var(--v2-line);
-    border-radius: 10px;
-    margin-bottom: 24px;
+    border-radius: var(--crm-radius-md);
+    margin-bottom: var(--crm-space-6);
   }
   .scope-panel label,
   .fixed-scope {
     min-width: 160px;
     display: grid;
-    gap: 8px;
-    font-size: 13px;
+    gap: var(--crm-space-2);
+    font-size: var(--crm-text-sm);
   }
   .scope-panel p {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     line-height: 1.6;
     max-width: 550px;
@@ -345,16 +346,16 @@
   .actions,
   .save-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   .save-actions {
     position: sticky;
     bottom: 0;
-    background: var(--v2-surface, #fff);
+    background: var(--v2-surface, var(--crm-surface));
     border-top: 1px solid var(--v2-line);
-    padding: 16px 0;
+    padding: var(--crm-space-4) 0;
     justify-content: flex-end;
-    margin-top: 20px;
+    margin-top: var(--crm-space-5);
   }
   .error {
     color: var(--v2-rust);
@@ -370,27 +371,27 @@
   }
   .permission-group {
     border: 1px solid var(--v2-line);
-    border-radius: 10px;
-    background: var(--v2-surface, #fff);
-    margin-bottom: 12px;
+    border-radius: var(--crm-radius-md);
+    background: var(--v2-surface, var(--crm-surface));
+    margin-bottom: var(--crm-space-3);
   }
   .permission-group summary {
     cursor: pointer;
-    padding: 17px 20px;
-    font-size: 14px;
+    padding: 17px var(--crm-space-5);
+    font-size: var(--crm-text-sm);
     font-weight: 600;
   }
   .permission-group summary small {
     float: right;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     font-weight: 400;
     color: var(--v2-slate);
   }
   .permission-options {
-    padding: 0 20px 20px;
+    padding: 0 var(--crm-space-5) var(--crm-space-5);
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 20px 24px;
+    gap: var(--crm-space-5) var(--crm-space-6);
   }
   .permission-option {
     display: flex;
@@ -410,10 +411,10 @@
   }
   .permission-option strong {
     font-weight: 500;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .permission-option small {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     line-height: 1.5;
     color: var(--v2-slate);
   }
@@ -426,10 +427,10 @@
     gap: 6px;
     background: none;
     border: 0;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     padding: 0;
-    margin-bottom: 22px;
+    margin-bottom: var(--crm-space-6);
   }
   summary:focus-visible,
   .back:focus-visible {
@@ -447,9 +448,31 @@
       grid-template-columns: 1fr;
     }
     .roles-content {
-      padding: 16px;
+      padding: var(--crm-space-4);
     }
     .role,
+    .scope-panel {
+      flex-wrap: wrap;
+    }
+  }
+  @container (max-width: 36rem) {
+    .role {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .role h2 {
+      flex-wrap: wrap;
+    }
+    .scope-badge {
+      white-space: nowrap;
+    }
+    .actions {
+      flex-wrap: wrap;
+    }
+    .identity,
+    .permission-options {
+      grid-template-columns: 1fr;
+    }
     .scope-panel {
       flex-wrap: wrap;
     }

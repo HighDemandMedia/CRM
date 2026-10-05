@@ -157,7 +157,7 @@
     display: grid;
     gap: 7px;
     margin-bottom: 18px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .assignees.compact {
     margin-bottom: 0;
@@ -172,7 +172,7 @@
     gap: 6px;
     border: 1px solid var(--v2-line);
     background: var(--v2-card);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
     padding: 7px 9px;
     min-height: 42px;
   }
@@ -189,12 +189,12 @@
   .selected > span {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--crm-space-1);
     max-width: 100%;
     background: var(--v2-hover);
-    border-radius: 5px;
-    padding: 3px 5px 3px 8px;
-    font-size: 12px;
+    border-radius: var(--crm-radius-sm);
+    padding: 3px 5px 3px var(--crm-space-2);
+    font-size: var(--crm-text-xs);
     overflow-wrap: anywhere;
   }
   .selected button {
@@ -246,16 +246,16 @@
     max-height: 220px;
     overflow: auto;
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
     background: var(--v2-card);
-    box-shadow: 0 6px 18px #0001;
-    margin-top: 4px;
+    box-shadow: var(--crm-shadow-sm);
+    margin-top: var(--crm-space-1);
   }
   .suggestions button {
     display: block;
     width: 100%;
     text-align: left;
-    padding: 11px 12px;
+    padding: 11px var(--crm-space-3);
     background: none;
     border: 0;
     font: inherit;
@@ -269,11 +269,11 @@
   .suggestions small {
     display: block;
     color: var(--v2-slate);
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     margin-top: 3px;
   }
   .suggestions p {
-    padding: 12px;
+    padding: var(--crm-space-3);
     margin: 0;
     color: var(--v2-slate);
   }

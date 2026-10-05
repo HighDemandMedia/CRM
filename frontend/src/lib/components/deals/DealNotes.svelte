@@ -59,7 +59,7 @@
   }
   form {
     display: grid;
-    gap: 8px;
+    gap: var(--crm-space-2);
     margin-bottom: 14px;
   }
   textarea {
@@ -72,16 +72,16 @@
     width: auto;
   }
   .history-entry {
-    padding: 12px 0;
+    padding: var(--crm-space-3) 0;
     border-bottom: 1px solid var(--v2-line-soft);
   }
   .history-body {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
   }
   .entry-meta {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin-top: 6px;
   }

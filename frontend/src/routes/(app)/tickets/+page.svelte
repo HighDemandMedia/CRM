@@ -12,6 +12,8 @@
   import { deserialize } from '$app/forms';
   import { List, Columns3, Plus, Download } from '@lucide/svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
+  import { listColumns, columnValue } from '$lib/v2/list-columns.js';
+  import { columnSelection } from '$lib/v2/column-selection.svelte.js';
   import ColumnPicker from '$lib/v2/components/ColumnPicker.svelte';
   import AdvancedQueue from '$lib/components/tickets/AdvancedQueue.svelte';
   import {
@@ -39,7 +41,7 @@
     moving = $state(false),
     resolving = $state(null),
     resolution = $state('');
-  const fields = [
+  const legacyFields = [
     ['ticket_code', 'ID'],
     ['name', 'Title'],
     ['status', 'Status'],
@@ -51,15 +53,13 @@
     ['due_at', 'Due date'],
     ['last_activity', 'Last activity']
   ];
-  let columns = $state([
-    'ticket_code',
-    'name',
-    'status',
-    'priority',
-    'assignee',
-    'association',
-    'due_at'
-  ]);
+  const catalog = $derived(listColumns('Case', page.data.propertyLayout?.Case, legacyFields));
+  const fields = $derived(catalog.map((c) => [c.key, c.label]));
+  const selection = columnSelection(
+    () => catalog,
+    () => `${page.data.accountId}.${page.data.accountUser?.email}.Case`
+  );
+  const columns = $derived(selection.selected);
   const view = $derived(page.url.searchParams.get('view') ?? 'list');
   const offset = $derived(Number(page.url.searchParams.get('offset') ?? 0));
   let sort = $state(''),
@@ -76,7 +76,7 @@
       return [t.account?.name, ...t.contacts.map((c) => c.name)].filter(Boolean).join(', ');
     if (key === 'due_at') return dueDateLabel(t[key]);
     if (key === 'last_activity') return date(t[key]);
-    return t[key] ?? '—';
+    return columnValue(t, key, catalog);
   }
   const rows = $derived(
     [...data.tickets].sort((a, b) =>
@@ -90,18 +90,10 @@
   const stages = $derived(statuses);
   onMount(() => {
     search = data.search;
-    try {
-      const saved = JSON.parse(localStorage.getItem('crm.ticket.columns') ?? 'null');
-      if (Array.isArray(saved) && saved.length)
-        columns = saved.filter((key) => fields.some(([id]) => id === key));
-    } catch {
-      // Unavailable storage or invalid saved preferences leave the default columns in place.
-    }
     return () => clearTimeout(timer);
   });
   function toggle(key) {
-    columns = columns.includes(key) ? columns.filter((k) => k !== key) : [...columns, key];
-    localStorage.setItem('crm.ticket.columns', JSON.stringify(columns));
+    selection.toggle(key);
   }
   function filter(key, value) {
     const url = new URL(page.url);
@@ -273,7 +265,13 @@
           aria-label="Pipeline view"
           aria-pressed={view === 'pipeline'}
           onclick={() => filter('view', 'pipeline')}><Columns3 size={16} /></button
-        >{#if view === 'list'}<ColumnPicker {fields} selected={columns} onToggle={toggle} />{/if}
+        >{#if view === 'list'}<ColumnPicker
+            {fields}
+            selected={columns}
+            onToggle={toggle}
+            onShowAll={selection.showAll}
+            onReset={selection.reset}
+          />{/if}
       </div>
     </div>
     {#if error}<p class="v2-error" role="alert">{error}</p>{/if}
@@ -341,7 +339,13 @@
             </div>
           </section>{/each}
       </div>
-    {:else}<div class="table-scroll hdm-list">
+    {:else}<!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this overflow region to scroll the table.) -->
+      <div
+        class="table-scroll hdm-list"
+        role="region"
+        aria-label="Tickets; scroll horizontally to see all columns"
+        tabindex="0"
+      >
         <table>
           <thead
             ><tr
@@ -430,17 +434,17 @@
 
 <style>
   .workspace {
-    padding: 16px 22px;
+    padding: var(--crm-space-4) var(--crm-space-6);
     min-height: 0;
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--crm-space-4);
   }
   .filters {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
     flex-wrap: wrap;
   }
   .filters select {
@@ -452,11 +456,11 @@
   }
   .views {
     display: flex;
-    gap: 4px;
+    gap: var(--crm-space-1);
     margin-left: auto;
   }
   .overdue-filter {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     display: flex;
     gap: 5px;
     align-items: center;
@@ -464,7 +468,7 @@
   .table-scroll {
     overflow: auto;
     flex: 1;
-    border-radius: 10px;
+    border-radius: var(--crm-radius-md);
     background: var(--v2-bg);
   }
   table {
@@ -474,11 +478,11 @@
   }
   th,
   td {
-    padding: 14px 16px;
+    padding: 14px var(--crm-space-4);
     text-align: left;
     border-bottom: 1px solid var(--v2-line);
     white-space: nowrap;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   th {
     position: sticky;
@@ -498,19 +502,19 @@
     font-weight: 600;
   }
   a.v2-btn-primary {
-    color: #fff;
+    color: var(--crm-primary-text);
   }
   a:hover {
     text-decoration: underline;
   }
   .status {
-    padding: 4px 8px;
+    padding: var(--crm-space-1) var(--crm-space-2);
     background: var(--v2-paper);
-    border-radius: 5px;
+    border-radius: var(--crm-radius-sm);
   }
   .pipeline {
     display: flex;
-    gap: 12px;
+    gap: var(--crm-space-3);
     overflow: auto;
     flex: 1;
   }
@@ -518,16 +522,16 @@
     flex: 0 0 260px;
     background: var(--v2-paper);
     border: 2px solid transparent;
-    border-radius: 10px;
-    padding: 12px;
+    border-radius: var(--crm-radius-md);
+    padding: var(--crm-space-3);
     overflow: auto;
   }
   .pipeline .target {
-    border-color: #5583bb;
+    border-color: var(--crm-info);
   }
   h2 {
-    font-size: 13px;
-    margin: 0 0 16px;
+    font-size: var(--crm-text-sm);
+    margin: 0 0 var(--crm-space-4);
     display: flex;
     justify-content: space-between;
   }
@@ -536,7 +540,7 @@
   }
   article {
     background: var(--v2-bg);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
     padding: 14px;
     margin: 10px 0;
     cursor: grab;
@@ -549,24 +553,24 @@
     display: block;
   }
   article small {
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     margin-bottom: 7px;
   }
   article a {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
   }
   article p {
-    font-size: 12px;
-    margin: 8px 0;
+    font-size: var(--crm-text-xs);
+    margin: var(--crm-space-2) 0;
     color: var(--v2-muted);
   }
   article select {
     width: 100%;
     border: 0;
     background: var(--v2-paper);
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     padding: 6px;
-    border-radius: 4px;
+    border-radius: var(--crm-radius-sm);
   }
   .overdue,
   article p.overdue {
@@ -575,17 +579,17 @@
   .pages {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   dialog::backdrop {
-    background: #0005;
+    background: var(--crm-overlay);
   }
   dialog {
     border: 0;
     background: var(--v2-bg);
-    padding: 24px;
+    padding: var(--crm-space-6);
     width: min(440px, 100%);
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
   }
   dialog textarea {
     width: 100%;
@@ -593,7 +597,7 @@
   }
   @media (max-width: 700px) {
     .workspace {
-      padding: 12px;
+      padding: var(--crm-space-3);
     }
     .search {
       flex-basis: 100%;

@@ -56,7 +56,9 @@
     style="padding-top:18px;padding-bottom:36px;max-width:62ch;margin-left:auto;margin-right:auto"
   >
     {#if form?.error}
-      <p style="color:var(--v2-rust);font-size:12.5px;margin:0 0 14px" role="alert">{form.error}</p>
+      <p style="color:var(--v2-rust);font-size:var(--crm-text-sm);margin:0 0 14px" role="alert">
+        {form.error}
+      </p>
     {/if}
 
     <RecordSection title="Task details">
@@ -119,7 +121,7 @@
   form.v2-pad {
     width: 100%;
     background: var(--v2-card);
-    border-radius: 12px;
-    margin-top: 16px;
+    border-radius: var(--crm-radius-lg);
+    margin-top: var(--crm-space-4);
   }
 </style>

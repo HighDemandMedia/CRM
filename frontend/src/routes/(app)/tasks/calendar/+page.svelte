@@ -164,8 +164,8 @@
     gap: 6px;
   }
   .v2-btn-icon {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: var(--crm-space-2);
+    padding-right: var(--crm-space-2);
   }
 
   /* Weekday header, aligned to the grid below it. */
@@ -173,7 +173,7 @@
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 6px;
-    padding: 14px 16px 6px;
+    padding: 14px var(--crm-space-4) 6px;
     flex: none;
   }
   .v2-cal-head .v2-label {
@@ -181,7 +181,7 @@
   }
 
   .v2-cal-grid-wrap {
-    padding: 0 16px 8px;
+    padding: 0 var(--crm-space-4) var(--crm-space-2);
   }
   .v2-cal-grid {
     display: grid;
@@ -192,11 +192,11 @@
   .v2-cal-cell {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--crm-space-1);
     padding: 6px;
     background: var(--v2-card);
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
     min-width: 0;
   }
   /* Days spilling in from the neighbouring months recede, so the current month
@@ -213,10 +213,10 @@
     background: color-mix(in srgb, var(--v2-slate) 5%, var(--v2-card));
   }
   .v2-cal-today {
-    border-color: var(--v2-ember);
+    border-color: var(--crm-link);
   }
   .v2-cal-daynum {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     font-weight: 600;
     color: var(--v2-ink);
     line-height: 1;
@@ -231,10 +231,10 @@
     min-width: 19px;
     height: 19px;
     padding: 0 5px;
-    border-radius: 9px;
+    border-radius: var(--crm-radius-md);
     background: var(--v2-ember);
-    color: #fff;
-    font-size: 11.5px;
+    color: var(--crm-primary-text);
+    font-size: var(--crm-text-xs);
   }
   .v2-cal-cell-body {
     display: flex;
@@ -248,10 +248,10 @@
     align-items: center;
     gap: 5px;
     padding: 2px 5px;
-    border-radius: 5px;
+    border-radius: var(--crm-radius-sm);
     background: var(--v2-paper);
     color: var(--v2-ink);
-    font-size: 11.5px;
+    font-size: var(--crm-text-xs);
     line-height: 1.35;
     text-decoration: none;
     min-width: 0;
@@ -278,21 +278,21 @@
     min-width: 0;
   }
   .v2-cal-more {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     padding: 1px 5px;
   }
   .v2-cal-overdue {
     margin-left: auto;
-    font-size: 10.5px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-rust);
     font-weight: 600;
     flex: none;
   }
   .v2-cal-foot {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     padding-top: 14px;
-    padding-bottom: 24px;
+    padding-bottom: var(--crm-space-6);
   }
 
   /* Agenda is the phone view; hidden on wide screens. */
@@ -301,8 +301,8 @@
   }
   .v2-cal-agenda-day {
     display: flex;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: var(--crm-space-3);
+    padding: var(--crm-space-3) var(--crm-space-4);
     border-bottom: 1px solid var(--v2-line-soft);
   }
   .v2-cal-agenda-date {
@@ -312,16 +312,16 @@
     color: var(--v2-ink);
   }
   .v2-cal-agenda-date .v2-num {
-    font-size: 18px;
+    font-size: var(--crm-text-lg);
     font-weight: 650;
   }
   .v2-cal-agenda-today .v2-num {
-    color: var(--v2-ember);
+    color: var(--crm-link);
   }
   .v2-cal-agenda-todaytag {
     display: block;
-    font-size: 10px;
-    color: var(--v2-ember);
+    font-size: var(--crm-text-xs);
+    color: var(--crm-link);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -334,7 +334,7 @@
     flex: 1;
   }
   .v2-cal-agenda .v2-cal-chip {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     padding: 6px 9px;
     border: 1px solid var(--v2-line);
     background: var(--v2-card);

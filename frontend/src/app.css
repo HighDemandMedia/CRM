@@ -1,4 +1,5 @@
 @import '@fontsource-variable/manrope';
+@import './lib/styles/design-tokens.css';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin '@tailwindcss/typography';
@@ -6,19 +7,17 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   BOTTLECRM DESIGN SYSTEM - Orange Primary
-   A modern CRM design system with warm orange accents and professional styling
+   HDM CRM - shared component compatibility styles
+   Canonical visual values live in lib/styles/design-tokens.css.
    Based on DESIGN_SYSTEM.md v1.2
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
   /* Base radius for components */
-  --radius: 0.625rem;
 
   /* ─────────────────────────────────────────────────────────────────────────
      BRAND COLORS
      ───────────────────────────────────────────────────────────────────────── */
-  --color-brand-primary: #ea580c;
   --color-brand-dark: #404346;
   --color-brand-white: #ffffff;
 
@@ -27,36 +26,18 @@
      ───────────────────────────────────────────────────────────────────────── */
 
   /* Core surfaces */
-  --background: oklch(0.985 0.002 60);
-  --foreground: oklch(0.15 0.02 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 260);
 
   /* Primary - Orange */
-  --primary: oklch(0.58 0.2 30);
-  --primary-foreground: oklch(0.98 0 0);
 
   /* Secondary */
-  --secondary: oklch(0.96 0.01 60);
-  --secondary-foreground: oklch(0.25 0.02 260);
 
   /* Muted */
-  --muted: oklch(0.96 0.005 60);
-  --muted-foreground: oklch(0.45 0.02 260);
 
   /* Accent - Light orange tint */
-  --accent: oklch(0.98 0.02 60);
-  --accent-foreground: oklch(0.25 0.05 30);
 
   /* Destructive */
-  --destructive: oklch(0.55 0.22 25);
 
   /* Borders & inputs */
-  --border: oklch(0.91 0.005 60);
-  --input: oklch(0.91 0.005 60);
-  --ring: oklch(0.58 0.2 30);
 
   /* Chart colors - Sequential (Orange-based) */
   --chart-1: #ea580c;
@@ -66,49 +47,22 @@
   --chart-5: #fed7aa;
 
   /* Sidebar */
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: #111827;
-  --sidebar-primary: #ea580c;
-  --sidebar-primary-foreground: oklch(0.995 0 0);
-  --sidebar-accent: oklch(0.96 0 0);
-  --sidebar-accent-foreground: #111827;
-  --sidebar-border: oklch(0.94 0 0);
-  --sidebar-ring: #ea580c;
-  --sidebar-active-fill: oklch(0.94 0 0);
-  --sidebar-muted: #4b5563;
-  --sidebar-subtle: #9ca3af;
 
   /* ─────────────────────────────────────────────────────────────────────────
      PRIMARY COLOR SCALE
      ───────────────────────────────────────────────────────────────────────── */
-  --color-primary-default: #ea580c;
-  --color-primary-hover: #c2410c;
-  --color-primary-dark: #c2410c;
-  --color-primary-active: #9a3412;
-  --color-primary-light: #fff7ed;
 
   /* ─────────────────────────────────────────────────────────────────────────
      SEMANTIC COLORS
      ───────────────────────────────────────────────────────────────────────── */
 
   /* Negative/Error */
-  --color-negative-default: #dc3545;
-  --color-negative-hover: #c82333;
-  --color-negative-light: #fdeaea;
 
   /* Warning */
-  --color-warning-default: #ffc107;
-  --color-warning-dark: #e0a800;
-  --color-warning-light: #fff8e1;
 
   /* Success */
-  --color-success-default: #28a745;
-  --color-success-dark: #1e7e34;
-  --color-success-light: #e8f5e9;
 
   /* Info */
-  --color-info-default: #17a2b8;
-  --color-info-light: #e3f2fd;
 
   /* ─────────────────────────────────────────────────────────────────────────
      GREY SCALE
@@ -127,30 +81,14 @@
   /* ─────────────────────────────────────────────────────────────────────────
      SURFACE COLORS
      ───────────────────────────────────────────────────────────────────────── */
-  --surface-default: #ffffff;
-  --surface-raised: #ffffff;
-  --surface-sunken: #f5f5f5;
-  --surface-overlay: #ffffff;
 
   /* ─────────────────────────────────────────────────────────────────────────
      TEXT COLORS
      ───────────────────────────────────────────────────────────────────────── */
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-tertiary: #9ca3af;
-  --text-disabled: #bdbdbd;
-  --text-inverse: #ffffff;
-  --text-link: #ea580c;
-  --text-error: #dc3545;
 
   /* ─────────────────────────────────────────────────────────────────────────
      BORDER COLORS
      ───────────────────────────────────────────────────────────────────────── */
-  --border-default: #e0e0e0;
-  --border-subtle: #eeeeee;
-  --border-strong: #bdbdbd;
-  --border-focus: #ea580c;
-  --border-error: #dc3545;
 
   /* ─────────────────────────────────────────────────────────────────────────
      PIPELINE STAGE COLORS
@@ -243,7 +181,6 @@
   /* ─────────────────────────────────────────────────────────────────────────
      PROGRESS BAR
      ───────────────────────────────────────────────────────────────────────── */
-  --progress-default: #ea580c;
   --progress-success: #22c55e;
   --progress-warning: #f59e0b;
   --progress-danger: #ef4444;
@@ -269,40 +206,20 @@
   --space-1000: 80px;
 
   /* Legacy spacing aliases */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
 
   /* ─────────────────────────────────────────────────────────────────────────
      BORDER RADIUS
      ───────────────────────────────────────────────────────────────────────── */
   --radius-none: 0px;
   --radius-xs: 2px;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
   --radius-2xl: 16px;
-  --radius-full: 9999px;
 
   /* ─────────────────────────────────────────────────────────────────────────
      SHADOWS
      ───────────────────────────────────────────────────────────────────────── */
   --shadow-none: none;
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
 
   /* Focus Ring */
-  --focus-ring: 0 0 0 2px var(--surface-default), 0 0 0 4px var(--color-primary-default);
 
   /* ─────────────────────────────────────────────────────────────────────────
      ICON SIZES
@@ -378,11 +295,6 @@
   /* ─────────────────────────────────────────────────────────────────────────
      TYPOGRAPHY
      ───────────────────────────────────────────────────────────────────────── */
-  --font-family-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-family-mono: 'Geist Mono', 'SF Mono', 'Fira Code', Consolas, monospace;
-  --font-sans: var(--font-family-sans);
-  --font-body: var(--font-family-sans);
-  --font-mono: var(--font-family-mono);
 
   --font-weight-regular: 400;
   --font-weight-medium: 500;
@@ -395,24 +307,9 @@
   --glass-blur: 12px;
 
   /* Legacy semantic aliases */
-  --bg-base: #fafafa;
-  --bg-subtle: #f5f5f5;
-  --bg-muted: #eeeeee;
-  --bg-emphasis: #e0e0e0;
-  --accent-primary: #ea580c;
-  --accent-primary-hover: #c2410c;
-  --accent-primary-subtle: #fff7ed;
   --accent-secondary: #f59e0b;
   --accent-secondary-hover: #d97706;
   --accent-secondary-subtle: #fffbeb;
-  --status-success: #28a745;
-  --status-success-bg: #e8f5e9;
-  --status-warning: #ffc107;
-  --status-warning-bg: #fff8e1;
-  --status-danger: #dc3545;
-  --status-danger-bg: #fdeaea;
-  --status-info: #17a2b8;
-  --status-info-bg: #e3f2fd;
 
   /* ─────────────────────────────────────────────────────────────────────────
      REDESIGN TOKENS (2026-05-10 spec): Phase 1
@@ -422,56 +319,23 @@
      ───────────────────────────────────────────────────────────────────────── */
 
   /* Surface */
-  --bg: #ffffff;
-  --bg-page: #fafafa;
-  --bg-card: #ffffff;
-  --bg-elevated: #fafafa;
-  --bg-hover: #f5f5f4;
-  --bg-active: #f0efed;
-  --bg-input: #ffffff;
 
   /* Border (NOTE: --border, --border-strong, --focus-ring redefined: see Phase 1 plan §Task 3) */
-  --border-faint: #f0f0f0;
-  --border: #e5e5e5;
-  --border-strong: #c4c4c4;
-  --focus-ring: rgba(17, 17, 17, 0.1);
 
   /* Text, aliases of canonical --text-primary/secondary/tertiary (defined above).
      Keep both names so the typography utilities (.t-body / .t-meta / etc.) can reference
      short names while pages that grew up using --text-primary keep working. */
-  --text: var(--text-primary);
-  --text-muted: var(--text-secondary);
-  --text-subtle: var(--text-tertiary);
 
   /* Accents, semantic */
-  --green: #10b981;
-  --green-soft: rgba(16, 185, 129, 0.12);
-  --green-soft-text: #047857;
   --violet: #7c3aed;
   --violet-soft: rgba(124, 58, 237, 0.1);
   --violet-soft-text: #6d28d9;
-  --amber-soft: rgba(217, 119, 6, 0.1);
-  --amber-soft-text: #92400e;
-  --red: #dc2626;
-  --red-soft: rgba(220, 38, 38, 0.08);
-  --orange: #ea580c;
 
   /* CTA */
-  --cta-bg: #111111;
-  --cta-text: #ffffff;
-  --cta-bg-hover: #000000;
 
   /* Radii */
-  --r-sm: 5px;
-  --r-md: 7px;
-  --r-lg: 10px;
-  --r-xl: 12px;
-  --r-full: 9999px;
 
   /* Fonts (override existing aliases at lines ~379-381) */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, ui-sans-serif, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, ui-sans-serif, sans-serif;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -481,36 +345,18 @@
 
 .dark {
   /* Core surfaces - Deep with subtle warmth */
-  --background: oklch(0.12 0.01 30);
-  --foreground: oklch(0.95 0.005 60);
-  --card: oklch(0.16 0.01 30);
-  --card-foreground: oklch(0.95 0.005 60);
-  --popover: oklch(0.18 0.012 30);
-  --popover-foreground: oklch(0.95 0.005 60);
 
   /* Primary - Vivid orange */
-  --primary: oklch(0.72 0.18 35);
-  --primary-foreground: oklch(0.12 0.01 30);
 
   /* Secondary */
-  --secondary: oklch(0.22 0.01 30);
-  --secondary-foreground: oklch(0.92 0.005 60);
 
   /* Muted */
-  --muted: oklch(0.22 0.008 30);
-  --muted-foreground: oklch(0.65 0.01 60);
 
   /* Accent - Warm orange glow */
-  --accent: oklch(0.25 0.04 35);
-  --accent-foreground: oklch(0.85 0.12 35);
 
   /* Destructive */
-  --destructive: oklch(0.65 0.2 25);
 
   /* Borders & inputs */
-  --border: oklch(0.28 0.01 30);
-  --input: oklch(0.24 0.01 30);
-  --ring: oklch(0.7 0.16 35);
 
   /* Chart colors - Vibrant */
   --chart-1: #fb923c;
@@ -520,83 +366,25 @@
   --chart-5: #fff7ed;
 
   /* Sidebar */
-  --sidebar: oklch(0.14 0 0);
-  --sidebar-foreground: rgba(255, 255, 255, 0.95);
-  --sidebar-primary: #fb923c;
-  --sidebar-primary-foreground: oklch(0.12 0.01 30);
-  --sidebar-accent: rgba(255, 255, 255, 0.06);
-  --sidebar-accent-foreground: rgba(255, 255, 255, 0.95);
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #fb923c;
-  --sidebar-active-fill: rgba(255, 255, 255, 0.1);
-  --sidebar-muted: #9ca3af;
-  --sidebar-subtle: #6b7280;
 
   /* Primary color scale - Dark mode */
-  --color-primary-default: #fb923c;
-  --color-primary-hover: #fdba74;
-  --color-primary-dark: #f97316;
-  --color-primary-active: #f97316;
-  --color-primary-light: #431407;
 
   /* Surface Colors - Dark mode */
-  --surface-default: #1e1e1e;
-  --surface-raised: #252525;
-  --surface-sunken: #141414;
-  --surface-overlay: #2d2d2d;
 
   /* Text Colors - Dark mode */
-  --text-primary: rgba(255, 255, 255, 0.95);
-  --text-secondary: #9ca3af;
-  --text-tertiary: #6b7280;
-  --text-disabled: #525252;
-  --text-inverse: #212121;
-  --text-link: #fb923c;
-  --text-error: #f87171;
 
   /* Border Colors - Dark mode */
-  --border-default: #3d3d3d;
-  --border-subtle: #2a2a2a;
-  --border-strong: #525252;
-  --border-focus: #fb923c;
-  --border-error: #f87171;
 
   /* Background Layers - Dark */
-  --bg-base: #0c0d12;
-  --bg-subtle: #121318;
-  --bg-muted: #181a21;
-  --bg-emphasis: #1f222b;
 
   /* Accent Colors - Orange glow */
-  --accent-primary: #fb923c;
-  --accent-primary-hover: #fdba74;
-  --accent-primary-subtle: rgba(251, 146, 60, 0.1);
   --accent-secondary: #fbbf24;
   --accent-secondary-hover: #f59e0b;
   --accent-secondary-subtle: rgba(251, 191, 36, 0.1);
 
   /* Status Colors - Vivid in dark */
-  --status-success: #34d399;
-  --status-success-bg: rgba(52, 211, 153, 0.12);
-  --status-warning: #fbbf24;
-  --status-warning-bg: rgba(251, 191, 36, 0.12);
-  --status-danger: #f87171;
-  --status-danger-bg: rgba(248, 113, 113, 0.12);
-  --status-info: #38bdf8;
-  --status-info-bg: rgba(56, 189, 248, 0.12);
 
   /* Semantic colors dark mode */
-  --color-negative-default: #f87171;
-  --color-negative-hover: #fca5a5;
-  --color-negative-light: rgba(248, 113, 113, 0.15);
-  --color-warning-default: #fbbf24;
-  --color-warning-dark: #fcd34d;
-  --color-warning-light: rgba(251, 191, 36, 0.15);
-  --color-success-default: #34d399;
-  --color-success-dark: #10b981;
-  --color-success-light: rgba(52, 211, 153, 0.15);
-  --color-info-default: #38bdf8;
-  --color-info-light: rgba(56, 189, 248, 0.15);
 
   /* Grey Scale - Dark mode */
   --color-grey-50: #18181b;
@@ -644,42 +432,17 @@
      ───────────────────────────────────────────────────────────────────────── */
 
   /* Surface */
-  --bg: #000000;
-  --bg-page: #000000;
-  --bg-card: #0a0a0b;
-  --bg-elevated: #131316;
-  --bg-hover: #18181c;
-  --bg-active: #1f1f23;
-  --bg-input: #131316;
 
   /* Border */
-  --border-faint: rgba(255, 255, 255, 0.06);
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.2);
-  --focus-ring: rgba(237, 242, 245, 0.14);
 
   /* Text, aliases of canonical --text-primary/secondary/tertiary (dark theme defined above). */
-  --text: var(--text-primary);
-  --text-muted: var(--text-secondary);
-  --text-subtle: var(--text-tertiary);
 
   /* Accents, semantic */
-  --green: #10b981;
-  --green-soft: rgba(16, 185, 129, 0.14);
-  --green-soft-text: #6ee7b7;
   --violet: #7c7cff;
   --violet-soft: rgba(124, 124, 255, 0.14);
   --violet-soft-text: #c4c4ff;
-  --amber-soft: rgba(217, 119, 6, 0.18);
-  --amber-soft-text: #fcd34d;
-  --red: #f87171;
-  --red-soft: rgba(248, 113, 113, 0.1);
-  --orange: #ea580c;
 
   /* CTA (inverted) */
-  --cta-bg: #ffffff;
-  --cta-text: #18181b;
-  --cta-bg-hover: #ededed;
 
   /* Radii + fonts inherit from :root, no override needed */
 }
@@ -689,10 +452,6 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @theme inline {
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-  --radius-xl: var(--radius-xl);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -772,8 +531,8 @@
 
   /* Selection styling - Orange */
   ::selection {
-    background: var(--accent-primary);
-    color: var(--text-inverse);
+    background: var(--crm-surface-selected);
+    color: var(--crm-text);
   }
 }
 
@@ -1193,61 +952,61 @@ select {
      ───────────────────────────────────────────────────────────────────────── */
 
   .h-display {
-    font-size: 28px;
+    font-size: var(--crm-text-2xl);
     font-weight: 500;
     letter-spacing: -0.035em;
     color: var(--text);
   }
 
   .h-page {
-    font-size: 22px;
+    font-size: var(--crm-text-xl);
     font-weight: 500;
     letter-spacing: -0.03em;
     color: var(--text);
   }
 
   .h-section {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
     letter-spacing: -0.025em;
     color: var(--text);
   }
 
   .t-body {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 400;
     color: var(--text);
   }
 
   .t-body-sm {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 400;
     color: var(--text-muted);
   }
 
   /* Crisp cell/value text, primary color + medium weight (use for table cells, dl values). */
   .t-data {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 500;
     color: var(--text);
   }
 
   /* KPI number, used in stat cards. */
   .t-kpi {
-    font-size: 18px;
+    font-size: var(--crm-text-lg);
     font-weight: 500;
     color: var(--text);
     font-variant-numeric: tabular-nums;
   }
 
   .t-meta {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     font-weight: 400;
     color: var(--text-subtle);
   }
 
   .label-section {
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1255,7 +1014,7 @@ select {
   }
 
   .label-tiny {
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1264,7 +1023,7 @@ select {
 
   .kbd {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     font-weight: 500;
     color: var(--text-muted);
     background: var(--bg-elevated);
@@ -1286,4 +1045,43 @@ select {
    When components fully migrate off Geist in Phase 2+, the older @layer base rule can be removed. */
 html {
   font-feature-settings: 'cv11', 'ss01';
+}
+
+/* Portalled controls and notifications share the same theme as the route shell. */
+:where(button, input, select, textarea, a, summary):focus-visible {
+  outline: 2px solid var(--crm-focus);
+  outline-offset: 3px;
+}
+[data-sonner-toaster] {
+  font-family: var(--crm-font-ui);
+  --normal-bg: var(--crm-surface);
+  --normal-text: var(--crm-text);
+  --normal-border: var(--crm-control-border);
+  --success-bg: var(--crm-success-bg);
+  --success-text: var(--crm-success);
+  --success-border: var(--crm-success);
+  --error-bg: var(--crm-danger-bg);
+  --error-text: var(--crm-danger);
+  --error-border: var(--crm-danger);
+  --warning-bg: var(--crm-warning-bg);
+  --warning-text: var(--crm-warning);
+  --warning-border: var(--crm-warning);
+  --info-bg: var(--crm-info-bg);
+  --info-text: var(--crm-info);
+  --info-border: var(--crm-info);
+}
+[data-sonner-toast] {
+  font-size: var(--crm-text-sm);
+  border-radius: var(--crm-radius-lg);
+  box-shadow: var(--crm-shadow-md);
+}
+@media (max-width: 767px), (pointer: coarse) {
+  [data-slot='button'],
+  [data-slot='select-trigger'] {
+    min-height: var(--crm-target-size);
+  }
+  [data-slot='input'],
+  [data-slot='textarea'] {
+    font-size: var(--crm-text-base);
+  }
 }

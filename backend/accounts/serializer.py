@@ -162,7 +162,6 @@ class AccountListSerializer(AccountSerializer):
             not in (
                 "org",
                 "teams",
-                "created_by",
                 "account_attachment",
                 "cases",
                 "tasks",

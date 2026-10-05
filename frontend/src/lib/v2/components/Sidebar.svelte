@@ -346,18 +346,18 @@
   }
   .account-footer {
     flex-shrink: 0;
-    border-top: 1px solid #48434c;
+    border-top: 1px solid var(--crm-nav-border);
     padding-top: 10px;
-    margin-top: 8px;
+    margin-top: var(--crm-space-2);
   }
   .account-trigger {
     display: flex;
     gap: 9px;
     align-items: center;
     width: 100%;
-    padding: 8px 5px;
+    padding: var(--crm-space-2) 5px;
     border: 0;
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
     background: transparent;
     color: inherit;
     font: inherit;
@@ -366,7 +366,7 @@
   }
   .account-trigger:hover,
   .account-trigger[aria-expanded='true'] {
-    background: #403d42;
+    background: var(--crm-nav-hover);
   }
   .account-trigger-text {
     flex: 1;
@@ -380,11 +380,11 @@
     white-space: nowrap;
   }
   .account-trigger-text strong {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .account-trigger-text small {
-    font-size: 11px;
-    color: #bdbac1;
+    font-size: var(--crm-text-xs);
+    color: var(--crm-nav-muted);
     margin-top: 3px;
   }
   .account-avatar {
@@ -410,17 +410,17 @@
     overflow-y: auto;
     box-sizing: border-box;
     padding: 10px;
-    border: 1px solid #e2dfe3;
-    border-radius: 14px;
-    background: #fff;
-    color: #302e33;
-    box-shadow: 0 12px 44px #19151c30;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--crm-radius-lg);
+    background: var(--crm-surface);
+    color: var(--crm-text);
+    box-shadow: var(--crm-shadow-lg);
     font-family: inherit;
   }
   .account-identity {
     display: flex;
-    gap: 12px;
-    padding: 12px 10px;
+    gap: var(--crm-space-3);
+    padding: var(--crm-space-3) 10px;
     align-items: center;
   }
   .account-identity div {
@@ -428,33 +428,33 @@
   }
   .account-identity strong {
     display: block;
-    font-size: 15px;
+    font-size: var(--crm-text-sm);
     overflow-wrap: anywhere;
   }
   .account-identity span:not(.account-avatar) {
     display: block;
-    color: #706c75;
-    font-size: 12px;
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-xs);
     overflow-wrap: anywhere;
-    margin-top: 4px;
+    margin-top: var(--crm-space-1);
   }
   .account-action {
     display: flex;
     align-items: center;
     gap: 9px;
     padding: 11px 10px;
-    border-radius: 7px;
+    border-radius: var(--crm-radius-md);
     color: inherit;
     text-decoration: none;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 550;
   }
   .account-action:hover {
-    background: #f4f2f5;
+    background: var(--crm-surface-secondary);
   }
   .account-action:focus-visible,
   .account-trigger:focus-visible {
-    outline: 2px solid #868097;
+    outline: 2px solid var(--crm-focus);
     outline-offset: 2px;
   }
   .account-details {
@@ -462,17 +462,17 @@
     flex-direction: column;
     gap: 5px;
     padding: 14px 10px;
-    margin: 8px 0;
-    border-block: 1px solid #eeebef;
-    font-size: 12px;
-    color: #706c75;
+    margin: var(--crm-space-2) 0;
+    border-block: 1px solid var(--crm-border);
+    font-size: var(--crm-text-xs);
+    color: var(--crm-text-muted);
   }
   .account-details label {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
   }
   .account-id {
     overflow-wrap: anywhere;
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
   }
   .organization-name {
     position: relative;
@@ -483,22 +483,22 @@
     appearance: none;
     width: 100%;
     min-width: 0;
-    padding: 7px 24px 7px 0;
+    padding: 7px var(--crm-space-6) 7px 0;
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--crm-radius-sm);
     background: transparent;
-    color: #302e33;
+    color: var(--crm-text);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
     cursor: pointer;
     text-overflow: ellipsis;
   }
   .organization-name select:hover {
-    background: #f5f3f6;
+    background: var(--crm-surface-secondary);
   }
   .organization-name select:focus-visible {
-    outline: 2px solid #81778c;
+    outline: 2px solid var(--crm-focus);
     outline-offset: 2px;
   }
   .organization-name select:disabled {
@@ -512,11 +512,11 @@
   }
   .organization-error {
     color: var(--v2-rust);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     margin: 0;
   }
   .account-signout {
-    border-top: 1px solid #eeebef;
+    border-top: 1px solid var(--crm-border);
     padding-top: 6px;
     margin-top: 6px;
   }
@@ -527,7 +527,7 @@
   .brand-home:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 3px;
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
   }
   .group-toggle {
     flex-shrink: 0;
@@ -540,15 +540,15 @@
     font-family: inherit;
   }
   .nav-divider {
-    margin: 8px 6px;
-    border-top: 1px solid #48434c;
+    margin: var(--crm-space-2) 6px;
+    border-top: 1px solid var(--crm-nav-border);
   }
 
   .v2-nav {
     overflow: hidden;
-    background: #242326;
-    color: #f5f3f0;
-    border-right-color: #38353b;
+    background: var(--crm-nav-bg);
+    color: var(--crm-nav-text);
+    border-right-color: var(--crm-nav-border);
   }
   .v2-org {
     flex-shrink: 0;
@@ -561,35 +561,44 @@
   }
   .workspace-name {
     flex-shrink: 0;
-    margin: 4px 7px 10px;
+    margin: var(--crm-space-1) 7px 10px;
     padding: 10px;
-    background: #302f33;
-    border-radius: 6px;
-    font-size: 12px;
-    color: #d3d0d5;
+    background: var(--crm-nav-hover);
+    border-radius: var(--crm-radius-sm);
+    font-size: var(--crm-text-xs);
+    color: var(--crm-nav-muted);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .v2-link {
-    color: #d1cfd4;
+    color: var(--crm-nav-text);
   }
   .v2-link :global(svg) {
-    color: #bdbac1;
+    color: var(--crm-nav-muted);
   }
   .v2-link:hover,
   .v2-link[aria-current='page'] {
-    background: #403d42;
-    color: white;
+    background: var(--crm-nav-hover);
+    color: var(--crm-nav-text);
+  }
+  .v2-link[aria-current='page'] {
+    background: var(--crm-primary);
+    color: var(--crm-primary-text);
+    font-weight: 700;
+  }
+  .v2-nav :focus-visible {
+    outline: 2px solid var(--crm-coral);
+    outline-offset: 2px;
   }
   .v2-link[aria-current='page'] :global(svg) {
-    color: white;
+    color: var(--crm-primary-text);
   }
   .v2-nav-group {
-    color: #b1aab5;
+    color: var(--crm-nav-muted);
   }
   .v2-link .v2-count {
-    color: #c4bdc9;
+    color: var(--crm-nav-muted);
   }
   .collapsed .brand-symbol {
     width: 36px;
@@ -597,7 +606,7 @@
 
   .collapsed {
     width: 64px;
-    padding: 13px 8px;
+    padding: 13px var(--crm-space-2);
   }
   .collapsed .v2-org {
     justify-content: center;
@@ -613,7 +622,7 @@
     justify-content: center;
     min-height: 34px;
     flex-shrink: 0;
-    padding: 8px;
+    padding: var(--crm-space-2);
   }
 
   /* Search opens an overlay rather than navigating, so it is a button. It

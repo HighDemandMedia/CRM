@@ -155,7 +155,7 @@
   }
   label {
     display: block;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-muted);
     margin-bottom: 6px;
   }
@@ -173,7 +173,7 @@
   input.v2-input {
     width: 100%;
     min-width: 0;
-    padding-left: 32px;
+    padding-left: var(--crm-space-8);
     color: var(--v2-ink);
   }
   .results {
@@ -186,8 +186,8 @@
     overflow: auto;
     background: var(--v2-bg);
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
-    box-shadow: 0 8px 20px #0001;
+    border-radius: var(--crm-radius-md);
+    box-shadow: var(--crm-shadow-sm);
     padding: 5px;
   }
   .results button {
@@ -200,39 +200,39 @@
     text-align: left;
     gap: 10px;
     padding: 10px;
-    border-radius: 5px;
+    border-radius: var(--crm-radius-sm);
     cursor: pointer;
     color: var(--v2-ink);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .results button:hover,
   .results button.active {
     background: var(--v2-paper);
   }
   small {
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-muted);
     font-weight: 400;
   }
   .empty {
-    padding: 12px;
-    font-size: 12px;
+    padding: var(--crm-space-3);
+    font-size: var(--crm-text-xs);
     color: var(--v2-muted);
   }
   .chosen {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 8px;
+    margin-top: var(--crm-space-2);
   }
   .chip {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
     padding: 7px 9px;
     border: 1px solid var(--v2-line);
-    border-radius: 7px;
+    border-radius: var(--crm-radius-md);
     background: var(--v2-paper);
     max-width: 100%;
   }
@@ -241,7 +241,7 @@
   }
   .chip span {
     display: block;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     overflow-wrap: anywhere;
   }
   .chip small {

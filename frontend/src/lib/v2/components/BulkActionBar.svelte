@@ -128,11 +128,11 @@
   .v2-bulkbar {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
     flex-wrap: wrap;
-    padding: 10px 12px;
+    padding: 10px var(--crm-space-3);
     border: 1px solid var(--v2-line);
-    border-radius: 10px;
+    border-radius: var(--crm-radius-md);
     background: var(--v2-card);
   }
   /* Phone: dock above the tab bar, full width, comfortable tap targets. */

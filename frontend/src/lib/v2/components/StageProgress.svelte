@@ -26,11 +26,11 @@
     flex-direction: column;
     gap: 6px;
     min-width: 0;
-    padding: 4px 0;
+    padding: var(--crm-space-1) 0;
   }
   .segments {
     display: flex;
-    gap: 4px;
+    gap: var(--crm-space-1);
     width: 132px;
     max-width: 100%;
   }
@@ -38,15 +38,15 @@
     flex: 1;
     min-width: 0;
     height: 6px;
-    border-radius: 4px;
-    background: #e5e5e5;
+    border-radius: var(--crm-radius-sm);
+    background: var(--crm-border);
   }
   .segments span.filled {
-    background: #252321;
+    background: var(--crm-text);
   }
   .stage-name {
-    color: var(--v2-muted, #79736f);
-    font-size: 13px;
+    color: var(--v2-muted, var(--crm-text-muted));
+    font-size: var(--crm-text-sm);
     line-height: 1.3;
     overflow: hidden;
     text-overflow: ellipsis;

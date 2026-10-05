@@ -68,7 +68,7 @@
 
 <style>
   .availability {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     line-height: 1.5;
   }
@@ -81,10 +81,10 @@
   .slots span {
     padding: 3px 7px;
     background: var(--v2-line-soft);
-    border-radius: 4px;
+    border-radius: var(--crm-radius-sm);
   }
   p {
-    color: #b42318;
-    margin: 8px 0 0;
+    color: var(--crm-danger);
+    margin: var(--crm-space-2) 0 0;
   }
 </style>

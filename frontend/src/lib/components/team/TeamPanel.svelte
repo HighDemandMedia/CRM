@@ -45,10 +45,10 @@
     padding: 0;
     border: 0;
     border-left: 1px solid var(--v2-line);
-    background: var(--v2-card, #fff);
+    background: var(--v2-card, var(--crm-surface));
     color: var(--v2-ink);
     text-align: left;
-    box-shadow: -16px 0 60px #0002;
+    box-shadow: var(--crm-shadow-lg);
     overflow: hidden;
   }
   dialog[open] {
@@ -57,24 +57,24 @@
     animation: arrive 0.16s ease-out;
   }
   dialog::backdrop {
-    background: #17151b55;
+    background: var(--crm-overlay);
   }
   header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
-    padding: 24px;
+    gap: var(--crm-space-4);
+    padding: var(--crm-space-6);
     border-bottom: 1px solid var(--v2-line-soft);
     flex-shrink: 0;
   }
   h2 {
-    font-size: 20px;
+    font-size: var(--crm-text-lg);
     font-weight: 600;
     margin: 0;
   }
   p {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-slate);
     margin: 6px 0 0;
     line-height: 1.5;
@@ -92,7 +92,7 @@
     min-height: 0;
   }
   .content :global(.panel-body) {
-    padding: 24px;
+    padding: var(--crm-space-6);
     min-height: 0;
     overflow: auto;
     overscroll-behavior: contain;
@@ -100,19 +100,19 @@
     flex: 1;
   }
   .content :global(.panel-footer) {
-    padding: 18px 24px;
+    padding: 18px var(--crm-space-6);
     border-top: 1px solid var(--v2-line-soft);
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--crm-space-2);
     flex-shrink: 0;
   }
   .content :global(.field) {
     display: grid;
-    gap: 8px;
-    font-size: 13px;
+    gap: var(--crm-space-2);
+    font-size: var(--crm-text-sm);
     font-weight: 500;
-    margin-bottom: 22px;
+    margin-bottom: var(--crm-space-6);
   }
   .content :global(.field .v2-input) {
     width: 100%;
@@ -120,13 +120,13 @@
     min-height: 40px;
   }
   .content :global(.field small) {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     font-weight: 400;
     color: var(--v2-slate);
     line-height: 1.5;
   }
   .content :global(.panel-error) {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-rust);
     margin: 14px 0;
     line-height: 1.5;

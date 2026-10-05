@@ -214,14 +214,17 @@
           {#if form?.error && !form?.stageRequirements}
             <p
               class="v2-card"
-              style="padding:10px 13px;margin-bottom:16px;color:var(--v2-rust);font-size:13px"
+              style="padding:10px 13px;margin-bottom:16px;color:var(--v2-rust);font-size:var(--crm-text-sm)"
             >
               {form.error}
             </p>
           {/if}
 
           {#if form?.closed}
-            <p class="v2-card" style="padding:10px 13px;margin-bottom:16px;font-size:13px">
+            <p
+              class="v2-card"
+              style="padding:10px 13px;margin-bottom:16px;font-size:var(--crm-text-sm)"
+            >
               {form.closed}
             </p>
           {/if}
@@ -247,8 +250,11 @@
                     closePanel = false;
                   }}
               >
-                <div style="font-weight:600;font-size:13.5px">Close {ticket.name}</div>
-                <p class="v2-sub" style="font-size:12.5px;margin:6px 0 0;line-height:1.5">
+                <div style="font-weight:600;font-size:var(--crm-text-sm)">Close {ticket.name}</div>
+                <p
+                  class="v2-sub"
+                  style="font-size:var(--crm-text-sm);margin:6px 0 0;line-height:1.5"
+                >
                   {cascadeSummary({
                     count: data.close.descendants.length,
                     truncated: data.close.truncated
@@ -269,7 +275,10 @@
                     <input type="checkbox" name="cascade" bind:checked={cascade} />
                     <span>
                       <span style="font-weight:600">Close these as well</span>
-                      <span class="v2-sub" style="display:block;font-size:11.5px;margin-top:2px">
+                      <span
+                        class="v2-sub"
+                        style="display:block;font-size:var(--crm-text-xs);margin-top:2px"
+                      >
                         Each one gets a note saying it was closed with this ticket. Leave it
                         unticked to close only this one.
                       </span>
@@ -305,7 +314,7 @@
               <NextAction label={alert.label} text={alert.text} tone={alert.tone} />
             </div>
           {:else if waiting}
-            <p class="v2-sub" style="margin:0 0 18px;font-size:12.5px">
+            <p class="v2-sub" style="margin:0 0 18px;font-size:var(--crm-text-sm)">
               Waiting on the customer: the first-reply clock is paused while it sits in Pending.
             </p>
           {/if}
@@ -313,14 +322,14 @@
           {#if ticket.description}
             <div class="v2-card" style="padding:13px 15px;margin-bottom:18px">
               <div class="v2-label" style="margin-bottom:7px">What was reported</div>
-              <div style="font-size:13.5px;line-height:1.55;white-space:pre-wrap">
+              <div style="font-size:var(--crm-text-sm);line-height:1.55;white-space:pre-wrap">
                 {ticket.description}
               </div>
             </div>
           {/if}
 
           {#if conversation.length === 0}
-            <p class="v2-sub" style="margin:0 0 18px;font-size:12.5px">
+            <p class="v2-sub" style="margin:0 0 18px;font-size:var(--crm-text-sm)">
               Nothing has been said on this ticket yet. A reply below is the first response. It is
               what stops the first-reply clock.
             </p>
@@ -336,13 +345,15 @@
               >
                 <div
                   class="v2-sub"
-                  style="font-size:11.5px;margin-bottom:5px;display:flex;align-items:center;gap:5px"
+                  style="font-size:var(--crm-text-xs);margin-bottom:5px;display:flex;align-items:center;gap:5px"
                 >
                   <Lock size={11} />
                   <b style="color:var(--v2-ink);font-weight:600">{m.author}</b>
                   · internal note · {shortAge(m.at)} ago
                 </div>
-                <div style="font-size:13.5px;line-height:1.55;white-space:pre-wrap">{m.body}</div>
+                <div style="font-size:var(--crm-text-sm);line-height:1.55;white-space:pre-wrap">
+                  {m.body}
+                </div>
               </div>
             {:else}
               <div
@@ -357,17 +368,19 @@
                     ? 'background:var(--v2-line-soft)'
                     : ''}"
                 >
-                  <div class="v2-sub" style="font-size:11.5px;margin-bottom:5px">
+                  <div class="v2-sub" style="font-size:var(--crm-text-xs);margin-bottom:5px">
                     <b style="color:var(--v2-ink);font-weight:600">{m.author}</b>
                     {#if m.kind === 'email'}· email{/if}
                     · {shortAge(m.at)} ago
                   </div>
                   {#if m.subject}
-                    <div style="font-size:12.5px;font-weight:600;margin-bottom:4px">
+                    <div style="font-size:var(--crm-text-sm);font-weight:600;margin-bottom:4px">
                       {m.subject}
                     </div>
                   {/if}
-                  <div style="font-size:13.5px;line-height:1.55;white-space:pre-wrap">{m.body}</div>
+                  <div style="font-size:var(--crm-text-sm);line-height:1.55;white-space:pre-wrap">
+                    {m.body}
+                  </div>
                 </div>
               </div>
             {/if}
@@ -381,14 +394,14 @@
                   bind:value={body}
                   rows="3"
                   placeholder={internal ? 'Note for the team…' : 'Write a reply…'}
-                  style="width:100%;border:none;background:transparent;resize:vertical;font:inherit;font-size:13.5px;line-height:1.55;color:var(--v2-ink);outline:none"
+                  style="width:100%;border:none;background:transparent;resize:vertical;font:inherit;font-size:var(--crm-text-sm);line-height:1.55;color:var(--v2-ink);outline:none"
                 ></textarea>
                 <div
                   style="display:flex;gap:9px;align-items:center;border-top:1px solid var(--v2-line);padding-top:12px;flex-wrap:wrap"
                 >
                   <label
                     class="v2-sub"
-                    style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"
+                    style="display:flex;align-items:center;gap:5px;font-size:var(--crm-text-xs);cursor:pointer"
                   >
                     <input type="checkbox" name="internal" bind:checked={internal} />
                     Internal note
@@ -416,12 +429,16 @@
                       <X size={12} />
                     </button>
                   {/if}
-                  <span class="v2-sub" style="margin-left:auto;font-size:11.5px"
+                  <span class="v2-sub" style="margin-left:auto;font-size:var(--crm-text-xs)"
                     >Status on send</span
                   >
                   <!-- Answering and moving the ticket is one decision, so it is
                      one submit. Empty means "leave the status alone". -->
-                  <select name="status" class="v2-input" style="width:auto;font-size:12px">
+                  <select
+                    name="status"
+                    class="v2-input"
+                    style="width:auto;font-size:var(--crm-text-xs)"
+                  >
                     <option value="">Unchanged</option>
                     <option value="Assigned">Assigned</option>
                     <option value="Pending">Pending</option>
@@ -442,13 +459,13 @@
                 </div>
               </div>
               {#if internal}
-                <p class="v2-sub" style="margin:8px 2px 0;font-size:11.5px">
+                <p class="v2-sub" style="margin:8px 2px 0;font-size:var(--crm-text-xs)">
                   A note stays inside the team and does not stop the first-reply clock.
                 </p>
               {/if}
             </form>
           {:else}
-            <p class="v2-sub" style="margin-top:18px;font-size:12.5px">
+            <p class="v2-sub" style="margin-top:18px;font-size:var(--crm-text-sm)">
               You can read this ticket but not reply to it. Ask an admin, or whoever it is assigned
               to.
             </p>
@@ -513,8 +530,8 @@
         >
           <Avatar name={ticket.account.name} size={29} />
           <div>
-            <div style="font-size:12.5px;font-weight:550">{ticket.account.name}</div>
-            <div class="v2-sub" style="font-size:11px">
+            <div style="font-size:var(--crm-text-sm);font-weight:550">{ticket.account.name}</div>
+            <div class="v2-sub" style="font-size:var(--crm-text-xs)">
               {#if contacts.length === 1}
                 Reported by {contacts[0].name}
               {:else if contacts.length > 1}
@@ -536,7 +553,7 @@
             style="color:inherit;text-decoration:none"
           >
             <Avatar name={c.name} size={26} />
-            <div style="font-size:12.5px;font-weight:550">{c.name}</div>
+            <div style="font-size:var(--crm-text-sm);font-weight:550">{c.name}</div>
           </a>
         {/each}
       {/if}
@@ -555,8 +572,10 @@
             style="color:inherit;text-decoration:none"
           >
             <div>
-              <div style="font-size:12.5px;font-weight:550;line-height:1.35">{t.name}</div>
-              <div class="v2-sub" style="font-size:11px">
+              <div style="font-size:var(--crm-text-sm);font-weight:550;line-height:1.35">
+                {t.name}
+              </div>
+              <div class="v2-sub" style="font-size:var(--crm-text-xs)">
                 {t.priority} · {shortAge(t.opened_at)} old
               </div>
             </div>
@@ -569,8 +588,10 @@
         {#each activity.slice(0, 8) as a (a.id)}
           <div class="v2-rail-row">
             <div>
-              <div style="font-size:12.5px;font-weight:550;line-height:1.35">{a.label}</div>
-              <div class="v2-sub" style="font-size:11px">
+              <div style="font-size:var(--crm-text-sm);font-weight:550;line-height:1.35">
+                {a.label}
+              </div>
+              <div class="v2-sub" style="font-size:var(--crm-text-xs)">
                 {a.by ?? 'System'} · {shortAge(a.at)} ago
               </div>
             </div>
@@ -587,7 +608,7 @@
   /* The confirm step for closing a parent. Everything in it stacks, so it
      holds at 390px without a media query of its own. */
   .v2-close-panel {
-    padding: 15px 16px;
+    padding: 15px var(--crm-space-4);
     margin-bottom: 18px;
   }
   .v2-close-list {
@@ -602,10 +623,10 @@
   }
   .v2-close-list li {
     display: flex;
-    gap: 8px;
+    gap: var(--crm-space-2);
     align-items: center;
     justify-content: space-between;
-    font-size: 12.5px;
+    font-size: var(--crm-text-sm);
   }
   /* The name truncates and the status pill never does: which tickets these are
      matters less than the fact that they are open. */
@@ -620,7 +641,7 @@
     gap: 9px;
     align-items: flex-start;
     margin-top: 13px;
-    font-size: 12.5px;
+    font-size: var(--crm-text-sm);
     cursor: pointer;
   }
   .v2-close-check input {
@@ -647,10 +668,10 @@
     align-items: center;
     gap: 5px;
     padding: 5px 9px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     border: 1px solid var(--v2-line);
-    border-radius: 7px;
+    border-radius: var(--crm-radius-md);
     cursor: pointer;
   }
   .attach:hover,
@@ -667,12 +688,12 @@
   .clear-file {
     display: grid;
     place-items: center;
-    padding: 4px;
+    padding: var(--crm-space-1);
     border: none;
     background: transparent;
     color: var(--v2-slate);
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
   }
   .clear-file:hover {
     color: var(--v2-rust);

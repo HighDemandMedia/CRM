@@ -210,22 +210,22 @@
   .profile {
     display: grid;
     grid-template-columns: 280px minmax(300px, 1fr) 260px;
-    gap: 16px;
+    gap: var(--crm-space-4);
     flex: 1;
     min-height: 0;
-    padding: 18px 22px;
+    padding: 18px var(--crm-space-6);
     overflow: auto;
   }
   .profile > aside,
   .profile > main {
     background: var(--v2-bg);
-    padding: 20px;
-    border-radius: 12px;
+    padding: var(--crm-space-5);
+    border-radius: var(--crm-radius-lg);
     overflow: auto;
     min-width: 0;
   }
   h2 {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 650;
     margin: 0 0 18px;
   }
@@ -240,19 +240,19 @@
   }
   .status {
     background: var(--v2-paper);
-    padding: 4px 8px;
-    border-radius: 5px;
+    padding: var(--crm-space-1) var(--crm-space-2);
+    border-radius: var(--crm-radius-sm);
   }
   .body {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     line-height: 1.6;
   }
   .actions {
     display: flex;
-    gap: 8px;
-    margin-top: 20px;
+    gap: var(--crm-space-2);
+    margin-top: var(--crm-space-5);
   }
   .notes,
   .activity {
@@ -265,17 +265,17 @@
   }
   small {
     display: block;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-muted);
     margin-top: 5px;
   }
   .muted {
     color: var(--v2-muted);
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .v2-input {
     width: 100%;
-    margin-top: 12px;
+    margin-top: var(--crm-space-3);
   }
   .add {
     margin-top: 10px;
@@ -284,38 +284,38 @@
     display: block;
     text-decoration: none;
     color: inherit;
-    padding: 12px;
+    padding: var(--crm-space-3);
     background: var(--v2-paper);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
     margin: 10px 0;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .attachments {
     margin-top: 30px;
   }
   .resolution {
-    margin: 20px 0;
+    margin: var(--crm-space-5) 0;
     background: var(--v2-paper);
-    padding: 12px;
-    border-radius: 8px;
+    padding: var(--crm-space-3);
+    border-radius: var(--crm-radius-md);
   }
   h3 {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .description {
-    margin-bottom: 22px;
+    margin-bottom: var(--crm-space-6);
   }
   .message {
-    padding: 0 22px;
+    padding: 0 var(--crm-space-6);
   }
   .dialog::backdrop {
-    background: #0005;
+    background: var(--crm-overlay);
   }
   .dialog {
     border: 0;
     background: var(--v2-bg);
-    border-radius: 12px;
-    padding: 24px;
+    border-radius: var(--crm-radius-lg);
+    padding: var(--crm-space-6);
     width: min(460px, 100%);
   }
   @media (max-width: 1100px) {
@@ -329,11 +329,11 @@
   @media (max-width: 700px) {
     .profile {
       display: block;
-      padding: 12px;
+      padding: var(--crm-space-3);
     }
     .profile > aside,
     .profile > main {
-      margin-bottom: 12px;
+      margin-bottom: var(--crm-space-3);
       overflow: visible;
     }
   }

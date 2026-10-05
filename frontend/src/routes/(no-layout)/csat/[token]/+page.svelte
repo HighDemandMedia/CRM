@@ -191,7 +191,7 @@
     background: var(--v2-card);
     border: 1px solid var(--v2-line);
     border-radius: var(--v2-radius);
-    padding: 28px 28px 24px;
+    padding: 28px 28px var(--crm-space-6);
   }
   .card.center {
     text-align: center;
@@ -204,13 +204,13 @@
     color: var(--v2-moss) !important;
   }
   .org {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     font-weight: 600;
     color: var(--v2-slate);
   }
   h1 {
     margin: 5px 0 0;
-    font-size: 21.9px;
+    font-size: var(--crm-text-xl);
     font-weight: 640;
     line-height: 1.2;
     letter-spacing: -0.01em;
@@ -220,13 +220,13 @@
     margin-top: 10px;
   }
   .center p {
-    margin: 8px 0 0;
-    font-size: 13px;
+    margin: var(--crm-space-2) 0 0;
+    font-size: var(--crm-text-sm);
     line-height: 1.55;
   }
   .ctx {
     margin: 7px 0 0;
-    font-size: 12.5px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-slate);
     line-height: 1.5;
   }
@@ -235,11 +235,11 @@
   }
 
   .prior {
-    margin-top: 16px;
-    padding: 9px 12px;
+    margin-top: var(--crm-space-4);
+    padding: 9px var(--crm-space-3);
     border: 1px solid var(--v2-line);
-    border-radius: 6px;
-    font-size: 12.5px;
+    border-radius: var(--crm-radius-sm);
+    font-size: var(--crm-text-sm);
     color: var(--v2-slate);
     line-height: 1.5;
   }
@@ -250,8 +250,8 @@
   .stars {
     display: flex;
     justify-content: space-between;
-    gap: 4px;
-    margin: 22px 0 0;
+    gap: var(--crm-space-1);
+    margin: var(--crm-space-6) 0 0;
   }
   .star {
     flex: 1;
@@ -260,7 +260,7 @@
     padding: 6px 0;
     background: none;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
     cursor: pointer;
     /* Not `--v2-line`. At border-grey these read as a disabled control; the one
        thing this page must communicate is that the stars are the button. */
@@ -276,7 +276,7 @@
     transform: translateY(-1px);
   }
   .star.on {
-    color: var(--v2-ember);
+    color: var(--crm-link);
     opacity: 1;
   }
   .star.on :global(svg) {
@@ -289,36 +289,36 @@
   .scale {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-    padding: 0 4px;
+    padding: 0 var(--crm-space-1);
   }
 
   .comment {
     display: block;
-    margin-top: 20px;
+    margin-top: var(--crm-space-5);
   }
   .comment span {
     display: block;
-    font-size: 12.5px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-slate);
     margin-bottom: 5px;
   }
   .comment i {
     font-style: normal;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     opacity: 0.8;
   }
   .comment textarea {
     width: 100%;
     padding: 9px 11px;
     font: inherit;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     line-height: 1.5;
     color: var(--v2-ink);
     background: var(--v2-card);
     border: 1px solid var(--v2-line);
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
     resize: vertical;
   }
   .comment textarea:focus {
@@ -326,13 +326,13 @@
     outline-offset: -1px;
   }
   .err {
-    margin-top: 12px;
-    padding: 8px 11px;
+    margin-top: var(--crm-space-3);
+    padding: var(--crm-space-2) 11px;
     border: 1px solid var(--v2-ember-line);
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
     background: var(--v2-ember-soft);
     color: var(--v2-rust);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     line-height: 1.5;
   }
   .submit {
@@ -341,8 +341,8 @@
     margin-top: 14px;
   }
   .fine {
-    margin: 16px 0 0;
-    font-size: 11px;
+    margin: var(--crm-space-4) 0 0;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     line-height: 1.5;
   }

@@ -108,20 +108,20 @@
           <div class="v2-card" style="padding:15px 16px;opacity:{blocked ? 0.62 : 1}">
             <div class="v2-approval">
               <div style="flex:1;min-width:0">
-                <div class="v2-sub" style="font-size:11.5px;margin-bottom:3px">
+                <div class="v2-sub" style="font-size:var(--crm-text-xs);margin-bottom:3px">
                   {#if a.case.account}{a.case.account.name} ·
                   {/if}requested by {a.requested_by} · waiting
                   <span class="v2-num">{shortAge(a.created_at)}</span>
                 </div>
                 <a
                   href={resolve(`/tickets/${a.case.id}`)}
-                  style="color:inherit;font-weight:600;font-size:14px;text-decoration:none"
+                  style="color:inherit;font-weight:600;font-size:var(--crm-text-sm);text-decoration:none"
                 >
                   {a.case.name}
                 </a>
                 <div style="display:flex;gap:6px;align-items:center;margin-top:7px;flex-wrap:wrap">
                   <Pill tone={PRIORITY_TONE[a.case.priority]}>{a.case.priority}</Pill>
-                  <span class="v2-sub" style="font-size:11.5px">{a.rule.name}</span>
+                  <span class="v2-sub" style="font-size:var(--crm-text-xs)">{a.rule.name}</span>
                 </div>
               </div>
 
@@ -183,7 +183,7 @@
                 style="display:flex;gap:9px;align-items:center;margin-top:12px;padding-top:11px;border-top:1px solid var(--v2-line-soft)"
               >
                 <TriangleAlert size={15} style="color:var(--v2-clay);flex:none" />
-                <span class="v2-sub" style="font-size:12px">
+                <span class="v2-sub" style="font-size:var(--crm-text-xs)">
                   You raised this request, so you cannot decide it yourself. Another approver must.
                   Withdraw it if it is no longer needed.
                 </span>
@@ -204,11 +204,11 @@
             <div style="flex:1;min-width:0">
               <a
                 href={resolve(`/tickets/${a.case.id}`)}
-                style="color:inherit;font-size:13px;font-weight:550;text-decoration:none"
+                style="color:inherit;font-size:var(--crm-text-sm);font-weight:550;text-decoration:none"
               >
                 {a.case.name}
               </a>
-              <div class="v2-sub" style="font-size:11.5px;margin-top:2px">
+              <div class="v2-sub" style="font-size:var(--crm-text-xs);margin-top:2px">
                 {a.state === 'cancelled'
                   ? `Withdrawn by ${a.requested_by}`
                   : `${APPROVAL_STATE_LABEL[a.state]} by ${a.approver} · ${relativeDays(a.decided_at)}`}
@@ -216,11 +216,17 @@
               <!-- A rejection always carries a reason: the endpoint returns
                    400 without one, so the column is never empty. -->
               {#if a.reason}
-                <div class="v2-sub" style="font-size:12px;margin-top:5px;white-space:normal">
+                <div
+                  class="v2-sub"
+                  style="font-size:var(--crm-text-xs);margin-top:5px;white-space:normal"
+                >
                   “{a.reason}”
                 </div>
               {:else if a.note}
-                <div class="v2-sub" style="font-size:12px;margin-top:5px;white-space:normal">
+                <div
+                  class="v2-sub"
+                  style="font-size:var(--crm-text-xs);margin-top:5px;white-space:normal"
+                >
                   “{a.note}”
                 </div>
               {/if}
@@ -237,7 +243,7 @@
         <div class="v2-setting">
           <div class="v2-setting-body">
             <b>{r.name}</b>
-            <span class="v2-sub" style="font-size:11.5px">
+            <span class="v2-sub" style="font-size:var(--crm-text-xs)">
               <!-- What the rule matches, in the order a person would say it.
                    A rule with no filters matches every close, which is worth
                    reading as a sentence rather than as three empty columns. -->
@@ -254,7 +260,9 @@
             </span>
           </div>
           {#if r.pending_count}
-            <span class="v2-sub v2-num" style="font-size:12px">{r.pending_count} waiting</span>
+            <span class="v2-sub v2-num" style="font-size:var(--crm-text-xs)"
+              >{r.pending_count} waiting</span
+            >
           {/if}
           <Pill tone={r.is_active ? 'moss' : 'slate'}>{r.is_active ? 'Active' : 'Off'}</Pill>
           <ChevronRight size={15} style="color:var(--v2-slate);flex:none" />
@@ -266,7 +274,7 @@
          Profile.role, so a rule set to MANAGER currently matches nobody. Said
          here rather than left for someone to discover via a stuck queue. -->
     {#if rules.some((r) => r.is_active && r.approver_role === 'MANAGER' && !r.approvers.length)}
-      <p class="v2-sub" style="font-size:12px;margin-top:12px">
+      <p class="v2-sub" style="font-size:var(--crm-text-xs);margin-top:12px">
         One active rule is cleared by managers, but this org has only admins and members. Nobody can
         clear it. Name approvers on the rule, or set it to admin.
       </p>
@@ -277,7 +285,7 @@
 <style>
   .v2-approval {
     display: flex;
-    gap: 12px;
+    gap: var(--crm-space-3);
     align-items: flex-start;
   }
   .v2-approval-actions {
@@ -296,10 +304,10 @@
   }
   .v2-reject-input {
     font: inherit;
-    font-size: 12.5px;
+    font-size: var(--crm-text-sm);
     padding: 5px 9px;
     border: 1px solid var(--v2-line);
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
     background: var(--v2-bg);
     color: inherit;
     min-width: 160px;
@@ -307,13 +315,13 @@
   .v2-approval-error {
     padding: 11px 14px;
     border: 1px solid var(--v2-rust);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
     background: color-mix(in srgb, var(--v2-rust) 8%, transparent);
     color: var(--v2-rust);
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .v2-approval-reason {
-    font-size: 11.5px;
+    font-size: var(--crm-text-xs);
     max-width: 230px;
     text-align: right;
   }
@@ -327,7 +335,7 @@
     }
     .v2-approval-actions {
       width: 100%;
-      margin-top: 12px;
+      margin-top: var(--crm-space-3);
       justify-content: flex-end;
     }
     /* flex:1 so the reason fills the row and reads from the left margin.

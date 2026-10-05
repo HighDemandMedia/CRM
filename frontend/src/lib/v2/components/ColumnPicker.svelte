@@ -1,7 +1,8 @@
 <script>
   import { tick } from 'svelte';
-  /** @type {{fields: any[], selected: string[], onToggle: (key: string) => void}} */
-  let { fields, selected, onToggle } = $props();
+  import { X } from '@lucide/svelte';
+  /** @type {{fields: any[], selected: string[], onToggle: (key: string) => void, onShowAll?: () => void, onReset?: () => void}} */
+  let { fields, selected, onToggle, onShowAll, onReset } = $props();
   let open = $state(false);
   let search = $state('');
   let root;
@@ -29,6 +30,16 @@
   >
   {#if open}
     <div class="dropdown" role="group" aria-label="Visible columns">
+      <div class="picker-heading">
+        <strong>Columns</strong><button
+          type="button"
+          aria-label="Close columns"
+          onclick={() => {
+            open = false;
+            trigger?.focus();
+          }}><X size={16} /></button
+        >
+      </div>
       <input
         class="v2-input"
         type="search"
@@ -41,6 +52,11 @@
           if (event.key === 'Enter') event.preventDefault();
         }}
       />
+      <div class="picker-actions">
+        <span aria-live="polite">{selected.length} of {fields.length}</span>
+        {#if onShowAll}<button type="button" onclick={onShowAll}>Show all</button>{/if}
+        {#if onReset}<button type="button" onclick={onReset}>Reset</button>{/if}
+      </div>
       <div class="options">
         {#each matches as [key, label] (key)}
           <label
@@ -80,9 +96,9 @@
     width: min(260px, calc(100vw - 32px));
     padding: 10px;
     border: 1px solid var(--v2-line);
-    border-radius: 10px;
+    border-radius: var(--crm-radius-md);
     background: var(--v2-bg, white);
-    box-shadow: 0 8px 24px #0002;
+    box-shadow: var(--crm-shadow-lg);
   }
   .dropdown > input {
     width: 100%;
@@ -97,21 +113,64 @@
     display: flex;
     align-items: center;
     gap: 9px;
-    padding: 8px;
-    border-radius: 5px;
-    font-size: 13px;
+    min-height: 2.75rem;
+    padding: var(--crm-space-2);
+    border-radius: var(--crm-radius-sm);
+    font-size: var(--crm-text-sm);
     cursor: pointer;
   }
   label:hover {
-    background: #f3f4f6;
+    background: var(--crm-surface-secondary);
   }
   label input {
     margin: 0;
-    accent-color: var(--v2-accent, #2563eb);
+    accent-color: var(--v2-accent, var(--crm-info));
   }
   p {
-    padding: 8px;
-    font-size: 13px;
+    padding: var(--crm-space-2);
+    font-size: var(--crm-text-sm);
     color: var(--v2-muted);
+  }
+  .picker-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--crm-text-sm);
+  }
+  .picker-heading button {
+    display: grid;
+    place-items: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+  .picker-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: var(--crm-text-xs);
+  }
+  .picker-actions span {
+    margin-right: auto;
+    color: var(--v2-muted);
+  }
+  .picker-actions button {
+    min-height: 2.75rem;
+    padding: 0.375rem;
+    text-decoration: underline;
+  }
+  @media (max-width: 700px) {
+    .dropdown {
+      position: fixed;
+      top: auto;
+      bottom: 1rem;
+      left: 1rem;
+      right: 1rem;
+      width: auto;
+      max-height: calc(100dvh - 2rem);
+    }
+    .options {
+      max-height: 50dvh;
+    }
   }
 </style>

@@ -135,7 +135,7 @@
     display: flex;
     align-items: flex-start;
     gap: 6px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .record-id summary {
     cursor: pointer;
@@ -160,7 +160,7 @@
     cursor: pointer;
   }
   .copy-status {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .edit-property {
@@ -169,21 +169,21 @@
     cursor: pointer;
     color: var(--v2-slate);
     float: right;
-    padding: 0 4px;
+    padding: 0 var(--crm-space-1);
   }
   dl {
     display: grid;
     gap: 19px;
-    margin: 22px 0 0;
+    margin: var(--crm-space-6) 0 0;
   }
   dt {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin-bottom: 6px;
   }
   dd {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     line-height: 1.5;
     overflow-wrap: anywhere;
     white-space: pre-wrap;
@@ -191,10 +191,10 @@
   .stage-value {
     display: inline-block;
     padding: 3px 9px;
-    border-radius: 5px;
-    background: #eff6ff;
-    color: #1d4ed8;
-    font-size: 12px;
+    border-radius: var(--crm-radius-sm);
+    background: var(--crm-info-bg);
+    color: var(--crm-info);
+    font-size: var(--crm-text-xs);
   }
   .tags {
     display: flex;

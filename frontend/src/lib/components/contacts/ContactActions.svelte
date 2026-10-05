@@ -40,8 +40,8 @@
 
 <style>
   :global(.compact-contact-actions) {
-    padding: 4px 8px;
-    font-size: 12px;
+    padding: var(--crm-space-1) var(--crm-space-2);
+    font-size: var(--crm-text-xs);
     min-height: 30px;
   }
 </style>

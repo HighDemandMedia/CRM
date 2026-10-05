@@ -158,51 +158,51 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--crm-space-3);
     margin-bottom: 18px;
   }
   h1 {
     margin: 0;
-    font-size: 21px;
+    font-size: var(--crm-text-xl);
     font-weight: 600;
   }
   button {
     min-height: 44px;
     padding: 0 14px;
-    font-size: 14px;
-    border: 1px solid var(--v2-rule, #d1d5db);
-    border-radius: 8px;
+    font-size: var(--crm-text-sm);
+    border: 1px solid var(--v2-rule, var(--crm-control-border));
+    border-radius: var(--crm-radius-md);
     background: none;
     cursor: pointer;
   }
   .actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   .btn {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
     padding: 0 14px;
-    font-size: 14px;
-    border: 1px solid var(--v2-rule, #d1d5db);
-    border-radius: 8px;
+    font-size: var(--crm-text-sm);
+    border: 1px solid var(--v2-rule, var(--crm-control-border));
+    border-radius: var(--crm-radius-md);
     text-decoration: none;
     color: inherit;
   }
   .deflect {
     margin-top: 14px;
-    padding: 12px 14px;
-    border: 1px solid var(--v2-rule, #e5e7eb);
-    border-radius: 10px;
-    background: var(--v2-rule, #f9fafb);
+    padding: var(--crm-space-3) 14px;
+    border: 1px solid var(--v2-rule, var(--crm-border));
+    border-radius: var(--crm-radius-md);
+    background: var(--v2-rule, var(--crm-canvas));
   }
   .deflect-head {
-    margin: 0 0 8px;
-    font-size: 12.5px;
+    margin: 0 0 var(--crm-space-2);
+    font-size: var(--crm-text-sm);
     font-weight: 500;
-    color: var(--v2-slate, #6b7280);
+    color: var(--v2-slate, var(--crm-text-muted));
   }
   .deflect ul {
     list-style: none;
@@ -215,22 +215,22 @@
     display: block;
     /* Padding rather than min-height: these stack, and 44px of dead space per
        row pushes the Send button off a 390px screen. */
-    padding: 10px 12px;
-    border-radius: 8px;
-    background: var(--v2-paper, #fff);
+    padding: 10px var(--crm-space-3);
+    border-radius: var(--crm-radius-md);
+    background: var(--v2-paper, var(--crm-surface));
     text-decoration: none;
     color: inherit;
   }
   .deflect-title {
     display: block;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 500;
   }
   .deflect-snippet {
     margin-top: 2px;
-    font-size: 12.5px;
+    font-size: var(--crm-text-sm);
     line-height: 1.45;
-    color: var(--v2-slate, #6b7280);
+    color: var(--v2-slate, var(--crm-text-muted));
     /* Snippets run to 200 characters; two lines is the most a phone can give
        them without burying the form. */
     display: -webkit-box;
@@ -243,19 +243,19 @@
     width: 100%;
     margin-top: 14px;
     border: 0;
-    background: var(--v2-ink, #111827);
-    color: #fff;
+    background: var(--v2-ink, var(--crm-text));
+    color: var(--crm-surface);
   }
   .compose {
-    border: 1px solid var(--v2-rule, #e5e7eb);
-    border-radius: 10px;
-    padding: 18px 16px;
-    margin-bottom: 20px;
+    border: 1px solid var(--v2-rule, var(--crm-border));
+    border-radius: var(--crm-radius-md);
+    padding: 18px var(--crm-space-4);
+    margin-bottom: var(--crm-space-5);
   }
   .compose label {
     display: block;
-    margin: 12px 0 6px;
-    font-size: 13px;
+    margin: var(--crm-space-3) 0 6px;
+    font-size: var(--crm-text-sm);
     font-weight: 500;
   }
   .compose label:first-child {
@@ -267,15 +267,15 @@
     width: 100%;
     box-sizing: border-box;
     /* 16px stops iOS Safari zooming the viewport on focus. */
-    font-size: 16px;
+    font-size: var(--crm-text-base);
     padding: 11px;
-    border: 1px solid var(--v2-rule, #d1d5db);
-    border-radius: 8px;
+    border: 1px solid var(--v2-rule, var(--crm-control-border));
+    border-radius: var(--crm-radius-md);
   }
   .filters {
     display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: var(--crm-space-2);
+    margin-bottom: var(--crm-space-4);
     /* Four short filters fit at 390px; scrolling is the fallback, not the plan. */
     overflow-x: auto;
   }
@@ -285,18 +285,18 @@
     display: inline-flex;
     align-items: center;
     min-height: 44px;
-    padding: 0 16px;
-    border-radius: 999px;
-    border: 1px solid var(--v2-rule, #e5e7eb);
-    font-size: 13px;
+    padding: 0 var(--crm-space-4);
+    border-radius: var(--crm-radius-full);
+    border: 1px solid var(--v2-rule, var(--crm-border));
+    font-size: var(--crm-text-sm);
     text-decoration: none;
     color: inherit;
     white-space: nowrap;
   }
   .filters a.on {
-    background: var(--v2-ink, #111827);
-    color: #fff;
-    border-color: var(--v2-ink, #111827);
+    background: var(--v2-ink, var(--crm-text));
+    color: var(--crm-surface);
+    border-color: var(--v2-ink, var(--crm-text));
   }
   .list {
     list-style: none;
@@ -307,39 +307,39 @@
   }
   .list a {
     display: block;
-    padding: 14px 16px;
-    border: 1px solid var(--v2-rule, #e5e7eb);
-    border-radius: 10px;
+    padding: 14px var(--crm-space-4);
+    border: 1px solid var(--v2-rule, var(--crm-border));
+    border-radius: var(--crm-radius-md);
     text-decoration: none;
     color: inherit;
   }
   .name {
     display: block;
     font-weight: 500;
-    margin-bottom: 8px;
+    margin-bottom: var(--crm-space-2);
   }
   .meta {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 12.5px;
-    color: var(--v2-slate, #6b7280);
+    font-size: var(--crm-text-sm);
+    color: var(--v2-slate, var(--crm-text-muted));
   }
   .tag {
     padding: 2px 9px;
-    border-radius: 999px;
-    background: var(--v2-rule, #f3f4f6);
+    border-radius: var(--crm-radius-full);
+    background: var(--v2-rule, var(--crm-surface-secondary));
   }
   .tag.open {
-    background: var(--v2-moss-bg, #dcfce7);
+    background: var(--v2-moss-bg, var(--crm-success-bg));
   }
   .empty {
-    color: var(--v2-slate, #6b7280);
-    font-size: 14px;
+    color: var(--v2-slate, var(--crm-text-muted));
+    font-size: var(--crm-text-sm);
   }
   .err {
     margin: 10px 0 0;
-    color: var(--v2-rust, #b91c1c);
-    font-size: 13px;
+    color: var(--v2-rust, var(--crm-danger));
+    font-size: var(--crm-text-sm);
   }
 </style>

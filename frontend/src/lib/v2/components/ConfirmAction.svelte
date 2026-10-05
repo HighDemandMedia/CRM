@@ -46,7 +46,7 @@
       <input type="hidden" {name} {value} />
     {/each}
     {#if explain}
-      <span class="v2-sub" style="font-size:11.5px">{explain}</span>
+      <span class="v2-sub" style="font-size:var(--crm-text-xs)">{explain}</span>
     {/if}
     <button class="v2-btn v2-btn-sm" type="submit" disabled={busy}>{confirmLabel}</button>
     <button class="v2-btn v2-btn-sm" type="button" disabled={busy} onclick={() => (armed = false)}>

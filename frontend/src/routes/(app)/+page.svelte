@@ -167,11 +167,11 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
-    padding: 10px 22px 24px;
+    padding: 10px var(--crm-space-6) var(--crm-space-6);
   }
   .day-counts {
     display: flex;
-    gap: 12px;
+    gap: var(--crm-space-3);
     margin-bottom: 18px;
     flex-wrap: wrap;
   }
@@ -181,15 +181,15 @@
     gap: 10px;
     background: var(--v2-card);
     padding: 14px 18px;
-    border-radius: 10px;
+    border-radius: var(--crm-radius-md);
     color: var(--v2-slate);
   }
   .day-counts strong {
-    font-size: 22px;
+    font-size: var(--crm-text-xl);
     color: var(--v2-ink);
   }
   .day-counts span {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .day-layout {
     display: grid;
@@ -199,7 +199,7 @@
   }
   .panel {
     background: var(--v2-card);
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
     padding: 18px;
     min-width: 0;
   }
@@ -212,63 +212,63 @@
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: var(--crm-space-3);
   }
   h2 {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 650;
     margin: 0;
   }
   h2 span {
     font-weight: 400;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin-left: 6px;
   }
   header a {
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 11px;
+    gap: var(--crm-space-1);
+    font-size: var(--crm-text-xs);
     white-space: nowrap;
     color: var(--v2-slate);
     text-decoration: none;
   }
   .timezone {
-    margin: -4px 0 16px;
-    font-size: 11px;
+    margin: -4px 0 var(--crm-space-4);
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .event {
     display: flex;
     text-align: left;
-    gap: 16px;
+    gap: var(--crm-space-4);
     width: 100%;
     border: 0;
-    border-left: 3px solid #9c91b0;
+    border-left: 3px solid var(--crm-primary);
     background: var(--v2-paper);
-    border-radius: 7px;
-    padding: 14px 12px;
-    margin: 8px 0;
+    border-radius: var(--crm-radius-md);
+    padding: 14px var(--crm-space-3);
+    margin: var(--crm-space-2) 0;
     cursor: pointer;
     color: var(--v2-ink);
   }
   .event.company {
-    border-left-color: #7b958b;
+    border-left-color: var(--crm-success);
   }
   .event-time {
     flex-shrink: 0;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     min-width: 72px;
   }
   strong {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
     overflow-wrap: anywhere;
   }
   small {
     display: block;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin-top: 5px;
   }
@@ -276,7 +276,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 0;
+    padding: var(--crm-space-3) 0;
     border-bottom: 1px solid var(--v2-line-soft);
   }
   .work-row:last-child {
@@ -297,7 +297,7 @@
   }
   .due {
     margin-left: auto;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     flex-shrink: 0;
     color: var(--v2-slate);
   }
@@ -319,38 +319,38 @@
     cursor: wait;
   }
   .empty {
-    padding: 36px 12px;
+    padding: 36px var(--crm-space-3);
     text-align: center;
     color: var(--v2-slate);
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .empty :global(svg) {
     margin: auto;
   }
   .empty a,
   .more {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-ink);
   }
   .empty-copy {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-    margin: 20px 0 6px;
+    margin: var(--crm-space-5) 0 6px;
   }
   .error {
     color: var(--v2-rust);
-    padding: 0 22px;
+    padding: 0 var(--crm-space-6);
   }
   .my-day {
     color: var(--v2-slate);
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   @media (max-width: 1050px) {
     .day-layout {
       grid-template-columns: 1fr;
     }
     .today-scroll {
-      padding: 10px 12px 20px;
+      padding: 10px var(--crm-space-3) var(--crm-space-5);
     }
   }
 </style>

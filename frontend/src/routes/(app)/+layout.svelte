@@ -13,7 +13,7 @@
   import PreferencesNav from '$lib/v2/components/PreferencesNav.svelte';
   import Sidebar from '$lib/v2/components/Sidebar.svelte';
   import CommandPalette from '$lib/v2/components/CommandPalette.svelte';
-  import { Search, Sun, Columns3, LifeBuoy, Receipt, Plus, Menu } from '@lucide/svelte';
+  import { Search, Sun, Columns3, LifeBuoy, CalendarDays, Plus, Menu } from '@lucide/svelte';
 
   /** @type {{ data: { accountUser: { name?: string, email?: string }, accountId: string, counts: Record<string, number> | Promise<Record<string, number>>, org: { name: string, terminology?: Record<string, string> | null }, role: string, isSuperAdmin?: boolean }, children: import('svelte').Snippet }} */
   let { data, children } = $props();
@@ -62,7 +62,7 @@
     { href: '/', label: 'Today', icon: Sun, exact: true },
     { href: '/pipeline', label: 'Pipeline', icon: Columns3 },
     { href: '/tickets', label: 'Tickets', icon: LifeBuoy },
-    { href: '/invoices', label: 'Invoices', icon: Receipt }
+    { href: '/calendar', label: 'Calendar', icon: CalendarDays }
   ];
 
   const isActive = (href, exact) =>
@@ -258,7 +258,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid var(--v2-line);
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
     background: var(--v2-bg, white);
     color: var(--v2-ink);
     cursor: pointer;

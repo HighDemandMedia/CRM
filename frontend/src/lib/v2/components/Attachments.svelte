@@ -169,7 +169,7 @@
   .attachment-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   .attachment-row .related-item {
     flex: 1;
@@ -179,7 +179,7 @@
     flex-shrink: 0;
   }
   .delete-file:hover {
-    color: var(--v2-danger, #b42318);
+    color: var(--v2-danger, var(--crm-danger));
   }
   .delete-dialog {
     position: fixed;
@@ -188,16 +188,16 @@
     width: min(440px, calc(100vw - 32px));
     max-height: calc(100dvh - 32px);
     overflow-y: auto;
-    padding: 24px;
-    border: 1px solid var(--v2-border, #ddd);
-    border-radius: 12px;
+    padding: var(--crm-space-6);
+    border: 1px solid var(--v2-border, var(--crm-border));
+    border-radius: var(--crm-radius-lg);
   }
   .delete-dialog::backdrop {
-    background: #0006;
+    background: var(--crm-overlay);
   }
   .delete-dialog h2 {
-    margin: 0 0 12px;
-    font-size: 20px;
+    margin: 0 0 var(--crm-space-3);
+    font-size: var(--crm-text-lg);
   }
   .delete-dialog p {
     overflow-wrap: anywhere;
@@ -206,29 +206,29 @@
   .dialog-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 24px;
+    gap: var(--crm-space-2);
+    margin-top: var(--crm-space-6);
   }
   .danger {
-    background: #b42318;
-    color: white;
-    border-color: #b42318;
+    background: var(--crm-danger-bg);
+    color: var(--crm-danger);
+    border-color: var(--crm-danger);
   }
   form {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--crm-space-2);
     margin: 0;
   }
   .attachment-section > .v2-sub {
     margin: 6px 0 0;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .related-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
     padding: 6px 0;
   }
   .related-item span {

@@ -66,24 +66,24 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
-    margin-top: 8px;
+    gap: var(--crm-space-1);
+    margin-top: var(--crm-space-2);
   }
   .compact-tags :global(.tag-badge) {
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     padding: 2px 6px;
   }
 
   .compact-heading {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: var(--crm-space-2);
     min-width: 0;
   }
   .compact-name {
     flex: 1;
     min-width: 0;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 650;
     color: var(--v2-ink);
     line-height: 1.5;
@@ -100,16 +100,16 @@
   .compact-value {
     flex: 0 1 auto;
     max-width: 48%;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     font-weight: 600;
     color: var(--v2-ink);
     font-variant-numeric: tabular-nums;
   }
   .compact-email {
     display: block;
-    margin-top: 4px;
-    color: #706779;
-    font-size: 11px;
+    margin-top: var(--crm-space-1);
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-xs);
     line-height: 1.5;
     text-decoration: underline;
     text-underline-offset: 2px;
@@ -117,8 +117,8 @@
   .compact-phone {
     display: block;
     margin-top: 3px;
-    color: #625a69;
-    font-size: 12px;
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-xs);
     line-height: 1.5;
     text-decoration: none;
   }
@@ -127,26 +127,26 @@
     text-decoration: underline;
   }
   a:focus-visible {
-    outline: 2px solid #81778c;
+    outline: 2px solid var(--crm-focus);
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: var(--crm-radius-sm);
   }
   .compact-activity {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 4px 8px;
+    gap: var(--crm-space-1) var(--crm-space-2);
     margin-top: 9px;
-    color: #817889;
-    font-size: 10px;
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-xs);
     line-height: 1.5;
   }
   .compact-activity b {
     font-weight: 500;
   }
   .compact-age {
-    color: #76627f;
+    color: var(--crm-text-muted);
     margin-left: auto;
   }
 </style>

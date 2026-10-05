@@ -459,16 +459,16 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 8px;
+    margin-top: var(--crm-space-2);
   }
   .attendee-chip {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
+    gap: var(--crm-space-2);
+    padding: 6px var(--crm-space-2);
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
-    font-size: 12px;
+    border-radius: var(--crm-radius-md);
+    font-size: var(--crm-text-xs);
     max-width: 100%;
   }
   .attendee-chip > span {
@@ -479,13 +479,13 @@
   .attendee-result small {
     display: block;
     color: var(--v2-slate);
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
   }
   .attendee-chip button {
     border: 0;
     background: transparent;
     color: var(--v2-slate);
-    font-size: 18px;
+    font-size: var(--crm-text-lg);
     cursor: pointer;
   }
   .attendee-result:disabled {
@@ -496,13 +496,13 @@
   .create-deal-toggle {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   .create-deal-toggle input {
     width: 16px;
   }
   .deal-defaults {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin: 0;
   }
@@ -510,18 +510,18 @@
   dialog.overlap-confirm {
     width: min(430px, calc(100vw - 32px));
     height: fit-content;
-    padding: 24px;
-    border-radius: 14px;
-    box-shadow: 0 20px 60px #0003;
+    padding: var(--crm-space-6);
+    border-radius: var(--crm-radius-lg);
+    box-shadow: var(--crm-shadow-lg);
   }
   .overlap-confirm h2 {
     padding: 0;
     border: 0;
-    margin: 14px 0 8px;
-    font-size: 19px;
+    margin: 14px 0 var(--crm-space-2);
+    font-size: var(--crm-text-lg);
   }
   .overlap-confirm p {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     line-height: 1.6;
     color: var(--v2-slate);
     margin: 0;
@@ -532,16 +532,16 @@
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    background: #fee2e2;
-    color: #b91c1c;
-    font-size: 22px;
+    background: var(--crm-danger-bg);
+    color: var(--crm-danger);
+    font-size: var(--crm-text-xl);
     font-weight: 600;
   }
   .confirm-buttons {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    margin-top: 24px;
+    margin-top: var(--crm-space-6);
   }
 
   .attendee-search {
@@ -557,26 +557,26 @@
     overflow-y: auto;
     padding: 6px;
     border: 1px solid var(--v2-line);
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
     background: var(--v2-bg, white);
-    box-shadow: 0 6px 16px #0002;
+    box-shadow: var(--crm-shadow-lg);
   }
   .attendee-results h3 {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-    margin: 6px 8px;
+    margin: 6px var(--crm-space-2);
   }
   .attendee-results p {
-    margin: 8px;
+    margin: var(--crm-space-2);
   }
   .attendee-result {
     display: block;
     width: 100%;
-    padding: 8px;
+    padding: var(--crm-space-2);
     text-align: left;
     background: transparent;
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--crm-radius-sm);
     color: var(--v2-ink);
     cursor: pointer;
     font: inherit;
@@ -595,18 +595,18 @@
     overflow: hidden;
     padding: 0;
     border: 1px solid var(--v2-line);
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
     color: var(--v2-ink);
     background: var(--v2-bg, white);
   }
   dialog::backdrop {
-    background: #0005;
+    background: var(--crm-overlay);
   }
   h2 {
     margin: 0;
-    padding: 18px 24px;
+    padding: 18px var(--crm-space-6);
     border-bottom: 1px solid var(--v2-line);
-    font-size: 20px;
+    font-size: var(--crm-text-lg);
   }
   fieldset {
     border: 0;
@@ -614,7 +614,7 @@
     display: grid;
     gap: 14px;
     min-width: 0;
-    padding: 20px;
+    padding: var(--crm-space-5);
     overflow-y: auto;
     align-content: start;
     border-right: 1px solid var(--v2-line);
@@ -622,7 +622,7 @@
   label {
     display: grid;
     gap: 6px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   input,
   select,
@@ -633,13 +633,13 @@
   .times {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: var(--crm-space-3);
   }
   .actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    padding: 14px 20px;
+    gap: var(--crm-space-2);
+    padding: 14px var(--crm-space-5);
     border-top: 1px solid var(--v2-line);
   }
   form {
@@ -658,12 +658,12 @@
   .selection-summary {
     margin-right: auto;
     align-self: center;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .v2-error {
     margin: 0;
-    padding: 8px 20px;
+    padding: var(--crm-space-2) var(--crm-space-5);
   }
   @media (max-width: 760px) {
     .schedule-body {

@@ -7,6 +7,8 @@
   import '$lib/v2/styles/pipeline.css';
   import '$lib/v2/styles/list-view.css';
   import { pipelineTone } from '$lib/v2/pipeline-view.js';
+  import { listColumns, columnValue } from '$lib/v2/list-columns.js';
+  import { columnSelection } from '$lib/v2/column-selection.svelte.js';
   import ColumnPicker from '$lib/v2/components/ColumnPicker.svelte';
   import StageProgress from '$lib/v2/components/StageProgress.svelte';
   import { resolve } from '$app/paths';
@@ -23,7 +25,7 @@
   import TagBadge from '$lib/v2/components/TagBadge.svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { advancedContactFilters } from '$lib/v2/contact-filter-fields.js';
-  import { contactColumns as fields } from '$lib/v2/contact-columns.js';
+  import { contactColumns as legacyFields } from '$lib/v2/contact-columns.js';
   import { count, relativeDays, money } from '$lib/v2/format.js';
   import { Plus, List, Columns3 } from '@lucide/svelte';
 
@@ -194,8 +196,13 @@
       )
       .map((field) => field.key);
   });
-  const defaults = ['name', 'phone', 'email', 'source_label', 'stage_label', 'owner'];
-  let selected = $state([...defaults]);
+  const catalog = $derived(listColumns('Contact', page.data.propertyLayout?.Contact, legacyFields));
+  const fields = $derived(catalog.map((c) => [c.key, c.label]));
+  const selection = columnSelection(
+    () => catalog,
+    () => `${page.data.accountId}.${page.data.accountUser?.email}.Contact`
+  );
+  const selected = $derived(selection.selected);
   let ready = $state(false);
   /** @type {Record<string, number>} */
   let widths = $state({});
@@ -206,7 +213,6 @@
   );
   let totalWidth = $derived(selected.reduce((sum, key) => sum + (widths[key] ?? 160), 120));
   const widthKey = 'crm.contacts.widths.v1';
-  const storageKey = 'crm.contacts.columns.v1';
   onMount(() => {
     const timer = setInterval(
       () => {
@@ -214,15 +220,6 @@
       },
       24 * 60 * 60000
     );
-    try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
-      if (Array.isArray(saved)) {
-        const valid = [...new Set(saved.filter((key) => fields.some((field) => field[0] === key)))];
-        if (valid.length) selected = valid;
-      }
-    } catch {
-      /* Browser storage is optional. */
-    }
     try {
       const savedWidths = JSON.parse(localStorage.getItem(widthKey) ?? '{}');
       for (const [key] of fields) {
@@ -245,12 +242,7 @@
   });
   /** @param {string[]} next */
   function saveColumns(next) {
-    selected = next;
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(next));
-    } catch {
-      /* Keep session choice. */
-    }
+    selection.set(next);
   }
   /** @param {string} key */
   function toggleColumn(key) {
@@ -457,8 +449,9 @@
         ? `${contact.owner}${contact.owner_count > 1 ? ` +${contact.owner_count - 1}` : ''}`
         : 'Unassigned';
     if (key === 'is_active' || key === 'do_not_call') return contact[key] ? 'Yes' : 'No';
+    if (key.startsWith('custom_fields.')) return columnValue(contact, key, catalog);
     if (key.endsWith('_at')) return contact[key] ? relativeDays(contact[key]) : '—';
-    return contact[key] || '—';
+    return columnValue(contact, key, catalog);
   }
 </script>
 
@@ -635,7 +628,13 @@
       >
     </nav>
     {#if data.view === 'list'}
-      <ColumnPicker {fields} {selected} onToggle={toggleColumn} />
+      <ColumnPicker
+        {fields}
+        {selected}
+        onToggle={toggleColumn}
+        onShowAll={selection.showAll}
+        onReset={selection.reset}
+      />
     {/if}
   </div>
 </form>
@@ -757,8 +756,12 @@
                   class="column-heading"
                   class:dragging={dragging === key}
                   draggable="true"
-                  title="Click to sort; drag to reorder. Alt + arrow keys also move the column."
-                  onclick={() => sortBy(key)}
+                  title={legacyFields.some(([id]) => id === key)
+                    ? 'Click to sort; drag to reorder. Alt + arrow keys also move the column.'
+                    : 'Drag to reorder. Alt + arrow keys also move the column.'}
+                  onclick={() => {
+                    if (legacyFields.some(([id]) => id === key)) sortBy(key);
+                  }}
                   ondragstart={(event) => startColumnDrag(event, key)}
                   ondragend={finishDrag}
                   onkeydown={(event) => {
@@ -859,20 +862,20 @@
     z-index: 20;
     top: calc(100% + 8px);
     right: 0;
-    padding: 16px;
+    padding: var(--crm-space-4);
     width: min(430px, calc(100vw - 48px));
     max-height: 65vh;
     overflow-y: auto;
     background: var(--v2-card, white);
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px #0002;
+    border-radius: var(--crm-radius-md);
+    box-shadow: var(--crm-shadow-lg);
     display: grid;
-    gap: 12px;
+    gap: var(--crm-space-3);
   }
   .advanced-row {
     display: flex;
-    gap: 8px;
+    gap: var(--crm-space-2);
     align-items: end;
   }
   .advanced-row > label,
@@ -896,24 +899,24 @@
     display: flex;
     align-items: end;
     flex-wrap: wrap;
-    gap: 12px;
-    padding: 16px 24px;
+    gap: var(--crm-space-3);
+    padding: var(--crm-space-4) var(--crm-space-6);
   }
   .contact-filters label {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    font-size: 12px;
+    gap: var(--crm-space-1);
+    font-size: var(--crm-text-xs);
   }
   .contact-filters fieldset {
     display: flex;
-    gap: 8px;
-    padding: 8px;
+    gap: var(--crm-space-2);
+    padding: var(--crm-space-2);
     border: 1px solid var(--v2-line);
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
   }
   .contact-filters legend {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .contact-filters .v2-input {
     width: auto;
@@ -921,9 +924,9 @@
   }
 
   .stage-column.drop-target {
-    outline: 2px solid #2563eb;
+    outline: 2px solid var(--crm-info);
     outline-offset: -2px;
-    background: #eff6ff;
+    background: var(--crm-info-bg);
   }
   .contact-card[draggable='true'] {
     cursor: grab;
@@ -936,33 +939,33 @@
     cursor: progress;
   }
   .contact-grid .drag-source {
-    background: #eff6ff;
+    background: var(--crm-info-bg);
     opacity: 0.5;
   }
   .contact-grid .insert-before {
-    box-shadow: inset 3px 0 0 #2563eb;
+    box-shadow: inset 3px 0 0 var(--crm-info);
   }
   .contact-grid .insert-after {
-    box-shadow: inset -3px 0 0 #2563eb;
+    box-shadow: inset -3px 0 0 var(--crm-info);
   }
 
   .table-hint {
-    padding: 0 24px;
-    font-size: 12px;
+    padding: 0 var(--crm-space-6);
+    font-size: var(--crm-text-xs);
   }
   .contact-table-scroll {
     overflow: auto;
     max-width: 100%;
     min-width: 0;
-    margin: 0 24px 18px;
+    margin: 0 var(--crm-space-6) 18px;
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
   }
   .contact-grid {
     table-layout: fixed;
     border-collapse: collapse;
     background: var(--v2-card);
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
   }
   .contact-grid th,
   .contact-grid td {
@@ -977,7 +980,7 @@
   }
   .contact-grid th {
     position: relative;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
     color: var(--v2-slate);
   }
@@ -1034,13 +1037,13 @@
   .pagination {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
     flex-wrap: wrap;
   }
   .view-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
     margin-left: auto;
   }
   .view-toggle {
@@ -1059,23 +1062,23 @@
     text-overflow: ellipsis;
   }
   .pagination {
-    padding: 20px 24px;
+    padding: var(--crm-space-5) var(--crm-space-6);
   }
   .contact-board {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
+    gap: var(--crm-space-4);
     overflow-x: auto;
-    padding: 16px 24px 32px;
+    padding: var(--crm-space-4) var(--crm-space-6) var(--crm-space-8);
     min-height: 400px;
   }
   .stage-column {
     min-height: 300px;
     flex: 0 0 290px;
-    background: #f5f5f3;
-    border: 1px solid #dededb;
-    border-radius: 10px;
-    padding: 12px;
+    background: var(--crm-canvas);
+    border: 1px solid var(--crm-border);
+    border-radius: var(--crm-radius-md);
+    padding: var(--crm-space-3);
   }
   .stage-column header {
     display: flex;
@@ -1084,20 +1087,20 @@
     margin-bottom: 14px;
   }
   .stage-column h2 {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 650;
     margin: 0;
   }
   .contact-card {
-    background: white;
-    border: 1px solid #dededb;
-    border-radius: 8px;
+    background: var(--crm-surface);
+    border: 1px solid var(--crm-border);
+    border-radius: var(--crm-radius-md);
     padding: 14px;
-    margin-bottom: 12px;
+    margin-bottom: var(--crm-space-3);
   }
   footer {
     display: flex;
-    gap: 8px;
+    gap: var(--crm-space-2);
     align-items: center;
     flex-wrap: wrap;
   }

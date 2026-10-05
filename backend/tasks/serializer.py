@@ -2,6 +2,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from common.last_activity import ActivityListSerializer, LastActivitySerializerMixin
+from common.list_serializers import ContactLabelSerializer
 from common.pipeline_settings import PipelineMoveChoicesMixin, PipelineRulesMixin
 from common.rbac import VisibleCRMSerializerMixin
 from common.serializer import (
@@ -247,10 +248,10 @@ class _MinimalLeadField(serializers.RelatedField):
 class TaskListSerializer(
     VisibleCRMSerializerMixin, LastActivitySerializerMixin, serializers.ModelSerializer
 ):
-    """Slim payload for /api/tasks/ list pages. Drops the comment/attachment
-    bodies (sometimes hundreds of rows per task) and the contacts/teams M2Ms
-    that the list UI doesn't render. Use TaskSerializer for the detail view."""
+    """List properties with lightweight related labels, without detail bodies."""
 
+    contacts = ContactLabelSerializer(read_only=True, many=True)
+    created_by = UserSerializer(read_only=True)
     assigned_to = ProfileSerializer(read_only=True, many=True)
     tags = TagsSerializer(read_only=True, many=True)
     account = _MinimalAccountField(read_only=True)
@@ -275,6 +276,10 @@ class TaskListSerializer(
             "assigned_to",
             "tags",
             "created_at",
+            "created_by",
+            "description",
+            "custom_fields",
+            "contacts",
         )
 
 

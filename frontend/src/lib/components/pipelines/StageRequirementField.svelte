@@ -172,22 +172,22 @@
   .page-link {
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   .page-link input:first-child {
     grid-column: 1/-1;
   }
   .requirement-field {
     display: grid;
-    gap: 8px;
-    margin-bottom: 22px;
-    font-size: 13px;
+    gap: var(--crm-space-2);
+    margin-bottom: var(--crm-space-6);
+    font-size: var(--crm-text-sm);
   }
   label {
     font-weight: 500;
   }
   span {
-    color: #a77525;
+    color: var(--crm-warning);
   }
   .options {
     display: grid;
@@ -198,7 +198,7 @@
   .options label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   small {
     color: var(--v2-slate);

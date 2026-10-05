@@ -1,3 +1,6 @@
+vi.mock('$lib/api-helpers.js', () => ({
+  apiRequest: vi.fn().mockResolvedValue({ property_layout: {} })
+}));
 import { expect, it, vi } from 'vitest';
 vi.mock('./contacts.js', () => ({
   listContacts: vi.fn(),
@@ -33,4 +36,36 @@ it('exports every filtered page with selected columns in order', async () => {
   expect(query.get('created_at__gte')).toBe('2026-09-01');
   expect(query.get('sort')).toBe('name');
   expect(listContacts).toHaveBeenCalledTimes(2);
+});
+
+it('exports organization custom columns and ignores unknown keys', async () => {
+  const { apiRequest } = await import('$lib/api-helpers.js');
+  vi.mocked(apiRequest).mockResolvedValueOnce({
+    property_layout: {
+      Contact: {
+        system: [{ key: 'first_name', label: 'Name' }],
+        custom: [
+          {
+            key: 'segment',
+            label: 'Segment',
+            field_type: 'dropdown',
+            options: [{ value: 'vip', label: 'VIP' }]
+          }
+        ]
+      }
+    }
+  });
+  vi.mocked(listContacts).mockResolvedValueOnce(
+    /** @type {any} */ ({
+      results: [{ name: 'Ana', custom_fields: { segment: 'vip', private: 'not in catalog' } }],
+      totals: { count: 1 }
+    })
+  );
+  const csv = await exportContacts({
+    cookies: {},
+    url: new URL(
+      'http://localhost/contacts/export?columns=name,custom_fields.segment,custom_fields.private'
+    )
+  });
+  expect(csv).toBe('\uFEFF"Name","Segment"\r\n"Ana","VIP"\r\n');
 });

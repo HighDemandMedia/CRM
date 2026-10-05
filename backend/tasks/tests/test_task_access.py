@@ -42,6 +42,7 @@ from django.utils import timezone
 from accounts.models import Account
 from cases.models import Case
 from common.models import Attachments, Profile, User
+from contacts.models import Contact
 from leads.models import Lead
 from opportunity.models import Opportunity
 from tasks.models import Task
@@ -586,6 +587,27 @@ class TestTheListPayload:
         assert "contacts_list" not in body
         assert "totals" in body
 
+    def test_list_includes_selectable_properties_without_detail_bodies(
+        self, admin_client, admin_user, org_a
+    ):
+        contact = Contact.objects.create(org=org_a, first_name="Ana", last_name="Test")
+        task = _task(
+            org_a,
+            admin_user,
+            description="Call after lunch",
+            custom_fields={"segment": "VIP"},
+        )
+        task.contacts.add(contact)
+        response = admin_client.get("/api/tasks/?slim=true")
+        assert response.status_code == 200
+        row = next(row for row in response.json()["tasks"] if row["id"] == str(task.pk))
+        assert row["description"] == "Call after lunch"
+        assert row["custom_fields"] == {"segment": "VIP"}
+        assert row["created_by"]["email"] == admin_user.email
+        assert row["contacts"][0]["first_name"] == "Ana"
+        assert "task_comments" not in row
+        assert "task_attachment" not in row
+
     def test_a_member_is_only_offered_admins_to_assign_to(
         self, user_client, admin_user, admin_profile, other_profile, org_a
     ):
@@ -610,10 +632,14 @@ class TestTheListPayload:
         the query cost of serving the page and nothing else, which is the
         number worth pinning.
         """
+        # One shared contacts prefetch adds one query, independent of row count.
         for i in range(12):
-            _task(org_a, admin_user, title=f"Task {i}")
+            task = _task(org_a, admin_user, title=f"Task {i}")
+            task.contacts.add(
+                Contact.objects.create(org=org_a, first_name=f"Contact {i}")
+            )
         admin_client.get("/api/tasks/?limit=12&slim=true")
-        with django_assert_num_queries(13):
+        with django_assert_num_queries(14):
             admin_client.get("/api/tasks/?limit=12&slim=true")
 
     def test_twelve_rows_cost_the_same_as_two(
@@ -626,14 +652,20 @@ class TestTheListPayload:
         it, and it holds whatever the fixed number turns out to be.
         """
         for i in range(2):
-            _task(org_a, admin_user, title=f"Small {i}")
+            task = _task(org_a, admin_user, title=f"Small {i}")
+            task.contacts.add(
+                Contact.objects.create(org=org_a, first_name=f"Small contact {i}")
+            )
         admin_client.get("/api/tasks/?slim=true")
-        with django_assert_num_queries(13):
+        with django_assert_num_queries(14):
             admin_client.get("/api/tasks/?slim=true")
 
         for i in range(20):
-            _task(org_a, admin_user, title=f"Big {i}")
-        with django_assert_num_queries(13):
+            task = _task(org_a, admin_user, title=f"Big {i}")
+            task.contacts.add(
+                Contact.objects.create(org=org_a, first_name=f"Big contact {i}")
+            )
+        with django_assert_num_queries(14):
             admin_client.get("/api/tasks/?limit=25&slim=true")
 
 

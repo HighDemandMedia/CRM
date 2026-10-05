@@ -188,9 +188,9 @@
   .deal-details {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px 16px;
+    gap: var(--crm-space-2) var(--crm-space-4);
     margin-top: 6px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .deal-details small {
     margin: 0 0 3px;
@@ -201,7 +201,7 @@
     }
   }
   .association-summary {
-    margin: 0 0 12px;
+    margin: 0 0 var(--crm-space-3);
   }
   header {
     display: flex;
@@ -210,12 +210,12 @@
     margin-bottom: 6px;
   }
   h2 {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
     margin: 0;
   }
   h2 span {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     font-weight: 400;
     color: var(--v2-slate);
     margin-left: 5px;
@@ -223,21 +223,21 @@
   .add,
   .more {
     border: 1px solid var(--v2-line);
-    background: white;
-    border-radius: 6px;
+    background: var(--crm-surface);
+    border-radius: var(--crm-radius-sm);
     cursor: pointer;
     min-width: 28px;
     height: 28px;
-    font-size: 20px;
+    font-size: var(--crm-text-lg);
     color: var(--v2-ink);
   }
   .record {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
     background: var(--v2-paper);
     border: 1px solid transparent;
-    border-radius: 7px;
+    border-radius: var(--crm-radius-md);
     padding: 10px;
     margin-top: 6px;
   }
@@ -249,12 +249,12 @@
   }
   strong {
     display: block;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     overflow-wrap: anywhere;
   }
   small {
     display: block;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin-top: 5px;
   }
@@ -272,23 +272,23 @@
     top: 30px;
     z-index: 5;
     white-space: nowrap;
-    background: white;
+    background: var(--crm-surface);
     border: 1px solid var(--v2-line);
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
     padding: 10px;
-    color: #b42318;
-    box-shadow: 0 4px 12px #0002;
+    color: var(--crm-danger);
+    box-shadow: var(--crm-shadow-lg);
     cursor: pointer;
   }
   .empty,
   .error,
   .results p {
-    font-size: 12px;
-    margin: 8px 0;
+    font-size: var(--crm-text-xs);
+    margin: var(--crm-space-2) 0;
     color: var(--v2-slate);
   }
   .error {
-    color: #b42318;
+    color: var(--crm-danger);
   }
   .search-box {
     margin-bottom: 10px;
@@ -300,15 +300,15 @@
   .results button {
     display: flex;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--crm-space-2);
     width: 100%;
     text-align: left;
-    background: white;
+    background: var(--crm-surface);
     border: 0;
     border-bottom: 1px solid var(--v2-line);
     padding: 9px 5px;
     font: inherit;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     cursor: pointer;
   }
   .record:hover {

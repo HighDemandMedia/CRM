@@ -21,7 +21,7 @@
   .pipeline-total {
     font-variant-numeric: tabular-nums;
     font-weight: 600;
-    font-size: 11px;
-    color: #6c6174;
+    font-size: var(--crm-text-xs);
+    color: var(--crm-text-muted);
   }
 </style>

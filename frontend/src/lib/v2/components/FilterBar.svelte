@@ -284,9 +284,9 @@
   .v2-menu-item {
     display: block;
     padding: 6px 9px;
-    border-radius: 5px;
+    border-radius: var(--crm-radius-sm);
     color: inherit;
-    font-size: 12.5px;
+    font-size: var(--crm-text-sm);
     text-decoration: none;
   }
   .v2-menu-item:hover {
@@ -305,7 +305,7 @@
   .v2-filter-row {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--crm-space-1);
   }
   .v2-filter-dates {
     display: flex;

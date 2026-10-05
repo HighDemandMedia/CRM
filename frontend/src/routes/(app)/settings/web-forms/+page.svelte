@@ -75,6 +75,7 @@
 <PageHeader title="Web forms">
   {#snippet crumb()}<SettingsCrumb />{/snippet}
   {#snippet sub()}
+    <Pill>Beta</Pill>
     Turn website enquiries into contacts and notify your team.
   {/snippet}
   {#snippet actions()}
@@ -251,7 +252,7 @@
       </div>
 
       {#if data.truncated}
-        <p class="v2-sub" style="font-size:12px;margin:12px 0 0">
+        <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:12px 0 0">
           Showing the {data.forms.length} most recent of
           <span class="v2-num">{count(totals.count)}</span>. The rest are reachable through the API.
         </p>
@@ -259,8 +260,8 @@
     {/if}
 
     <div class="v2-card" style="margin-top:20px;padding:18px">
-      <b style="font-size:14px">How it works</b>
-      <p class="v2-sub" style="font-size:13px;margin:8px 0;line-height:1.7">
+      <b style="font-size:var(--crm-text-sm)">How it works</b>
+      <p class="v2-sub" style="font-size:var(--crm-text-sm);margin:8px 0;line-height:1.7">
         Choose your fields and who to notify → Connect the form to your website → Receive contacts
         and follow up.
       </p>

@@ -53,7 +53,7 @@
     {/snippet}
   </EmptyState>
 
-  <p class="v2-sub" style="text-align:center;font-size:11.5px">
+  <p class="v2-sub" style="text-align:center;font-size:var(--crm-text-xs)">
     <span class="v2-num">{status}</span>
     · {page.url.pathname}
   </p>

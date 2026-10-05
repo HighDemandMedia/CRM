@@ -64,9 +64,9 @@
 <style>
   .parent-picker {
     display: grid;
-    gap: 8px;
+    gap: var(--crm-space-2);
     margin-bottom: 18px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .chosen {
     display: flex;
@@ -74,12 +74,12 @@
     justify-content: space-between;
     background: var(--v2-paper);
     padding: 10px;
-    border-radius: 7px;
+    border-radius: var(--crm-radius-md);
   }
   small {
     display: block;
     color: var(--v2-slate);
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     margin-bottom: 3px;
   }
   button {
@@ -92,13 +92,13 @@
   .chosen button {
     width: 28px;
     height: 28px;
-    font-size: 20px;
+    font-size: var(--crm-text-lg);
   }
   .matches {
     max-height: 200px;
     overflow: auto;
     border: 1px solid var(--v2-line);
-    border-radius: 7px;
+    border-radius: var(--crm-radius-md);
   }
   .matches button {
     display: block;

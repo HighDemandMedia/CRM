@@ -1,3 +1,5 @@
+import { apiRequest } from '$lib/api-helpers.js';
+import { listColumns, columnValue } from '$lib/v2/list-columns.js';
 import { contactColumns } from '$lib/v2/contact-columns.js';
 import { listContacts } from './contacts.js';
 import { contactQuery } from './contact-query.js';
@@ -10,26 +12,35 @@ export function csvCell(value) {
   return '"' + text.replaceAll('"', '""') + '"';
 }
 /** @param {any} contact @param {string} key */
-function exportValue(contact, key) {
+function exportValue(contact, key, catalog) {
   if (key === 'account') return contact.account?.name || contact.organization || '';
   if (key === 'owner')
     return contact.owner
       ? `${contact.owner}${contact.owner_count > 1 ? ` +${contact.owner_count - 1}` : ''}`
       : '';
   if (key === 'is_active' || key === 'do_not_call') return contact[key] ? 'Yes' : 'No';
-  return contact[key] ?? '';
+  if (!key.startsWith('custom_fields.') && (contact[key] === null || contact[key] === undefined))
+    return '';
+  return columnValue(contact, key, catalog);
 }
 /** @param {any} event */
 export async function exportContacts(event) {
+  const context = await apiRequest('/org/ui-context/', {}, { cookies: event.cookies });
+  const catalog = listColumns('Contact', context.property_layout?.Contact, contactColumns);
+  const available = catalog.map((c) => [c.key, c.label]);
   const requested = [
     ...new Set(
       (
-        event.url.searchParams.get('columns') ?? 'name,phone,email,source_label,stage_label,owner'
+        event.url.searchParams.get('columns') ??
+        catalog
+          .filter((c) => c.system)
+          .map((c) => c.key)
+          .join(',')
       ).split(',')
     )
   ];
   const columns = requested
-    .map((key) => contactColumns.find(([id]) => id === key))
+    .map((key) => available.find(([id]) => id === key))
     .filter((column) => column !== undefined);
   if (!columns.length) throw new Error('Choose at least one valid column.');
   const lines = [columns.map(([, label]) => csvCell(label)).join(',')];
@@ -42,7 +53,7 @@ export async function exportContacts(event) {
     query.set('offset', String(offset));
     const page = await listContacts({ cookies: event.cookies }, query);
     for (const contact of page.results)
-      lines.push(columns.map(([key]) => csvCell(exportValue(contact, key))).join(','));
+      lines.push(columns.map(([key]) => csvCell(exportValue(contact, key, catalog))).join(','));
     offset += page.results.length;
     if (offset >= page.totals.count || !page.results.length) break;
   }

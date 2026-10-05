@@ -419,48 +419,48 @@
   .stage-fields {
     display: grid;
     align-content: start;
-    gap: 20px;
-    padding: 24px;
+    gap: var(--crm-space-5);
+    padding: var(--crm-space-6);
   }
   .stage-fields label {
     display: grid;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   .stage-fields p {
     margin: 0;
   }
   .pipeline-settings {
-    padding: 24px 30px;
+    padding: var(--crm-space-6) 30px;
   }
   .toolbar {
     display: flex;
     align-items: end;
-    gap: 24px;
-    margin-bottom: 24px;
+    gap: var(--crm-space-6);
+    margin-bottom: var(--crm-space-6);
   }
   .toolbar label {
     display: grid;
-    gap: 8px;
-    font-size: 12px;
+    gap: var(--crm-space-2);
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     width: 230px;
   }
   .hint {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     padding-bottom: 10px;
   }
   .table-wrap {
     overflow: auto;
-    background: var(--v2-card, #fff);
+    background: var(--v2-card, var(--crm-surface));
     border: 1px solid var(--v2-line);
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
   }
   table {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   th,
   td {
@@ -470,14 +470,14 @@
   th {
     font-weight: 500;
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     white-space: nowrap;
   }
   tr:last-child td {
     border-bottom: 0;
   }
   code {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .order,
@@ -507,9 +507,9 @@
     font-weight: 600;
   }
   .rules p {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-    margin: 8px 0 14px;
+    margin: var(--crm-space-2) 0 14px;
   }
   .choices {
     display: grid;
@@ -517,12 +517,12 @@
   }
   .choices label {
     display: flex;
-    gap: 8px;
+    gap: var(--crm-space-2);
     align-items: center;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .choices label {
-    padding: 8px 0;
+    padding: var(--crm-space-2) 0;
     align-items: flex-start;
   }
   .choices input {
@@ -539,19 +539,19 @@
   }
   .panel-error {
     margin: 0;
-    padding: 12px 24px;
+    padding: var(--crm-space-3) var(--crm-space-6);
   }
 
   .error {
     color: var(--v2-rust);
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   @media (max-width: 850px) {
     .rules {
       grid-template-columns: 1fr;
     }
     .pipeline-settings {
-      padding: 16px;
+      padding: var(--crm-space-4);
     }
   }
 </style>

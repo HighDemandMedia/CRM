@@ -101,7 +101,14 @@ def test_compact_lists_keep_records_and_reduce_queries(
         )
     assert [r["id"] for r in full_rows] == [r["id"] for r in compact_rows]
     for old, new in zip(full_rows, compact_rows):
-        for field in ("id", "name", "stage", "custom_fields", "last_activity_at"):
+        for field in (
+            "id",
+            "name",
+            "stage",
+            "custom_fields",
+            "last_activity_at",
+            "created_by",
+        ):
             if field in old:
                 assert new[field] == old[field]
     assert "Hidden" not in compact.content.decode()

@@ -118,48 +118,48 @@
     max-height: 85vh;
     overflow: auto;
     border: 1px solid var(--v2-line-soft);
-    border-radius: 16px;
-    padding: 24px;
+    border-radius: var(--crm-radius-xl);
+    padding: var(--crm-space-6);
     color: var(--v2-ink);
-    background: var(--v2-white, #fff);
+    background: var(--v2-white, var(--crm-surface));
     text-align: left;
   }
   dialog::backdrop {
-    background: #0005;
+    background: var(--crm-overlay);
   }
   h2 {
-    font-size: 19px;
+    font-size: var(--crm-text-lg);
     margin: 0 0 18px;
   }
   p {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     line-height: 1.6;
   }
   label {
     display: grid;
-    gap: 8px;
-    font-size: 13px;
+    gap: var(--crm-space-2);
+    font-size: var(--crm-text-sm);
     margin: 18px 0;
   }
   .counts {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    font-size: 12px;
-    padding: 12px 0;
+    gap: var(--crm-space-3);
+    font-size: var(--crm-text-xs);
+    padding: var(--crm-space-3) 0;
   }
   .hint {
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 24px;
+    gap: var(--crm-space-2);
+    margin-top: var(--crm-space-6);
   }
   .danger,
   .error {
-    color: var(--v2-rust, #b42318);
+    color: var(--v2-rust, var(--crm-danger));
   }
 </style>

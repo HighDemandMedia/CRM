@@ -286,7 +286,9 @@
               animate:flip={{ duration: FLIP_MS }}
               style="opacity:{done ? 0.65 : 1}"
             >
-              <div style="font-weight:600;letter-spacing:-0.012em;line-height:1.3;font-size:13px">
+              <div
+                style="font-weight:600;letter-spacing:-0.012em;line-height:1.3;font-size:var(--crm-text-sm)"
+              >
                 {t.title}
               </div>
               {#if t.account}
@@ -309,10 +311,10 @@
                   {/each}
                 {:else}
                   <!-- Named, not an empty slot. A blank reads as a rendering gap. -->
-                  <span class="v2-sub" style="font-size:11.5px">Unassigned</span>
+                  <span class="v2-sub" style="font-size:var(--crm-text-xs)">Unassigned</span>
                 {/if}
                 {#if t.due_date}
-                  <span class="v2-sub" style="margin-left:auto;font-size:11.5px">
+                  <span class="v2-sub" style="margin-left:auto;font-size:var(--crm-text-xs)">
                     {done ? 'done ' : ''}{shortDate(done ? t.completed_at : t.due_date)}
                   </span>
                 {/if}
@@ -493,7 +495,10 @@
 <!-- `tasks.Task` and `tasks.BoardTask` are separate tables. Nothing about the
      word "task" suggests that, and everyone assumes a card here is also a task
      there, so it is said once, in the open. -->
-<p class="v2-sub v2-pad" style="font-size:11.5px;padding-bottom:14px;flex:none;margin:0">
+<p
+  class="v2-sub v2-pad"
+  style="font-size:var(--crm-text-xs);padding-bottom:14px;flex:none;margin:0"
+>
   Cards on a board are separate records from the
   <a href={resolve('/tasks')} style="color:inherit">task list</a>. A card here does not appear
   there, and completing one does not complete the other.
@@ -502,11 +507,11 @@
 <style>
   .board-totals {
     display: flex;
-    gap: 20px;
+    gap: var(--crm-space-5);
     flex-wrap: wrap;
-    padding: 14px 22px 0;
+    padding: 14px var(--crm-space-6) 0;
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .v2-board {
     gap: 14px;
@@ -514,17 +519,17 @@
   .v2-lane {
     background: var(--v2-paper);
     border: 1px solid var(--v2-line-soft);
-    border-radius: 12px;
-    padding: 12px;
+    border-radius: var(--crm-radius-lg);
+    padding: var(--crm-space-3);
     min-width: 270px;
   }
   .v2-lane-head {
-    padding: 4px 2px 12px;
+    padding: var(--crm-space-1) 2px var(--crm-space-3);
   }
   .v2-deal-card {
     background: var(--v2-card);
     border: 1px solid var(--v2-line);
-    border-radius: 9px;
+    border-radius: var(--crm-radius-md);
     padding: 14px;
     box-shadow: none;
   }
@@ -533,16 +538,16 @@
     display: contents;
   }
   .v2-board-select {
-    padding-right: 8px;
+    padding-right: var(--crm-space-2);
     cursor: pointer;
   }
   .v2-lane-over {
     display: flex;
     align-items: center;
     gap: 5px;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-clay);
-    padding: 0 3px 8px;
+    padding: 0 3px var(--crm-space-2);
     flex: none;
   }
   /* An empty lane still has to be a drop target, so give the body room even
@@ -557,7 +562,7 @@
     cursor: grabbing;
   }
   .v2-lane-empty {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     padding: 2px 3px 0;
     color: var(--v2-slate);
     flex: none;
@@ -566,19 +571,19 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-rust);
     background: color-mix(in srgb, var(--v2-rust) 8%, transparent);
     border: 1px solid color-mix(in srgb, var(--v2-rust) 24%, transparent);
-    border-radius: 7px;
+    border-radius: var(--crm-radius-md);
     padding: 7px 10px;
   }
   .v2-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 40px 0;
+    gap: var(--crm-space-2);
+    padding: var(--crm-space-10) 0;
   }
   .v2-empty-title {
     font-weight: 600;
@@ -589,10 +594,10 @@
     display: flex;
     align-items: flex-start;
     gap: 5px;
-    margin-top: 8px;
-    padding-top: 8px;
+    margin-top: var(--crm-space-2);
+    padding-top: var(--crm-space-2);
     border-top: 1px solid var(--v2-line-soft);
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-clay);
     line-height: 1.4;
   }
@@ -604,13 +609,13 @@
     gap: 5px;
     width: 100%;
     margin-top: 6px;
-    padding: 7px 8px;
+    padding: 7px var(--crm-space-2);
     border: 0;
-    border-radius: 7px;
+    border-radius: var(--crm-radius-md);
     background: none;
     color: var(--v2-slate);
     font: inherit;
-    font-size: 12.5px;
+    font-size: var(--crm-text-sm);
     text-align: left;
     cursor: pointer;
     flex: none;
@@ -642,12 +647,12 @@
     padding: 9px;
     background: var(--v2-card);
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
     flex: none;
   }
   .v2-lane-add-input {
     width: 100%;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   textarea.v2-lane-add-input {
     resize: vertical;
@@ -663,7 +668,7 @@
     height: 34px;
     padding: 2px;
     border: 1px solid var(--v2-line);
-    border-radius: 7px;
+    border-radius: var(--crm-radius-md);
     background: var(--v2-card);
     cursor: pointer;
     flex: none;
@@ -674,7 +679,7 @@
   }
   .v2-lane-add-error {
     margin: 0;
-    font-size: 11.5px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-rust);
   }
 </style>

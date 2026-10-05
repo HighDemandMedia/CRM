@@ -29,7 +29,7 @@
       {:else}
         <div
           class="v2-spin"
-          style="width:26px;height:26px;margin:4px auto 15px;color:var(--v2-ember)"
+          style="width:26px;height:26px;margin:4px auto 15px;color:var(--crm-link)"
         ></div>
         <div class="v2-auth-head" style="margin-bottom:0">
           <h1>Signing you in…</h1>

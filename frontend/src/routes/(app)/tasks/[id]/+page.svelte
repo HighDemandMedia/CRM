@@ -268,7 +268,7 @@
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    padding: 16px 22px 20px;
+    padding: var(--crm-space-4) var(--crm-space-6) var(--crm-space-5);
   }
   main {
     overflow-y: auto;
@@ -279,19 +279,19 @@
   }
   .panel {
     background: var(--v2-card);
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: var(--crm-radius-lg);
+    padding: var(--crm-space-5);
   }
   h2 {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 650;
-    margin: 0 0 12px;
+    margin: 0 0 var(--crm-space-3);
   }
   .body {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     margin: 0;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     line-height: 1.6;
   }
   .description > .body {
@@ -301,29 +301,29 @@
   label {
     display: grid;
     gap: 7px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-    margin-bottom: 16px;
+    margin-bottom: var(--crm-space-4);
   }
   .v2-input {
     width: 100%;
   }
   .journal form .v2-btn {
-    margin-top: 8px;
+    margin-top: var(--crm-space-2);
   }
   .entries {
     max-height: 340px;
     overflow: auto;
-    margin-top: 16px;
+    margin-top: var(--crm-space-4);
   }
   .entries article {
-    padding: 12px 0;
+    padding: var(--crm-space-3) 0;
     border-bottom: 1px solid var(--v2-line-soft);
   }
   small {
     display: block;
     margin-top: 6px;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .properties {
@@ -337,26 +337,26 @@
     min-width: 0;
   }
   .associations {
-    margin-top: 22px;
+    margin-top: var(--crm-space-6);
   }
   .associated {
     display: block;
     background: var(--v2-paper);
-    border-radius: 7px;
+    border-radius: var(--crm-radius-md);
     padding: 10px;
     color: var(--v2-ink);
     text-decoration: none;
     margin-top: 6px;
     overflow-wrap: anywhere;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .associated small {
-    margin: 0 0 4px;
+    margin: 0 0 var(--crm-space-1);
   }
   .delete {
     display: flex;
     justify-content: flex-end;
-    margin-top: 24px;
+    margin-top: var(--crm-space-6);
   }
   .delete button {
     color: var(--v2-rust);
@@ -365,32 +365,32 @@
     padding: 0;
   }
   .attachments summary {
-    padding: 15px 20px;
+    padding: 15px var(--crm-space-5);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
   }
   .attachments summary span {
     color: var(--v2-slate);
-    margin-left: 8px;
-    font-size: 12px;
+    margin-left: var(--crm-space-2);
+    font-size: var(--crm-text-xs);
   }
   .attachments > div {
-    padding: 0 20px 20px;
+    padding: 0 var(--crm-space-5) var(--crm-space-5);
   }
   .muted {
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .error {
     margin: 0;
-    padding: 10px 22px;
+    padding: 10px var(--crm-space-6);
   }
   @media (max-width: 800px) {
     .task-profile {
       grid-template-columns: 1fr;
       overflow: auto;
-      padding: 12px;
+      padding: var(--crm-space-3);
     }
     main,
     .properties {

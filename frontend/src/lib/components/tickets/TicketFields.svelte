@@ -112,7 +112,7 @@
   label {
     display: grid;
     gap: 6px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-muted);
   }
   .v2-input {

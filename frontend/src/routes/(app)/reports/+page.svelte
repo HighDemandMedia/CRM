@@ -461,7 +461,7 @@
 
 <style>
   .reports {
-    padding: 0 28px 32px;
+    padding: 0 28px var(--crm-space-8);
     min-height: 0;
     overflow: auto;
     flex: 1;
@@ -475,10 +475,10 @@
     flex-wrap: wrap;
   }
   .filters {
-    background: var(--v2-surface, #fff);
+    background: var(--v2-surface, var(--crm-surface));
     padding: 18px;
     border: 1px solid var(--v2-line);
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
   }
   .filters label {
     flex: 1;
@@ -487,14 +487,14 @@
   label {
     display: grid;
     gap: 7px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .v2-input {
     width: 100%;
     min-height: 38px;
-    font-size: 13px;
-    background: var(--v2-surface, #fff);
+    font-size: var(--crm-text-sm);
+    background: var(--v2-surface, var(--crm-surface));
   }
   .secondary-filters {
     padding: 14px 0 0;
@@ -504,7 +504,7 @@
   }
   .timezone {
     margin: 0 0 10px auto;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .period-heading {
@@ -514,17 +514,17 @@
     margin: 26px 0 15px;
   }
   .period-heading h2 {
-    font-size: 18px;
+    font-size: var(--crm-text-lg);
     font-weight: 650;
     margin: 0;
     display: flex;
-    gap: 12px;
+    gap: var(--crm-space-3);
     align-items: baseline;
     flex-wrap: wrap;
   }
   .period-heading h2 span,
   .period-heading > span {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 400;
     color: var(--v2-slate);
   }
@@ -534,26 +534,26 @@
     gap: 14px;
   }
   .metric {
-    padding: 20px;
-    background: var(--v2-surface, #fff);
+    padding: var(--crm-space-5);
+    background: var(--v2-surface, var(--crm-surface));
     border: 1px solid var(--v2-line);
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
   .metric > span {
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     color: var(--v2-slate);
   }
   .metric strong {
-    font-size: 29px;
+    font-size: var(--crm-text-2xl);
     line-height: 1.2;
     letter-spacing: -0.7px;
     font-weight: 650;
   }
   .metric small {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .amounts {
@@ -561,10 +561,10 @@
     gap: 7px;
   }
   .amounts strong {
-    font-size: 23px;
+    font-size: var(--crm-text-xl);
   }
   .amounts small {
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     margin-left: 7px;
     letter-spacing: 0;
   }
@@ -573,7 +573,7 @@
     gap: 14px;
     flex-wrap: wrap;
     margin-top: 14px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .won-value span {
     color: var(--v2-slate);
@@ -582,27 +582,27 @@
     display: grid;
     grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
     gap: 18px;
-    margin: 20px 0;
+    margin: var(--crm-space-5) 0;
   }
   .chart-panel,
   .records-panel {
-    background: var(--v2-surface, #fff);
+    background: var(--v2-surface, var(--crm-surface));
     border: 1px solid var(--v2-line);
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
     min-width: 0;
   }
   .chart-panel {
-    padding: 20px;
+    padding: var(--crm-space-5);
   }
   .panel-heading {
     display: flex;
-    gap: 12px;
+    gap: var(--crm-space-3);
     align-items: center;
     justify-content: space-between;
     margin-bottom: 18px;
   }
   .panel-heading h3 {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     font-weight: 650;
     margin: 0;
   }
@@ -613,9 +613,9 @@
   }
   .panel-heading p,
   .panel-heading > span {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-    margin: 4px 0 0;
+    margin: var(--crm-space-1) 0 0;
   }
   .panel-heading select {
     width: auto;
@@ -627,7 +627,7 @@
   }
   .y-axis-title,
   .x-axis-title {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .y-axis-title {
@@ -651,7 +651,7 @@
     position: absolute;
     right: 9px;
     transform: translateY(50%);
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     font-variant-numeric: tabular-nums;
   }
@@ -697,7 +697,7 @@
     z-index: 2;
   }
   .bar-column:focus-visible {
-    outline: 2px solid #81778c;
+    outline: 2px solid var(--crm-focus);
     outline-offset: -2px;
   }
   .bar {
@@ -705,12 +705,12 @@
     width: 100%;
     max-width: 64px;
     height: var(--bar-height);
-    background: #7b7187;
-    border-radius: 3px 3px 0 0;
+    background: var(--crm-primary);
+    border-radius: var(--crm-radius-sm) 3px 0 0;
   }
   .bar-column:hover .bar,
   .bar-column:focus-visible .bar {
-    background: #514759;
+    background: var(--crm-primary-active);
   }
   .bar-tooltip {
     display: none;
@@ -718,24 +718,24 @@
     bottom: calc(var(--bar-height) + 8px);
     left: 50%;
     transform: translateX(-50%);
-    background: #343137;
-    color: #fff;
-    border-radius: 7px;
+    background: var(--crm-nav-bg);
+    color: var(--crm-nav-text);
+    border-radius: var(--crm-radius-md);
     padding: 7px 10px;
     white-space: nowrap;
-    box-shadow: 0 3px 10px #0002;
+    box-shadow: var(--crm-shadow-lg);
     pointer-events: none;
     text-align: left;
     line-height: 1.4;
   }
   .bar-tooltip > span {
     display: block;
-    font-size: 10px;
-    color: #ddd8e2;
+    font-size: var(--crm-text-xs);
+    color: var(--crm-nav-muted);
   }
   .bar-tooltip strong {
     display: block;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     font-weight: 600;
   }
   .bar-tooltip.align-start {
@@ -759,7 +759,7 @@
   .x-axis > span {
     position: absolute;
     transform: translateX(-50%);
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     white-space: nowrap;
     color: var(--v2-slate);
   }
@@ -770,7 +770,7 @@
     transform: translateX(-100%);
   }
   .text-action {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin-top: 14px;
     text-decoration: underline;
@@ -784,11 +784,11 @@
     flex-direction: column;
     gap: 10px;
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .empty-chart strong {
     color: var(--v2-text);
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
   }
   .breakdown-list {
     max-height: 250px;
@@ -801,8 +801,8 @@
   .group-row > div:first-child {
     display: flex;
     justify-content: space-between;
-    gap: 8px;
-    font-size: 12px;
+    gap: var(--crm-space-2);
+    font-size: var(--crm-text-xs);
     margin-bottom: 7px;
   }
   .group-row span {
@@ -817,24 +817,24 @@
   .group-row small {
     color: var(--v2-slate);
     font-weight: 400;
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
     margin-left: 9px;
   }
   .track {
     height: 5px;
     background: var(--v2-line);
-    border-radius: 4px;
+    border-radius: var(--crm-radius-sm);
   }
   .track > div {
     height: 100%;
-    border-radius: 4px;
-    background: #8d8597;
+    border-radius: var(--crm-radius-sm);
+    background: var(--crm-primary);
   }
   .records-panel {
     overflow: hidden;
   }
   .records-panel > .panel-heading {
-    padding: 18px 20px;
+    padding: 18px var(--crm-space-5);
     margin: 0;
   }
   .records-scroll {
@@ -844,13 +844,13 @@
     width: 100%;
     border-collapse: collapse;
     text-align: left;
-    font-size: 12px;
+    font-size: var(--crm-text-sm);
   }
   th {
     color: var(--v2-slate);
     font-weight: 500;
     white-space: nowrap;
-    background: var(--v2-bg, #faf9fb);
+    background: var(--v2-bg, var(--crm-canvas));
   }
   th,
   td {
@@ -871,63 +871,63 @@
     text-underline-offset: 4px;
   }
   .record-link:hover {
-    color: #766184;
+    color: var(--crm-text-muted);
   }
   .pagination {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    padding: 12px 16px;
+    gap: var(--crm-space-2);
+    padding: var(--crm-space-3) var(--crm-space-4);
     align-items: center;
     border-top: 1px solid var(--v2-line);
   }
   .pagination span {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     margin-right: 10px;
     color: var(--v2-slate);
   }
   .empty-small {
     color: var(--v2-slate);
     padding: 25px 18px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .series-table {
     max-height: 260px;
     overflow: auto;
-    margin-top: 12px;
+    margin-top: var(--crm-space-3);
   }
   .series-table th {
     position: sticky;
     top: 0;
   }
   .definitions {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-    margin-top: 20px;
+    margin-top: var(--crm-space-5);
     line-height: 1.6;
   }
   .definitions summary {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
     cursor: pointer;
     width: fit-content;
   }
   .definitions > div {
     max-width: 850px;
-    padding: 8px 0;
+    padding: var(--crm-space-2) 0;
   }
   .definitions p {
-    margin: 8px 0;
+    margin: var(--crm-space-2) 0;
   }
   .report-error {
-    padding: 24px;
+    padding: var(--crm-space-6);
     border: 1px solid var(--v2-line);
-    border-radius: 12px;
-    background: #fff;
+    border-radius: var(--crm-radius-lg);
+    background: var(--crm-surface);
   }
   .report-error p {
-    margin: 12px 0;
+    margin: var(--crm-space-3) 0;
   }
   .v2-btn {
     gap: 7px;
@@ -940,7 +940,7 @@
   button:focus-visible,
   a:focus-visible,
   summary:focus-visible {
-    outline: 2px solid #81778c;
+    outline: 2px solid var(--crm-focus);
     outline-offset: 3px;
   }
   @media (max-width: 1050px) {
@@ -948,21 +948,21 @@
       grid-template-columns: 1fr;
     }
     .reports {
-      padding: 0 18px 24px;
+      padding: 0 18px var(--crm-space-6);
     }
     .filters label {
       min-width: 150px;
     }
     .metric {
-      padding: 16px;
+      padding: var(--crm-space-4);
     }
   }
   @media (max-width: 600px) {
     .reports {
-      padding: 0 12px 20px;
+      padding: 0 var(--crm-space-3) var(--crm-space-5);
     }
     .filters {
-      padding: 12px;
+      padding: var(--crm-space-3);
       gap: 10px;
     }
     .filters label {
@@ -972,7 +972,7 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .metric strong {
-      font-size: 24px;
+      font-size: var(--crm-text-xl);
     }
     .secondary-filters label {
       flex: 1;
@@ -980,7 +980,7 @@
     }
     .timezone {
       width: 100%;
-      margin-top: 4px;
+      margin-top: var(--crm-space-1);
     }
     .chart-panel {
       padding: 15px;

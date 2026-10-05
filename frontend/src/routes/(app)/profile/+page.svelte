@@ -373,7 +373,7 @@
     flex: 1;
     min-height: 0;
     min-width: 0;
-    background: var(--v2-bg, #fff);
+    background: var(--v2-bg, var(--crm-surface));
   }
   .profile-shell > .v2-scroll {
     flex: 1;
@@ -381,7 +381,7 @@
   }
   .settings-group {
     display: grid;
-    gap: 20px;
+    gap: var(--crm-space-5);
   }
   .settings-group + .settings-group {
     padding-top: 26px;
@@ -389,7 +389,7 @@
   }
   .settings-group h3 {
     margin-bottom: 2px;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
   }
   .settings-group .help {
     margin-top: -14px;
@@ -397,13 +397,13 @@
   .details-form label {
     font-weight: 500;
     gap: 9px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .details-form :global(select),
   .details-form :global(input) {
     min-height: 42px;
-    background: var(--v2-bg, #fff);
-    border-radius: 7px;
+    background: var(--v2-bg, var(--crm-surface));
+    border-radius: var(--crm-radius-md);
   }
   .details-form input[readonly] {
     background: var(--v2-line-soft);
@@ -411,8 +411,8 @@
   }
   .team-summary {
     display: flex;
-    gap: 12px;
-    font-size: 12px;
+    gap: var(--crm-space-3);
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .team-summary strong {
@@ -421,11 +421,11 @@
   }
   .detail-actions {
     margin-top: 28px;
-    padding-top: 20px;
+    padding-top: var(--crm-space-5);
     border-top: 1px solid var(--v2-line-soft);
   }
   .section-heading .section-description {
-    margin: 8px 0 0;
+    margin: var(--crm-space-2) 0 0;
   }
   .integration,
   .setup-note {
@@ -434,8 +434,8 @@
 
   .profile-tabs {
     display: flex;
-    gap: 24px;
-    padding: 0 24px;
+    gap: var(--crm-space-6);
+    padding: 0 var(--crm-space-6);
     border-bottom: 1px solid var(--v2-line);
     flex-shrink: 0;
     overflow-x: auto;
@@ -444,14 +444,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 16px 0 13px;
+    gap: var(--crm-space-2);
+    padding: var(--crm-space-4) 0 13px;
     border: 0;
     border-bottom: 2px solid transparent;
     background: transparent;
     color: var(--v2-slate);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     white-space: nowrap;
     cursor: pointer;
   }
@@ -466,10 +466,10 @@
   .profile-tabs button:focus-visible {
     outline: 2px solid var(--v2-slate);
     outline-offset: -3px;
-    border-radius: 4px;
+    border-radius: var(--crm-radius-sm);
   }
   .profile-layout {
-    padding: 30px 32px;
+    padding: 30px var(--crm-space-8);
     max-width: 1000px;
     width: 100%;
     box-sizing: border-box;
@@ -486,33 +486,33 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
+    gap: var(--crm-space-3);
     margin-bottom: 18px;
   }
   h2 {
     display: flex;
-    gap: 8px;
+    gap: var(--crm-space-2);
     align-items: center;
     margin: 0;
-    font-size: 16px;
+    font-size: var(--crm-text-base);
     font-weight: 600;
   }
   h3 {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     margin: 0;
     font-weight: 600;
   }
   .help {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     line-height: 1.5;
-    margin: 8px 0 0;
+    margin: var(--crm-space-2) 0 0;
     overflow-wrap: anywhere;
   }
   label {
     display: grid;
     gap: 7px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .details-form {
     max-width: 640px;
@@ -534,23 +534,23 @@
   }
   .form-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--crm-space-2);
     margin-top: 18px;
   }
   .section-description {
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     line-height: 1.6;
-    margin: 0 0 16px;
+    margin: 0 0 var(--crm-space-4);
   }
   .integration + .integration {
     border-top: 1px solid var(--v2-line);
-    padding-top: 22px;
-    margin-top: 22px;
+    padding-top: var(--crm-space-6);
+    margin-top: var(--crm-space-6);
   }
   .integration-heading {
     display: flex;
-    gap: 12px;
+    gap: var(--crm-space-3);
     align-items: center;
     margin-bottom: 18px;
     flex-wrap: wrap;
@@ -561,8 +561,8 @@
   }
   .integration-heading p {
     color: var(--v2-slate);
-    font-size: 12px;
-    margin: 4px 0 0;
+    font-size: var(--crm-text-xs);
+    margin: var(--crm-space-1) 0 0;
   }
   .service-icon {
     display: grid;
@@ -570,36 +570,36 @@
     width: 40px;
     height: 40px;
     background: var(--v2-line-soft);
-    border-radius: 10px;
+    border-radius: var(--crm-radius-md);
     color: var(--v2-slate);
   }
   .status-badge,
   .subtle-badge {
-    font-size: 10px;
-    padding: 4px 8px;
+    font-size: var(--crm-text-xs);
+    padding: var(--crm-space-1) var(--crm-space-2);
     background: var(--v2-line-soft);
     color: var(--v2-slate);
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
     white-space: nowrap;
   }
   .integration-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 12px;
+    gap: var(--crm-space-2);
+    margin-top: var(--crm-space-3);
   }
   .setup-note {
-    margin: 20px 0 0;
-    padding-top: 16px;
+    margin: var(--crm-space-5) 0 0;
+    padding-top: var(--crm-space-4);
     border-top: 1px solid var(--v2-line);
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     line-height: 1.6;
   }
   .feedback {
     color: var(--v2-moss);
-    font-size: 12px;
-    margin: 12px 0 0;
+    font-size: var(--crm-text-xs);
+    margin: var(--crm-space-3) 0 0;
   }
   .feedback.failure {
     color: var(--v2-rust);
@@ -610,11 +610,11 @@
       padding: 14px;
     }
     .profile-tabs {
-      gap: 16px;
+      gap: var(--crm-space-4);
       padding: 0 14px;
     }
     .profile-tabs button {
-      font-size: 12px;
+      font-size: var(--crm-text-xs);
       gap: 5px;
     }
   }

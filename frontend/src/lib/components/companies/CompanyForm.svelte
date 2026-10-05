@@ -481,7 +481,7 @@
 <style>
   .tags-label {
     display: block;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     margin-bottom: 6px;
   }
 
@@ -490,12 +490,12 @@
   }
   :is(.auto-save, .inline-edit) .contacts-menu {
     position: static;
-    margin-top: 4px;
+    margin-top: var(--crm-space-1);
   }
 
   .contacts-field {
     min-width: 0;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -507,7 +507,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--crm-space-2);
     list-style: none;
     cursor: pointer;
   }
@@ -525,32 +525,32 @@
     top: calc(100% + 4px);
     left: 0;
     right: 0;
-    padding: 12px;
+    padding: var(--crm-space-3);
     background: var(--v2-surface, white);
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px #0002;
+    border-radius: var(--crm-radius-md);
+    box-shadow: var(--crm-shadow-lg);
   }
 
   label {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     min-width: 0;
   }
   fieldset {
     border: 1px solid var(--v2-line);
-    border-radius: 8px;
-    margin: 20px 0;
-    padding: 16px;
+    border-radius: var(--crm-radius-md);
+    margin: var(--crm-space-5) 0;
+    padding: var(--crm-space-4);
   }
   legend {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
   }
   .page-row {
     display: flex;
-    gap: 8px;
+    gap: var(--crm-space-2);
     margin-bottom: 10px;
   }
   .page-row input {
@@ -558,7 +558,7 @@
   }
   .contact-options {
     display: grid;
-    gap: 8px;
+    gap: var(--crm-space-2);
     max-height: 240px;
     overflow: auto;
     padding-top: 10px;
@@ -569,8 +569,8 @@
   }
   .actions {
     display: flex;
-    gap: 8px;
-    padding-bottom: 24px;
+    gap: var(--crm-space-2);
+    padding-bottom: var(--crm-space-6);
   }
   @media (max-width: 700px) {
     .page-row {

@@ -127,7 +127,7 @@
       <div class="v2-card" style="padding:16px 18px 14px;margin-bottom:18px">
         <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px">
           <div class="v2-label">Opened and closed, per day</div>
-          <span class="v2-sub" style="font-size:11.5px;margin-left:auto">
+          <span class="v2-sub" style="font-size:var(--crm-text-xs);margin-left:auto">
             <i class="v2-swatch v2-swatch-in"></i>opened
             <i class="v2-swatch" style="margin-left:10px"></i>closed
           </span>
@@ -152,7 +152,7 @@
         <!-- First response -->
         <div class="v2-card" style="padding:16px 18px">
           <div class="v2-label" style="margin-bottom:4px">First response, against target</div>
-          <p class="v2-sub" style="font-size:11.5px;margin:0 0 14px">
+          <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:0 0 14px">
             Each priority carries its own target from the escalation policy, so each one is scored
             against its own promise.
           </p>
@@ -160,10 +160,10 @@
             {@const pct = attainment(r)}
             <div style="margin-bottom:14px">
               <div
-                style="display:flex;align-items:baseline;gap:8px;font-size:12.5px;margin-bottom:5px"
+                style="display:flex;align-items:baseline;gap:8px;font-size:var(--crm-text-sm);margin-bottom:5px"
               >
                 <b style="font-weight:600">{r.priority}</b>
-                <span class="v2-sub" style="font-size:11.5px">
+                <span class="v2-sub" style="font-size:var(--crm-text-xs)">
                   target {duration(r.target_minutes)} · median {duration(r.median_minutes)}
                 </span>
                 <span
@@ -195,7 +195,7 @@
         <!-- Mix -->
         <div class="v2-card" style="padding:16px 18px">
           <div class="v2-label" style="margin-bottom:4px">What the queue is made of</div>
-          <p class="v2-sub" style="font-size:11.5px;margin:0 0 14px">
+          <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:0 0 14px">
             Incidents and problems are work; questions are usually a gap in the knowledge base.
           </p>
           {#each data.byType as t (t.case_type)}
@@ -203,9 +203,11 @@
               (t.count / data.byType.reduce((a, x) => a + x.count, 0)) * 100
             )}
             <div style="margin-bottom:13px">
-              <div style="display:flex;align-items:baseline;font-size:12.5px;margin-bottom:5px">
+              <div
+                style="display:flex;align-items:baseline;font-size:var(--crm-text-sm);margin-bottom:5px"
+              >
                 <span>{t.case_type}</span>
-                <span class="v2-sub v2-num" style="margin-left:auto;font-size:12px">
+                <span class="v2-sub v2-num" style="margin-left:auto;font-size:var(--crm-text-xs)">
                   {t.count} · {share}%
                 </span>
               </div>
@@ -267,7 +269,7 @@
     -->
       <div style="display:flex;gap:9px;align-items:flex-start;margin-top:16px">
         <Clock size={15} style="color:var(--v2-slate);flex:none;margin-top:2px" />
-        <p class="v2-sub" style="font-size:12px;margin:0">
+        <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:0">
           {#if totals.business_hours_applied}
             Elapsed time is counted inside {totals.calendar_name}, so evenings, weekends and
             holidays do not count against a target.

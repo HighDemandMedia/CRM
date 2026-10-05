@@ -224,7 +224,7 @@
   .search {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   .matches {
     max-height: 320px;
@@ -235,12 +235,12 @@
     flex-direction: column;
     width: 100%;
     text-align: left;
-    padding: 12px;
+    padding: var(--crm-space-3);
     border: 0;
     border-bottom: 1px solid var(--v2-line);
     background: transparent;
     cursor: pointer;
-    gap: 4px;
+    gap: var(--crm-space-1);
   }
   .match:hover {
     background: var(--v2-line-soft);
@@ -248,7 +248,7 @@
   .match span,
   .records span,
   .records small {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .records {
@@ -258,7 +258,7 @@
     align-items: center;
     padding: 14px;
     background: var(--v2-line-soft);
-    border-radius: 8px;
+    border-radius: var(--crm-radius-md);
   }
   .records > div {
     display: flex;
@@ -273,13 +273,13 @@
   fieldset {
     border: 0;
     border-bottom: 1px solid var(--v2-line);
-    margin: 0 0 12px;
-    padding: 0 0 12px;
+    margin: 0 0 var(--crm-space-3);
+    padding: 0 0 var(--crm-space-3);
     min-width: 0;
   }
   legend {
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     margin-bottom: 6px;
   }
   .values {
@@ -289,11 +289,11 @@
   }
   .values label {
     display: flex;
-    gap: 8px;
+    gap: var(--crm-space-2);
     align-items: flex-start;
     padding: 10px;
     border: 1px solid var(--v2-line);
-    border-radius: 6px;
+    border-radius: var(--crm-radius-sm);
     cursor: pointer;
     overflow-wrap: anywhere;
     min-width: 0;
@@ -304,19 +304,19 @@
   }
   .values small {
     display: block;
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-    margin-bottom: 4px;
+    margin-bottom: var(--crm-space-1);
   }
   .consequences {
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     line-height: 1.6;
     color: var(--v2-slate);
   }
   .confirmation {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
+    gap: var(--crm-space-2);
+    font-size: var(--crm-text-sm);
   }
 </style>

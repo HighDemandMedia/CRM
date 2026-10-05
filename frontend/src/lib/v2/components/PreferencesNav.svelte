@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
+  import Pill from './Pill.svelte';
   import {
     Bell,
     CircleUser,
@@ -43,7 +44,7 @@
     },
     {
       label: 'Channels & integrations',
-      items: [{ label: 'Web forms', href: '/settings/web-forms', icon: FileText }]
+      items: [{ label: 'Web forms', href: '/settings/web-forms', icon: FileText, beta: true }]
     }
   ];
   const groups = allGroups;
@@ -70,6 +71,7 @@
             href={resolve(asInternalPath(item.href))}
             aria-current={active(item.href) ? 'page' : undefined}
             ><item.icon size={16} /><span class="preference-label">{item.label}</span>
+            {#if item.beta}<Pill>Beta</Pill>{/if}
           </a>
         {/each}
       </details>
@@ -83,7 +85,8 @@
     >
       {#if !selected}<option value="" disabled>Choose a section</option>{/if}
       {#each groups as group}<optgroup label={group.label}
-          >{#each group.items as item}<option value={item.href}>{item.label}</option
+          >{#each group.items as item}<option value={item.href}
+              >{item.label}{item.beta ? ' · Beta' : ''}</option
             >{/each}</optgroup
         >{/each}
     </select>
@@ -97,16 +100,16 @@
     overflow-y: auto;
     padding: 23px 13px;
     border-right: 1px solid var(--v2-line);
-    background: #faf9fb;
+    background: var(--crm-canvas);
   }
   .preferences-heading {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 0 6px 22px;
+    gap: var(--crm-space-2);
+    padding: 0 6px var(--crm-space-6);
   }
   h2 {
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
     line-height: 1.4;
     font-weight: 650;
     margin: 0;
@@ -115,7 +118,7 @@
   .preferences-heading a {
     padding: 5px;
     color: var(--v2-slate);
-    border-radius: 5px;
+    border-radius: var(--crm-radius-sm);
   }
   details + details {
     margin-top: 18px;
@@ -135,8 +138,8 @@
     transform: rotate(-90deg);
   }
   summary {
-    margin: 0 8px 8px;
-    font-size: 10px;
+    margin: 0 var(--crm-space-2) var(--crm-space-2);
+    font-size: var(--crm-text-xs);
     font-weight: 600;
     color: var(--v2-slate);
     text-transform: uppercase;
@@ -146,9 +149,9 @@
     display: flex;
     align-items: center;
     gap: 9px;
-    border-radius: 7px;
+    border-radius: var(--crm-radius-md);
     padding: 10px 9px;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-ink);
     text-decoration: none;
     margin-bottom: 3px;
@@ -162,16 +165,16 @@
   }
   nav a:hover,
   .preferences-heading a:hover {
-    background: #eeebf0;
+    background: var(--crm-surface-secondary);
   }
   nav a[aria-current='page'] {
-    background: #e9e5ed;
+    background: var(--crm-surface-selected);
     font-weight: 650;
   }
   summary:focus-visible,
   a:focus-visible,
   select:focus-visible {
-    outline: 2px solid #81778c;
+    outline: 2px solid var(--crm-focus);
     outline-offset: 2px;
   }
   .mobile-preferences {
@@ -186,13 +189,13 @@
   @media (max-width: 767px) {
     .preferences-sidebar {
       flex: none;
-      padding: 10px 16px;
+      padding: 10px var(--crm-space-4);
       border-right: 0;
       border-bottom: 1px solid var(--v2-line);
       overflow: visible;
     }
     .preferences-heading {
-      padding: 0 0 8px;
+      padding: 0 0 var(--crm-space-2);
     }
     nav {
       display: none;
@@ -200,16 +203,16 @@
     .mobile-preferences {
       display: flex;
       align-items: center;
-      gap: 12px;
-      font-size: 12px;
+      gap: var(--crm-space-3);
+      font-size: var(--crm-text-xs);
     }
     select {
       flex: 1;
       min-width: 0;
-      padding: 8px;
+      padding: var(--crm-space-2);
       border: 1px solid var(--v2-line);
-      border-radius: 6px;
-      background: white;
+      border-radius: var(--crm-radius-sm);
+      background: var(--crm-surface);
       color: var(--v2-ink);
       font: inherit;
     }

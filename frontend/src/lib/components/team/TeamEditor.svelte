@@ -80,7 +80,7 @@
 
 <style>
   .optional {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     font-weight: 400;
   }

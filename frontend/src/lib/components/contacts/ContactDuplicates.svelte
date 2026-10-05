@@ -60,16 +60,16 @@
 <style>
   .matches {
     grid-column: 1/-1;
-    border: 1px solid #e3c994;
-    background: #fffaf0;
-    border-radius: 10px;
-    padding: 12px 14px;
+    border: 1px solid var(--crm-warning);
+    background: var(--crm-warning-bg);
+    border-radius: var(--crm-radius-md);
+    padding: var(--crm-space-3) 14px;
   }
   .matches > strong {
     display: block;
-    font-size: 13px;
-    color: #694b20;
-    margin-bottom: 4px;
+    font-size: var(--crm-text-sm);
+    color: var(--crm-warning);
+    margin-bottom: var(--crm-space-1);
   }
   a {
     display: block;
@@ -78,7 +78,7 @@
     padding: 9px 0;
   }
   a + a {
-    border-top: 1px solid #eee0c5;
+    border-top: 1px solid var(--crm-warning);
   }
   a:hover .match-name {
     text-decoration: underline;
@@ -89,17 +89,17 @@
     gap: 10px;
     justify-content: space-between;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
   }
   .open {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     font-weight: 500;
     white-space: nowrap;
   }
   .details,
   .reasons {
     display: block;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     overflow-wrap: anywhere;
     margin-top: 3px;
   }
@@ -107,11 +107,11 @@
     color: var(--v2-slate);
   }
   .reasons {
-    color: #775720;
+    color: var(--crm-warning);
   }
   .lookup-status {
     grid-column: 1/-1;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin: 0;
   }

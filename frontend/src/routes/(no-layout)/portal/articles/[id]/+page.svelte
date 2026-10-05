@@ -63,20 +63,20 @@
     display: inline-flex;
     align-items: center;
     min-height: 44px;
-    font-size: 14px;
-    color: var(--v2-slate, #6b7280);
+    font-size: var(--crm-text-sm);
+    color: var(--v2-slate, var(--crm-text-muted));
     text-decoration: none;
   }
   h1 {
-    margin: 8px 0 6px;
-    font-size: 21px;
+    margin: var(--crm-space-2) 0 6px;
+    font-size: var(--crm-text-xl);
     font-weight: 600;
     line-height: 1.3;
   }
   .when {
-    margin: 0 0 20px;
-    font-size: 12.5px;
-    color: var(--v2-slate, #6b7280);
+    margin: 0 0 var(--crm-space-5);
+    font-size: var(--crm-text-sm);
+    color: var(--v2-slate, var(--crm-text-muted));
   }
   .body {
     /* Keeps the author's paragraphs without parsing their text as markup. */
@@ -87,57 +87,57 @@
     overflow-wrap: anywhere;
   }
   .related {
-    margin-top: 32px;
-    padding-top: 20px;
-    border-top: 1px solid var(--v2-rule, #e5e7eb);
+    margin-top: var(--crm-space-8);
+    padding-top: var(--crm-space-5);
+    border-top: 1px solid var(--v2-rule, var(--crm-border));
   }
   .related h2 {
     margin: 0 0 10px;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     font-weight: 500;
-    color: var(--v2-slate, #6b7280);
+    color: var(--v2-slate, var(--crm-text-muted));
   }
   .related ul {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 8px;
+    gap: var(--crm-space-2);
   }
   .related a {
     display: block;
-    padding: 12px 14px;
-    border: 1px solid var(--v2-rule, #e5e7eb);
-    border-radius: 10px;
+    padding: var(--crm-space-3) 14px;
+    border: 1px solid var(--v2-rule, var(--crm-border));
+    border-radius: var(--crm-radius-md);
     text-decoration: none;
     color: inherit;
-    font-size: 14px;
+    font-size: var(--crm-text-sm);
   }
   .ask {
-    margin-top: 32px;
-    padding-top: 20px;
-    border-top: 1px solid var(--v2-rule, #e5e7eb);
+    margin-top: var(--crm-space-8);
+    padding-top: var(--crm-space-5);
+    border-top: 1px solid var(--v2-rule, var(--crm-border));
   }
   .ask p {
     margin: 0 0 10px;
-    font-size: 14px;
-    color: var(--v2-slate, #6b7280);
+    font-size: var(--crm-text-sm);
+    color: var(--v2-slate, var(--crm-text-muted));
   }
   .ask a {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
-    padding: 0 16px;
-    border: 1px solid var(--v2-rule, #d1d5db);
-    border-radius: 8px;
-    font-size: 14px;
+    padding: 0 var(--crm-space-4);
+    border: 1px solid var(--v2-rule, var(--crm-control-border));
+    border-radius: var(--crm-radius-md);
+    font-size: var(--crm-text-sm);
     text-decoration: none;
     color: inherit;
   }
   /* Related already drew the rule that separates the body from the footer;
      a second one right under it reads as an empty section. */
   .related + .ask {
-    margin-top: 20px;
+    margin-top: var(--crm-space-5);
     padding-top: 0;
     border-top: 0;
   }

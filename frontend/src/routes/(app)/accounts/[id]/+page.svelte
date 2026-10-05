@@ -203,46 +203,46 @@
 
 <style>
   .scheduled-message {
-    padding: 8px 24px;
-    font-size: 13px;
+    padding: var(--crm-space-2) var(--crm-space-6);
+    font-size: var(--crm-text-sm);
   }
   .properties-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: var(--crm-space-4);
   }
   .properties-heading h2 {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--crm-text-sm);
     font-weight: 600;
   }
   .property-pages {
     display: grid;
-    gap: 8px;
-    font-size: 13px;
+    gap: var(--crm-space-2);
+    font-size: var(--crm-text-sm);
     overflow-wrap: anywhere;
   }
   .property-pages > span {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
 
   .company-layout {
     display: grid;
     grid-template-columns: 300px minmax(340px, 1fr);
-    padding: 20px 0 20px 22px;
+    padding: var(--crm-space-5) 0 var(--crm-space-5) var(--crm-space-6);
     grid-template-rows: minmax(0, 1fr);
     min-height: 0;
   }
   .company-properties {
     min-height: 0;
     overflow-y: auto;
-    padding: 20px;
+    padding: var(--crm-space-5);
     background: var(--v2-card);
     border: 0;
-    border-radius: 12px;
+    border-radius: var(--crm-radius-lg);
   }
   .company-content {
     min-width: 0;
@@ -269,33 +269,33 @@
   .deal-totals {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 20px;
+    gap: var(--crm-space-2) var(--crm-space-5);
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .deal-totals .overdue {
-    color: #b42318;
+    color: var(--crm-danger);
   }
   .company-secondary > summary {
     cursor: pointer;
-    padding: 14px 16px;
-    font-size: 14px;
+    padding: 14px var(--crm-space-4);
+    font-size: var(--crm-text-sm);
     font-weight: 600;
   }
   .company-secondary > summary span {
-    margin-left: 8px;
-    font-size: 12px;
+    margin-left: var(--crm-space-2);
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     font-weight: 400;
   }
   .secondary-content {
-    padding: 0 16px 16px;
+    padding: 0 var(--crm-space-4) var(--crm-space-4);
   }
   @media (max-width: 800px) {
     .company-layout {
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: auto auto;
-      padding: 12px;
+      padding: var(--crm-space-3);
       gap: 14px;
       overflow-y: auto;
     }

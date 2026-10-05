@@ -51,7 +51,10 @@
             <input type="hidden" name="org_id" value={org.id} />
             <input type="hidden" name="org_name" value={org.name} />
             <button type="submit" class="v2-auth-org" disabled={loading}>
-              <span class="v2-mark" style="width:30px;height:30px;border-radius:8px;font-size:13px">
+              <span
+                class="v2-mark"
+                style="width:30px;height:30px;border-radius:8px;font-size:var(--crm-text-sm)"
+              >
                 {org.name?.slice(0, 1)?.toUpperCase() || '?'}
               </span>
               <span class="v2-auth-org-body">

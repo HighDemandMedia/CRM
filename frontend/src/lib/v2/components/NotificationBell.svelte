@@ -217,23 +217,23 @@
     background: transparent;
     color: inherit;
     border: 0;
-    padding: 10px 12px;
-    border-radius: 8px;
+    padding: 10px var(--crm-space-3);
+    border-radius: var(--crm-radius-md);
     cursor: pointer;
     font: inherit;
-    font-size: 13px;
+    font-size: var(--crm-text-sm);
     text-align: left;
   }
   .bell-trigger:hover {
-    background: #ffffff12;
+    background: var(--crm-nav-hover);
   }
   .bell-trigger b {
     margin-left: auto;
-    border-radius: 5px;
-    background: #eee9e5;
-    color: #302e30;
+    border-radius: var(--crm-radius-sm);
+    background: var(--crm-surface-secondary);
+    color: var(--crm-text);
     padding: 2px 6px;
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
   }
   .bell-icon {
     position: relative;
@@ -249,7 +249,7 @@
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #e9bba4;
+    background: var(--crm-primary);
     right: -2px;
     top: -2px;
   }
@@ -261,28 +261,28 @@
     max-height: calc(100dvh - 100px);
     padding: 0;
     border: 1px solid var(--v2-line);
-    border-radius: 12px;
-    background: var(--v2-bg, #fff);
+    border-radius: var(--crm-radius-lg);
+    background: var(--v2-bg, var(--crm-surface));
     color: var(--v2-ink);
-    box-shadow: 0 16px 45px #0002;
+    box-shadow: var(--crm-shadow-lg);
     overflow: auto;
   }
   header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px;
+    padding: var(--crm-space-4);
     border-bottom: 1px solid var(--v2-line-soft);
   }
   h2 {
     display: flex;
-    gap: 8px;
+    gap: var(--crm-space-2);
     align-items: center;
-    font-size: 15px;
+    font-size: var(--crm-text-sm);
     margin: 0;
   }
   h2 span {
-    font-size: 11px;
+    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   header button,
@@ -296,10 +296,10 @@
     color: var(--v2-slate);
     cursor: pointer;
     font: inherit;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .read-actions {
-    padding: 10px 16px;
+    padding: 10px var(--crm-space-4);
     text-align: right;
   }
   .feed {
@@ -314,7 +314,7 @@
     background: transparent;
     border: 0;
     border-bottom: 1px solid var(--v2-line-soft);
-    padding: 14px 16px;
+    padding: 14px var(--crm-space-4);
     font: inherit;
     color: inherit;
     cursor: pointer;
@@ -339,7 +339,7 @@
     display: grid;
     gap: 5px;
     min-width: 0;
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     overflow-wrap: anywhere;
   }
   .row-body strong {
@@ -357,34 +357,34 @@
   }
   .row-body small {
     color: var(--v2-slate);
-    font-size: 10px;
+    font-size: var(--crm-text-xs);
   }
   .empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    padding: 32px 18px;
+    padding: var(--crm-space-8) 18px;
     color: var(--v2-slate);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   .empty strong {
     color: var(--v2-ink);
     font-weight: 500;
   }
   .error {
-    padding: 12px 16px;
+    padding: var(--crm-space-3) var(--crm-space-4);
     color: var(--v2-rust);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
   }
   footer {
-    padding: 12px 16px;
+    padding: var(--crm-space-3) var(--crm-space-4);
     border-top: 1px solid var(--v2-line-soft);
     text-align: center;
   }
   footer a {
     color: var(--v2-ink);
-    font-size: 12px;
+    font-size: var(--crm-text-xs);
     text-decoration: none;
   }
 </style>
