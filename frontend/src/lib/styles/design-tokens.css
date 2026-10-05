@@ -41,7 +41,7 @@
   --crm-calendar-external-bg: #f1eafa;
   --crm-inverse: #ffffff;
   --crm-overlay: rgb(0 0 0 / 40%);
-  --crm-nav-bg: #1d0502;
+  --crm-nav-bg: var(--crm-black);
   --crm-nav-text: var(--crm-paper);
   --crm-nav-muted: #c6beb2;
   --crm-nav-hover: #292622;
