@@ -15,8 +15,8 @@
     variants: {
       variant: {
         default: [
-          'bg-[color:var(--cta-bg)] text-[color:var(--cta-text)] border border-transparent',
-          'hover:bg-[color:var(--cta-bg-hover,var(--cta-bg))]'
+          '[background:var(--crm-action-bg)] text-[color:var(--cta-text)] border border-transparent',
+          'hover:[background:var(--crm-action-hover-bg)] active:[background:var(--crm-action-active-bg)]'
         ].join(' '),
         ghost: [
           'bg-[color:var(--bg-elevated)] text-[color:var(--text-muted)]',

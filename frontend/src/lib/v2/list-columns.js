@@ -76,5 +76,7 @@ export function columnValue(row, key, columns) {
 export function validColumns(saved, columns) {
   const keys = new Set(columns.map((c) => c.key));
   const valid = Array.isArray(saved) ? [...new Set(saved.filter((k) => keys.has(k)))] : [];
-  return valid.length ? valid : columns.filter((c) => c.system).map((c) => c.key);
+  return valid.length
+    ? valid
+    : columns.filter((c) => c.system && !['id', 'description'].includes(c.key)).map((c) => c.key);
 }

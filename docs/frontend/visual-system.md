@@ -65,7 +65,7 @@ Big Caslon remains pending a licensed web asset and approval of the pairing. Tok
 ## Property-driven lists and responsive references
 
 The active Contacts, Companies, Deals, Tasks and Tickets lists use the existing
-organization UI-context property catalog. System properties are visible by default
+organization UI-context property catalog. System properties except Notes (`description`) and Record ID (`id`) are visible by default
 in the configured property order; active custom properties can be selected in Edit
 columns. Show all includes custom properties; Reset restores system defaults.
 Preferences use a new version, scoped to the organization and signed-in user, so
@@ -90,3 +90,27 @@ Validation includes catalog order, custom values, stale preferences, CSV columns
 frontend checks/build, backend relation visibility and constant task-list query
 counts. Visual checks use the local demo organization at desktop, tablet and phone
 widths. Hosted Render services are unchanged.
+
+## Website brand alignment (2026-10-05)
+
+The current UI uses Inter, as requested, replacing the earlier Manrope / pending
+Big Caslon proposal. Inter is bundled from `@fontsource-variable/inter` under the
+SIL Open Font License; the normal Latin variable face is served locally with swap
+and the requested system fallback stack. Its license is included under
+`frontend/static/fonts/Inter-OFL.txt`.
+
+The website https://highdemandmedia.com/ supplies red `#C3110C`, orange `#E6501B`,
+dark text `#1D0502`, muted text `#4A302C` and maroon `#740A03`. Shared primary
+buttons use the 135-degree red/orange gradient with white text and a 12% black
+overlay (18% hover, 24% active) to maintain small-text AA contrast. The reusable
+button component, v2 buttons and mobile creation button share these tokens.
+CRM surfaces, density and semantic status colors remain suited to data entry.
+
+Notes and Record ID stay in Edit columns, but are excluded from default/reset
+selections across all five active object lists. Explicit saved selections remain
+intact. Use Reset to apply the new default to an already customized list.
+
+Validation: 471 frontend tests pass, including defaults/manual selection and
+contrast samples throughout each gradient state in light/dark themes; Svelte
+checks and production build pass. Local browser checks cover the branded login
+and populated contact list, reset behavior and manual ID selection.

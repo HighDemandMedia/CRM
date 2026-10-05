@@ -1,25 +1,34 @@
-/* HDM CRM visual foundation. Big Caslon awaits licensed web files.
-   Manrope remains the existing UI face. Stone is decorative, never an input boundary. */
+/* HDM website brand colors; semantic states remain independent.
+   Stone is decorative, never an input boundary. */
 :root {
   --crm-paper: #f6f4f1;
   --crm-stone: #e4ded2;
   --crm-coral: #f95c4b;
+  --crm-brand-red: #c3110c;
+  --crm-brand-orange: #e6501b;
+  --crm-brand-gradient: linear-gradient(135deg, var(--crm-brand-red), var(--crm-brand-orange));
+  /* Dark overlay gives white small-button text AA contrast over the entire gradient. */
+  --crm-action-bg: linear-gradient(rgb(0 0 0 / 12%), rgb(0 0 0 / 12%)), var(--crm-brand-gradient);
+  --crm-action-hover-bg:
+    linear-gradient(rgb(0 0 0 / 18%), rgb(0 0 0 / 18%)), var(--crm-brand-gradient);
+  --crm-action-active-bg:
+    linear-gradient(rgb(0 0 0 / 24%), rgb(0 0 0 / 24%)), var(--crm-brand-gradient);
   --crm-black: #000000;
   --crm-canvas: var(--crm-paper);
   --crm-surface: #ffffff;
   --crm-surface-secondary: var(--crm-stone);
   --crm-surface-hover: #eee9e0;
   --crm-surface-selected: #ffe1d9;
-  --crm-text: var(--crm-black);
-  --crm-text-muted: #59534b;
+  --crm-text: #1d0502;
+  --crm-text-muted: #4a302c;
   --crm-border: var(--crm-stone);
   --crm-control-border: #81766a;
-  --crm-primary: var(--crm-coral);
-  --crm-primary-text: var(--crm-black);
-  --crm-primary-hover: #ed503f;
-  --crm-primary-active: #df4435;
-  --crm-link: #ae3024;
-  --crm-focus: #8b2f23;
+  --crm-primary: var(--crm-brand-red);
+  --crm-primary-text: #ffffff;
+  --crm-primary-hover: #ad100b;
+  --crm-primary-active: #970d09;
+  --crm-link: #740a03;
+  --crm-focus: #740a03;
   --crm-success: #27613d;
   --crm-success-bg: #e8f3e9;
   --crm-warning: #80500c;
@@ -32,13 +41,12 @@
   --crm-calendar-external-bg: #f1eafa;
   --crm-inverse: #ffffff;
   --crm-overlay: rgb(0 0 0 / 40%);
-  --crm-nav-bg: var(--crm-black);
+  --crm-nav-bg: #1d0502;
   --crm-nav-text: var(--crm-paper);
   --crm-nav-muted: #c6beb2;
   --crm-nav-hover: #292622;
   --crm-nav-border: #514a41;
-  --crm-font-ui:
-    'Manrope Variable', Manrope, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --crm-font-ui: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --crm-font-title: var(--crm-font-ui);
   --crm-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'DejaVu Sans Mono', Menlo, monospace;
   --crm-text-xs: 0.75rem;

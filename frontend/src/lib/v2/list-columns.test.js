@@ -20,13 +20,33 @@ describe('organization list columns', () => {
   it('includes system and custom properties in the configured order, without duplicate aliases', () => {
     const columns = listColumns('Contact', config, [['name', 'Name']]);
     expect(columns.map((c) => c.key)).toEqual(['name', 'custom_fields.segment', 'email', 'id']);
-    expect(validColumns(null, columns)).toEqual(['name', 'email', 'id']);
+    expect(validColumns(null, columns)).toEqual(['name', 'email']);
   });
   it('removes unavailable saved columns and retains the user order', () => {
     const columns = listColumns('Contact', config);
     expect(validColumns(['email', 'deleted', 'name', 'email'], columns)).toEqual(['email', 'name']);
-    expect(validColumns(['deleted'], columns)).toEqual(['name', 'email', 'id']);
-    expect(validColumns({}, columns)).toEqual(['name', 'email', 'id']);
+    expect(validColumns(['deleted'], columns)).toEqual(['name', 'email']);
+    expect(validColumns({}, columns)).toEqual(['name', 'email']);
+  });
+  it('hides notes and record ID by default but retains explicit selections for every object', () => {
+    for (const target of ['Contact', 'Account', 'Opportunity', 'Task', 'Case']) {
+      const columns = listColumns(target, {
+        system: [
+          { key: 'name', label: 'Name' },
+          { key: 'description', label: 'Notes' },
+          { key: 'id', label: 'Record ID' }
+        ],
+        custom: []
+      });
+      expect(validColumns(null, columns)).toEqual(['name']);
+      expect(validColumns(['description', 'id', 'name'], columns)).toEqual([
+        'description',
+        'id',
+        'name'
+      ]);
+      expect(columns.map((column) => column.key)).toContain('description');
+      expect(columns.map((column) => column.key)).toContain('id');
+    }
   });
   it('formats custom values, relations, zero and false without displaying object internals', () => {
     const columns = listColumns('Contact', config);
@@ -49,6 +69,6 @@ describe('organization list columns', () => {
         ['custom_fields.segment'],
         listColumns('Contact', { system: config.system, custom: [] })
       )
-    ).toEqual(['id', 'name', 'email']);
+    ).toEqual(['name', 'email']);
   });
 });

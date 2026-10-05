@@ -35,12 +35,29 @@ for (const [theme, tokens] of Object.entries({ light, dark })) {
       }
     }
     for (const state of ['primary', 'primary-hover', 'primary-active']) {
-      it(`black text on ${state} meets AA`, () => {
+      it(`primary text on ${state} meets AA`, () => {
         expect(
           contrast(color(tokens, 'primary-text'), color(tokens, state))
         ).toBeGreaterThanOrEqual(4.5);
       });
     }
+    it('white text meets AA along the branded gradient in every interaction state', () => {
+      const endpoints = ['brand-red', 'brand-orange'].map((name) =>
+        color(tokens, name)
+          .match(/[a-f\d]{2}/gi)
+          .map((v) => parseInt(v, 16))
+      );
+      for (const state of ['action-bg', 'action-hover-bg', 'action-active-bg']) {
+        const overlay = Number(tokens[`--crm-${state}`].match(/\/ (\d+)%/)[1]) / 100;
+        for (let step = 0; step <= 100; step++) {
+          const rgb = endpoints[0].map((start, index) =>
+            Math.round((start + ((endpoints[1][index] - start) * step) / 100) * (1 - overlay))
+          );
+          const background = '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join('');
+          expect(contrast(color(tokens, 'primary-text'), background)).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    });
     for (const semantic of ['success', 'warning', 'danger', 'info', 'calendar-external']) {
       it(`${semantic} status meets AA`, () => {
         expect(

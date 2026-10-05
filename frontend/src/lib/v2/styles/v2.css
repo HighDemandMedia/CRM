@@ -266,13 +266,13 @@
 }
 /* The only ember button. One per view. */
 .v2-btn-primary {
-  background: var(--v2-ember);
+  background: var(--crm-action-bg);
   border-color: var(--crm-link);
   color: var(--crm-primary-text);
   font-weight: 600;
 }
 .v2-btn-primary:hover:not(:disabled) {
-  background: var(--crm-primary-hover);
+  background: var(--crm-action-hover-bg);
   border-color: var(--crm-link);
 }
 .v2-btn-quiet {
@@ -1481,7 +1481,7 @@ a.v2-setting:hover {
   height: 46px;
   border: 0;
   border-radius: 50%;
-  background: var(--v2-ember);
+  background: var(--crm-action-bg);
   color: var(--crm-primary-text);
   place-items: center;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
@@ -1946,7 +1946,7 @@ a.v2-setting:hover {
 
 /* Shared interaction states; selectors stay on primitives, not individual screens. */
 .v2-btn-primary:active:not(:disabled) {
-  background: var(--crm-primary-active);
+  background: var(--crm-action-active-bg);
 }
 .v2-input:hover:not(:disabled) {
   border-color: var(--crm-text-muted);

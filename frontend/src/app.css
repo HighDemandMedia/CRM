@@ -1,8 +1,16 @@
-@import '@fontsource-variable/manrope';
 @import './lib/styles/design-tokens.css';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin '@tailwindcss/typography';
+
+/* Bundled OFL font: independent of Google Fonts and installed desktop fonts. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2');
+}
 
 @custom-variant dark (&:is(.dark *));
 
