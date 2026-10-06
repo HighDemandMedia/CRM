@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import {
@@ -106,7 +109,9 @@
     query.trim()
       ? [
           ...ACTIONS.filter((action) =>
-            `${action.title} ${action.kind}`.toLowerCase().includes(query.trim().toLowerCase())
+            `${ui(action.title)} ${ui(action.kind)} ${action.title}`
+              .toLowerCase()
+              .includes(query.trim().toLowerCase())
           ),
           ...hits
         ]
@@ -199,7 +204,7 @@
       class="v2-palette"
       role="dialog"
       aria-modal="true"
-      aria-label="Search"
+      aria-label={ui('Search')}
       tabindex="-1"
       {onkeydown}
     >
@@ -209,21 +214,24 @@
           bind:this={input}
           bind:value={query}
           type="text"
-          placeholder="Search records or actions…"
-          aria-label="Search"
+          placeholder={ui('Search records or actions…')}
+          aria-label={ui('Search')}
           aria-autocomplete="list"
           autocomplete="off"
           spellcheck="false"
         />
-        <button class="palette-close" type="button" aria-label="Close search" onclick={onclose}
-          ><X size={16} /></button
+        <button
+          class="palette-close"
+          type="button"
+          aria-label={ui('Close search')}
+          onclick={onclose}><X size={16} /></button
         >
       </div>
 
-      <div class="v2-palette-list" role="listbox" aria-label="Results">
+      <div class="v2-palette-list" role="listbox" aria-label={ui('Results')}>
         {#each groups as group (group.kind)}
           <div class="v2-palette-group v2-label">
-            {group.kind === 'Accounts' ? 'Companies' : group.kind}
+            {ui(group.kind === 'Accounts' ? 'Companies' : group.kind)}
           </div>
           {#each group.rows as row (row.id)}
             {@const i = rows.indexOf(row)}
@@ -238,14 +246,14 @@
             >
               <Icon />
               <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
-                >{row.title}</span
+                >{row.id?.startsWith('act-') ? ui(row.title) : row.title}</span
               >
               {#if row.meta}<span class="v2-palette-meta">{row.meta}</span>{/if}
             </button>
           {/each}
         {:else}
           <p class="v2-sub" style="padding:22px 15px;text-align:center;margin:0">
-            {loading ? 'Searching…' : failure || `No results for “${query}”.`}
+            {loading ? ui('Searching…') : failure || `No results for “${query}”.`}
           </p>
         {/each}
       </div>

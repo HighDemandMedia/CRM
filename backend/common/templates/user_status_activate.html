@@ -11,7 +11,7 @@
 {% block button_link %}
 {% if url %}
 <a class="btn-link" href="{{ url }}"
-   style="display:inline-block;padding:14px 32px;background-color:#EA580C;color:#ffffff;text-decoration:none;border-radius:6px;font-size:16px;font-weight:600;line-height:1;">
+   style="{{ email_theme.button_style }}">
   Log In
 </a>
 {% endif %}

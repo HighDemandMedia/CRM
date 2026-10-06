@@ -786,6 +786,7 @@ class ProfileSelfUpdateSerializer(serializers.Serializer):
         choices=["send", "read_send"], required=False, allow_blank=True
     )
 
+    ui_language = serializers.ChoiceField(choices=["en", "es"], required=False)
     name = serializers.CharField(required=False, allow_blank=True, max_length=255)
     language = serializers.ChoiceField(
         choices=[

@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   import HostAvailability from '$lib/v2/components/HostAvailability.svelte';
   let unavailable = $state(true);
   import { deserialize } from '$app/forms';
@@ -64,7 +67,7 @@
     top = Math.max(16, Math.min(rect.top - 12, window.innerHeight - panel.offsetHeight - 16));
   }
   const time = (value) =>
-    new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    new Date(value).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' });
 
   async function manage(operation) {
     if (busy) return;
@@ -141,10 +144,10 @@
     <div class="popup-heading">
       <div class="calendar-icon"><CalendarDays size={21} /></div>
       <div class="heading-text">
-        <span class="eyebrow">EVENT DETAILS</span>
+        <span class="eyebrow">{ui('EVENT DETAILS')}</span>
         <h2 id="event-popup-title">{event.title}</h2>
       </div>
-      <button class="close" type="button" aria-label="Close event details" onclick={close}
+      <button class="close" type="button" aria-label={ui('Close event details')} onclick={close}
         ><X size={19} /></button
       >
     </div>
@@ -152,13 +155,13 @@
       <Clock3 size={17} />
       <div>
         <strong
-          >{new Date(event.start).toLocaleDateString('en-US', {
+          >{new Date(event.start).toLocaleDateString(locale(), {
             weekday: 'long',
             month: 'long',
             day: 'numeric'
           })}</strong
         ><span
-          >{#if event.allDay}All day{:else}{time(event.start)}{#if event.end}
+          >{#if event.allDay}{ui('All day')}{:else}{time(event.start)}{#if event.end}
               – {time(event.end)}{/if}{/if}</span
         >
       </div>
@@ -166,15 +169,19 @@
     <div class="people">
       {#if event.host}<div class="person-row">
           <UserRound size={18} />
-          <div><span class="field-label">Host</span><strong>{event.host}</strong></div>
+          <div><span class="field-label">{ui('Host')}</span><strong>{event.host}</strong></div>
         </div>{/if}
       {#each attendees as person}
         <div class="person-row">
           <Users size={18} />
           <div>
             <span class="field-label"
-              >{person.type === 'user' ? 'User' : person.type === 'company' ? 'Company' : 'Contact'} ·
-              Attendee</span
+              >{person.type === 'user'
+                ? ui('User')
+                : person.type === 'company'
+                  ? ui('Company')
+                  : ui('Contact')}
+              {ui('· Attendee')}</span
             >
             {#if person.type === 'user'}<strong>{person.name}</strong>
             {:else}<a
@@ -197,34 +204,34 @@
       {/each}
     </div>
     {#if ['appointment', 'google'].includes(event.type)}<section class="notes">
-        <h3><FileText size={16} />Meeting notes</h3>
-        <p>{event.notes || 'No notes.'}</p>
+        <h3><FileText size={16} />{ui('Meeting notes')}</h3>
+        <p>{event.notes || ui('No notes.')}</p>
       </section>{/if}
     {#if event.type === 'google' && event.href}<a
         class="v2-btn"
         href={event.href}
         target="_blank"
-        rel="noopener noreferrer">Open in Google Calendar</a
+        rel="noopener noreferrer">{ui('Open in Google Calendar')}</a
       >{/if}
     {#if event.canManage !== false}<div class="event-actions">
         {#if mode === 'details'}
           {#if ['appointment', 'google'].includes(event.type) && event.canReschedule !== false}<button
               class="v2-btn"
-              onclick={() => (mode = 'edit-details')}>Edit details</button
+              onclick={() => (mode = 'edit-details')}>{ui('Edit details')}</button
             >{/if}
           {#if event.canReschedule !== false}<button
               class="v2-btn"
               onclick={() => {
                 mode = 'reschedule';
                 failure = '';
-              }}>Reschedule</button
+              }}>{ui('Reschedule')}</button
             >{/if}
           {#if event.canCancel !== false}<button
               class="v2-btn danger"
               onclick={() => {
                 mode = 'cancel';
                 failure = '';
-              }}>Cancel event</button
+              }}>{ui('Cancel event')}</button
             >{/if}
         {:else if mode === 'edit-details'}
           <form
@@ -235,7 +242,7 @@
           >
             <fieldset disabled={busy}>
               <label
-                >Title<input
+                >{ui('Title')}<input
                   class="v2-input"
                   required
                   maxlength="255"
@@ -243,7 +250,7 @@
                 /></label
               >
               <label
-                >Meeting notes<textarea
+                >{ui('Meeting notes')}<textarea
                   class="v2-input"
                   rows="5"
                   maxlength="10000"
@@ -251,11 +258,13 @@
               >
             </fieldset>
             <p class="v2-sub">
-              Meeting notes are shared as the Google Calendar description when connected.
+              {ui('Meeting notes are shared as the Google Calendar description when connected.')}
             </p>
-            <button class="v2-btn" type="button" onclick={() => (mode = 'details')}>Cancel</button>
+            <button class="v2-btn" type="button" onclick={() => (mode = 'details')}
+              >{ui('Cancel')}</button
+            >
             <button class="v2-btn v2-btn-primary" disabled={busy}
-              >{busy ? 'Saving…' : 'Save changes'}</button
+              >{busy ? ui('Saving…') : ui('Save changes')}</button
             >
           </form>
         {:else if mode === 'reschedule'}
@@ -265,12 +274,19 @@
               void manage('reschedule');
             }}
           >
-            <h3>Reschedule event</h3>
+            <h3>{ui('Reschedule event')}</h3>
             <fieldset disabled={busy}>
-              <label>Date<input class="v2-input" type="date" required bind:value={date} /></label>
+              <label
+                >{ui('Date')}<input
+                  class="v2-input"
+                  type="date"
+                  required
+                  bind:value={date}
+                /></label
+              >
               <div class="time-fields">
                 <label
-                  >Start time<input
+                  >{ui('Start time')}<input
                     class="v2-input"
                     type="time"
                     required
@@ -278,7 +294,12 @@
                   /></label
                 >
                 {#if ['appointment', 'google'].includes(event.type)}<label
-                    >End time<input class="v2-input" type="time" required bind:value={end} /></label
+                    >{ui('End time')}<input
+                      class="v2-input"
+                      type="time"
+                      required
+                      bind:value={end}
+                    /></label
                   >{/if}
               </div>
             </fieldset>
@@ -298,18 +319,18 @@
                 onclick={() => {
                   mode = 'details';
                   failure = '';
-                }}>Back</button
+                }}>{ui('Back')}</button
               ><button
                 class="v2-btn v2-btn-primary"
                 disabled={busy || (event.type === 'appointment' && unavailable)}
-                >{busy ? 'Saving…' : 'Save changes'}</button
+                >{busy ? ui('Saving…') : ui('Save changes')}</button
               >
             </div>
           </form>
         {:else}
           <div>
-            <h3>Cancel this event?</h3>
-            <p class="cancel-copy">It will be removed from the calendar.</p>
+            <h3>{ui('Cancel this event?')}</h3>
+            <p class="cancel-copy">{ui('It will be removed from the calendar.')}</p>
             <div class="action-buttons">
               <button
                 class="v2-btn"
@@ -317,14 +338,14 @@
                 onclick={() => {
                   mode = 'details';
                   failure = '';
-                }}>Keep event</button
+                }}>{ui('Keep event')}</button
               ><button class="v2-btn danger" disabled={busy} onclick={() => manage('cancel')}
-                >{busy ? 'Cancelling…' : 'Yes, cancel event'}</button
+                >{busy ? ui('Cancelling…') : ui('Yes, cancel event')}</button
               >
             </div>
           </div>
         {/if}
-        {#if failure}<p class="v2-error" role="alert">{failure}</p>{/if}
+        {#if failure}<p class="v2-error" role="alert">{ui(failure)}</p>{/if}
       </div>{/if}
   {/if}
 </div>

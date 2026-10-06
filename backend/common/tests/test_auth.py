@@ -520,8 +520,8 @@ class TestGoogleOAuthCallbackView:
         assert "No email" in response.data["error"]
 
     @patch("common.views.auth_views.requests.post")
-    def test_successful_oauth_new_user(self, mock_post, unauthenticated_client):
-        """Successful OAuth should create user and return tokens."""
+    def test_oauth_cannot_provision_new_user(self, mock_post, unauthenticated_client):
+        """Verified OAuth cannot bypass invitation-only registration."""
         fake_token = _make_fake_id_token("newgoogle@example.com")
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -537,12 +537,9 @@ class TestGoogleOAuthCallbackView:
             },
             format="json",
         )
-        assert response.status_code == status.HTTP_200_OK
-        assert "access_token" in response.data
-        assert "refresh_token" in response.data
-        assert response.data["user"]["email"] == "newgoogle@example.com"
-        # Verify user was created
-        assert User.objects.filter(email="newgoogle@example.com").exists()
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "access_token" not in response.data
+        assert not User.objects.filter(email="newgoogle@example.com").exists()
 
     @patch("common.views.auth_views.requests.post")
     def test_successful_oauth_existing_user(
@@ -717,10 +714,10 @@ class TestGoogleIdTokenView:
 
     @patch("google.oauth2.id_token.verify_oauth2_token")
     @patch("google.auth.transport.requests.Request")
-    def test_successful_new_user(
+    def test_google_cannot_provision_new_user(
         self, mock_request_cls, mock_verify, unauthenticated_client
     ):
-        """Valid token with new email should create user and return JWT."""
+        """Valid token with an unknown email cannot provision a CRM account."""
         mock_verify.return_value = {
             "email": "mobileuser@example.com",
             "email_verified": True,
@@ -729,15 +726,9 @@ class TestGoogleIdTokenView:
         response = unauthenticated_client.post(
             self.url, {"idToken": "valid-token"}, format="json"
         )
-        assert response.status_code == status.HTTP_200_OK
-        assert "JWTtoken" in response.data
-        # Refresh token must be present so the mobile client can refresh the
-        # 1-hour access token before the user picks an org (which is the only
-        # other place that would mint a refresh token via OrgSwitchView).
-        assert "refresh_token" in response.data
-        assert response.data["refresh_token"]
-        assert response.data["user"]["email"] == "mobileuser@example.com"
-        assert User.objects.filter(email="mobileuser@example.com").exists()
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "JWTtoken" not in response.data
+        assert not User.objects.filter(email="mobileuser@example.com").exists()
 
     @patch("google.oauth2.id_token.verify_oauth2_token")
     @patch("google.auth.transport.requests.Request")

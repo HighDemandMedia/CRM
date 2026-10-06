@@ -1,18 +1,18 @@
 # Acceso personal y creación de organizaciones
 
-Actualizado: 24 de septiembre de 2026.
+Actualizado: 5 de octubre de 2026.
 
 ## Crear una cuenta
 
-Abre `/register`. Introduce nombre, email, nombre de organización y una contraseña personal de al menos 10 caracteres. La contraseña se confirma y valida en el servidor; no se guarda en texto plano ni se devuelve al navegador.
+El acceso es por invitación. El propietario de la plataforma crea la organización desde `/org/new` e indica el correo de su administrador. El CRM envía una invitación válida durante siete días. No se concede acceso hasta aceptarla.
 
-El registro crea una organización nueva. Su creador es Super Admin **de esa organización**, no superusuario global de Django. La zona horaria se toma del navegador y se puede cambiar después. La creación de usuario, organización y membresía es una sola transacción.
+El destinatario nuevo elige su contraseña; el destinatario con cuenta existente inicia sesión y acepta. El administrador inicial recibe la propiedad de esa organización, nunca privilegios de plataforma, y pasa a completar información de empresa, moneda, país y zona horaria. Después puede invitar a su equipo desde Users & Teams.
 
-Por ahora el registro normal no exige un código enviado por email. Esto no debe interpretarse como verificación de propiedad de la dirección. Antes de abrir registro público masivo hay que configurar correo real y revisar verificación/abuso de registro. `PASSWORD_REGISTRATION_ENABLED=false` cierra el registro público; las invitaciones válidas siguen funcionando.
+El registro por contraseña requiere siempre una invitación válida para ese email. Google y la recuperación por correo solo autentican cuentas existentes. `PASSWORD_REGISTRATION_ENABLED=true` ya no habilita el registro público; conserva `false` para la comprobación de configuración alojada.
 
 ## Entrar e invitar
 
-En `/login` utiliza email y contraseña. Una sola organización activa se selecciona automáticamente; si perteneces a varias, eliges una. El formulario no concede acceso por escribir el nombre o ID de una organización.
+En `/login` pulsa Sign in y utiliza email y contraseña. Una sola organización activa se selecciona automáticamente; si perteneces a varias, eliges una. El formulario no concede acceso por escribir el nombre o ID de una organización.
 
 Los usuarios adicionales reciben una invitación. Al abrir un enlace válido, un usuario nuevo llega directamente al formulario de nombre, contraseña y confirmación. El correo viene definido por la invitación y se muestra la organización a la que se unirá. El servidor vuelve a validar el token y el correo al guardar; recibe exactamente la organización y el rol concedidos. El token se consume al registrarse; no se crea una organización adicional. Funciona aunque el registro público esté cerrado. Los enlaces anteriores válidos también usan este flujo.
 

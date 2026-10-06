@@ -1,4 +1,8 @@
 <script>
+  import { listViewPreference } from '$lib/v2/list-view-preference.svelte.js';
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   import { can } from '$lib/v2/permissions.js';
   import { showStageRequirements } from '$lib/components/pipelines/feedback.js';
   import { configuredStages, configuredLabel } from '$lib/v2/pipeline-config.js';
@@ -54,7 +58,11 @@
     ['last_activity', 'Last activity']
   ];
   const catalog = $derived(listColumns('Case', page.data.propertyLayout?.Case, legacyFields));
-  const fields = $derived(catalog.map((c) => [c.key, c.label]));
+  const fields = $derived(catalog.map((c) => [c.key, c.system ? ui(c.label) : c.label]));
+  listViewPreference(
+    () => `${page.data.accountId}.${page.data.accountUser?.email}.Case`,
+    () => page.url
+  );
   const selection = columnSelection(
     () => catalog,
     () => `${page.data.accountId}.${page.data.accountUser?.email}.Case`
@@ -62,11 +70,11 @@
   const columns = $derived(selection.selected);
   const view = $derived(page.url.searchParams.get('view') ?? 'list');
   const offset = $derived(Number(page.url.searchParams.get('offset') ?? 0));
-  let sort = $state(''),
-    asc = $state(true);
+  const sort = $derived(page.url.searchParams.get('sort') || '');
+  const asc = $derived(page.url.searchParams.get('direction') !== 'desc');
   const date = (value) =>
     value
-      ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+      ? new Date(value).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' })
       : '—';
   function value(t, key) {
     if (key === 'status')
@@ -186,26 +194,29 @@
   }
 </script>
 
-{#if advanced}<button class="v2-btn" onclick={() => (advanced = false)}>Back to tickets</button
+{#if advanced}<button class="v2-btn" onclick={() => (advanced = false)}
+    >{ui('Back to tickets')}</button
   ><AdvancedQueue {data} />{:else}
-  <PageHeader title="Tickets"
+  <PageHeader title={ui('Tickets')}
     >{#snippet sub()}{data.totals.count}
       {data.totals.count === 1
-        ? 'ticket'
-        : 'tickets'}{/snippet}{#snippet actions()}{#if can(page.data.permissions, 'tickets', 'export')}<button
+        ? ui('ticket')
+        : ui(
+            'tickets'
+          )}{/snippet}{#snippet actions()}{#if can(page.data.permissions, 'tickets', 'export')}<button
           class="v2-btn"
-          onclick={exportCSV}><Download size={14} />Export CSV</button
+          onclick={exportCSV}><Download size={14} />{ui('Export CSV')}</button
         >{/if}{#if can(page.data.permissions, 'tickets', 'create')}<a
           class="v2-btn v2-btn-primary"
-          href={resolve('/tickets/new')}><Plus size={14} />New ticket</a
+          href={resolve('/tickets/new')}><Plus size={14} />{ui('New ticket')}</a
         >{/if}{/snippet}</PageHeader
   >
   <div class="workspace">
     <div class="filters">
       <input
         class="v2-input search"
-        aria-label="Search tickets"
-        placeholder="Search tickets…"
+        aria-label={ui('Search tickets')}
+        placeholder={ui('Search tickets…')}
         bind:value={search}
         oninput={() => {
           clearTimeout(timer);
@@ -214,37 +225,38 @@
       />
       <select
         class="v2-input"
-        aria-label="Assigned to"
+        aria-label={ui('Assigned to')}
         value={page.url.searchParams.get('assigned_to') ?? ''}
         onchange={(e) => filter('assigned_to', e.currentTarget.value)}
-        ><option value="">Assigned to</option>{#each data.people as person}<option value={person.id}
-            >{person.name}</option
+        ><option value="">{ui('Assigned to')}</option>{#each data.people as person}<option
+            value={person.id}>{person.name}</option
           >{/each}</select
       >
       <select
         class="v2-input"
-        aria-label="Status"
+        aria-label={ui('Status')}
         value={data.status}
         onchange={(e) => filter('status', e.currentTarget.value)}
-        ><option value="">All statuses</option>{#each statuses as [value, label]}<option {value}
-            >{label}</option
+        ><option value="">{ui('All statuses')}</option>{#each statuses as [value, label]}<option
+            {value}>{label}</option
           >{/each}</select
       >
       <select
         class="v2-input"
-        aria-label="Priority"
+        aria-label={ui('Priority')}
         value={page.url.searchParams.get('priority') ?? ''}
         onchange={(e) => filter('priority', e.currentTarget.value)}
-        ><option value="">Priority</option>{#each priorities as [value, label]}<option {value}
-            >{label}</option
+        ><option value="">{ui('Priority')}</option>{#each priorities as [value, label]}<option
+            {value}>{label}</option
           >{/each}</select
       >
       <select
         class="v2-input"
-        aria-label="Category"
+        aria-label={ui('Category')}
         value={page.url.searchParams.get('category') ?? ''}
         onchange={(e) => filter('category', e.currentTarget.value)}
-        ><option value="">Category</option>{#each categories as value}<option>{value}</option
+        ><option value="">{ui('Category')}</option>{#each categories as value}<option
+            >{value}</option
           >{/each}</select
       >
       <label class="overdue-filter"
@@ -252,17 +264,17 @@
           type="checkbox"
           checked={page.url.searchParams.get('overdue') === 'true'}
           onchange={(e) => filter('overdue', e.currentTarget.checked ? 'true' : '')}
-        />Overdue</label
+        />{ui('Overdue')}</label
       >
       <div class="views">
         <button
           class="v2-btn"
-          aria-label="List view"
+          aria-label={ui('List view')}
           aria-pressed={view === 'list'}
           onclick={() => filter('view', 'list')}><List size={16} /></button
         ><button
           class="v2-btn"
-          aria-label="Pipeline view"
+          aria-label={ui('Pipeline view')}
           aria-pressed={view === 'pipeline'}
           onclick={() => filter('view', 'pipeline')}><Columns3 size={16} /></button
         >{#if view === 'list'}<ColumnPicker
@@ -274,8 +286,8 @@
           />{/if}
       </div>
     </div>
-    {#if error}<p class="v2-error" role="alert">{error}</p>{/if}
-    {#if view === 'pipeline'}<div class="pipeline hdm-board" aria-label="Tickets by status">
+    {#if error}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
+    {#if view === 'pipeline'}<div class="pipeline hdm-board" aria-label={ui('Tickets by status')}>
         {#each stages as [status, label]}<section
             class="pipeline-column"
             data-tone={pipelineTone(label)}
@@ -321,7 +333,7 @@
                   <a class="pipeline-name" draggable="false" href={resolve(`/tickets/${ticket.id}`)}
                     >{ticket.name || `Ticket · ${ticket.id.slice(0, 8)}`}</a
                   >
-                  <p>{ticket.assignee ?? 'Unassigned'}</p>
+                  <p>{ticket.assignee ?? ui('Unassigned')}</p>
                   <p>{ticket.category}</p>
                   {#if ticket.due_at}<p
                       class:overdue={ticket.is_open && new Date(ticket.due_at) < new Date()}
@@ -335,7 +347,7 @@
                     onchange={(e) => move(ticket.id, e.currentTarget.value)}
                     >{#each stages as [value, label]}<option {value}>{label}</option>{/each}</select
                   >
-                </article>{:else}<p class="pipeline-empty">No tickets</p>{/each}
+                </article>{:else}<p class="pipeline-empty">{ui('No tickets')}</p>{/each}
             </div>
           </section>{/each}
       </div>
@@ -343,7 +355,7 @@
       <div
         class="table-scroll hdm-list"
         role="region"
-        aria-label="Tickets; scroll horizontally to see all columns"
+        aria-label={ui('Tickets; scroll horizontally to see all columns')}
         tabindex="0"
       >
         <table>
@@ -355,11 +367,10 @@
                   aria-sort={sort === key ? (asc ? 'ascending' : 'descending') : 'none'}
                   ><button
                     onclick={() => {
-                      if (sort === key) asc = !asc;
-                      else {
-                        sort = key;
-                        asc = true;
-                      }
+                      const url = new URL(page.url);
+                      url.searchParams.set('sort', key);
+                      url.searchParams.set('direction', sort === key && asc ? 'desc' : 'asc');
+                      void goto(resolve('/tickets') + url.search, { noScroll: true });
                     }}
                     >{fields.find(([id]) => id === key)?.[1]}{sort === key
                       ? asc
@@ -367,7 +378,7 @@
                         : ' ↓'
                       : ''}</button
                   ></th
-                >{/each}<th scope="col">Actions</th></tr
+                >{/each}<th scope="col">{ui('Actions')}</th></tr
             ></thead
           ><tbody
             >{#each rows as ticket}<tr
@@ -393,10 +404,11 @@
                   >{/each}<td class="list-row-actions"
                   >{#if can(page.data.permissions, 'tickets', 'edit')}<a
                       aria-label={`Edit ${ticket.name}`}
-                      href={resolve(`/tickets/${ticket.id}/edit`)}>Edit</a
+                      href={resolve(`/tickets/${ticket.id}/edit`)}>{ui('Edit')}</a
                     >{/if}</td
                 ></tr
-              >{:else}<tr><td colspan={columns.length + 1}>No tickets found.</td></tr>{/each}</tbody
+              >{:else}<tr><td colspan={columns.length + 1}>{ui('No tickets found.')}</td></tr
+              >{/each}</tbody
           >
         </table>
       </div>{/if}
@@ -404,11 +416,12 @@
         <button
           class="v2-btn"
           disabled={offset === 0}
-          onclick={() => filter('offset', String(Math.max(0, offset - 100)))}>Previous</button
+          onclick={() => filter('offset', String(Math.max(0, offset - 100)))}
+          >{ui('Previous')}</button
         ><button
           class="v2-btn"
           disabled={offset + rows.length >= data.totals.count}
-          onclick={() => filter('offset', String(offset + rows.length))}>Next</button
+          onclick={() => filter('offset', String(offset + rows.length))}>{ui('Next')}</button
         >
       </div>{/if}
   </div>
@@ -417,16 +430,16 @@
       onclose={() => (resolving = null)}
       aria-labelledby="resolve-title"
     >
-      <h2 id="resolve-title">Resolve ticket</h2>
+      <h2 id="resolve-title">{ui('Resolve ticket')}</h2>
       <label
-        >Resolution note<textarea class="v2-input" rows="4" bind:value={resolution}
+        >{ui('Resolution note')}<textarea class="v2-input" rows="4" bind:value={resolution}
         ></textarea></label
-      >{#if error}<p class="v2-error" role="alert">{error}</p>{/if}
+      >{#if error}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
       <div class="pages">
-        <button class="v2-btn" onclick={() => (resolving = null)}>Cancel</button><button
+        <button class="v2-btn" onclick={() => (resolving = null)}>{ui('Cancel')}</button><button
           class="v2-btn v2-btn-primary"
           disabled={moving || !resolution.trim()}
-          onclick={() => move(resolving, 'Resolved')}>Resolve</button
+          onclick={() => move(resolving, 'Resolved')}>{ui('Resolve')}</button
         >
       </div>
     </dialog>{/if}

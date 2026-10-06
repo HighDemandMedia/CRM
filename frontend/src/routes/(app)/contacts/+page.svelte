@@ -1,4 +1,15 @@
 <script>
+  import {
+    browserStorage,
+    preferenceKey,
+    readPreference,
+    writePreference,
+    columnWidths
+  } from '$lib/v2/list-preferences.js';
+  import { listViewPreference } from '$lib/v2/list-view-preference.svelte.js';
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, count, relativeDays } = useI18n();
+
   import { can } from '$lib/v2/permissions.js';
   import ContactActions from '$lib/components/contacts/ContactActions.svelte';
   import { showStageRequirements } from '$lib/components/pipelines/feedback.js';
@@ -26,7 +37,7 @@
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { advancedContactFilters } from '$lib/v2/contact-filter-fields.js';
   import { contactColumns as legacyFields } from '$lib/v2/contact-columns.js';
-  import { count, relativeDays, money } from '$lib/v2/format.js';
+
   import { Plus, List, Columns3 } from '@lucide/svelte';
 
   /** @type {{ data: any }} */
@@ -197,7 +208,11 @@
       .map((field) => field.key);
   });
   const catalog = $derived(listColumns('Contact', page.data.propertyLayout?.Contact, legacyFields));
-  const fields = $derived(catalog.map((c) => [c.key, c.label]));
+  const fields = $derived(catalog.map((c) => [c.key, c.system ? ui(c.label) : c.label]));
+  listViewPreference(
+    () => `${page.data.accountId}.${page.data.accountUser?.email}.Contact`,
+    () => page.url
+  );
   const selection = columnSelection(
     () => catalog,
     () => `${page.data.accountId}.${page.data.accountUser?.email}.Contact`
@@ -212,7 +227,20 @@
       .filter((field) => field !== undefined)
   );
   let totalWidth = $derived(selected.reduce((sum, key) => sum + (widths[key] ?? 160), 120));
-  const widthKey = 'crm.contacts.widths.v1';
+  const widthKey = $derived(
+    preferenceKey('widths', `${page.data.accountId}.${page.data.accountUser?.email}.Contact`)
+  );
+  $effect(() => {
+    const key = widthKey;
+    const storage = browserStorage();
+    widths = columnWidths(readPreference(storage, key, {}));
+    function sync(event) {
+      if (event.storageArea === storage && (event.key === key || event.key === null))
+        widths = columnWidths(readPreference(storage, key, {}));
+    }
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  });
   onMount(() => {
     const timer = setInterval(
       () => {
@@ -220,19 +248,6 @@
       },
       24 * 60 * 60000
     );
-    try {
-      const savedWidths = JSON.parse(localStorage.getItem(widthKey) ?? '{}');
-      for (const [key] of fields) {
-        if (
-          typeof savedWidths?.[key] === 'number' &&
-          Number.isFinite(savedWidths[key]) &&
-          savedWidths[key] >= 60
-        )
-          widths[key] = savedWidths[key];
-      }
-    } catch {
-      /* Stored layout is optional. */
-    }
     ready = true;
     return () => {
       clearInterval(timer);
@@ -365,16 +380,12 @@
     goto(link({ sort: key, direction, offset: null }));
   }
   function saveWidths() {
-    try {
-      localStorage.setItem(widthKey, JSON.stringify(widths));
-    } catch {
-      /* Keep session layout. */
-    }
+    writePreference(browserStorage(), widthKey, widths);
   }
   /** @param {string} key @param {number} width */
   function resizeColumn(key, width) {
     if (!Number.isFinite(width)) return;
-    widths[key] = Math.max(60, Math.round(width));
+    widths[key] = Math.min(2000, Math.max(60, Math.round(width)));
     saveWidths();
   }
   /** @param {string} key */
@@ -418,7 +429,7 @@
     const startWidth = widths[key] ?? 160;
     handle.setPointerCapture(event.pointerId);
     const move = (/** @type {PointerEvent} */ e) => {
-      widths[key] = Math.max(60, Math.round(startWidth + e.clientX - startX));
+      widths[key] = Math.min(2000, Math.max(60, Math.round(startWidth + e.clientX - startX)));
     };
     const end = () => {
       handle.removeEventListener('pointermove', move);
@@ -455,18 +466,18 @@
   }
 </script>
 
-<PageHeader title="Contacts">
+<PageHeader title={ui('Contacts')}>
   {#snippet sub()}<span class="v2-num">{count(data.totals.count)}</span>
-    contacts{#if data.view === 'pipeline'}
+    {ui('contacts')}{#if data.view === 'pipeline'}
       &nbsp;· <PipelineTotal
         currency={data.org.currency}
         values={data.totals.money_totals}
-        label="Associated deal total (each deal counted once)"
+        label={ui('Associated deal total (each deal counted once)')}
       />{/if}{/snippet}
   {#snippet actions()}
     {#if can(page.data.permissions, 'contacts', 'create')}<a
         class="v2-btn v2-btn-primary"
-        href={resolve('/contacts/new')}><Plus />New contact</a
+        href={resolve('/contacts/new')}><Plus />{ui('New contact')}</a
       >{/if}
   {/snippet}
 </PageHeader>
@@ -490,45 +501,46 @@
       />{/if}
   {/each}
   <label
-    >Search<input
+    >{ui('Search')}<input
       class="v2-input"
       type="search"
       name="search"
-      placeholder="Search contact information"
+      placeholder={ui('Search contacts…')}
       value={filterValues.search ?? ''}
     /></label
   >
   <label
-    >Contact Owner<select
+    >{ui('Contact Owner')}<select
       class="v2-input"
       name="assigned_to"
       value={filterValues.assigned_to ?? ''}
     >
-      <option value="">All owners</option>
+      <option value="">{ui('All owners')}</option>
       {#each data.people as person}<option value={person.id}>{person.name}</option>{/each}
     </select></label
   >
   <label
-    >Stage<select class="v2-input" name="stage" value={filterValues.stage ?? ''}>
-      <option value="">All stages</option>
+    >{ui('Stage')}<select class="v2-input" name="stage" value={filterValues.stage ?? ''}>
+      <option value="">{ui('All stages')}</option>
       {#each data.stages as stage}<option value={stage.value}>{stage.label}</option>{/each}
-      {#if data.view === 'list'}<option value="UNASSIGNED">No stage</option>{/if}
+      {#if data.view === 'list'}<option value="UNASSIGNED">{ui('No stage')}</option>{/if}
     </select></label
   >
   <label
-    >Tags<select class="v2-input" name="tags" value={filterValues.tags ?? ''}>
-      <option value="">All tags</option>
+    >{ui('Tags')}<select class="v2-input" name="tags" value={filterValues.tags ?? ''}>
+      <option value="">{ui('All tags')}</option>
       {#each data.tags as tag}<option value={tag.id}>{tag.name}</option>{/each}
     </select></label
   >
   <details class="advanced-filters">
-    <summary class="v2-btn">Filters{advancedKeys.length ? ` (${advancedKeys.length})` : ''}</summary
+    <summary class="v2-btn"
+      >{ui('Filters')}{advancedKeys.length ? ` (${advancedKeys.length})` : ''}</summary
     >
     <div class="advanced-panel">
       <label
-        >Add filter<select
+        >{ui('Add filter')}<select
           class="v2-input"
-          aria-label="Add filter"
+          aria-label={ui('Add filter')}
           value=""
           onchange={(event) => {
             if (event.currentTarget.value)
@@ -536,9 +548,9 @@
             event.currentTarget.value = '';
           }}
         >
-          <option value="">Choose a property</option>
+          <option value="">{ui('Choose a property')}</option>
           {#each advancedContactFilters.filter((field) => !advancedKeys.includes(field.key)) as field}
-            <option value={field.key}>{field.label}</option>
+            <option value={field.key}>{ui(field.label)}</option>
           {/each}
         </select></label
       >
@@ -548,36 +560,40 @@
           <div class="advanced-row">
             {#if field.type === 'range'}
               <fieldset>
-                <legend>{field.label}</legend>
+                <legend>{ui(field.label)}</legend>
                 <label
-                  >From<input
+                  >{ui('From')}<input
                     class="v2-input"
                     type="date"
                     name={`${key}__gte`}
-                    aria-label={`${field.label} from`}
+                    aria-label={`${ui(field.label)} from`}
                     value={filterValues[`${key}__gte`] ?? ''}
                   /></label
                 >
                 <label
-                  >To<input
+                  >{ui('To')}<input
                     class="v2-input"
                     type="date"
                     name={`${key}__lte`}
-                    aria-label={`${field.label} to`}
+                    aria-label={`${ui(field.label)} to`}
                     value={filterValues[`${key}__lte`] ?? ''}
                   /></label
                 >
               </fieldset>
             {:else if field.options}
               <label
-                >{field.label}<select class="v2-input" name={key} value={filterValues[key] ?? ''}>
-                  <option value="">Any</option>
+                >{ui(field.label)}<select
+                  class="v2-input"
+                  name={key}
+                  value={filterValues[key] ?? ''}
+                >
+                  <option value="">{ui('Any')}</option>
                   {#each field.options as [value, label]}<option {value}>{label}</option>{/each}
                 </select></label
               >
             {:else}
               <label
-                >{field.label}<input
+                >{ui(field.label)}<input
                   class="v2-input"
                   name={key}
                   value={filterValues[key] ?? ''}
@@ -587,7 +603,7 @@
             <button
               class="v2-btn"
               type="button"
-              aria-label={`Remove ${field.label} filter`}
+              aria-label={`Remove ${ui(field.label)} filter`}
               onclick={() => removeFilter(key)}>×</button
             >
           </div>
@@ -605,24 +621,24 @@
             [...page.url.searchParams.entries()]
               .filter(([key]) => key !== 'columns')
               .concat([['columns', selected.join(',')]])
-          ).toString()}>Export CSV</a
+          ).toString()}>{ui('Export CSV')}</a
       >{/if}
   {/if}
   <div class="view-actions">
-    <nav class="view-toggle" aria-label="Contact views">
+    <nav class="view-toggle" aria-label={ui('Contact views')}>
       <a
         class="v2-btn view-icon"
         class:v2-btn-primary={data.view === 'list'}
-        aria-label="List view"
-        title="List view"
+        aria-label={ui('List view')}
+        title={ui('List view')}
         aria-current={data.view === 'list' ? 'page' : undefined}
         href={link({ view: 'list' })}><List size={18} /></a
       >
       <a
         class="v2-btn view-icon"
         class:v2-btn-primary={data.view === 'pipeline'}
-        aria-label="Pipeline view"
-        title="Pipeline view"
+        aria-label={ui('Pipeline view')}
+        title={ui('Pipeline view')}
         aria-current={data.view === 'pipeline' ? 'page' : undefined}
         href={link({ view: 'pipeline' })}><Columns3 size={18} /></a
       >
@@ -649,7 +665,7 @@
   {#if data.view === 'pipeline'}
     {#if moveError}<p class="table-hint" role="alert">{moveError}</p>{/if}
     <p class="table-hint v2-sub" role="status">{moveStatus}</p>
-    <div class="contact-board hdm-board" aria-label="Contacts by stage">
+    <div class="contact-board hdm-board" aria-label={ui('Contacts by stage')}>
       {#each data.board as stage (stage.value)}
         <section
           class="stage-column pipeline-column"
@@ -669,7 +685,7 @@
               <PipelineTotal
                 currency={data.org.currency}
                 values={stage.moneyTotals}
-                label="Associated deal total (each deal counted once)"
+                label={ui('Associated deal total (each deal counted once)')}
               /><span class="pipeline-stage-count">{count(stage.count)}</span>
             </div>
           </header>
@@ -697,7 +713,7 @@
                   now={clock}
                 />
               </article>
-            {:else}<p class="pipeline-empty">No contacts</p>{/each}
+            {:else}<p class="pipeline-empty">{ui('No contacts')}</p>{/each}
           </div>
           <footer>
             {#if stage.offset > 0}<a
@@ -705,13 +721,13 @@
                 aria-label={`Previous ${stage.label} page`}
                 href={link({
                   [`${stage.value}_offset`]: String(Math.max(0, stage.offset - data.pageSize))
-                })}>Previous</a
+                })}>{ui('Previous')}</a
               >{/if}
             {#if stage.offset + data.pageSize < stage.count}<a
                 class="v2-btn"
                 aria-label={`Next ${stage.label} page`}
                 href={link({ [`${stage.value}_offset`]: String(stage.offset + data.pageSize) })}
-                >Next</a
+                >{ui('Next')}</a
               >{/if}
           </footer>
         </section>
@@ -725,7 +741,7 @@
       ondrop={dropColumn}
       ondragleave={leaveColumns}
       role="region"
-      aria-label="Contact list, horizontally scrollable"
+      aria-label={ui('Contact list, horizontally scrollable')}
       tabindex="0"
     >
       <table class="contact-grid" style:width={`${totalWidth}px`}>
@@ -757,8 +773,8 @@
                   class:dragging={dragging === key}
                   draggable="true"
                   title={legacyFields.some(([id]) => id === key)
-                    ? 'Click to sort; drag to reorder. Alt + arrow keys also move the column.'
-                    : 'Drag to reorder. Alt + arrow keys also move the column.'}
+                    ? ui('Click to sort; drag to reorder. Alt + arrow keys also move the column.')
+                    : ui('Drag to reorder. Alt + arrow keys also move the column.')}
                   onclick={() => {
                     if (legacyFields.some(([id]) => id === key)) sortBy(key);
                   }}
@@ -779,8 +795,8 @@
                 </button>
                 <button
                   class="resize-handle"
-                  aria-label={`Resize ${label}`}
-                  title="Drag to resize; arrow keys adjust width; double-click to fit content"
+                  aria-label={ui('Resize {label}', { label })}
+                  title={ui('Drag to resize; arrow keys adjust width; double-click to fit content')}
                   onpointerdown={(event) => startResize(event, key)}
                   ondblclick={() => resizeColumn(key, fitColumn(key))}
                   onkeydown={(event) => {
@@ -794,7 +810,7 @@
                   }}
                 ></button>
               </th>
-            {/each}<th scope="col">Actions</th>
+            {/each}<th scope="col">{ui('Actions')}</th>
           </tr></thead
         >
         <tbody>
@@ -829,18 +845,20 @@
               {/each}
               <td class="list-row-actions"><ContactActions {contact} list /></td>
             </tr>
-          {:else}<tr><td colspan={selected.length + 1}>No contacts on this page.</td></tr>{/each}
+          {:else}<tr><td colspan={selected.length + 1}>{ui('No contacts on this page.')}</td></tr
+            >{/each}
         </tbody>
       </table>
     </div>
     <div class="pagination">
       {#if data.offset > 0}<a
           class="v2-btn"
-          href={link({ offset: String(Math.max(0, data.offset - data.pageSize)) })}>Previous</a
+          href={link({ offset: String(Math.max(0, data.offset - data.pageSize)) })}
+          >{ui('Previous')}</a
         >{/if}
       {#if data.offset + data.pageSize < data.totals.count}<a
           class="v2-btn"
-          href={link({ offset: String(data.offset + data.pageSize) })}>Next</a
+          href={link({ offset: String(data.offset + data.pageSize) })}>{ui('Next')}</a
         >{/if}
     </div>
   {/if}

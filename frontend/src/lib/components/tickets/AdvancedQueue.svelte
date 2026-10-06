@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, count } = useI18n();
+
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import { invalidateAll } from '$app/navigation';
@@ -10,7 +13,7 @@
   import Avatar from '$lib/v2/components/Avatar.svelte';
   import EmptyState from '$lib/v2/components/EmptyState.svelte';
   import BulkActionBar from '$lib/v2/components/BulkActionBar.svelte';
-  import { count, shortAge } from '$lib/v2/format.js';
+  import { shortAge } from '$lib/v2/format.js';
   import { PRIORITY_TONE, CASE_STATUS_TONE } from '$lib/v2/enums.js';
   import { Plus, LifeBuoy } from '@lucide/svelte';
 
@@ -109,23 +112,26 @@
   };
 </script>
 
-<PageHeader title="Tickets">
+<PageHeader title={ui('Tickets')}>
   {#snippet sub()}
-    <span class="v2-num">{count(totals.open)}</span> open ·
-    <span class="v2-num" style="color:var(--v2-rust)">{totals.urgent}</span> urgent ·
+    <span class="v2-num">{count(totals.open)}</span>
+    {ui('open ·')}
+    <span class="v2-num" style="color:var(--v2-rust)">{totals.urgent}</span>
+    {ui('urgent ·')}
     <!-- Not "breaching today". A breach depends on the org's business calendar
          and is a per-row calculation; nobody having replied yet is a fact the
          queue can establish, and it is the one that decides what to open. -->
-    <span class="v2-num">{count(totals.awaiting_reply)}</span> with no reply yet
+    <span class="v2-num">{count(totals.awaiting_reply)}</span>
+    {ui('with no reply yet')}
   {/snippet}
   {#snippet actions()}
-    <a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}><Plus />New ticket</a>
+    <a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}><Plus />{ui('New ticket')}</a>
   {/snippet}
 </PageHeader>
 
 {#if page.url.search}
   <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:8px 0 0">
-    These numbers describe the filtered queue.
+    {ui('These numbers describe the filtered queue.')}
   </p>
 {/if}
 
@@ -166,16 +172,16 @@
   {#if tickets.length === 0}
     <!-- An empty queue is good news, so it does not read like a failure. -->
     <EmptyState
-      title={data.showAll ? 'No tickets here yet' : 'The queue is clear'}
+      title={data.showAll ? ui('No tickets here yet') : ui('The queue is clear')}
       body={data.showAll
         ? 'Nothing has been raised in this workspace. Tickets arrive here from email, the portal, and anyone who replies to a closed one.'
         : 'Nothing is waiting on your team right now. Closed and rejected tickets are still here. They are just not in the way.'}
     >
       {#snippet icon()}<LifeBuoy size={21} />{/snippet}
       {#snippet actions()}
-        <a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}>New ticket</a>
+        <a class="v2-btn v2-btn-primary" href={resolve('/tickets/new')}>{ui('New ticket')}</a>
         {#if !data.showAll}
-          <a class="v2-btn" href={resolve('/tickets?all=1')}>Show closed too</a>
+          <a class="v2-btn" href={resolve('/tickets?all=1')}>{ui('Show closed too')}</a>
         {/if}
       {/snippet}
     </EmptyState>
@@ -187,19 +193,19 @@
             <th style="width:34px">
               <input
                 type="checkbox"
-                aria-label="Select all loaded"
+                aria-label={ui('Select all loaded')}
                 checked={tickets.length > 0 && selected.size === tickets.length}
                 onchange={toggleAll}
               />
             </th>
-            <th>Subject</th>
-            <th>Priority</th>
-            <th>Status</th>
-            <th>Type</th>
-            <th>Account</th>
-            <th>Assignee</th>
-            <th class="v2-r">Age</th>
-            <th style="width:130px">First reply</th>
+            <th>{ui('Subject')}</th>
+            <th>{ui('Priority')}</th>
+            <th>{ui('Status')}</th>
+            <th>{ui('Type')}</th>
+            <th>{ui('Account')}</th>
+            <th>{ui('Assignee')}</th>
+            <th class="v2-r">{ui('Age')}</th>
+            <th style="width:130px">{ui('First reply')}</th>
           </tr>
         </thead>
         <tbody>
@@ -209,7 +215,7 @@
               <td data-m="lead">
                 <input
                   type="checkbox"
-                  aria-label="Select ticket"
+                  aria-label={ui('Select ticket')}
                   checked={selected.has(t.id)}
                   onchange={() => toggle(t.id)}
                 />
@@ -232,14 +238,16 @@
                     >{t.account.name}</a
                   >
                 {:else}
-                  No account
+                  {ui('No account')}
                 {/if}
               </td>
               <td data-m="hide">
                 {#if t.assignee}
                   <Avatar name={t.assignee} size={22} />
                 {:else}
-                  <span class="v2-muted" style="font-size:var(--crm-text-sm)">Unassigned</span>
+                  <span class="v2-muted" style="font-size:var(--crm-text-sm)"
+                    >{ui('Unassigned')}</span
+                  >
                 {/if}
               </td>
               <td class="v2-r v2-num v2-muted" data-m="meta">{shortAge(t.opened_at)}</td>
@@ -276,12 +284,13 @@
       </table>
     </div>
     <p class="v2-sub v2-pad" style="font-size:var(--crm-text-xs);padding-bottom:24px">
-      Showing <span class="v2-num">{tickets.length}</span> of
+      {ui('Showing')} <span class="v2-num">{tickets.length}</span>
+      {ui('of')}
       <span class="v2-num">{count(totals.count)}</span>
       {#if !data.showAll}
-        · <a href={resolve('/tickets?all=1')} style="color:inherit">include closed</a>
+        · <a href={resolve('/tickets?all=1')} style="color:inherit">{ui('include closed')}</a>
       {:else}
-        · <a href={resolve('/tickets')} style="color:inherit">open only</a>
+        · <a href={resolve('/tickets')} style="color:inherit">{ui('open only')}</a>
       {/if}
     </p>
   {/if}

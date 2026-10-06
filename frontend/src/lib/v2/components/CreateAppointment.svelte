@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import WeekAvailability from '$lib/v2/components/WeekAvailability.svelte';
   let unavailable = $state(true);
   let conflicting = $state(false),
@@ -162,7 +165,7 @@
       dealSource = '';
       open = true;
       dialog.showModal();
-    }}>Schedule event</button
+    }}>{ui('Schedule event')}</button
   >
 {/if}
 <dialog
@@ -175,7 +178,7 @@
     if (busy) event.preventDefault();
   }}
 >
-  <h2>Schedule event</h2>
+  <h2>{ui('Schedule event')}</h2>
   <form
     method="POST"
     {action}
@@ -228,7 +231,7 @@
     <div class="schedule-body">
       <fieldset disabled={busy}>
         <label
-          >Title *<input
+          >{ui('Title *')}<input
             class="v2-input"
             name="title"
             required
@@ -237,14 +240,14 @@
           /></label
         >
         <label
-          >Host *<select class="v2-input" name="host" required bind:value={host}
-            ><option value="">Select user</option>{#each hosts as user}<option value={user.id}
-                >{user.name}</option
+          >{ui('Host *')}<select class="v2-input" name="host" required bind:value={host}
+            ><option value="">{ui('Select user')}</option>{#each hosts as user}<option
+                value={user.id}>{user.name}</option
               >{/each}</select
           ></label
         >
         {#if !hosts.length}<p role="alert">
-            No users available. Reload the page to try again.
+            {ui('No users available. Reload the page to try again.')}
           </p>{/if}
         <div
           class="attendee-search"
@@ -254,12 +257,12 @@
           }}
         >
           <label
-            >Attendees
+            >{ui('Attendees')}
             <input
               class="v2-input"
               type="search"
-              placeholder="Search contacts, companies or users"
-              aria-label="Search attendees"
+              placeholder={ui('Search contacts, companies or users')}
+              aria-label={ui('Search attendees')}
               autocomplete="off"
               bind:value={search}
               onfocus={() => (showResults = true)}
@@ -281,10 +284,10 @@
                 ><span
                   >{person.name}<small
                     >{person.type === 'user'
-                      ? 'User'
+                      ? ui('User')
                       : person.type === 'company'
-                        ? 'Company'
-                        : 'Contact'}</small
+                        ? ui('Company')
+                        : ui('Contact')}</small
                   ></span
                 ><button
                   type="button"
@@ -295,11 +298,11 @@
             {/each}
           </div>
           {#if showResults}
-            <div class="attendee-results" aria-label="Attendee search results">
-              {#if loadingAttendees}<p class="v2-sub" role="status">Searching…</p>
+            <div class="attendee-results" aria-label={ui('Attendee search results')}>
+              {#if loadingAttendees}<p class="v2-sub" role="status">{ui('Searching…')}</p>
               {:else if attendeeError}<p class="v2-error" role="alert">{attendeeError}</p>
               {:else}
-                {#if choices.contacts.length}<h3>Contacts</h3>
+                {#if choices.contacts.length}<h3>{ui('Contacts')}</h3>
                   {#each choices.contacts as contact}<button
                       type="button"
                       class="attendee-result"
@@ -307,7 +310,7 @@
                       onclick={() => chooseAttendee('contact', contact)}>{contact.name}</button
                     >{/each}
                 {/if}
-                {#if choices.companies.length}<h3>Companies</h3>
+                {#if choices.companies.length}<h3>{ui('Companies')}</h3>
                   {#each choices.companies as company}<button
                       type="button"
                       class="attendee-result"
@@ -315,7 +318,7 @@
                       onclick={() => chooseAttendee('company', company)}>{company.name}</button
                     >{/each}
                 {/if}
-                {#if choices.users.length}<h3>Users</h3>
+                {#if choices.users.length}<h3>{ui('Users')}</h3>
                   {#each choices.users as user}<button
                       type="button"
                       class="attendee-result"
@@ -329,18 +332,32 @@
                     class="v2-sub"
                     role="status"
                   >
-                    No results.
+                    {ui('No results.')}
                   </p>{/if}
               {/if}
             </div>
           {/if}
         </div>
-        <label>Date *<input class="v2-input" type="date" required bind:value={date} /></label>
+        <label
+          >{ui('Date *')}<input class="v2-input" type="date" required bind:value={date} /></label
+        >
         <div class="times">
           <label
-            >Start time *<input class="v2-input" type="time" required bind:value={start} /></label
+            >{ui('Start time *')}<input
+              class="v2-input"
+              type="time"
+              required
+              bind:value={start}
+            /></label
           >
-          <label>End time *<input class="v2-input" type="time" required bind:value={end} /></label>
+          <label
+            >{ui('End time *')}<input
+              class="v2-input"
+              type="time"
+              required
+              bind:value={end}
+            /></label
+          >
         </div>
 
         <input type="hidden" name="starts_at" value={iso(start)} /><input
@@ -349,13 +366,13 @@
           value={iso(end)}
         />
         <label
-          >Duration<select
+          >{ui('Duration')}<select
             class="v2-input"
             value={durationMinutes()}
             onchange={(e) => setDuration(e.currentTarget.value)}
           >
             {#if ![15, 30, 45, 60, 90, 120].includes(durationMinutes())}<option
-                value={durationMinutes()}>Custom</option
+                value={durationMinutes()}>{ui('Custom')}</option
               >{/if}
             {#each [15, 30, 45, 60, 90, 120] as duration}<option value={duration}
                 >{duration} min</option
@@ -363,7 +380,7 @@
           </select></label
         >
         <label
-          >Meeting notes<textarea
+          >{ui('Meeting notes')}<textarea
             class="v2-input"
             name="internal_notes"
             rows="4"
@@ -371,8 +388,9 @@
             bind:value={notes}></textarea></label
         >
         <p class="v2-sub">
-          These notes also appear in the Google Calendar description when the host connects a
-          calendar.
+          {ui(
+            'These notes also appear in the Google Calendar description when the host connects a calendar.'
+          )}
         </p>
         {#if external}<label class="create-deal-toggle"
             ><input
@@ -380,27 +398,27 @@
               name="create_deal"
               disabled={!canCreateDeal}
               bind:checked={createDeal}
-            />Create a deal for this event</label
+            />{ui('Create a deal for this event')}</label
           >
         {/if}
         {#if createDeal && external}
           <label
-            >Deal name<input
+            >{ui('Deal name')}<input
               class="v2-input"
               name="deal_name"
               maxlength="255"
               required
               bind:value={dealName}
-              placeholder="Attendee name - Deal"
+              placeholder={ui('Attendee name - Deal')}
             /></label
           >
           <label
-            >Deal source<select class="v2-input" name="deal_source" bind:value={dealSource}
-              ><option value="">Use attendee source</option
+            >{ui('Deal source')}<select class="v2-input" name="deal_source" bind:value={dealSource}
+              ><option value="">{ui('Use attendee source')}</option
               >{#each dealSources as [value, label]}<option {value}>{label}</option>{/each}</select
             ></label
           >
-          <p class="deal-defaults">Owner: selected Host · Prospecting · Medium priority</p>
+          <p class="deal-defaults">{ui('Owner: selected Host · Prospecting · Medium priority')}</p>
         {/if}
       </fieldset>
       {#if open}<WeekAvailability
@@ -414,13 +432,13 @@
           disabled={busy}
         />{/if}
     </div>
-    {#if error}<p class="v2-error" role="alert">{error}</p>{/if}
+    {#if error}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
     <div class="actions">
       <span class="selection-summary">{date} · {start} – {end}</span>
       <button class="v2-btn" type="button" disabled={busy} onclick={() => dialog.close()}
-        >Cancel</button
+        >{ui('Cancel')}</button
       ><button class="v2-btn v2-btn-primary" disabled={busy || !hosts.length || unavailable}
-        >{busy ? 'Saving…' : 'Schedule event'}</button
+        >{busy ? ui('Saving…') : ui('Schedule event')}</button
       >
     </div>
   </form>
@@ -442,14 +460,16 @@
   }}
 >
   <div class="warning-icon" aria-hidden="true">!</div>
-  <h2 id="overlap-confirm-title">Schedule overlapping event?</h2>
+  <h2 id="overlap-confirm-title">{ui('Schedule overlapping event?')}</h2>
   <p id="overlap-confirm-description">
-    This host already has an event at this time. Do you want to proceed?
+    {ui('This host already has an event at this time. Do you want to proceed?')}
   </p>
   <div class="confirm-buttons">
-    <button type="button" class="v2-btn" onclick={() => finishConfirmation(false)}>Go back</button>
+    <button type="button" class="v2-btn" onclick={() => finishConfirmation(false)}
+      >{ui('Go back')}</button
+    >
     <button type="button" class="v2-btn v2-btn-primary" onclick={() => finishConfirmation(true)}
-      >Proceed anyway</button
+      >{ui('Proceed anyway')}</button
     >
   </div>
 </dialog>

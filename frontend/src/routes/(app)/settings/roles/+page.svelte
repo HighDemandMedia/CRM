@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { enhance } from '$app/forms';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { Plus, ShieldCheck, Pencil, Copy, ChevronLeft } from '@lucide/svelte';
@@ -92,16 +95,16 @@
   }
 </script>
 
-<PageHeader title="Roles & Permissions">
-  {#snippet sub()}Choose what each role can do and which records it can access.{/snippet}
+<PageHeader title={ui('Roles & Permissions')}>
+  {#snippet sub()}{ui('Choose what each role can do and which records it can access.')}{/snippet}
   {#snippet actions()}{#if !data.forbidden && !editing}<button
         class="v2-btn v2-btn-primary"
-        onclick={() => edit(null)}><Plus size={15} />New permission set</button
+        onclick={() => edit(null)}><Plus size={15} />{ui('New permission set')}</button
       >{/if}{/snippet}
 </PageHeader>
 <div class="v2-scroll">
   <div class="roles-content">
-    {#if data.forbidden}<p>Only organization admins can manage roles and permissions.</p>
+    {#if data.forbidden}<p>{ui('Only organization admins can manage roles and permissions.')}</p>
     {:else if editing}
       <form
         method="POST"
@@ -131,12 +134,12 @@
           value={JSON.stringify(rulesForSave())}
         />
         <button class="back" type="button" disabled={busy} onclick={() => (editing = null)}
-          ><ChevronLeft size={15} />Permission sets</button
+          ><ChevronLeft size={15} />{ui('Permission sets')}</button
         >
         <fieldset disabled={busy}>
           <div class="identity">
             <label
-              >Permission set name<input
+              >{ui('Permission set name')}<input
                 class="v2-input"
                 name="name"
                 readonly={editing.id && ['Member', 'Manager'].includes(editing.name)}
@@ -145,7 +148,7 @@
                 maxlength="80"
               /></label
             ><label
-              >Description<input
+              >{ui('Description')}<input
                 class="v2-input"
                 name="description"
                 bind:value={editing.description}
@@ -156,22 +159,27 @@
           <div class="scope-panel">
             {#if editing.id && ['Member', 'Manager'].includes(editing.name)}
               <div class="fixed-scope">
-                <span>Access level</span><strong
-                  >{editing.name === 'Member' ? 'Personal' : 'Team'}</strong
+                <span>{ui('Access level')}</span><strong
+                  >{editing.name === 'Member' ? ui('Personal') : ui('Team')}</strong
                 >
               </div>
               <input type="hidden" name="scope" value={editing.scope} />
             {:else}<label
-                >Access level<select name="scope" class="v2-input" bind:value={editing.scope}
+                >{ui('Access level')}<select
+                  name="scope"
+                  class="v2-input"
+                  bind:value={editing.scope}
                   >{#each scopes as [value, label]}<option {value}>{label}</option>{/each}</select
                 ></label
               >{/if}
             <p>
               {editing.scope === 'own'
-                ? 'Assigned records and events you host. Events you attend are also visible.'
+                ? ui('Assigned records and events you host. Events you attend are also visible.')
                 : editing.scope === 'team'
-                  ? 'Your records and records assigned to your teams or their members. Calendar access includes events hosted by team members.'
-                  : 'Records and events across this organization.'}
+                  ? ui(
+                      'Your records and records assigned to your teams or their members. Calendar access includes events hosted by team members.'
+                    )
+                  : ui('Records and events across this organization.')}
             </p>
           </div>
           <div class="permission-groups">
@@ -179,7 +187,8 @@
               <details class="permission-group" bind:open={expandedModules[module.key]}>
                 <summary
                   ><span>{module.label}</span><small
-                    >{Object.values(editing.enabled[module.key]).filter(Boolean).length} enabled</small
+                    >{Object.values(editing.enabled[module.key]).filter(Boolean).length}
+                    {ui('enabled')}</small
                   ></summary
                 >
                 <div class="permission-options">
@@ -208,33 +217,41 @@
           </div>
         </fieldset>
         {#if editing.member_count}<p class="hint">
-            Saving updates access for {editing.member_count} assigned users on their next request.
+            {ui('Saving updates access for')}
+            {editing.member_count}
+            {ui('assigned users on their next request.')}
           </p>{/if}
-        {#if error}<p class="error" role="alert">{error}</p>{/if}
+        {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
         <div class="save-actions">
           <button class="v2-btn" type="button" disabled={busy} onclick={() => (editing = null)}
-            >Cancel</button
+            >{ui('Cancel')}</button
           ><button class="v2-btn v2-btn-primary" disabled={busy}
-            >{busy ? 'Saving…' : 'Save permission set'}</button
+            >{busy ? ui('Saving…') : ui('Save permission set')}</button
           >
         </div>
       </form>
     {:else}
       <div class="role">
         <div>
-          <h2><ShieldCheck size={17} />Super Admin</h2>
-          <p>Organization creator. Full access and exclusive control over other administrators.</p>
+          <h2><ShieldCheck size={17} />{ui('Super Admin')}</h2>
+          <p>
+            {ui(
+              'Organization creator. Full access and exclusive control over other administrators.'
+            )}
+          </p>
         </div>
-        <span class="protected">Creator only</span>
+        <span class="protected">{ui('Creator only')}</span>
       </div>
       <div class="role">
         <div>
-          <h2><ShieldCheck size={17} />Admin</h2>
+          <h2><ShieldCheck size={17} />{ui('Admin')}</h2>
           <p>
-            Full organization access. Manages users, teams, permission sets and CRM configuration.
+            {ui(
+              'Full organization access. Manages users, teams, permission sets and CRM configuration.'
+            )}
           </p>
         </div>
-        <span class="protected">System role</span>
+        <span class="protected">{ui('System role')}</span>
       </div>
       {#each data.roles as role}<div class="role">
           <div>
@@ -248,7 +265,7 @@
                 (['Member', 'Manager'].includes(role.name)
                   ? 'Default permission set'
                   : 'Custom permission set')} · {role.member_count}
-              {role.member_count === 1 ? 'user' : 'users'}
+              {role.member_count === 1 ? ui('user') : ui('users')}
             </p>
           </div>
           <div class="actions">
@@ -256,16 +273,16 @@
               class="v2-btn v2-btn-sm"
               onclick={() =>
                 edit({ ...role, id: null, name: `${role.name} copy`, member_count: 0 })}
-              aria-label={`Duplicate ${role.name}`}><Copy size={13} />Duplicate</button
+              aria-label={`Duplicate ${role.name}`}><Copy size={13} />{ui('Duplicate')}</button
             ><button
               class="v2-btn v2-btn-sm"
               onclick={() => edit(role)}
               aria-label={`Edit permissions for ${role.name}`}
-              ><Pencil size={13} />Edit permissions</button
+              ><Pencil size={13} />{ui('Edit permissions')}</button
             >
           </div>
         </div>{/each}
-      {#if form?.saved}<p class="success" role="status">Permission set saved.</p>{/if}
+      {#if form?.saved}<p class="success" role="status">{ui('Permission set saved.')}</p>{/if}
     {/if}
   </div>
 </div>

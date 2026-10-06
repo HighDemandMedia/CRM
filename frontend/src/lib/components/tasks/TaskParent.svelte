@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   let { parents, kind = $bindable(''), selected = $bindable('') } = $props();
   let query = $state('');
   const labels = { account: 'Company', opportunity: 'Deal', case: 'Ticket', lead: 'Lead' };
@@ -18,11 +21,11 @@
 </script>
 
 <div class="parent-picker">
-  <label for="task-association">Association</label>
+  <label for="task-association">{ui('Association')}</label>
   {#if kind && selected}<div class="chosen">
       <span><small>{labels[kind]}</small>{current?.name ?? 'Associated record'}</span><button
         type="button"
-        aria-label="Remove association"
+        aria-label={ui('Remove association')}
         onclick={() => {
           kind = '';
           selected = '';
@@ -32,7 +35,7 @@
   <input
     id="task-association"
     class="v2-input"
-    placeholder="Search associations…"
+    placeholder={ui('Search associations…')}
     bind:value={query}
     autocomplete="off"
     onkeydown={(event) => {
@@ -55,7 +58,7 @@
             selected = item.id;
             query = '';
           }}><small>{labels[item.type]}</small>{item.name}</button
-        >{:else}<p>No matches.</p>{/each}
+        >{:else}<p>{ui('No matches.')}</p>{/each}
     </div>{/if}
   <input type="hidden" name="parent_kind" value={kind} />
   {#if kind}<input type="hidden" name={`parent_${kind}`} value={selected} />{/if}

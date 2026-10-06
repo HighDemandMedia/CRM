@@ -16,12 +16,12 @@ export function reminderLabel(row) {
   return '';
 }
 
-export function reminderDetail(row) {
+export function reminderDetail(row, locale = 'en-US') {
   if (row.verb === 'task.reminder' && /^\d{4}-\d{2}-\d{2}$/.test(row.data?.due_date || '')) {
-    return `Due ${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(row.data.due_date + 'T12:00:00Z'))}`;
+    return `${locale.startsWith('es') ? 'Vence' : 'Due'} ${new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(row.data.due_date + 'T12:00:00Z'))}`;
   }
   if (row.verb === 'calendar.reminder' && Number.isFinite(Date.parse(row.data?.starts_at))) {
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat(locale, {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',

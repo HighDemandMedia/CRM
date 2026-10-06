@@ -39,3 +39,13 @@ it('does not retry writes after a timeout', async () => {
     timeout.mockRestore();
   }
 });
+it('rejects oversized multipart attachments before forwarding any data', async () => {
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+  const body = new FormData();
+  body.set('contact_attachment', new File([new Uint8Array(25 * 1024 * 1024 + 1)], 'too-large.bin'));
+  await expect(
+    apiRequest('/contacts/id/', { method: 'POST', body }, cookies)
+  ).rejects.toMatchObject({ status: 400, message: 'Files must be 25 MB or smaller.' });
+  expect(fetch).not.toHaveBeenCalled();
+});

@@ -22,7 +22,7 @@ def clean_cache():
     cache.clear()
 
 
-def register(**overrides):
+def register(*, public=False, **overrides):
     values = dict(
         email="owner@example.com",
         password=PASSWORD,
@@ -30,18 +30,33 @@ def register(**overrides):
         organization="Password Test",
         timezone="America/New_York",
     )
+    if not public and "invitation" not in overrides:
+        org, _ = Org.objects.get_or_create(
+            name="Password Test", defaults={"timezone": "America/New_York"}
+        )
+        raw = "test-registration-invitation-token-918234"
+        OrganizationInvitation.objects.update_or_create(
+            org=org,
+            email=values["email"],
+            defaults={
+                "role": "ADMIN",
+                "token_hash": digest(raw),
+                "expires_at": timezone.now() + timedelta(days=1),
+            },
+        )
+        values["invitation"] = raw
     return APIClient().post(BASE + "register/", values | overrides, format="json")
 
 
-def test_registration_creates_separate_org_and_creator_not_platform_admin():
+def test_invited_administrator_cannot_promote_to_platform_owner():
     response = register(role="ADMIN", is_superuser=True)
     assert response.status_code == 201, response.data
     user = User.objects.get(email="owner@example.com")
     assert user.check_password(PASSWORD) and user.password != PASSWORD
     assert not user.is_superuser and not user.is_staff
-    org = Org.objects.get(created_by=user)
+    org = Org.objects.get(name="Password Test")
     assert org.timezone == "America/New_York"
-    assert Profile.objects.get(org=org, user=user).is_super_admin
+    assert Profile.objects.get(org=org, user=user).role == "ADMIN"
     assert AccessToken(response.data["access_token"])["org_id"] == str(org.pk)
 
 
@@ -49,10 +64,8 @@ def test_registration_creates_separate_org_and_creator_not_platform_admin():
     "values",
     [
         {"name": ""},
-        {"organization": ""},
         {"password": "1234567890"},
         {"password": "short"},
-        {"timezone": "Not/AZone"},
     ],
 )
 def test_invalid_registration_is_atomic(values):
@@ -65,7 +78,7 @@ def test_existing_identity_cannot_be_claimed_or_have_password_overwritten():
     assert register(password="Another-strong-password-828!").status_code == 400
     user.refresh_from_db()
     assert user.check_password(PASSWORD)
-    assert not Org.objects.filter(name="Password Test").exists()
+    assert not Profile.objects.filter(user=user).exists()
 
 
 def test_password_login_and_disabled_user():
@@ -347,7 +360,7 @@ def test_failed_logins_are_throttled():
 
 def test_registration_can_be_closed(settings):
     settings.PASSWORD_REGISTRATION_ENABLED = False
-    assert register().status_code == 403
+    assert register(public=True).status_code == 403
 
 
 def test_real_email_recovery_survives_refresh_and_changes_password():
@@ -391,3 +404,10 @@ def test_profile_password_status_does_not_consume_attempt_limit():
     client.credentials(HTTP_AUTHORIZATION="Bearer " + original["access_token"])
     for _ in range(12):
         assert client.get(BASE + "change/").status_code == 200
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_public_registration_never_creates_identity_or_tenant(settings, enabled):
+    settings.PASSWORD_REGISTRATION_ENABLED = enabled
+    assert register(public=True).status_code == 403
+    assert User.objects.count() == Org.objects.count() == 0

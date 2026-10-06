@@ -569,7 +569,7 @@ EMAIL_TIMEOUT = 10
 
 # Close self-service registration when onboarding is invitation-only.
 PASSWORD_REGISTRATION_ENABLED = (
-    os.environ.get("PASSWORD_REGISTRATION_ENABLED", "true").lower() == "true"
+    os.environ.get("PASSWORD_REGISTRATION_ENABLED", "false").lower() == "true"
 )
 
 # Personal Gmail/Calendar connections, independent from the system email sender.

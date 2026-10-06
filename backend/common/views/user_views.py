@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -14,7 +13,7 @@ from cases.models import Case
 from cases.serializer import CaseSerializer
 from common import swagger_params
 from common.member_access import assert_member_management
-from common.models import Comment, PersonalAccessToken, Profile, Teams, User
+from common.models import Comment, PersonalAccessToken, Profile, Teams
 from common.permissions import HasOrgContext, is_org_admin
 from common.serializer import (
     BillingAddressSerializer,
@@ -97,82 +96,10 @@ class UsersListView(APIView, LimitOffsetPagination):
         },
     )
     def post(self, request, format=None):
-        if (
-            not is_org_admin(self.request.profile)
-            and not self.request.user.is_superuser
-        ):
-            return Response(
-                {"error": True, "errors": "Permission Denied"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        params = request.data
-        assert_member_management(request.profile, new_role=params.get("role"))
-        if params:
-            user_serializer = CreateUserSerializer(data=params, org=request.profile.org)
-            address_serializer = BillingAddressSerializer(data=params)
-            # This POST is already gated to admins above, and inviting someone
-            # inherently means choosing their role, so role is grantable here.
-            profile_serializer = CreateProfileSerializer(
-                data=params, can_grant_privileges=True
-            )
-            data = {}
-            if not user_serializer.is_valid():
-                data["user_errors"] = dict(user_serializer.errors)
-            if not profile_serializer.is_valid():
-                data["profile_errors"] = profile_serializer.errors
-            if not address_serializer.is_valid():
-                data["address_errors"] = (address_serializer.errors,)
-            if data:
-                return Response(
-                    {"error": True, "errors": data},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            # A concurrent invite for the same email can commit between the
-            # checks above and the writes below. Keep the account, address and
-            # membership in one transaction so a lost race rolls back cleanly
-            # instead of stranding a half-built user.
-            try:
-                with transaction.atomic():
-                    # Address is org-scoped and RLS-protected, so it must carry
-                    # the org. Only create one when address fields were actually
-                    # supplied -- invites from the web UI send just email + role.
-                    address_obj = None
-                    if any(address_serializer.validated_data.values()):
-                        address_obj = address_serializer.save(org=request.profile.org)
+        # Keep the legacy URL usable, but never grant membership before consent.
+        from common.views.invitation_views import create_invitation
 
-                    email = user_serializer.validated_data["email"]
-                    user = User.objects.filter(email__iexact=email).first()
-                    if user is None:
-                        user = user_serializer.save(is_active=True)
-                    # An existing account is reused as-is: the inviting admin
-                    # gets a profile in their own org and no say over that
-                    # person's account.
-
-                    from common.rbac import ensure_default_roles
-
-                    Profile.objects.create(
-                        access_role=ensure_default_roles(request.profile.org)[0]
-                        if profile_serializer.validated_data["role"] == "USER"
-                        else None,
-                        user=user,
-                        date_of_joining=timezone.now(),
-                        role=profile_serializer.validated_data["role"],
-                        address=address_obj,
-                        org=request.profile.org,
-                    )
-            except IntegrityError:
-                return Response(
-                    {"error": True, "errors": "User already in organization"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            return Response(
-                {"error": False, "message": "User Created Successfully"},
-                status=status.HTTP_201_CREATED,
-            )
-        return Response(
-            {"error": True, "errors": "Invalid request"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return create_invitation(request)
 
     @extend_schema(
         tags=["users"],

@@ -34,6 +34,9 @@ from .manager import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    ui_language = models.CharField(
+        max_length=2, choices=[("en", "English"), ("es", "Español")], default="en"
+    )
     id = models.UUIDField(
         default=uuid.uuid4, unique=True, editable=False, db_index=True, primary_key=True
     )
@@ -1326,6 +1329,7 @@ class OrganizationInvitation(models.Model):
     org = models.ForeignKey(Org, on_delete=models.CASCADE, related_name="invitations")
     email = models.EmailField()
     role = models.CharField(max_length=50, choices=ROLES, default="USER")
+    grants_ownership = models.BooleanField(default=False, editable=False)
     token_hash = models.CharField(max_length=64, unique=True)
     invited_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)

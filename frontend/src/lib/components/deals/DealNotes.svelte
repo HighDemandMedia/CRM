@@ -1,6 +1,8 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { exactTime, ui } = useI18n();
+
   import { enhance } from '$app/forms';
-  import { exactTime } from '$lib/v2/contact-time.js';
   /** @type {{ notes: Array<{id:string,body:string,by:string|null,at:string}> }} */
   let { notes } = $props();
   let note = $state('');
@@ -31,12 +33,12 @@
     <textarea
       class="v2-input"
       name="comment"
-      aria-label="New note"
+      aria-label={ui('New note')}
       rows="3"
-      placeholder="Write a note…"
+      placeholder={ui('Write a note…')}
       bind:value={note}></textarea>
     <button type="submit" class="v2-btn add-note" disabled={noteBusy || !note.trim()}
-      >{noteBusy ? 'Saving…' : 'Add note'}</button
+      >{noteBusy ? ui('Saving…') : ui('Add note')}</button
     >
     {#if noteError}<p class="v2-error" role="alert">{noteError}</p>{/if}
   </form>
@@ -44,9 +46,9 @@
     {#each notes as entry (entry.id)}
       <article class="history-entry">
         <div class="history-body">{entry.body}</div>
-        <div class="entry-meta">{entry.by || 'Not recorded'} · {exactTime(entry.at)}</div>
+        <div class="entry-meta">{entry.by || ui('Not recorded')} · {exactTime(entry.at)}</div>
       </article>
-    {:else}<p class="v2-sub">No notes.</p>{/each}
+    {:else}<p class="v2-sub">{ui('No notes.')}</p>{/each}
   </div>
 </div>
 

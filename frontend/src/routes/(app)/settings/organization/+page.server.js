@@ -10,12 +10,16 @@ import { readableError } from '$lib/server/v2/form-errors.js';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies }) {
+export async function load({ cookies, url }) {
   const [settings, timezones] = await Promise.all([
     getOrgSettings({ cookies }),
     listTimezones(cookies)
   ]);
-  return { ...settings, timezones };
+  return {
+    ...settings,
+    timezones,
+    onboarding: settings.can_edit && url?.searchParams.get('onboarding') === '1'
+  };
 }
 
 /** @type {import('./$types').Actions} */
@@ -35,6 +39,7 @@ export const actions = {
         message: readableError(err, 'Could not save organization details.')
       });
     }
+    if (form.get('onboarding') === '1') redirect(303, '/');
     return { saved: true };
   },
   switchOrg: async ({ cookies, request }) => {

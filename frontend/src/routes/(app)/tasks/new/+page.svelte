@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import RecordSection from '$lib/components/creation/RecordSection.svelte';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import { page } from '$app/state';
@@ -38,11 +41,11 @@
   let selected = $state(untrack(() => form?.values?.[form?.values?.parent_kind] ?? ''));
 </script>
 
-<PageHeader title="New task" record center width="62ch">
+<PageHeader title={ui('New task')} record center width="62ch">
   {#snippet crumb()}
-    <a href={resolve('/tasks')}>Tasks</a>
+    <a href={resolve('/tasks')}>{ui('Tasks')}</a>
     <ChevronRight size={12} />
-    <span>New</span>
+    <span>{ui('New')}</span>
   {/snippet}
 </PageHeader>
 
@@ -57,62 +60,62 @@
   >
     {#if form?.error}
       <p style="color:var(--v2-rust);font-size:var(--crm-text-sm);margin:0 0 14px" role="alert">
-        {form.error}
+        {ui(form.error)}
       </p>
     {/if}
 
-    <RecordSection title="Task details">
+    <RecordSection title={ui('Task details')}>
       <label class="v2-field">
-        <span class="v2-label">Title *</span>
+        <span class="v2-label">{ui('Title *')}</span>
         <input
           class="v2-input"
           name="title"
           required
           maxlength="200"
           value={values.title ?? ''}
-          placeholder="Task title"
+          placeholder={ui('Task title')}
         />
       </label>
       <TaskParent parents={data.parents} bind:kind bind:selected />
     </RecordSection>
-    <RecordSection title="Assignment & schedule">
+    <RecordSection title={ui('Assignment & schedule')}>
       <TaskAssignees people={data.owners} bind:selected={assignees} />
       <div style="display:flex;gap:12px;flex-wrap:wrap">
         <label class="v2-field" style="flex:1;min-width:150px">
-          <span class="v2-label">Priority</span>
+          <span class="v2-label">{ui('Priority')}</span>
           <select class="v2-input" name="priority" value={values.priority ?? 'Medium'}
-            ><option value="">None</option>
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
+            ><option value="">{ui('None')}</option>
+            <option value="Low">{ui('Low')}</option>
+            <option value="Medium">{ui('Medium')}</option>
+            <option value="High">{ui('High')}</option>
           </select>
         </label>
         <label class="v2-field" style="flex:1;min-width:150px">
-          <span class="v2-label">Status</span>
+          <span class="v2-label">{ui('Status')}</span>
           <select class="v2-input" name="status" value={values.status ?? 'New'}>
             {#each statusOptions as option}<option value={option.value}>{option.label}</option
               >{/each}
           </select>
         </label>
         <label class="v2-field" style="flex:1;min-width:150px">
-          <span class="v2-label">Due</span>
+          <span class="v2-label">{ui('Due')}</span>
           <input class="v2-input" type="date" name="due_date" value={values.due_date ?? ''} />
         </label>
       </div>
       <TaskReminder bind:value={reminder} />
     </RecordSection>
-    <RecordSection title="Additional details" collapsible>
+    <RecordSection title={ui('Additional details')} collapsible>
       <label class="v2-field">
-        <span class="v2-label">Description</span>
-        <textarea class="v2-input" name="description" rows="4" placeholder="Add details…"
+        <span class="v2-label">{ui('Description')}</span>
+        <textarea class="v2-input" name="description" rows="4" placeholder={ui('Add details…')}
           >{values.description ?? ''}</textarea
         >
       </label>
     </RecordSection>
 
     <div style="display:flex;gap:9px;margin-top:6px">
-      <button class="v2-btn v2-btn-primary" type="submit">Create task</button>
-      <a class="v2-btn" href={resolve('/tasks')}>Cancel</a>
+      <button class="v2-btn v2-btn-primary" type="submit">{ui('Create task')}</button>
+      <a class="v2-btn" href={resolve('/tasks')}>{ui('Cancel')}</a>
     </div>
   </form>
 </div>

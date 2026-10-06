@@ -2,7 +2,6 @@
 
 import hashlib
 
-from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -21,10 +20,11 @@ from rest_framework_simplejwt.token_blacklist.models import (
 )
 
 from common.audit_log import audit_log
+from common.invitations import accept_ownership
 from common.models import OrganizationInvitation, Profile, User
 from common.platform_access import accessible_profiles
 from common.rbac import ensure_default_roles
-from common.serializer import OrgAwareRefreshToken, OrgProfileCreateSerializer
+from common.serializer import OrgAwareRefreshToken
 from common.views.auth_views import _org_payload
 from common.views.invitation_views import digest
 
@@ -192,9 +192,7 @@ class PasswordRegisterView(APIView):
 
     @extend_schema(tags=["auth"], request=RegisterInput)
     def post(self, request):
-        if not getattr(
-            settings, "PASSWORD_REGISTRATION_ENABLED", True
-        ) and not request.data.get("invitation"):
+        if not request.data.get("invitation"):
             return Response(
                 {"error": "Account registration is currently closed."}, status=403
             )
@@ -230,19 +228,10 @@ class PasswordRegisterView(APIView):
                             },
                             status=400,
                         )
-                org_data = None
-                if not invitation:
-                    org_data = OrgProfileCreateSerializer(
-                        data={
-                            "name": values["organization"],
-                            "timezone": values["timezone"],
-                        }
-                    )
-                    org_data.is_valid(raise_exception=True)
                 user = User.objects.create_user(
                     values["email"], values["password"], name=values["name"]
                 )
-                org = invitation.org if invitation else org_data.save(created_by=user)
+                org = invitation.org
                 # Default roles are tenant tables protected by FORCE RLS.
                 if connection.vendor == "postgresql":
                     with connection.cursor() as cursor:
@@ -254,16 +243,19 @@ class PasswordRegisterView(APIView):
                 Profile.objects.create(
                     user=user,
                     org=org,
-                    role=invitation.role if invitation else "ADMIN",
+                    role=invitation.role,
                     access_role=(invitation.access_role or defaults[0])
                     if invitation and invitation.role != "ADMIN"
                     else None,
                     is_active=True,
                 )
+                accept_ownership(invitation, user)
                 if invitation:
                     invitation.accepted_at = timezone.now()
                     invitation.save(update_fields=["accepted_at"])
-                return session_response(user, request, status=201)
+                response = session_response(user, request, status=201)
+                response.data["needs_organization_setup"] = invitation.grants_ownership
+                return response
         except IntegrityError:
             return Response(duplicate, status=400)
 

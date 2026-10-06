@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   import { enhance, deserialize } from '$app/forms';
   import { goto, invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
@@ -146,11 +149,11 @@
   }
 </script>
 
-<PageHeader title="Properties">
-  {#snippet sub()}Manage the fields used by each CRM object.{/snippet}
+<PageHeader title={ui('Properties')}>
+  {#snippet sub()}{ui('Manage the fields used by each CRM object.')}{/snippet}
   {#snippet actions()}
     {#if data.can_edit}<button class="v2-btn v2-btn-primary" onclick={() => openEditor()}
-        ><Plus size={16} /> Create property</button
+        ><Plus size={16} /> {ui('Create property')}</button
       >{/if}
   {/snippet}
 </PageHeader>
@@ -158,7 +161,7 @@
 <div class="catalog">
   <div class="toolbar">
     <label class="object-field"
-      >Object
+      >{ui('Object')}
       <select class="v2-input" value={data.target_model} onchange={switchObject}>
         {#each data.objects as object}<option value={object.value}>{object.label}</option>{/each}
       </select>
@@ -166,33 +169,35 @@
     <div class="search">
       <Search size={16} /><input
         class="v2-input"
-        aria-label="Search properties"
-        placeholder="Search properties"
+        aria-label={ui('Search properties')}
+        placeholder={ui('Search properties')}
         bind:value={query}
       />
     </div>
-    <select class="v2-input kind" aria-label="Property origin" bind:value={kind}>
-      <option value="all">All properties</option><option value="system">System properties</option
-      ><option value="custom">Custom properties</option>
+    <select class="v2-input kind" aria-label={ui('Property origin')} bind:value={kind}>
+      <option value="all">{ui('All properties')}</option><option value="system"
+        >{ui('System properties')}</option
+      ><option value="custom">{ui('Custom properties')}</option>
     </select>
   </div>
   <div class="summary">
-    <span>{rows.length} properties</span><span>{data.record_count} {objectLabel.toLowerCase()}</span
+    <span>{rows.length} {ui('properties')}</span><span
+      >{data.record_count} {objectLabel.toLowerCase()}</span
     >
   </div>
   {#if form?.deactivate?.error || form?.activate?.error}<p class="error" role="alert">
       {form.deactivate?.error ?? form.activate?.error}
     </p>{/if}
   {#if orderError}<p class="v2-error" role="alert">{orderError}</p>{/if}
-  {#if ordering}<p role="status">Saving order…</p>{/if}
+  {#if ordering}<p role="status">{ui('Saving order…')}</p>{/if}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex (The scroll region needs focus for keyboard scrolling.) -->
-  <div class="table-scroll" role="region" aria-label="Properties list" tabindex="0">
+  <div class="table-scroll" role="region" aria-label={ui('Properties list')} tabindex="0">
     <table>
       <thead
         ><tr
-          ><th>Property</th><th>Internal name</th><th>Field type</th><th
-            title="Records with a saved value">Used in records</th
-          ><th>Origin</th><th><span class="sr-only">Actions</span></th></tr
+          ><th>{ui('Property')}</th><th>{ui('Internal name')}</th><th>{ui('Field type')}</th><th
+            title={ui('Records with a saved value')}>{ui('Used in records')}</th
+          ><th>{ui('Origin')}</th><th><span class="sr-only">{ui('Actions')}</span></th></tr
         ></thead
       >
       <tbody>
@@ -216,7 +221,7 @@
                   type="button"
                   class="drag-property"
                   aria-label={`Move ${property.label}`}
-                  title="Drag to reorder; Alt + arrow keys also move this property"
+                  title={ui('Drag to reorder; Alt + arrow keys also move this property')}
                   draggable={!ordering}
                   disabled={ordering}
                   ondragstart={(event) => {
@@ -237,17 +242,17 @@
                     }
                   }}><GripVertical size={15} /></button
                 >{/if}<strong>{property.label}</strong>{#if !property.is_active}<small
-                  >Inactive</small
+                  >{ui('Inactive')}</small
                 >{/if}</td
             >
             <td><code class="internal-name">{property.key}</code></td>
             <td>{types[property.field_type] ?? property.field_type}</td>
-            <td class="number">{property.usage_count.toLocaleString()}</td>
+            <td class="number">{property.usage_count.toLocaleString(locale())}</td>
             <td
               ><span class="origin" class:system={property.is_system}
                 >{#if property.is_system}<LockKeyhole size={12} />{/if}{property.is_system
-                  ? 'System'
-                  : 'Custom'}</span
+                  ? ui('System')
+                  : ui('Custom')}</span
               ></td
             >
             <td class="actions">
@@ -264,21 +269,21 @@
                 >
                   <input type="hidden" name="id" value={property.id} />
                   <button class="v2-btn v2-btn-quiet toggle"
-                    >{property.is_active ? 'Turn off' : 'Turn on'}</button
+                    >{property.is_active ? ui('Turn off') : ui('Turn on')}</button
                   >
                 </form>
                 <button
                   class="v2-btn v2-btn-quiet toggle delete-property"
                   type="button"
                   aria-label={`Delete ${property.label}`}
-                  onclick={() => openDelete(property)}>Delete</button
+                  onclick={() => openDelete(property)}>{ui('Delete')}</button
                 >
               {/if}
             </td>
           </tr>
         {:else}<tr
             ><td colspan="6" class="empty"
-              >{query ? 'No matching properties.' : 'No custom properties yet.'}</td
+              >{query ? ui('No matching properties.') : ui('No custom properties yet.')}</td
             ></tr
           >{/each}
       </tbody>
@@ -295,14 +300,18 @@
   }}
 >
   <form method="POST" action="?/delete" use:enhance={submitDelete}>
-    <h2 id="delete-property-title">Delete property?</h2>
+    <h2 id="delete-property-title">{ui('Delete property?')}</h2>
     <p>
-      This permanently deletes <strong>{deleting?.label}</strong> and its saved values from {objectLabel.toLowerCase()}.
-      Any pipeline requirements using this property will also be removed. This cannot be undone.
+      {ui('This permanently deletes')} <strong>{deleting?.label}</strong>
+      {ui('and its saved values from')}
+      {objectLabel.toLowerCase()}{ui(
+        '. Any pipeline requirements using this property will also be removed. This cannot be undone.'
+      )}
     </p>
     <input type="hidden" name="id" value={deleting?.id || ''} />
     <label
-      >Type <strong>{deleting?.key}</strong> to confirm.
+      >{ui('Type')} <strong>{deleting?.key}</strong>
+      {ui('to confirm.')}
       <input
         class="v2-input"
         name="confirmation"
@@ -317,12 +326,12 @@
         class="v2-btn"
         type="button"
         disabled={deleteBusy}
-        onclick={() => deleteDialog.close()}>Cancel</button
+        onclick={() => deleteDialog.close()}>{ui('Cancel')}</button
       >
       <button
         class="v2-btn delete-confirm"
         disabled={deleteBusy || !deleting || deleteConfirmation.trim() !== deleting.key}
-        >{deleteBusy ? 'Deleting…' : 'Delete permanently'}</button
+        >{deleteBusy ? ui('Deleting…') : ui('Delete permanently')}</button
       >
     </div>
   </form>
@@ -330,7 +339,7 @@
 
 {#if editing}
   <TeamPanel
-    title={editing.new ? 'Create property' : 'Edit property'}
+    title={editing.new ? ui('Create property') : ui('Edit property')}
     subtitle={objectLabel}
     {busy}
     onclose={() => (editing = null)}
@@ -352,17 +361,17 @@
       <input type="hidden" name="is_filterable" value={editing.is_filterable ?? true} />
       <div class="panel-body">
         <label class="field"
-          >Property name<input
+          >{ui('Property name')}<input
             class="v2-input"
             name="label"
             bind:value={label}
             required
             maxlength="128"
-            placeholder="e.g. Customer reference"
+            placeholder={ui('e.g. Customer reference')}
           /></label
         >
         <label class="field">
-          Internal name
+          {ui('Internal name')}
           <input
             class="v2-input internal-name"
             name="key"
@@ -372,29 +381,34 @@
             required
             maxlength="64"
             pattern="[a-z][a-z0-9_]*"
-            title="Use lowercase letters, numbers and underscores; start with a letter."
+            title={ui('Use lowercase letters, numbers and underscores; start with a letter.')}
           />
           <small
             >{editing.new
-              ? 'Used by the API. You can adjust it before creating the property.'
-              : 'Permanent identifier used by the API. It stays the same when the property name changes.'}</small
+              ? ui('Used by the API. You can adjust it before creating the property.')
+              : ui(
+                  'Permanent identifier used by the API. It stays the same when the property name changes.'
+                )}</small
           >
         </label>
         <label class="field"
-          >Field type
+          >{ui('Field type')}
           <select class="v2-input" bind:value={fieldType} disabled={!editing.new}>
             {#each Object.entries(FIELD_TYPE_LABEL) as [value, name]}<option {value}>{name}</option
               >{/each}
           </select>
-          {#if !editing.new}<small>The type stays fixed to protect existing values.</small>{/if}
+          {#if !editing.new}<small>{ui('The type stays fixed to protect existing values.')}</small
+            >{/if}
         </label>
         {#if fieldType === 'money'}<p class="hint">
-            Amount in the organization’s currency, with up to 2 decimal places.
+            {ui('Amount in the organization’s currency, with up to 2 decimal places.')}
           </p>{/if}
-        {#if fieldType === 'time'}<p class="hint">Local time, without a date or time zone.</p>{/if}
+        {#if fieldType === 'time'}<p class="hint">
+            {ui('Local time, without a date or time zone.')}
+          </p>{/if}
         {#if ['dropdown', 'multi_select'].includes(fieldType)}
           <fieldset>
-            <legend>Options</legend>
+            <legend>{ui('Options')}</legend>
             {#each options as option, index}
               <div class="option-row">
                 <input type="hidden" name="option_value" value={option.value} /><input
@@ -417,21 +431,21 @@
               type="button"
               class="v2-btn v2-btn-quiet"
               onclick={() => (options = [...options, { value: '', label: '' }])}
-              ><Plus size={14} /> Add option</button
+              ><Plus size={14} /> {ui('Add option')}</button
             >
           </fieldset>
         {/if}
-        {#if error}<p class="panel-error" role="alert">{error}</p>{/if}
+        {#if error}<p class="panel-error" role="alert">{ui(error)}</p>{/if}
       </div>
       <div class="panel-footer">
         <button type="button" class="v2-btn" disabled={busy} onclick={() => (editing = null)}
-          >Cancel</button
+          >{ui('Cancel')}</button
         ><button
           class="v2-btn v2-btn-primary"
           disabled={busy ||
             !label.trim() ||
             (['dropdown', 'multi_select'].includes(fieldType) && !options.length)}
-          >{busy ? 'Saving…' : editing.new ? 'Create property' : 'Save changes'}</button
+          >{busy ? ui('Saving…') : editing.new ? ui('Create property') : ui('Save changes')}</button
         >
       </div>
     </form>

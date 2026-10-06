@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { countryOptions } from '$lib/constants/countries.js';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import RecordSection from '$lib/components/creation/RecordSection.svelte';
@@ -192,14 +195,14 @@
           onclick={() => {
             queued = JSON.parse(JSON.stringify({ ...values, tags: selectedTags }));
             void flushAutoSave();
-          }}>Retry</button
+          }}>{ui('Retry')}</button
         >
       </div>{/if}
   {/if}
-  <RecordSection title="Contact details">
+  <RecordSection title={ui('Contact details')}>
     {#each textFields as field (field.key)}
       <div class="v2-field">
-        <label for={'contact-' + field.key}>{field.label}{field.required ? ' *' : ''}</label>
+        <label for={'contact-' + field.key}>{ui(field.label)}{field.required ? ' *' : ''}</label>
         <input
           id={'contact-' + field.key}
           class="v2-input"
@@ -219,16 +222,16 @@
       exclude={data.contact?.id || ''}
     />
   </RecordSection>
-  <RecordSection title="Ownership & stage">
+  <RecordSection title={ui('Ownership & stage')}>
     <div class="v2-field">
-      <label for="contact-owner">Contact Owner</label>
+      <label for="contact-owner">{ui('Contact Owner')}</label>
       <select
         id="contact-owner"
         name="assigned_to"
         class="v2-input"
         bind:value={values.assigned_to}
       >
-        <option value="">Unassigned</option>
+        <option value="">{ui('Unassigned')}</option>
         {#each data.owners ?? [] as owner}
           <option value={owner.id}>{owner.name}</option>
         {/each}
@@ -238,28 +241,30 @@
       {/if}
       {#if editing && data.server?.owner_count > 1}
         <p class="v2-sub">
-          This contact has multiple owners. Choosing another owner replaces the current assignments.
+          {ui(
+            'This contact has multiple owners. Choosing another owner replaces the current assignments.'
+          )}
         </p>
       {/if}
     </div>
     <div class="v2-field">
-      <label for="contact-stage">Stage</label>
+      <label for="contact-stage">{ui('Stage')}</label>
       <select id="contact-stage" name="stage" class="v2-input" bind:value={values.stage}>
-        <option value="">Select stage</option>
+        <option value="">{ui('Select stage')}</option>
         {#each data.stages ?? [] as option}<option value={option.value}>{option.label}</option
           >{/each}
       </select>
     </div>
     <div class="v2-field">
-      <label for="contact-source">Source</label>
+      <label for="contact-source">{ui('Source')}</label>
       <select id="contact-source" name="source" class="v2-input" bind:value={values.source}>
-        <option value="">Select source</option>
+        <option value="">{ui('Select source')}</option>
         {#each data.sources ?? [] as option}<option value={option.value}>{option.label}</option
           >{/each}
       </select>
     </div>
     <div class="v2-field">
-      <span class="tags-label">Tags</span><TagPicker
+      <span class="tags-label">{ui('Tags')}</span><TagPicker
         options={data.tagOptions ?? []}
         original={data.form?.tags ?? []}
         canCreate={data.canCreateTags}
@@ -268,28 +273,28 @@
       />
     </div>
   </RecordSection>
-  <RecordSection title="Communication" collapsible={!editing}>
+  <RecordSection title={ui('Communication')} collapsible={!editing}>
     <LanguageSelect bind:value={values.language} />
     <div class="v2-field">
-      <label for="contact-channel">Preferred Communication Channel</label>
+      <label for="contact-channel">{ui('Preferred Communication Channel')}</label>
       <select
         id="contact-channel"
         name="preferred_communication_channel"
         class="v2-input"
         bind:value={values.preferred_communication_channel}
       >
-        <option value="">Not specified</option>
+        <option value="">{ui('Not specified')}</option>
         {#each data.communication_channels ?? [] as option}<option value={option.value}
             >{option.label}</option
           >{/each}
       </select>
     </div>
   </RecordSection>
-  <RecordSection title="Address" collapsible={!editing}>
+  <RecordSection title={ui('Address')} collapsible={!editing}>
     <div class="v2-field">
-      <label for="contact-country">Country</label>
+      <label for="contact-country">{ui('Country')}</label>
       <select id="contact-country" name="country" class="v2-input" bind:value={values.country}>
-        <option value="">Select country</option>
+        <option value="">{ui('Select country')}</option>
         {#each countryOptions(values.country) as option}<option value={option.value}
             >{option.label}</option
           >{/each}
@@ -297,7 +302,7 @@
     </div>
     {#each addressFields as field (field.key)}
       <div class="v2-field">
-        <label for={'contact-' + field.key}>{field.label}</label>
+        <label for={'contact-' + field.key}>{ui(field.label)}</label>
         <input
           id={'contact-' + field.key}
           class="v2-input"
@@ -310,9 +315,9 @@
     {/each}
   </RecordSection>
   {#if !autoSave && !inline}
-    <RecordSection title="Notes" collapsible={!editing}
+    <RecordSection title={ui('Notes')} collapsible={!editing}
       ><div class="v2-field">
-        <label for="contact-notes">Notes</label>
+        <label for="contact-notes">{ui('Notes')}</label>
         <textarea
           id="contact-notes"
           class="v2-input"
@@ -328,16 +333,16 @@
   {#if !autoSave}
     <div class="actions">
       <button class="v2-btn v2-btn-primary" type="submit" disabled={saving || creatingTag}>
-        {saving ? 'Saving…' : editing ? 'Save contact' : 'Create contact'}
+        {saving ? ui('Saving…') : editing ? ui('Save contact') : ui('Create contact')}
       </button>
       {#if inline}<button
           class="v2-btn"
           type="button"
           disabled={saving || creatingTag}
-          onclick={onCancel}>Cancel</button
+          onclick={onCancel}>{ui('Cancel')}</button
         >{:else}<a
           class="v2-btn"
-          href={resolve(editing ? `/contacts/${data.contact.id}` : '/contacts')}>Cancel</a
+          href={resolve(editing ? `/contacts/${data.contact.id}` : '/contacts')}>{ui('Cancel')}</a
         >{/if}
     </div>
   {/if}

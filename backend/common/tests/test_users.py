@@ -12,7 +12,7 @@ from rest_framework import status
 
 from cases.approvals import Approval, ApprovalRule
 from cases.models import Case, TimeEntry
-from common.models import Address, Profile
+from common.models import Address, OrganizationInvitation, Profile
 from common.permissions import is_org_admin
 
 
@@ -147,8 +147,11 @@ class TestUsersListView:
             format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
-        assert Profile.objects.filter(
+        assert not Profile.objects.filter(
             user__email="new-member@test.com", org=org_a
+        ).exists()
+        assert OrganizationInvitation.objects.filter(
+            email="new-member@test.com", org=org_a
         ).exists()
 
     def test_create_user_minimal_payload_creates_no_address(self, admin_client, org_a):
@@ -159,8 +162,10 @@ class TestUsersListView:
             format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
-        profile = Profile.objects.get(user__email="no-address@test.com", org=org_a)
-        assert profile.address is None
+        assert not Profile.objects.filter(user__email="no-address@test.com").exists()
+        assert OrganizationInvitation.objects.filter(
+            email="no-address@test.com", org=org_a
+        ).exists()
 
     def test_create_user_with_address_scopes_address_to_org(self, admin_client, org_a):
         """Address fields sent -> Address is created and scoped to the admin's org."""
@@ -175,10 +180,8 @@ class TestUsersListView:
             format="json",
         )
         assert response.status_code == status.HTTP_201_CREATED
-        profile = Profile.objects.get(user__email="with-address@test.com", org=org_a)
-        assert profile.address is not None
-        assert profile.address.city == "Hyderabad"
-        assert profile.address.org == org_a
+        assert not Profile.objects.filter(user__email="with-address@test.com").exists()
+        assert not Address.objects.filter(city="Hyderabad").exists()
 
     def test_create_user_reuses_existing_account_from_another_org(
         self, admin_client, org_a, org_b
@@ -200,8 +203,11 @@ class TestUsersListView:
         assert response.status_code == status.HTTP_201_CREATED
         # Same underlying account, now a member of both orgs.
         assert User.objects.filter(email="veteran@test.com").count() == 1
-        new_profile = Profile.objects.get(user=existing, org=org_a)
-        assert new_profile.role == "USER"
+        assert not Profile.objects.filter(user=existing, org=org_a).exists()
+        assert (
+            OrganizationInvitation.objects.get(org=org_a, email=existing.email).role
+            == "USER"
+        )
         assert Profile.objects.filter(user=existing, org=org_b).exists()
 
     def test_create_user_reuse_does_not_mutate_existing_account(
@@ -236,24 +242,24 @@ class TestUsersListView:
         # A deactivated account must not be silently re-enabled by an invite.
         assert existing.is_active is False
 
-    def test_create_user_losing_race_returns_400_not_500(self, admin_client, org_a):
-        """A concurrent invite that wins the DB race yields 400, never a 500."""
+    def test_legacy_invitation_reissue_keeps_one_pending_grant(
+        self, admin_client, org_a
+    ):
         from unittest.mock import patch
 
-        from django.db import IntegrityError
-
-        # Stands in for a second request that committed the same membership
-        # between this request's validation and its INSERT.
-        with patch.object(
-            Profile.objects, "create", side_effect=IntegrityError("duplicate key")
-        ):
-            response = admin_client.post(
-                self.url,
-                {"email": "raced@test.com", "role": "USER"},
-                format="json",
-            )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        with patch("common.views.invitation_views.send_mail"):
+            for _ in range(2):
+                response = admin_client.post(
+                    self.url, {"email": "raced@test.com", "role": "USER"}, format="json"
+                )
+                assert response.status_code == 201
+        assert (
+            OrganizationInvitation.objects.filter(
+                org=org_a, email="raced@test.com"
+            ).count()
+            == 1
+        )
+        assert not Profile.objects.filter(user__email="raced@test.com").exists()
 
     def test_create_user_rolls_back_account_when_membership_fails(
         self, admin_client, org_a

@@ -5,10 +5,10 @@
   export const buttonVariants = tv({
     base: [
       'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap',
-      'rounded-[var(--r-md)] text-sm font-medium leading-none tracking-[-0.01em]',
+      'rounded-[var(--r-md)] text-sm font-medium leading-normal tracking-[-0.01em]',
       'outline-none transition-[background-color,color,border-color,box-shadow] duration-150',
       'disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50',
-      "[&_svg:not([class*='size-'])]:size-[14px] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:stroke-[1.7]",
+      "[&_svg:not([class*='size-'])]:size-[16px] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:stroke-[1.7]",
       'focus-visible:shadow-[0_0_0_3px_var(--focus-ring)]',
       'aria-invalid:border-[color:var(--red)] aria-invalid:shadow-[0_0_0_3px_var(--red-soft)]'
     ].join(' '),
@@ -44,12 +44,13 @@
         ].join(' ')
       },
       size: {
-        default: 'h-8 px-3 has-[>svg]:px-2.5',
-        sm: 'h-7 gap-1.5 px-2.5 has-[>svg]:px-2 text-xs',
-        lg: 'h-9 px-4 has-[>svg]:px-3.5',
-        icon: 'size-8',
-        'icon-sm': 'size-7',
-        'icon-lg': 'size-9'
+        default:
+          'min-h-[var(--crm-control-height)] px-[var(--crm-control-padding-x)] py-[var(--crm-control-padding-y)]',
+        sm: 'min-h-8 gap-2 px-3 py-1 text-xs',
+        lg: 'min-h-11 px-5 py-2',
+        icon: 'size-10',
+        'icon-sm': 'size-8',
+        'icon-lg': 'size-11'
       }
     },
     defaultVariants: {

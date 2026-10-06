@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { deserialize } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
   import { untrack, tick } from 'svelte';
@@ -149,11 +152,11 @@
   }
 </script>
 
-<PageHeader title="Pipelines" />
+<PageHeader title={ui('Pipelines')} />
 <div class="pipeline-settings">
   <div class="toolbar">
     <label
-      >Object<select
+      >{ui('Object')}<select
         class="v2-input"
         bind:value={target}
         disabled={busy}
@@ -173,16 +176,17 @@
           stagePercentage = 0;
           error = '';
           stagePanel = 'add';
-        }}><Plus size={16} />Add stage</button
+        }}><Plus size={16} />{ui('Add stage')}</button
       >{/if}
   </div>
   <div class="table-wrap">
     <table>
       <thead
         ><tr
-          ><th>Order</th><th>Stage name</th><th>Internal name</th><th
-            >{target === 'Opportunity' ? 'Close probability' : 'Progress'}</th
-          ><th>Entry rules</th><th><span class="sr-only">Remove stage</span></th></tr
+          ><th>{ui('Order')}</th><th>{ui('Stage name')}</th><th>{ui('Internal name')}</th><th
+            >{target === 'Opportunity' ? ui('Close probability') : ui('Progress')}</th
+          ><th>{ui('Entry rules')}</th><th><span class="sr-only">{ui('Remove stage')}</span></th
+          ></tr
         ></thead
       >
       <tbody>
@@ -242,7 +246,7 @@
                 onclick={() => openRules(stage)}
                 >{stage.required_fields.length + stage.allowed_from.length
                   ? `${stage.required_fields.length} required · ${stage.allowed_from.length || 'Any'} origin`
-                  : 'Configure'}<ChevronRight size={14} /></button
+                  : ui('Configure')}<ChevronRight size={14} /></button
               ></td
             >
             <td
@@ -251,8 +255,8 @@
                   class="v2-btn v2-btn-quiet"
                   aria-label={`Remove ${stage.label}`}
                   title={stage.protected
-                    ? 'System default stages cannot be removed'
-                    : 'Remove stage'}
+                    ? ui('System default stages cannot be removed')
+                    : ui('Remove stage')}
                   disabled={busy || stage.protected}
                   onclick={() => {
                     removing = stage;
@@ -267,12 +271,12 @@
       </tbody>
     </table>
   </div>
-  {#if error}<p class="error" role="alert">{error}</p>{/if}
+  {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
 </div>
 
 {#if selectedStage}
   <TeamPanel
-    title="Entry rules"
+    title={ui('Entry rules')}
     subtitle={`${data.objects.find((object) => object.value === target)?.label} · ${selectedStage.label}`}
     {busy}
     onclose={() => {
@@ -283,8 +287,8 @@
     <div class="panel-form">
       <div class="panel-body rules">
         <fieldset disabled={!data.can_edit || busy}>
-          <legend>Required properties</legend>
-          <p>Must have a value before entering this stage.</p>
+          <legend>{ui('Required properties')}</legend>
+          <p>{ui('Must have a value before entering this stage.')}</p>
           <div class="choices">
             {#each properties as property}
               <label
@@ -299,8 +303,8 @@
           </div>
         </fieldset>
         <fieldset disabled={!data.can_edit || busy}>
-          <legend>Allowed source stages</legend>
-          <p>Leave empty to allow entry from any stage, including new records.</p>
+          <legend>{ui('Allowed source stages')}</legend>
+          <p>{ui('Leave empty to allow entry from any stage, including new records.')}</p>
           <div class="choices">
             {#each stages.filter((stage) => stage.key !== expanded) as source}
               <label
@@ -315,7 +319,7 @@
           </div>
         </fieldset>
       </div>
-      {#if error}<p class="panel-error" role="alert">{error}</p>{/if}
+      {#if error}<p class="panel-error" role="alert">{ui(error)}</p>{/if}
       <div class="panel-footer">
         <button
           class="v2-btn"
@@ -324,7 +328,7 @@
           onclick={() => {
             expanded = '';
             error = '';
-          }}>Close</button
+          }}>{ui('Close')}</button
         >
       </div>
     </div>
@@ -333,7 +337,7 @@
 
 {#if stagePanel}
   <TeamPanel
-    title={stagePanel === 'add' ? 'Add stage' : 'Remove stage'}
+    title={stagePanel === 'add' ? ui('Add stage') : ui('Remove stage')}
     subtitle={data.objects.find((object) => object.value === target)?.label}
     {busy}
     onclose={() => {
@@ -345,7 +349,7 @@
       <fieldset class="panel-body stage-fields" disabled={busy}>
         {#if stagePanel === 'add'}
           <label
-            >Stage name<input
+            >{ui('Stage name')}<input
               class="v2-input"
               bind:value={stageName}
               required
@@ -353,7 +357,7 @@
             /></label
           >
           <label
-            >{target === 'Opportunity' ? 'Close probability (%)' : 'Progress (%)'}<input
+            >{target === 'Opportunity' ? ui('Close probability (%)') : ui('Progress (%)')}<input
               class="v2-input"
               type="number"
               min="0"
@@ -364,24 +368,28 @@
             /></label
           >
           <p class="hint">
-            An internal name is generated once and stays fixed. Configure entry rules after adding
-            the stage.
+            {ui(
+              'An internal name is generated once and stays fixed. Configure entry rules after adding the stage.'
+            )}
           </p>
         {:else if removing}
-          <p>Remove <strong>{removing.label}</strong> from this pipeline?</p>
+          <p>{ui('Remove')} <strong>{removing.label}</strong> {ui('from this pipeline?')}</p>
           <p class="hint">
-            {removing.record_count || 0} records currently in this stage. Records will be moved, never
-            deleted. References to this stage in entry rules will be removed. A rule left with no source
-            stages allows entry from any stage.
+            {removing.record_count || 0}
+            {ui(
+              'records currently in this stage. Records will be moved, never deleted. References to this stage in entry rules will be removed. A rule left with no source stages allows entry from any stage.'
+            )}
           </p>
           <label
-            >Move records to<select
+            >{ui('Move records to')}<select
               class="v2-input"
               bind:value={destination}
               required={Boolean(removing.record_count)}
             >
               <option value=""
-                >{removing.record_count ? 'Select a destination' : 'No records to move'}</option
+                >{removing.record_count
+                  ? ui('Select a destination')
+                  : ui('No records to move')}</option
               >
               {#each stages.filter((stage) => stage.key !== removing.key) as stage}<option
                   value={stage.key}>{stage.label}</option
@@ -389,11 +397,12 @@
             </select></label
           >
           <p class="hint">
-            Destination requirements still apply. Confirming removes this stage and moves its
-            records.
+            {ui(
+              'Destination requirements still apply. Confirming removes this stage and moves its records.'
+            )}
           </p>
         {/if}
-        {#if error}<p class="error" role="alert">{error}</p>{/if}
+        {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
       </fieldset>
       <div class="panel-footer">
         <button
@@ -403,9 +412,13 @@
           onclick={() => {
             stagePanel = '';
             error = '';
-          }}>Cancel</button
+          }}>{ui('Cancel')}</button
         ><button class="v2-btn v2-btn-primary" disabled={busy}
-          >{busy ? 'Saving…' : stagePanel === 'add' ? 'Add stage' : 'Remove stage'}</button
+          >{busy
+            ? ui('Saving…')
+            : stagePanel === 'add'
+              ? ui('Add stage')
+              : ui('Remove stage')}</button
         >
       </div>
     </form>

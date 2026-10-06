@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { setContext, onMount, tick } from 'svelte';
   import { beforeNavigate, goto } from '$app/navigation';
   import { X } from '@lucide/svelte';
@@ -93,7 +96,7 @@
     <button
       type="button"
       class="v2-btn v2-btn-quiet"
-      aria-label="Close form"
+      aria-label={ui('Close form')}
       disabled={busy}
       onclick={close}><X size={19} /></button
     >
@@ -101,7 +104,7 @@
   <div class="body" inert={busy} aria-busy={busy}>
     <Component {data} {form} />
   </div>
-  {#if busy}<div class="saving" role="status">Saving…</div>{/if}
+  {#if busy}<div class="saving" role="status">{ui('Saving…')}</div>{/if}
 </dialog>
 
 <style>

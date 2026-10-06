@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { exactTime, ui } = useI18n();
+
   import EmailActivity from '$lib/components/EmailActivity.svelte';
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
   import { configuredLabel } from '$lib/v2/pipeline-config.js';
@@ -18,8 +21,7 @@
   import ContactActions from '$lib/components/contacts/ContactActions.svelte';
   let scheduled = $state(false);
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import { exactTime } from '$lib/v2/contact-time.js';
-  import { money } from '$lib/v2/format.js';
+
   import { STAGE_LABEL } from '$lib/v2/enums.js';
   /** @type {{data:any, form:any}} */
   let { data, form } = $props();
@@ -35,7 +37,7 @@
 
 <PageHeader title={contact.name || `Contact · ${contact.id.slice(0, 8)}`} record>
   {#snippet sub()}{[contact.email, contact.phone].filter(Boolean).join(' · ')}{/snippet}
-  {#snippet crumb()}<a href={resolve('/contacts')}>Contacts</a>{/snippet}
+  {#snippet crumb()}<a href={resolve('/contacts')}>{ui('Contacts')}</a>{/snippet}
   {#snippet actions()}
     <CreateAppointment
       hosts={data.hosts}
@@ -48,21 +50,22 @@
         void invalidateAll();
       }}
     />
-    {#if contact.email}<a class="v2-btn" href={`mailto:${contact.email}`}>Email</a>{:else}<button
+    {#if contact.email}<a class="v2-btn" href={`mailto:${contact.email}`}>{ui('Email')}</a
+      >{:else}<button
         class="v2-btn"
         type="button"
         disabled
-        title="Add an email to this contact">Email</button
+        title={ui('Add an email to this contact')}>{ui('Email')}</button
       >{/if}
   {/snippet}
 </PageHeader>
 {#if scheduled}<div class="scheduled-message" role="status">
-    Event scheduled. <a href={resolve('/calendar')}>View calendar</a>
+    {ui('Event scheduled.')} <a href={resolve('/calendar')}>{ui('View calendar')}</a>
   </div>{/if}
 <div class="contact-profile hdm-profile">
-  <section class="properties hdm-panel" aria-label="Contact properties">
+  <section class="properties hdm-panel" aria-label={ui('Contact properties')}>
     <div class="properties-heading">
-      <h2>Properties</h2>
+      <h2>{ui('Properties')}</h2>
       <ContactActions
         {contact}
         disabled={editingProperties}
@@ -116,7 +119,7 @@
   <main class="contact-center hdm-panel">
     <RecordTabs>
       {#snippet notes()}
-        <section class="profile-section" aria-label="Contact notes">
+        <section class="profile-section" aria-label={ui('Contact notes')}>
           {#if contact.description}<div class="history-entry history-body">
               {contact.description}
             </div>{/if}
@@ -142,33 +145,35 @@
             <textarea
               class="v2-input"
               name="comment"
-              aria-label="New note"
+              aria-label={ui('New note')}
               rows="3"
-              placeholder="Write a note…"
+              placeholder={ui('Write a note…')}
               bind:value={note}></textarea>
             <button type="submit" class="v2-btn add-note" disabled={noteBusy || !note.trim()}
-              >{noteBusy ? 'Saving…' : 'Add note'}</button
+              >{noteBusy ? ui('Saving…') : ui('Add note')}</button
             >
             {#if noteError}<p class="v2-error" role="alert">{noteError}</p>{/if}
           </form>
           {#each data.notes as entry (entry.id)}
             <article class="history-entry">
               <div class="history-body">{entry.body}</div>
-              <div class="entry-meta">{entry.by || 'Not recorded'} · {exactTime(entry.at)}</div>
+              <div class="entry-meta">{entry.by || ui('Not recorded')} · {exactTime(entry.at)}</div>
             </article>
-          {:else}<p class="v2-sub">No notes.</p>{/each}
+          {:else}<p class="v2-sub">{ui('No notes.')}</p>{/each}
         </section>
       {/snippet}
       {#snippet activity()}
-        <section class="profile-section activity" aria-label="Contact activity">
+        <section class="profile-section activity" aria-label={ui('Contact activity')}>
           <div class="activity-feed">
             {#each data.activity as event (event.id)}
               <article class="history-entry">
                 <div class="history-body">{event.body}</div>
                 {#if event.emailId}<EmailActivity id={event.emailId} href={event.href} />{/if}
-                <div class="entry-meta">{event.by || 'Not recorded'} · {exactTime(event.at)}</div>
+                <div class="entry-meta">
+                  {event.by || ui('Not recorded')} · {exactTime(event.at)}
+                </div>
               </article>
-            {:else}<p class="v2-sub">No activity.</p>{/each}
+            {:else}<p class="v2-sub">{ui('No activity.')}</p>{/each}
           </div>
         </section>
       {/snippet}

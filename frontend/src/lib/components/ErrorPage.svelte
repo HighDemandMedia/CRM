@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import { goto } from '$app/navigation';
@@ -89,11 +92,11 @@
     <div class="flex flex-col items-center justify-center gap-3 sm:flex-row">
       <Button onclick={() => goto(resolve('/'))} class="gap-2">
         <Home class="h-4 w-4" />
-        Go to dashboard
+        {ui('Go to dashboard')}
       </Button>
       <Button variant="outline" onclick={goBack} class="gap-2">
         <ArrowLeft class="h-4 w-4" />
-        Go back
+        {ui('Go back')}
       </Button>
     </div>
 
@@ -103,7 +106,7 @@
         <div class="mb-4 flex items-center justify-center gap-2">
           <Compass class="text-muted-foreground h-4 w-4" />
           <span class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-            Try one of these
+            {ui('Try one of these')}
           </span>
         </div>
         <div class="flex flex-wrap items-center justify-center gap-2">

@@ -1,3 +1,4 @@
+import { attachmentError } from '$lib/v2/attachment-policy.js';
 import { apiOriginFor } from '$lib/server/api-origin.js';
 /**
  * API Helper Functions
@@ -39,6 +40,16 @@ export async function apiRequest(endpoint, options = {}, locals) {
   // find neither the field nor the file. Plain-object bodies stay JSON, so every
   // existing caller is unaffected.
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+
+  // Reject CRM files before forwarding to the API, including no-JavaScript forms.
+  if (isFormData) {
+    for (const [key, file] of body.entries()) {
+      if (typeof file !== 'string' && (key === 'attachment' || key.endsWith('_attachment'))) {
+        const message = attachmentError(file);
+        if (message) throw Object.assign(new Error(message), { status: 400 });
+      }
+    }
+  }
 
   // Build request headers
   /** @type {Record<string, string>} */

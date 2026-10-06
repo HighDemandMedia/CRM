@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { page } from '$app/state';
   import { can } from '$lib/v2/permissions.js';
   import { resolve } from '$app/paths';
@@ -64,7 +67,7 @@
     class="v2-btn delete-trigger"
     class:in-flow={inFlow}
     type="button"
-    onclick={open}>Delete</button
+    onclick={open}>{ui('Delete')}</button
   >{/if}
 <dialog
   bind:this={dialog}
@@ -73,29 +76,33 @@
     if (busy) e.preventDefault();
   }}
 >
-  <h2 id={`delete-${kind}-title`}>Delete {kind}?</h2>
+  <h2 id={`delete-${kind}-title`}>{ui('Delete')} {kind}?</h2>
   <label class="associated-option"
     ><input
       type="checkbox"
       bind:checked={includeAssociated}
       onchange={preview}
       disabled={busy || loading}
-    /> Also delete directly associated contacts, companies and deals</label
+    />
+    {ui('Also delete directly associated contacts, companies and deals')}</label
   >
   <p>
     {includeAssociated
-      ? 'Only directly associated records are included. Their other associated records will be kept.'
-      : 'Keep associated records and remove their link to this record.'}
+      ? ui(
+          'Only directly associated records are included. Their other associated records will be kept.'
+        )
+      : ui('Keep associated records and remove their link to this record.')}
   </p>
-  {#if loading}<p>Checking linked records…</p>{:else if impact}
+  {#if loading}<p>{ui('Checking linked records…')}</p>{:else if impact}
     <p><strong>{impact.name || impact.id}</strong></p>
     {#if impact.blocked}<p role="alert">{impact.message}</p>{:else}
       <p>
-        This permanently deletes the record and the following related data. This cannot be undone in
-        the CRM.
+        {ui(
+          'This permanently deletes the record and the following related data. This cannot be undone in the CRM.'
+        )}
       </p>
       {#if includeAssociated && impact.associated?.length}
-        <p>Associated records to delete:</p>
+        <p>{ui('Associated records to delete:')}</p>
         <ul>
           {#each impact.associated as record}<li>{record.name} ({record.kind})</li>{/each}
         </ul>
@@ -104,14 +111,15 @@
         {#each impact.counts as item}<li>{item.label}: <strong>{item.count}</strong></li>{/each}
       </ul>
       <p>
-        Invoices, estimates and recurring invoices are kept with their stored details. Associations
-        to surviving records will be removed. Any calendar events that survive will lose their link
-        to this record.
+        {ui(
+          'Invoices, estimates and recurring invoices are kept with their stored details. Associations to surviving records will be removed. Any calendar events that survive will lose their link to this record.'
+        )}
       </p>
       <label
-        >Type <strong>{impact.name || impact.id}</strong> to confirm<input
+        >{ui('Type')} <strong>{impact.name || impact.id}</strong>
+        {ui('to confirm')}<input
           class="v2-input"
-          aria-label="Confirm record name"
+          aria-label={ui('Confirm record name')}
           autocomplete="off"
           spellcheck="false"
           bind:value={confirmation}
@@ -120,10 +128,10 @@
       >
     {/if}
   {/if}
-  {#if error}<p class="error" role="alert">{error}</p>{/if}
+  {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
   <div class="buttons">
     <button class="v2-btn" type="button" disabled={busy} onclick={() => dialog.close()}
-      >Cancel</button
+      >{ui('Cancel')}</button
     ><button
       class="v2-btn danger"
       type="button"
@@ -132,7 +140,7 @@
         !impact ||
         impact.blocked ||
         confirmation !== (impact.name || impact.id)}
-      onclick={remove}>{busy ? 'Deleting…' : 'Delete permanently'}</button
+      onclick={remove}>{busy ? ui('Deleting…') : ui('Delete permanently')}</button
     >
   </div>
 </dialog>

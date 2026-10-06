@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { enhance } from '$app/forms';
   import { resolve } from '$app/paths';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
@@ -8,8 +11,8 @@
   let submitting = $state(false);
 </script>
 
-<PageHeader title="New support ticket" center width="720px">
-  {#snippet sub()}Tell us what happened and what you expected instead{/snippet}
+<PageHeader title={ui('New support ticket')} center width="720px">
+  {#snippet sub()}{ui('Tell us what happened and what you expected instead')}{/snippet}
 </PageHeader>
 
 <div class="v2-scroll">
@@ -18,7 +21,7 @@
     style="padding-top:18px;padding-bottom:32px;max-width:720px;margin-inline:auto"
   >
     {#if form?.error}
-      <p class="v2-card error">{form.error}</p>
+      <p class="v2-card error">{ui(form.error)}</p>
     {/if}
 
     <form
@@ -34,7 +37,7 @@
       }}
     >
       <div class="v2-field">
-        <label for="subject">Subject</label>
+        <label for="subject">{ui('Subject')}</label>
         <input
           id="subject"
           class="v2-input"
@@ -42,14 +45,14 @@
           maxlength="200"
           required
           value={form?.subject ?? ''}
-          placeholder="A short summary of the problem"
+          placeholder={ui('A short summary of the problem')}
         />
       </div>
 
       <div class="v2-field">
-        <label for="category">Category</label>
+        <label for="category">{ui('Category')}</label>
         <select id="category" class="v2-input" name="category" required>
-          <option value="">Choose a category</option>
+          <option value="">{ui('Choose a category')}</option>
           {#each data.categories as category (category.value)}
             <option value={category.value} selected={form?.category === category.value}
               >{category.label}</option
@@ -59,7 +62,7 @@
       </div>
 
       <div class="v2-field">
-        <label for="body">What do you need help with?</label>
+        <label for="body">{ui('What do you need help with?')}</label>
         <textarea
           id="body"
           class="v2-input"
@@ -67,24 +70,25 @@
           rows="8"
           maxlength="10000"
           required
-          placeholder="Include what you tried, what you expected, and the exact error you saw."
-          >{form?.body ?? ''}</textarea
+          placeholder={ui(
+            'Include what you tried, what you expected, and the exact error you saw.'
+          )}>{form?.body ?? ''}</textarea
         >
       </div>
 
       <div class="v2-field">
-        <label for="attachment">Attachment (optional)</label>
+        <label for="attachment">{ui('Attachment (optional)')}</label>
         <input id="attachment" class="v2-input" type="file" name="attachment" />
         <span class="v2-sub" style="font-size:var(--crm-text-xs)"
-          >Up to 25 MB. Remove secrets and personal data before uploading.</span
+          >{ui('Up to 25 MB. Remove secrets and personal data before uploading.')}</span
         >
       </div>
 
       <div class="actions">
         <button class="v2-btn v2-btn-primary" type="submit" disabled={submitting}
-          >{submitting ? 'Opening…' : 'Open ticket'}</button
+          >{submitting ? ui('Opening…') : ui('Open ticket')}</button
         >
-        <a class="v2-btn" href={resolve('/help')}>Cancel</a>
+        <a class="v2-btn" href={resolve('/help')}>{ui('Cancel')}</a>
       </div>
     </form>
   </div>

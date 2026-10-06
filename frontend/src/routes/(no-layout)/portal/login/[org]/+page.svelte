@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   /**
    * Two steps, one page: ask for the email, then ask for the code that was
    * emailed. The first step's confirmation is deliberately unconditional. It
@@ -16,21 +19,22 @@
 </script>
 
 <svelte:head>
-  <title>Sign in to support</title>
+  <title>{ui('Sign in to support')}</title>
 </svelte:head>
 
 <PortalShell>
   <div class="card">
-    <h1>Your support requests</h1>
+    <h1>{ui('Your support requests')}</h1>
 
     {#if stage === 'code'}
       <p class="lede">
-        If <strong>{email}</strong> is on file, we have sent it a six digit code. It expires in 10 minutes.
+        {ui('If')} <strong>{email}</strong>
+        {ui('is on file, we have sent it a six digit code. It expires in 10 minutes.')}
       </p>
 
       <form method="POST" action="?/verify" use:enhance>
         <input type="hidden" name="email" value={email} />
-        <label for="code">Code</label>
+        <label for="code">{ui('Code')}</label>
         <input
           id="code"
           name="code"
@@ -41,21 +45,23 @@
           placeholder="000000"
           required
         />
-        {#if form?.error}<p class="err">{form.error}</p>{/if}
-        <button type="submit">Sign in</button>
+        {#if form?.error}<p class="err">{ui(form.error)}</p>{/if}
+        <button type="submit">{ui('Sign in')}</button>
       </form>
 
       <form method="POST" action="?/request" use:enhance class="again">
         <input type="hidden" name="email" value={email} />
-        <button type="submit" class="link">Send a new code</button>
+        <button type="submit" class="link">{ui('Send a new code')}</button>
       </form>
     {:else}
       <p class="lede">
-        Enter the email address you use with this company and we will send you a sign-in code.
+        {ui(
+          'Enter the email address you use with this company and we will send you a sign-in code.'
+        )}
       </p>
 
       <form method="POST" action="?/request" use:enhance>
-        <label for="email">Email</label>
+        <label for="email">{ui('Email')}</label>
         <input
           id="email"
           name="email"
@@ -64,8 +70,8 @@
           placeholder="you@company.com"
           required
         />
-        {#if form?.error}<p class="err">{form.error}</p>{/if}
-        <button type="submit">Email me a code</button>
+        {#if form?.error}<p class="err">{ui(form.error)}</p>{/if}
+        <button type="submit">{ui('Email me a code')}</button>
       </form>
     {/if}
   </div>

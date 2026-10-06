@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import HelpHeader from '$lib/help/HelpHeader.svelte';
@@ -31,19 +34,19 @@
   <div class="knowledge">
     <div class="intro">
       <div>
-        <h2>Learn your CRM</h2>
-        <p>Guides for the High Demand Media workflows, settings and tools.</p>
+        <h2>{ui('Learn your CRM')}</h2>
+        <p>{ui('Guides for the High Demand Media workflows, settings and tools.')}</p>
       </div>
       <label class="search"
         ><Search size={17} /><input
           type="search"
-          aria-label="Search guides"
-          placeholder="Search guides…"
+          aria-label={ui('Search guides')}
+          placeholder={ui('Search guides…')}
           bind:value={query}
         /></label
       >
     </div>
-    <div class="categories" role="group" aria-label="Guide categories">
+    <div class="categories" role="group" aria-label={ui('Guide categories')}>
       {#each ['All', ...categories] as item}<button
           class:active={category === item}
           aria-pressed={category === item}
@@ -59,13 +62,13 @@
           <p>{article.summary}</p></a
         >{:else}<div class="empty">
           <BookOpen size={26} />
-          <h3>No guides found</h3>
-          <p>Try another word or category.</p>
+          <h3>{ui('No guides found')}</h3>
+          <p>{ui('Try another word or category.')}</p>
         </div>{/each}
     </div>
     <div class="contact-prompt">
-      <span>Still need assistance?</span><a href={resolve('/help')}
-        >Ask the High Demand Media team <ArrowUpRight size={15} /></a
+      <span>{ui('Still need assistance?')}</span><a href={resolve('/help')}
+        >{ui('Ask the High Demand Media team')} <ArrowUpRight size={15} /></a
       >
     </div>
   </div>

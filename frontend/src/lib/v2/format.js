@@ -1,10 +1,10 @@
 /** Formatting helpers for v2. Every number rendered goes through one of these. */
 
 /** @param {number|string|null|undefined} n */
-export function money(n, currency = 'USD') {
+export function money(n, currency = 'USD', locale = 'en-US') {
   const v = Number(n ?? 0);
   if (!Number.isFinite(v)) return '—';
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
     maximumFractionDigits: v % 1 === 0 ? 0 : 2
@@ -12,9 +12,9 @@ export function money(n, currency = 'USD') {
 }
 
 /** @param {number|string|null|undefined} n */
-export function count(n) {
+export function count(n, locale = 'en-US') {
   const v = Number(n ?? 0);
-  return Number.isFinite(v) ? v.toLocaleString('en-US') : '—';
+  return Number.isFinite(v) ? v.toLocaleString(locale) : '—';
 }
 
 /** @param {string|null|undefined} name */
@@ -53,11 +53,11 @@ function parseIso(value) {
  * deal closed three years ago reads as if it closed last week.
  * Returns an em dash for null so table cells never collapse.
  */
-export function shortDate(iso, now = new Date()) {
+export function shortDate(iso, now = new Date(), locale = 'en-GB') {
   const d = parseIso(iso);
   if (!d) return '—';
   const sameYear = d.getFullYear() === now.getFullYear();
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
     ...(sameYear ? {} : { year: 'numeric' })
@@ -65,10 +65,10 @@ export function shortDate(iso, now = new Date()) {
 }
 
 /** ISO date → "8 August 2026". */
-export function longDate(iso) {
+export function longDate(iso, locale = 'en-GB') {
   const d = parseIso(iso);
   if (!d) return '—';
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
@@ -83,9 +83,11 @@ export function daysSince(iso, now = new Date()) {
 }
 
 /** "12 days ago" / "today" / "in 4 days", for a person, not a machine. */
-export function relativeDays(iso, now = new Date()) {
+export function relativeDays(iso, now = new Date(), locale = 'en') {
   const n = daysSince(iso, now);
   if (n === null) return '—';
+  if (locale.startsWith('es'))
+    return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(-n, 'day');
   if (n === 0) return 'today';
   if (n === 1) return 'yesterday';
   if (n > 1) return `${n} days ago`;
@@ -102,16 +104,21 @@ export function relativeDays(iso, now = new Date()) {
  * twenty hours ago are different events, and collapsing both to "today" is how
  * you end up re-reading the whole list to find what is new.
  */
-export function relativeTime(iso, now = new Date()) {
+export function relativeTime(iso, now = new Date(), locale = 'en') {
   const d = parseIso(iso);
   if (!d) return '—';
   const mins = Math.floor((now.getTime() - d.getTime()) / 60000);
-  if (mins < 0) return relativeDays(iso, now);
+  if (mins < 0) return relativeDays(iso, now, locale);
+  if (locale.startsWith('es') && mins < 1440)
+    return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(
+      mins < 1 ? 0 : mins < 60 ? -mins : -Math.floor(mins / 60),
+      mins < 1 ? 'second' : mins < 60 ? 'minute' : 'hour'
+    );
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs} hour${hrs === 1 ? '' : 's'} ago`;
-  return relativeDays(iso, now);
+  return relativeDays(iso, now, locale);
 }
 
 /**

@@ -104,7 +104,15 @@ dark text `#1D0502`, muted text `#4A302C` and maroon `#740A03`. Shared primary
 buttons use the 135-degree red/orange gradient with white text and a 12% black
 overlay (18% hover, 24% active) to maintain small-text AA contrast. The reusable
 button component, v2 buttons and mobile creation button share these tokens.
-CRM surfaces, density and semantic status colors remain suited to data entry.
+The current light palette follows the supplied Winter Concrete / Graphite Shadow /
+Signal Red reference: canvas softened to `#F1F2F4`, navigation `#292D30`, and
+accents `#C82322`. Selected modules and preferences use the HDM button gradient
+with white text and shared hover/pressed states. Cards remain white, table headers use `#E6E8EC`, and main text
+uses graphite. Navigation uses light text with a visible light focus outline.
+Decorative borders (`#CDD2D8`) and control boundaries (`#697581`) remain separate.
+The HDM gradient button tokens above are preserved independently from Signal Red.
+Density and semantic status colors are unchanged. Dark content surfaces retain
+their existing treatment; navigation uses the same graphite in both themes.
 
 Notes and Record ID stay in Edit columns, but are excluded from default/reset
 selections across all five active object lists. Explicit saved selections remain
@@ -114,3 +122,40 @@ Validation: 471 frontend tests pass, including defaults/manual selection and
 contrast samples throughout each gradient state in light/dark themes; Svelte
 checks and production build pass. Local browser checks cover the branded login
 and populated contact list, reset behavior and manual ID selection.
+
+### System emails and invitation-only access (October 2026)
+
+System messages share `common/templates/root_email_template_new.html` and the
+email-safe tokens in `common/templatetags/crm_email.py`: graphite header, white
+content on the soft gray canvas, signal-red fallback and a red/orange button
+gradient. Inline styles and a system-font fallback keep messages readable when
+a client strips styles or lacks Inter. Invitation/support messages retain their
+plain-text alternatives. User-authored email bodies are not restyled.
+
+The public login route presents the product with one Sign in entry and a
+mailto request-access link to High Demand Media. It does not provision an
+account. Password registration requires a valid, unexpired, single-use
+invitation for the same email. Google and email recovery authenticate existing
+identities only. The legacy users POST now issues an invitation rather than
+creating membership immediately.
+
+Only the platform owner creates customer organizations. The optional
+Administrator email field sends an initial administrator invitation. Acceptance
+hands off that organization's ownership inside the same transaction as
+membership creation; a normal team invitation cannot request this grant.
+Administrators enter Organization settings to review company information,
+currency, country and time zone, then Save and open CRM. Team members proceed
+straight to their workspace. Failed invitation delivery leaves a pending
+invitation for resend in Users & Teams.
+
+Deployment needs migration `common.0071_invitation_grants_ownership` before the
+new API and worker code. Existing invitations default to non-owner grants and
+existing users keep their access. Keep `PASSWORD_REGISTRATION_ENABLED=false`
+for the hosted configuration check; setting it true no longer enables public
+password registration. No production deployment was performed for this change.
+
+Reference patterns: [Attio](https://attio.com/) and
+[Pipedrive](https://www.pipedrive.com/en/demo) separate product presentation from
+account access/sales entry; [HubSpot's login guidance](https://knowledge.hubspot.com/account-management/log-in-to-hubspot)
+keeps sign-in and recovery focused on existing accounts. These informed the
+presentation, not the CRM's authorization policy.

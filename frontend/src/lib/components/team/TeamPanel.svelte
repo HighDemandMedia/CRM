@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { onMount } from 'svelte';
   import { X } from '@lucide/svelte';
   let { title, subtitle = '', busy = false, onclose, children } = $props();
@@ -25,7 +28,7 @@
     <button
       type="button"
       class="v2-btn v2-btn-quiet"
-      aria-label="Close panel"
+      aria-label={ui('Close panel')}
       disabled={busy}
       onclick={onclose}><X size={19} /></button
     >

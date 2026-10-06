@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   import { page } from '$app/state';
   import { configuredLabel } from '$lib/v2/pipeline-config.js';
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
@@ -21,7 +24,7 @@
     note = $state('');
   let values = $state(untrack(() => ({ ...data.editOptions.form })));
   const date = (v) =>
-    v ? new Date(v).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+    v ? new Date(v).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }) : '—';
   const overdue = $derived(ticket.is_open && ticket.due_at && new Date(ticket.due_at) < new Date());
   function edit() {
     values = { ...data.editOptions.form, contacts: [...data.editOptions.form.contacts] };
@@ -54,36 +57,36 @@
 </script>
 
 <PageHeader title={ticket.name || ticket.ticket_code || `Ticket · ${ticket.id.slice(0, 8)}`} record>
-  {#snippet crumb()}<a href={resolve('/tickets')}>Tickets</a><span>{ticket.ticket_code}</span><span
-      class="status">{statusLabel(ticket.status)}</span
-    >{/snippet}
+  {#snippet crumb()}<a href={resolve('/tickets')}>{ui('Tickets')}</a><span
+      >{ticket.ticket_code}</span
+    ><span class="status">{statusLabel(ticket.status)}</span>{/snippet}
   {#snippet actions()}{#if ticket.is_open}<button
         class="v2-btn v2-btn-primary"
-        onclick={() => (resolving = true)}>Resolve</button
+        onclick={() => (resolving = true)}>{ui('Resolve')}</button
       >{:else}<form method="POST" action="?/setStatus" use:enhance>
-        <button class="v2-btn" name="status" value="New">Reopen</button>
+        <button class="v2-btn" name="status" value="New">{ui('Reopen')}</button>
       </form>{/if}{#if ticket.status === 'Resolved'}<form
         method="POST"
         action="?/setStatus"
         use:enhance
       >
-        <button class="v2-btn" name="status" value="Closed">Close</button>
+        <button class="v2-btn" name="status" value="Closed">{ui('Close')}</button>
       </form>{/if}{/snippet}
 </PageHeader>
-{#if form?.error}<p class="v2-error message" role="alert">{form.error}</p>{/if}
+{#if form?.error}<p class="v2-error message" role="alert">{ui(form.error)}</p>{/if}
 <div class="profile">
   <aside>
     <div class="heading">
-      <h2>Properties</h2>
-      {#if !editing}<button class="v2-btn" onclick={edit}>Edit</button>{/if}
+      <h2>{ui('Properties')}</h2>
+      {#if !editing}<button class="v2-btn" onclick={edit}>{ui('Edit')}</button>{/if}
     </div>
     {#if editing}<form method="POST" action="?/properties" use:enhance={save}>
         <TicketFields bind:values options={data.editOptions} showAssociates={false} />
         <div class="actions">
-          <button class="v2-btn v2-btn-primary" disabled={busy}>Save</button><button
+          <button class="v2-btn v2-btn-primary" disabled={busy}>{ui('Save')}</button><button
             class="v2-btn"
             type="button"
-            onclick={() => (editing = false)}>Cancel</button
+            onclick={() => (editing = false)}>{ui('Cancel')}</button
           >
         </div>
       </form>
@@ -108,10 +111,10 @@
   </aside>
   <main>
     <section class="description">
-      <h2>Description</h2>
+      <h2>{ui('Description')}</h2>
       <p class="body">{ticket.description || '—'}</p>
       {#if ticket.resolution_note}<div class="resolution">
-          <h3>Resolution</h3>
+          <h3>{ui('Resolution')}</h3>
           <p class="body">{ticket.resolution_note}</p>
         </div>{/if}
     </section>
@@ -120,24 +123,25 @@
           {#each data.conversation.filter((entry) => entry.kind === 'note') as entry}<article>
               <p class="body">{entry.body}</p>
               <small>{entry.author} · {date(entry.at)}</small>
-            </article>{:else}<p class="muted">No notes yet.</p>{/each}
+            </article>{:else}<p class="muted">{ui('No notes yet.')}</p>{/each}
         </div>
         {#if data.canReply}<form method="POST" action="?/reply" use:enhance={postNote}>
             <input type="hidden" name="internal" value="on" /><textarea
               class="v2-input"
               name="body"
               bind:value={note}
-              placeholder="Add an internal note…"
+              placeholder={ui('Add an internal note…')}
               rows="3"
-              aria-label="Internal note"></textarea><button
+              aria-label={ui('Internal note')}></textarea><button
               class="v2-btn v2-btn-primary add"
-              disabled={busy || !note.trim()}>Add note</button
+              disabled={busy || !note.trim()}>{ui('Add note')}</button
             >
           </form>{/if}{/snippet}
       {#snippet activity()}<div class="activity">
           {#each data.activity.filter( (entry) => ['CREATE', 'UPDATE', 'STATUS_CHANGED', 'PRIORITY_CHANGED', 'ASSIGN'].includes(entry.action) ) as entry}<article
             >
-              <strong>{entry.label}</strong><small>{entry.by || 'System'} · {date(entry.at)}</small
+              <strong>{entry.label}</strong><small
+                >{entry.by || ui('System')} · {date(entry.at)}</small
               >{#each Object.entries(entry.changes?.changes ?? {}) as [key, change]}<p
                   class="muted"
                 >
@@ -147,27 +151,27 @@
                 </p>{/each}{#if entry.changes?.before !== undefined}<p class="muted">
                   {entry.changes.before} → {entry.changes.after}
                 </p>{/if}
-            </article>{:else}<p class="muted">No changes yet.</p>{/each}
+            </article>{:else}<p class="muted">{ui('No changes yet.')}</p>{/each}
         </div>{/snippet}
     </RecordTabs>
   </main>
   <aside>
-    <h2>Associations</h2>
+    <h2>{ui('Associations')}</h2>
     {#if editing}<TicketAssociates bind:values options={data.editOptions} />{:else}
       {#each ticket.contacts as contact}<a
           class="association"
           href={resolve(`/contacts/${contact.id}`)}
-          ><small>Contact</small><strong>{contact.name}</strong></a
+          ><small>{ui('Contact')}</small><strong>{contact.name}</strong></a
         >{/each}{#if ticket.account}<a
           class="association"
           href={resolve(`/accounts/${ticket.account.id}`)}
-          ><small>Company</small><strong>{ticket.account.name}</strong></a
+          ><small>{ui('Company')}</small><strong>{ticket.account.name}</strong></a
         >{/if}{#if ticket.deal}<a class="association" href={resolve(`/pipeline/${ticket.deal}`)}
-          ><small>Deal</small><strong
+          ><small>{ui('Deal')}</small><strong
             >{data.editOptions.deals?.find((d) => d.id === ticket.deal)?.name ??
               'Open deal'}</strong
           ></a
-        >{/if}<button class="v2-btn" onclick={edit}>+ Association</button>{/if}
+        >{/if}<button class="v2-btn" onclick={edit}>{ui('+ Association')}</button>{/if}
     <section class="attachments">
       <Attachments
         attachments={data.attachments.map((file) => ({ ...file, href: file.url }))}
@@ -182,7 +186,7 @@
     aria-labelledby="resolve-title"
     class="dialog"
   >
-    <h2 id="resolve-title">Resolve ticket</h2>
+    <h2 id="resolve-title">{ui('Resolve ticket')}</h2>
     <form
       method="POST"
       action="?/resolve"
@@ -196,12 +200,13 @@
       }}
     >
       <label
-        >Resolution note<textarea class="v2-input" name="resolution_note" required rows="4"
+        >{ui('Resolution note')}<textarea class="v2-input" name="resolution_note" required rows="4"
         ></textarea></label
-      >{#if form?.error}<p role="alert" class="v2-error">{form.error}</p>{/if}
+      >{#if form?.error}<p role="alert" class="v2-error">{ui(form.error)}</p>{/if}
       <div class="actions">
-        <button class="v2-btn" type="button" onclick={() => (resolving = false)}>Cancel</button
-        ><button class="v2-btn v2-btn-primary" disabled={busy}>Resolve</button>
+        <button class="v2-btn" type="button" onclick={() => (resolving = false)}
+          >{ui('Cancel')}</button
+        ><button class="v2-btn v2-btn-primary" disabled={busy}>{ui('Resolve')}</button>
       </div>
     </form>
   </dialog>{/if}

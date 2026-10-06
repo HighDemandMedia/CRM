@@ -1,9 +1,12 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, shortDate } = useI18n();
+
   import { enhance } from '$app/forms';
   import { resolve } from '$app/paths';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import Pill from '$lib/v2/components/Pill.svelte';
-  import { shortDate } from '$lib/v2/format.js';
+
   import { Paperclip, Send } from '@lucide/svelte';
 
   /** @type {{ data: any, form: any }} */
@@ -22,7 +25,7 @@
 
 <PageHeader title={ticket.subject} center width="840px">
   {#snippet sub()}
-    {ticket.reference} · {ticket.categoryLabel} · opened {shortDate(ticket.createdAt)}
+    {ticket.reference} · {ticket.categoryLabel} {ui('· opened')} {shortDate(ticket.createdAt)}
   {/snippet}
   {#snippet actions()}
     <Pill tone={STATUS_TONE[ticket.status]}>{ticket.statusLabel}</Pill>
@@ -34,19 +37,19 @@
     class="v2-pad"
     style="padding-top:18px;padding-bottom:32px;max-width:840px;margin-inline:auto"
   >
-    <a class="back" href={resolve('/help')}>Back to help</a>
+    <a class="back" href={resolve('/help')}>{ui('Back to help')}</a>
 
     <div class="summary v2-card">
-      <span><b>Status</b>{ticket.statusLabel}</span>
-      <span><b>Priority</b>{ticket.priorityLabel}</span>
+      <span><b>{ui('Status')}</b>{ticket.statusLabel}</span>
+      <span><b>{ui('Priority')}</b>{ticket.priorityLabel}</span>
       <span
-        ><b>Assigned</b>{ticket.assigned
-          ? 'Support agent assigned'
-          : 'Waiting for assignment'}</span
+        ><b>{ui('Assigned')}</b>{ticket.assigned
+          ? ui('Support agent assigned')
+          : ui('Waiting for assignment')}</span
       >
     </div>
 
-    <div class="v2-label" style="margin:22px 0 10px">Conversation</div>
+    <div class="v2-label" style="margin:22px 0 10px">{ui('Conversation')}</div>
     <div class="conversation">
       {#each ticket.messages as message (message.id)}
         <article class:staff={message.authorType === 'staff'} class="message v2-card">
@@ -64,13 +67,13 @@
       {/each}
     </div>
 
-    {#if form?.error}<p class="v2-card error">{form.error}</p>{/if}
-    {#if form?.sent}<p class="v2-card sent">Your reply was sent.</p>{/if}
+    {#if form?.error}<p class="v2-card error">{ui(form.error)}</p>{/if}
+    {#if form?.sent}<p class="v2-card sent">{ui('Your reply was sent.')}</p>{/if}
 
     {#if ticket.status === 'closed'}
       <div class="v2-card closed">
-        This ticket is closed. Open a new ticket if you still need help.
-        <a class="v2-btn" href={resolve('/help/new')}>New ticket</a>
+        {ui('This ticket is closed. Open a new ticket if you still need help.')}
+        <a class="v2-btn" href={resolve('/help/new')}>{ui('New ticket')}</a>
       </div>
     {:else}
       <form
@@ -87,21 +90,21 @@
         }}
       >
         <div class="v2-field">
-          <label for="reply">Reply</label>
+          <label for="reply">{ui('Reply')}</label>
           <textarea
             id="reply"
             class="v2-input"
             name="body"
             rows="5"
             maxlength="10000"
-            placeholder="Add any details that will help us investigate."
+            placeholder={ui('Add any details that will help us investigate.')}
             >{form?.body ?? ''}</textarea
           >
         </div>
         <div class="compose-actions">
-          <input class="v2-input" type="file" name="attachment" aria-label="Attach a file" />
+          <input class="v2-input" type="file" name="attachment" aria-label={ui('Attach a file')} />
           <button class="v2-btn v2-btn-primary" type="submit" disabled={submitting}
-            ><Send />{submitting ? 'Sending…' : 'Send reply'}</button
+            ><Send />{submitting ? ui('Sending…') : ui('Send reply')}</button
           >
         </div>
       </form>

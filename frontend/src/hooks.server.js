@@ -12,7 +12,6 @@ import { API_ORIGIN } from '$lib/server/api-origin.js';
 import { redirect } from '@sveltejs/kit';
 import { demoPageAllowed } from '$lib/v2/demo-view.js';
 import axios from 'axios';
-import { env } from '$env/dynamic/public';
 import { describeError } from '$lib/server/log-safe.js';
 
 const API_BASE_URL = `${API_ORIGIN}/api`;
@@ -385,5 +384,11 @@ export const handle = async function handle({ event, resolve }) {
   ) {
     throw redirect(303, '/');
   }
-  return resolve(event);
+  return resolve(event, {
+    transformPageChunk: ({ html }) =>
+      html.replace(
+        '<html lang="en">',
+        `<html lang="${event.cookies.get('crm_language') === 'es' ? 'es' : 'en'}">`
+      )
+  });
 };

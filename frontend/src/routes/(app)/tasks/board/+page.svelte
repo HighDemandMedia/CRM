@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, count, shortDate } = useI18n();
+
   import { resolve } from '$app/paths';
   /**
    * The kanban board.
@@ -29,7 +32,7 @@
   import Pill from '$lib/v2/components/Pill.svelte';
   import Avatar from '$lib/v2/components/Avatar.svelte';
   import StatCard from '$lib/v2/components/StatCard.svelte';
-  import { count, shortDate, daysSince } from '$lib/v2/format.js';
+  import { daysSince } from '$lib/v2/format.js';
   import { BOARD_PRIORITY_LABEL, BOARD_PRIORITY_TONE } from '$lib/v2/enums.js';
   import { Plus, ChevronDown, TriangleAlert } from '@lucide/svelte';
 
@@ -148,12 +151,12 @@
   }
 </script>
 
-<PageHeader title="Tasks">
+<PageHeader title={ui('Tasks')}>
   {#snippet sub()}
     {#if data.board}
       {data.board.name}{data.board.description ? ` · ${data.board.description}` : ''}
     {:else}
-      Boards
+      {ui('Boards')}
     {/if}
   {/snippet}
   {#snippet actions()}
@@ -192,10 +195,11 @@
   <div class="v2-pad" style="padding-top:32px">
     <div class="v2-empty">
       <Plus size={22} style="opacity:0.4" />
-      <p class="v2-empty-title">No boards yet</p>
+      <p class="v2-empty-title">{ui('No boards yet')}</p>
       <p class="v2-sub" style="max-width:34ch;text-align:center">
-        A board organises work into columns you drag cards between. It starts with To Do, In
-        Progress and Done, and you can rename them later.
+        {ui(
+          'A board organises work into columns you drag cards between. It starts with To Do, In Progress and Done, and you can rename them later.'
+        )}
       </p>
       <form
         class="v2-lane-add-form"
@@ -222,13 +226,13 @@
         <input
           class="v2-input"
           name="name"
-          placeholder="Board name"
+          placeholder={ui('Board name')}
           maxlength="255"
           required
           autofocus
         />
         <button class="v2-btn v2-btn-primary" type="submit" disabled={createBoardBusy}>
-          {createBoardBusy ? 'Creating…' : 'Create board'}
+          {createBoardBusy ? ui('Creating…') : ui('Create board')}
         </button>
       </form>
       {#if createBoardError}
@@ -247,9 +251,11 @@
   {/if}
 
   <div class="board-totals">
-    <span>{count(totals.open)} open</span><span>{count(totals.overdue)} overdue</span><span
-      >{count(totals.unassigned)} unassigned</span
-    >{#if totals.over_limit}<span>{totals.over_limit} columns over limit</span>{/if}
+    <span>{count(totals.open)} {ui('open')}</span><span
+      >{count(totals.overdue)} {ui('overdue')}</span
+    ><span>{count(totals.unassigned)} {ui('unassigned')}</span>{#if totals.over_limit}<span
+        >{totals.over_limit} {ui('columns over limit')}</span
+      >{/if}
   </div>
 
   <div class="v2-board" style="padding-top:16px">
@@ -268,7 +274,7 @@
         {#if over}
           <div class="v2-lane-over">
             <TriangleAlert size={12} style="flex:none" />
-            <span>{lane.cards.length - lane.limit} over the limit of {lane.limit}</span>
+            <span>{lane.cards.length - lane.limit} {ui('over the limit of')} {lane.limit}</span>
           </div>
         {/if}
 
@@ -300,7 +306,7 @@
                   >{BOARD_PRIORITY_LABEL[t.priority]}</Pill
                 >
                 {#if overdue}
-                  <Pill tone="rust">{daysSince(t.due_date)}d late</Pill>
+                  <Pill tone="rust">{daysSince(t.due_date)}{ui('d late')}</Pill>
                 {/if}
               </div>
 
@@ -311,7 +317,8 @@
                   {/each}
                 {:else}
                   <!-- Named, not an empty slot. A blank reads as a rendering gap. -->
-                  <span class="v2-sub" style="font-size:var(--crm-text-xs)">Unassigned</span>
+                  <span class="v2-sub" style="font-size:var(--crm-text-xs)">{ui('Unassigned')}</span
+                  >
                 {/if}
                 {#if t.due_date}
                   <span class="v2-sub" style="margin-left:auto;font-size:var(--crm-text-xs)">
@@ -325,14 +332,14 @@
                      work by every count on this page, and by the API's. -->
                 <div class="v2-card-flag">
                   <TriangleAlert size={12} style="flex:none" />
-                  <span>In Done, never marked complete, still counted as open</span>
+                  <span>{ui('In Done, never marked complete, still counted as open')}</span>
                 </div>
               {/if}
             </div>
           {/each}
         </div>
         {#if lane.cards.length === 0}
-          <p class="v2-sub v2-lane-empty">Drop a card here</p>
+          <p class="v2-sub v2-lane-empty">{ui('Drop a card here')}</p>
         {/if}
 
         <!-- Add a card. Any board member can, so it sits on every lane. Kept
@@ -363,7 +370,7 @@
             <input
               class="v2-input v2-lane-add-input"
               name="title"
-              placeholder="Card title"
+              placeholder={ui('Card title')}
               required
               autofocus
               disabled={addCardBusy}
@@ -371,7 +378,7 @@
             <textarea
               class="v2-input v2-lane-add-input"
               name="description"
-              placeholder="Description (optional)"
+              placeholder={ui('Description (optional)')}
               rows="2"
               disabled={addCardBusy}></textarea>
             <select class="v2-input v2-lane-add-input" name="priority" disabled={addCardBusy}>
@@ -384,7 +391,7 @@
             {/if}
             <div class="v2-lane-add-actions">
               <button type="submit" class="v2-btn v2-btn-primary v2-btn-sm" disabled={addCardBusy}>
-                {addCardBusy ? 'Adding…' : 'Add card'}
+                {addCardBusy ? ui('Adding…') : ui('Add card')}
               </button>
               <button
                 type="button"
@@ -392,13 +399,14 @@
                 onclick={closeCardForm}
                 disabled={addCardBusy}
               >
-                Cancel
+                {ui('Cancel')}
               </button>
             </div>
           </form>
         {:else}
           <button class="v2-lane-add" onclick={() => openCardForm(lane.id)}>
-            <Plus size={13} /> Add card
+            <Plus size={13} />
+            {ui('Add card')}
           </button>
         {/if}
       </section>
@@ -444,7 +452,7 @@
               <input
                 class="v2-input v2-lane-add-input"
                 name="name"
-                placeholder="Column name"
+                placeholder={ui('Column name')}
                 required
                 autofocus
                 disabled={addColumnBusy}
@@ -454,7 +462,7 @@
                 type="color"
                 name="color"
                 value="#6b7280"
-                aria-label="Column colour"
+                aria-label={ui('Column colour')}
                 disabled={addColumnBusy}
               />
             </div>
@@ -467,7 +475,7 @@
                 class="v2-btn v2-btn-primary v2-btn-sm"
                 disabled={addColumnBusy}
               >
-                {addColumnBusy ? 'Adding…' : 'Add column'}
+                {addColumnBusy ? ui('Adding…') : ui('Add column')}
               </button>
               <button
                 type="button"
@@ -478,13 +486,14 @@
                 }}
                 disabled={addColumnBusy}
               >
-                Cancel
+                {ui('Cancel')}
               </button>
             </div>
           </form>
         {:else}
           <button class="v2-lane-add v2-lane-add-lane" onclick={() => (showAddColumn = true)}>
-            <Plus size={14} /> Add column
+            <Plus size={14} />
+            {ui('Add column')}
           </button>
         {/if}
       </section>
@@ -499,9 +508,10 @@
   class="v2-sub v2-pad"
   style="font-size:var(--crm-text-xs);padding-bottom:14px;flex:none;margin:0"
 >
-  Cards on a board are separate records from the
-  <a href={resolve('/tasks')} style="color:inherit">task list</a>. A card here does not appear
-  there, and completing one does not complete the other.
+  {ui('Cards on a board are separate records from the')}
+  <a href={resolve('/tasks')} style="color:inherit">{ui('task list')}</a>{ui(
+    '. A card here does not appear there, and completing one does not complete the other.'
+  )}
 </p>
 
 <style>

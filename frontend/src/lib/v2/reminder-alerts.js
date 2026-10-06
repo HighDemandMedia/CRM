@@ -4,7 +4,12 @@ import { reminderLabel, reminderDetail, resolvedLink } from './notification-cont
 // Desktop and mobile navigation mount separately. Share receipts so each
 // reminder produces one toast per app session, even when both refresh.
 const announced = new Set();
-export function announceReminders(rows, now = Date.now()) {
+export function announceReminders(
+  rows,
+  now = Date.now(),
+  ui = (message) => message,
+  locale = 'en-US'
+) {
   for (const row of rows) {
     if (!reminderLabel(row) || !row.id || row.read_at || announced.has(row.id)) continue;
     announced.add(row.id);
@@ -12,11 +17,11 @@ export function announceReminders(rows, now = Date.now()) {
     // Old task reminders remain in History without interrupting today's work.
     if (!(Date.parse(row.created_at) > now - 24 * 60 * 60 * 1000)) continue;
     const link = resolvedLink(row.link);
-    toast(`${reminderLabel(row)}: ${row.entity_name || 'Reminder'}`, {
+    toast(`${ui(reminderLabel(row))}: ${row.entity_name || ui('Reminder')}`, {
       id: row.id,
-      description: reminderDetail(row),
+      description: reminderDetail(row, locale),
       duration: 10000,
-      action: link ? { label: 'Open', onClick: () => window.location.assign(link) } : undefined
+      action: link ? { label: ui('Open'), onClick: () => window.location.assign(link) } : undefined
     });
   }
 }

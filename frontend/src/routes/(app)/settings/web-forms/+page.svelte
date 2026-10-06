@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, count, shortDate } = useI18n();
+
   /**
    * Web forms: the list.
    *
@@ -36,7 +39,7 @@
   import NextAction from '$lib/v2/components/NextAction.svelte';
   import EmptyState from '$lib/v2/components/EmptyState.svelte';
   import ConfirmAction from '$lib/v2/components/ConfirmAction.svelte';
-  import { count, shortDate } from '$lib/v2/format.js';
+
   import { enhance } from '$app/forms';
   import { Plus, ArrowRight } from '@lucide/svelte';
 
@@ -72,16 +75,16 @@
   );
 </script>
 
-<PageHeader title="Web forms">
+<PageHeader title={ui('Web forms')}>
   {#snippet crumb()}<SettingsCrumb />{/snippet}
   {#snippet sub()}
     <Pill>Beta</Pill>
-    Turn website enquiries into contacts and notify your team.
+    {ui('Turn website enquiries into contacts and notify your team.')}
   {/snippet}
   {#snippet actions()}
     {#if data.canManage}
       <button class="v2-btn v2-btn-primary" onclick={() => (creating = !creating)}>
-        <Plus />New form
+        <Plus />{ui('New form')}
       </button>
     {/if}
   {/snippet}
@@ -89,16 +92,16 @@
 
 <div class="v2-pad" style="padding-top:16px;flex:none">
   <div class="v2-stats">
-    <StatCard label="Published" value={count(totals.published)} tone="ink" />
+    <StatCard label={ui('Published')} value={count(totals.published)} tone="ink" />
     <StatCard
-      label="Drafts"
+      label={ui('Drafts')}
       value={count(drafts)}
       tone="slate"
       detail={drafts ? 'Not receiving submissions' : 'None'}
     />
-    <StatCard label="Submissions, 30 days" value={count(totals.submissions_30d)} tone="ink" />
+    <StatCard label={ui('Submissions, 30 days')} value={count(totals.submissions_30d)} tone="ink" />
     <StatCard
-      label="Spam blocked, 30 days"
+      label={ui('Spam blocked, 30 days')}
       value={count(totals.spam_30d)}
       tone="slate"
       detail={totals.spam_30d ? 'No record created' : 'None'}
@@ -110,7 +113,7 @@
   <div class="v2-pad" style="padding-bottom:32px">
     {#if actionError}
       <div style="margin-bottom:16px">
-        <NextAction label="That did not work" text={actionError} tone="rust" />
+        <NextAction label={ui('That did not work')} text={actionError} tone="rust" />
       </div>
     {/if}
 
@@ -124,15 +127,17 @@
       >
         <div style="width:100%;display:flex;gap:24px;flex-wrap:wrap">
           <label
-            ><input type="radio" name="connection_mode" value="new" checked /> Create a form</label
+            ><input type="radio" name="connection_mode" value="new" checked />
+            {ui('Create a form')}</label
           >
           <label
-            ><input type="radio" name="connection_mode" value="existing" /> Connect my existing form</label
+            ><input type="radio" name="connection_mode" value="existing" />
+            {ui('Connect my existing form')}</label
           >
         </div>
         <div style="flex:1;min-width:220px">
           <label class="v2-label" for="form-name" style="display:block;margin-bottom:4px">
-            What is this form for?
+            {ui('What is this form for?')}
           </label>
           <input
             id="form-name"
@@ -141,19 +146,19 @@
             maxlength="255"
             class="v2-input"
             style="width:100%"
-            placeholder="e.g. Contact us"
+            placeholder={ui('e.g. Contact us')}
           />
         </div>
-        <button class="v2-btn v2-btn-primary" disabled={busy}>Continue</button>
+        <button class="v2-btn v2-btn-primary" disabled={busy}>{ui('Continue')}</button>
         <button type="button" class="v2-btn" disabled={busy} onclick={() => (creating = false)}>
-          Cancel
+          {ui('Cancel')}
         </button>
       </form>
     {/if}
 
     {#if !data.forms.length}
       <EmptyState
-        title="No web forms yet"
+        title={ui('No web forms yet')}
         body={data.canManage
           ? 'Connect an existing website form or embed a new one. Submissions create contacts in your organization and notify your team.'
           : 'Nobody has built a web form for this organisation yet. An admin can create one.'}
@@ -161,7 +166,7 @@
         {#snippet actions()}
           {#if data.canManage}
             <button class="v2-btn v2-btn-primary" onclick={() => (creating = true)}>
-              <Plus />New form
+              <Plus />{ui('New form')}
             </button>
           {/if}
         {/snippet}
@@ -171,11 +176,11 @@
         <table class="v2-table">
           <thead>
             <tr>
-              <th>Form</th>
-              <th>State</th>
-              <th class="v2-r">Submissions</th>
-              <th data-m="hide">Created</th>
-              {#if data.canManage}<th class="v2-r">Actions</th>{/if}
+              <th>{ui('Form')}</th>
+              <th>{ui('State')}</th>
+              <th class="v2-r">{ui('Submissions')}</th>
+              <th data-m="hide">{ui('Created')}</th>
+              {#if data.canManage}<th class="v2-r">{ui('Actions')}</th>{/if}
             </tr>
           </thead>
           <tbody>
@@ -197,10 +202,10 @@
                          prose inheriting that face reads as a typo. -->
                     <div class="v2-table-secondary">
                       {f.field_count}
-                      {f.field_count === 1 ? 'field' : 'fields'}
+                      {f.field_count === 1 ? ui('field') : ui('fields')}
                       {#if quiet}
                         <span style="color:var(--v2-clay);font-weight:600">
-                          · No submissions yet
+                          {ui('· No submissions yet')}
                         </span>
                       {/if}
                     </div>
@@ -208,7 +213,7 @@
                 </td>
                 <td data-m="tag">
                   <Pill tone={f.is_published ? 'moss' : 'slate'}>
-                    {f.is_published ? 'Published' : 'Draft'}
+                    {f.is_published ? ui('Published') : ui('Draft')}
                   </Pill>
                 </td>
                 <td class="v2-r v2-num" data-m="meta" data-l="submissions">
@@ -224,7 +229,7 @@
                              submission from then on is refused. -->
                         <ConfirmAction
                           action="?/unpublish"
-                          label="Unpublish"
+                          label={ui('Unpublish')}
                           confirmLabel="Unpublish it"
                           explain="Stops receiving new submissions from your website. Existing contacts are kept."
                           hidden={{ id: f.id }}
@@ -232,12 +237,12 @@
                       {:else}
                         <form method="POST" action="?/publish" use:enhance={working}>
                           <input type="hidden" name="id" value={f.id} />
-                          <button class="v2-btn v2-btn-sm" disabled={busy}>Publish</button>
+                          <button class="v2-btn v2-btn-sm" disabled={busy}>{ui('Publish')}</button>
                         </form>
                       {/if}
                       <ConfirmAction
                         action="?/delete"
-                        label="Delete"
+                        label={ui('Delete')}
                         confirmLabel="Delete permanently"
                         explain="Removes the form and its submission history. Existing contacts and leads are kept."
                         hidden={{ id: f.id }}
@@ -253,24 +258,30 @@
 
       {#if data.truncated}
         <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:12px 0 0">
-          Showing the {data.forms.length} most recent of
-          <span class="v2-num">{count(totals.count)}</span>. The rest are reachable through the API.
+          {ui('Showing the')}
+          {data.forms.length}
+          {ui('most recent of')}
+          <span class="v2-num">{count(totals.count)}</span>{ui(
+            '. The rest are reachable through the API.'
+          )}
         </p>
       {/if}
     {/if}
 
     <div class="v2-card" style="margin-top:20px;padding:18px">
-      <b style="font-size:var(--crm-text-sm)">How it works</b>
+      <b style="font-size:var(--crm-text-sm)">{ui('How it works')}</b>
       <p class="v2-sub" style="font-size:var(--crm-text-sm);margin:8px 0;line-height:1.7">
-        Choose your fields and who to notify → Connect the form to your website → Receive contacts
-        and follow up.
+        {ui(
+          'Choose your fields and who to notify → Connect the form to your website → Receive contacts and follow up.'
+        )}
       </p>
       <p class="v2-hint">
-        Each form belongs to this organization. If a visitor’s email already exists here, their
-        enquiry is added to that contact.
+        {ui(
+          'Each form belongs to this organization. If a visitor’s email already exists here, their enquiry is added to that contact.'
+        )}
       </p>
       <a class="v2-btn v2-btn-sm" href={resolve('/help/knowledge/website-forms')}
-        >Read the setup guide <ArrowRight size={14} /></a
+        >{ui('Read the setup guide')} <ArrowRight size={14} /></a
       >
     </div>
   </div>

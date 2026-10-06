@@ -22,12 +22,12 @@ would let any scanner in the delivery path answer the survey.
 
 {% block metadata %}
 <table class="metadata-table" role="presentation" cellpadding="0" cellspacing="0" border="0"
-  style="width:100%;background-color:#FAFAFA;border-radius:6px;margin-bottom:24px;">
+  style="width:100%;background-color:{{ email_theme.canvas }};border-radius:6px;margin-bottom:24px;">
   <tr>
-    <td class="metadata-label" style="padding:12px 16px 4px 16px;font-size:13px;color:#757575;font-weight:500;">Case</td>
+    <td class="metadata-label" style="padding:12px 16px 4px 16px;font-size:13px;color:{{ email_theme.muted }};font-weight:500;">Case</td>
   </tr>
   <tr>
-    <td class="metadata-value" style="padding:0 16px 12px 16px;font-size:15px;color:#212121;">{{ case.name }}</td>
+    <td class="metadata-value" style="padding:0 16px 12px 16px;font-size:15px;color:{{ email_theme.graphite }};">{{ case.name }}</td>
   </tr>
 </table>
 {% endblock metadata %}
@@ -38,8 +38,8 @@ would let any scanner in the delivery path answer the survey.
     {% for value in rating_scale %}
     <td align="center" style="padding:0 4px;">
       <a href="{{ link }}?rating={{ value }}"
-         style="display:block;padding:12px 0;background-color:#FAFAFA;border:1px solid #E0E0E0;border-radius:6px;color:#EA580C;text-decoration:none;font-size:26px;line-height:1;">
-        &#9733;<span style="display:block;margin-top:6px;font-size:13px;color:#757575;">{{ value }}</span>
+         style="display:block;padding:12px 0;background-color:{{ email_theme.canvas }};border:1px solid {{ email_theme.border }};border-radius:6px;color:{{ email_theme.link }};text-decoration:none;font-size:26px;line-height:1;">
+        &#9733;<span style="display:block;margin-top:6px;font-size:13px;color:{{ email_theme.muted }};">{{ value }}</span>
       </a>
     </td>
     {% endfor %}
@@ -48,8 +48,8 @@ would let any scanner in the delivery path answer the survey.
     <td colspan="{{ rating_scale|length }}" style="padding-top:8px;">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
         <tr>
-          <td align="left" style="font-size:12px;color:#757575;">{{ scale_low_label }}</td>
-          <td align="right" style="font-size:12px;color:#757575;">{{ scale_high_label }}</td>
+          <td align="left" style="font-size:12px;color:{{ email_theme.muted }};">{{ scale_low_label }}</td>
+          <td align="right" style="font-size:12px;color:{{ email_theme.muted }};">{{ scale_high_label }}</td>
         </tr>
       </table>
     </td>
@@ -58,7 +58,7 @@ would let any scanner in the delivery path answer the survey.
 {% endblock button_link %}
 
 {% block extra_content %}
-<p style="margin:0;font-size:13px;color:#757575;line-height:1.5;">
-  Or <a href="{{ link }}" style="color:#EA580C;">open the survey</a> to leave a comment as well.
+<p style="margin:0;font-size:13px;color:{{ email_theme.muted }};line-height:1.5;">
+  Or <a href="{{ link }}" style="color:{{ email_theme.link }};">open the survey</a> to leave a comment as well.
 </p>
 {% endblock extra_content %}

@@ -166,7 +166,6 @@ class GoogleOAuthCallbackView(APIView):
             payload_part += "=" * (4 - len(payload_part) % 4)
             payload = json.loads(base64.urlsafe_b64decode(payload_part))
             email = payload.get("email")
-            picture = payload.get("picture", "")
             google_name = (payload.get("name") or "").strip()[:255]
         except (IndexError, ValueError, json.JSONDecodeError):
             return Response(
@@ -188,18 +187,11 @@ class GoogleOAuthCallbackView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Get or create user
-        created = False
+        # Sign-in never provisions a CRM identity. New users must accept an invitation.
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(email__iexact=email)
         except User.DoesNotExist:
-            user = User.objects.create(
-                email=email,
-                name=google_name,
-                profile_pic=picture,
-                password=make_password(secrets.token_urlsafe(32)),
-            )
-            created = True
+            return Response({"error": "Access is by invitation."}, status=403)
 
         if not user.is_active:
             return _disabled_account_response()
@@ -211,11 +203,6 @@ class GoogleOAuthCallbackView(APIView):
 
         user.last_login = timezone.now()
         user.save(update_fields=["last_login"])
-
-        if created:
-            from common.tasks import send_welcome_email
-
-            send_welcome_email.delay(str(user.id))
 
         # Generate JWT tokens (with user info embedded)
         token = OrgAwareRefreshToken.for_user_and_org(user, None)
@@ -276,7 +263,6 @@ class GoogleIdTokenView(APIView):
                 settings.GOOGLE_CLIENT_ID,
             )
             email = idinfo.get("email")
-            picture = idinfo.get("picture", "")
             google_name = (idinfo.get("name") or "").strip()[:255]
         except ValueError:
             logger.warning("Google OAuth token validation failed", exc_info=True)
@@ -299,16 +285,10 @@ class GoogleIdTokenView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Get or create user
-        user, _created = User.objects.get_or_create(
-            email=email,
-            defaults={
-                "name": google_name,
-                "profile_pic": picture,
-                "password": make_password(secrets.token_urlsafe(32)),
-            },
-        )
-
+        # Sign-in never provisions a CRM identity. New users must accept an invitation.
+        user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            return Response({"error": "Access is by invitation."}, status=403)
         if not user.is_active:
             return _disabled_account_response()
 
@@ -739,6 +719,8 @@ class MagicLinkRequestView(APIView):
 
         email = serializer_obj.validated_data["email"].lower()
         delivery = serializer_obj.validated_data.get("delivery", "link")
+        if not User.objects.filter(email__iexact=email, is_active=True).exists():
+            return generic_response
 
         # Rate limit: max 5 tokens per email per hour
         one_hour_ago = timezone.now() - timedelta(hours=1)
@@ -803,7 +785,6 @@ class MagicLinkVerifyView(APIView):
         },
     )
     def post(self, request):
-        from django.contrib.auth.hashers import make_password
 
         from common.audit_log import audit_log
         from common.models import MagicLinkToken
@@ -835,26 +816,15 @@ class MagicLinkVerifyView(APIView):
 
         token_obj = MagicLinkToken.objects.get(token=token_value)
 
-        # Get or create user
+        # Sign-in never provisions a CRM identity. New users must accept an invitation.
         email = token_obj.email
-        created = False
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(email__iexact=email)
         except User.DoesNotExist:
-            user = User.objects.create(
-                email=email,
-                password=make_password(secrets.token_urlsafe(32)),
-                is_active=True,
-            )
-            created = True
+            return Response({"error": "Access is by invitation."}, status=403)
 
         if not user.is_active:
             return _disabled_account_response()
-
-        if created:
-            from common.tasks import send_welcome_email
-
-            send_welcome_email.delay(str(user.id))
 
         # Update last_login
         user.last_login = timezone.now()
@@ -970,25 +940,14 @@ class MagicLinkVerifyCodeView(APIView):
             token_obj.used_at = timezone.now()
             token_obj.save(update_fields=["is_used", "used_at"])
 
-        # Get or create user
-        created = False
+        # Sign-in never provisions a CRM identity. New users must accept an invitation.
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(email__iexact=email)
         except User.DoesNotExist:
-            user = User.objects.create(
-                email=email,
-                password=make_password(secrets.token_urlsafe(32)),
-                is_active=True,
-            )
-            created = True
+            return Response({"error": "Access is by invitation."}, status=403)
 
         if not user.is_active:
             return _disabled_account_response()
-
-        if created:
-            from common.tasks import send_welcome_email
-
-            send_welcome_email.delay(str(user.id))
 
         user.last_login = timezone.now()
         user.save(update_fields=["last_login"])

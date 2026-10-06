@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { enhance } from '$app/forms';
   import { tick } from 'svelte';
   import { Ellipsis, UserCog, UserRoundX, UserRoundCheck, Trash2 } from '@lucide/svelte';
@@ -57,15 +60,17 @@
     <Ellipsis size={18} />
   </Menu.Trigger>
   <Menu.Content align="end" class="w-52">
-    <Menu.Item disabled={isLastAdmin} onclick={editRole}><UserCog />Change role</Menu.Item>
+    <Menu.Item disabled={isLastAdmin} onclick={editRole}><UserCog />{ui('Change role')}</Menu.Item>
     <Menu.Item
       disabled={busy || (member.is_active && isLastAdmin)}
       onclick={() => statusForm.requestSubmit()}
     >
-      {#if member.is_active}<UserRoundX />Deactivate{:else}<UserRoundCheck />Reactivate{/if}
+      {#if member.is_active}<UserRoundX />{ui('Deactivate')}{:else}<UserRoundCheck />{ui(
+          'Reactivate'
+        )}{/if}
     </Menu.Item>
     <Menu.Separator />
-    <Menu.Item variant="destructive" onclick={remove}><Trash2 />Remove user</Menu.Item>
+    <Menu.Item variant="destructive" onclick={remove}><Trash2 />{ui('Remove user')}</Menu.Item>
   </Menu.Content>
 </Menu.Root>
 
@@ -76,7 +81,7 @@
 <RemoveMember bind:this={removal} id={member.id} hideTrigger />
 
 {#if editing}<TeamPanel
-    title="Edit user access"
+    title={ui('Edit user access')}
     subtitle={member.email}
     {busy}
     onclose={() => (editing = false)}
@@ -85,7 +90,7 @@
       <div class="panel-body">
         <p class="person">{member.name}<span>{member.email}</span></p>
         <input type="hidden" name="profileId" value={member.id} />
-        <label for={`role-select-${member.id}`}>Permission set</label>
+        <label for={`role-select-${member.id}`}>{ui('Permission set')}</label>
         <select
           id={`role-select-${member.id}`}
           class="v2-input"
@@ -94,33 +99,33 @@
           disabled={busy}
           required
         >
-          {#if !selectedRole}<option value="" disabled>Choose role</option>{/if}
-          {#if isSuperAdmin}<option value="ADMIN">Admin</option>{/if}
+          {#if !selectedRole}<option value="" disabled>{ui('Choose role')}</option>{/if}
+          {#if isSuperAdmin}<option value="ADMIN">{ui('Admin')}</option>{/if}
           {#each roles as role}<option value={role.id}>{role.name}</option>{/each}
         </select>
-        {#if error}<p class="error" role="alert">{error}</p>{/if}
+        {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
         <div class="access-summary">
-          <span>Record access</span><strong
+          <span>{ui('Record access')}</span><strong
             >{selectedRole === 'ADMIN'
-              ? 'Organization'
+              ? ui('Organization')
               : { own: 'Personal', team: 'Team', organization: 'Organization' }[
                   roles.find((r) => r.id === selectedRole)?.scope
-                ] || 'Personal'}</strong
+                ] || ui('Personal')}</strong
           >
         </div>
         <div class="access-summary">
-          <span>Teams</span><strong>{member.teams.join(', ') || 'No team assigned'}</strong>
+          <span>{ui('Teams')}</span><strong>{member.teams.join(', ') || 'No team assigned'}</strong>
         </div>
-        <p class="hint">Team membership is managed from the Teams tab.</p>
+        <p class="hint">{ui('Team membership is managed from the Teams tab.')}</p>
       </div>
       <footer class="panel-footer">
         <button class="v2-btn" type="button" disabled={busy} onclick={() => (editing = false)}
-          >Cancel</button
+          >{ui('Cancel')}</button
         >
         <button
           class="v2-btn v2-btn-primary"
           disabled={busy || !selectedRole || selectedRole === currentRole()}
-          >{busy ? 'Saving…' : 'Save role'}</button
+          >{busy ? ui('Saving…') : ui('Save role')}</button
         >
       </footer>
     </form>

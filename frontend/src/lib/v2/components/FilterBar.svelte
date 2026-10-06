@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   /**
@@ -152,7 +155,7 @@
     <details class="v2-filter-menu">
       <summary class="v2-chip v2-chip-add">
         <Plus size={12} />
-        Filter
+        {ui('Filter')}
       </summary>
       <form class="v2-menu v2-filter-form" method="GET">
         <!-- Params the form does not own (the preset's own, plus paging) would
@@ -197,7 +200,7 @@
                   min="0"
                   name={field.gteKey}
                   value={url.searchParams.get(field.gteKey) ?? ''}
-                  placeholder="Min"
+                  placeholder={ui('Min')}
                 />
                 <input
                   class="v2-input"
@@ -205,17 +208,17 @@
                   min="0"
                   name={field.lteKey}
                   value={url.searchParams.get(field.lteKey) ?? ''}
-                  placeholder="Max"
+                  placeholder={ui('Max')}
                 />
               </span>
             {:else if field.type === 'boolean'}
               <select class="v2-input" name={field.key}>
-                <option value="">Any</option>
+                <option value="">{ui('Any')}</option>
                 <option value="true" selected={url.searchParams.get(field.key) === 'true'}
-                  >Yes</option
+                  >{ui('Yes')}</option
                 >
                 <option value="false" selected={url.searchParams.get(field.key) === 'false'}
-                  >No</option
+                  >{ui('No')}</option
                 >
               </select>
             {:else if field.type === 'text'}
@@ -224,11 +227,11 @@
                 type="text"
                 name={field.key}
                 value={url.searchParams.get(field.key) ?? ''}
-                placeholder="Any"
+                placeholder={ui('Any')}
               />
             {:else}
               <select class="v2-input" name={field.key}>
-                <option value="">Any</option>
+                <option value="">{ui('Any')}</option>
                 {#each optionsFor(field) as option (option.id)}
                   <option
                     value={option.id}
@@ -243,8 +246,10 @@
         {/each}
 
         <div class="v2-filter-actions">
-          <button class="v2-btn v2-btn-primary v2-btn-sm" type="submit">Apply</button>
-          <a class="v2-btn v2-btn-sm" href={resolve(asInternalPath(url.pathname))}>Clear all</a>
+          <button class="v2-btn v2-btn-primary v2-btn-sm" type="submit">{ui('Apply')}</button>
+          <a class="v2-btn v2-btn-sm" href={resolve(asInternalPath(url.pathname))}
+            >{ui('Clear all')}</a
+          >
         </div>
       </form>
     </details>

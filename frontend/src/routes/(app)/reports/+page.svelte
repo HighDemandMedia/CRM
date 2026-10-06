@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   import { goto } from '$app/navigation';
   import { page, navigating } from '$app/state';
   import { base, resolve } from '$app/paths';
@@ -36,7 +39,7 @@
     });
   });
   function axisDate(value) {
-    return new Date(`${value}T12:00:00Z`).toLocaleDateString('en-US', {
+    return new Date(`${value}T12:00:00Z`).toLocaleDateString(locale(), {
       month: 'short',
       ...(report.interval === 'month' ? { year: '2-digit' } : { day: 'numeric' }),
       timeZone: 'UTC'
@@ -59,7 +62,7 @@
     }
   }
   function shortDate(value) {
-    return new Date(`${value.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-US', {
+    return new Date(`${value.slice(0, 10)}T12:00:00Z`).toLocaleDateString(locale(), {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -69,7 +72,7 @@
   function recordDate(value) {
     if (!value) return '—';
     return value.includes('T')
-      ? new Date(value).toLocaleString('en-US', {
+      ? new Date(value).toLocaleString(locale(), {
           month: 'short',
           day: 'numeric',
           year: 'numeric',
@@ -116,23 +119,23 @@
   }
 </script>
 
-<PageHeader title="Reports">
-  {#snippet sub()}Explore performance over a period of time.{/snippet}
+<PageHeader title={ui('Reports')}>
+  {#snippet sub()}{ui('Explore performance over a period of time.')}{/snippet}
   {#snippet actions()}{#if report?.can_export}<a class="v2-btn" href={exportUrl} download
-        ><Download size={15} />Export report</a
+        ><Download size={15} />{ui('Export report')}</a
       >{/if}{/snippet}
 </PageHeader>
 <div class="reports" aria-busy={busy}>
   {#if data.reportError}
     <div class="report-error" role="alert">
-      <strong>Could not open this report</strong>
+      <strong>{ui('Could not open this report')}</strong>
       <p>{data.reportError}</p>
-      <a class="v2-btn" href={resolve('/reports')}>Reset report filters</a>
+      <a class="v2-btn" href={resolve('/reports')}>{ui('Reset report filters')}</a>
     </div>
   {:else if report}
     <div class="filters">
       <label
-        >Object<select
+        >{ui('Object')}<select
           class="v2-input"
           value={report.object}
           onchange={(e) => changeObject(e.currentTarget.value)}
@@ -142,7 +145,7 @@
         ></label
       >
       <label
-        >Date to use<select
+        >{ui('Date to use')}<select
           class="v2-input"
           value={report.date_field}
           onchange={(e) => update({ date_field: e.currentTarget.value })}
@@ -151,7 +154,7 @@
         ></label
       >
       <label
-        >From<input
+        >{ui('From')}<input
           class="v2-input"
           type="date"
           bind:value={start}
@@ -161,7 +164,7 @@
         /></label
       >
       <label
-        >To<input
+        >{ui('To')}<input
           class="v2-input"
           type="date"
           bind:value={end}
@@ -171,36 +174,40 @@
         /></label
       >
       <label
-        >Quick range<select
+        >{ui('Quick range')}<select
           class="v2-input"
           value=""
           onchange={(e) => preset(e.currentTarget.value)}
           disabled={busy}
-          ><option value="">Choose dates</option><option value="30">Last 30 days</option><option
-            value="month">This month</option
-          ><option value="last_month">Last month</option><option value="year">This year</option
-          ></select
+          ><option value="">{ui('Choose dates')}</option><option value="30"
+            >{ui('Last 30 days')}</option
+          ><option value="month">{ui('This month')}</option><option value="last_month"
+            >{ui('Last month')}</option
+          ><option value="year">{ui('This year')}</option></select
         ></label
       >
     </div>
     <div class="secondary-filters">
       <label
-        >{report.object === 'events' ? 'Host' : 'Owner'}<select
+        >{report.object === 'events' ? ui('Host') : ui('Owner')}<select
           class="v2-input"
           value={report.owner}
           onchange={(e) => update({ owner: e.currentTarget.value })}
           disabled={busy}
-          ><option value="">All accessible {report.object === 'events' ? 'hosts' : 'owners'}</option
+          ><option value=""
+            >{ui('All accessible')}
+            {report.object === 'events' ? ui('hosts') : ui('owners')}</option
           >{#each report.owners as item}<option value={item.id}>{item.name}</option>{/each}</select
         ></label
       >
       <label
-        >{report.object === 'events' ? 'Status' : 'Stage'}<select
+        >{report.object === 'events' ? ui('Status') : ui('Stage')}<select
           class="v2-input"
           value={report.stage}
           onchange={(e) => update({ stage: e.currentTarget.value })}
           disabled={busy}
-          ><option value="">All {report.object === 'events' ? 'statuses' : 'stages'}</option
+          ><option value=""
+            >{ui('All')} {report.object === 'events' ? 'statuses' : ui('stages')}</option
           >{#each report.stages as item}<option value={item.key}>{item.label}</option
             >{/each}</select
         ></label
@@ -209,44 +216,44 @@
     </div>
     <div class="period-heading">
       <h2>{report.label}<span>{periodLabel}</span></h2>
-      {#if busy}<span role="status">Updating…</span>{/if}
+      {#if busy}<span role="status">{ui('Updating…')}</span>{/if}
     </div>
     <div class="metrics">
       <section class="metric">
-        <span>Records in period</span><strong>{number(report.summary.count)}</strong><small
+        <span>{ui('Records in period')}</span><strong>{number(report.summary.count)}</strong><small
           >{report.date_label}</small
         >
       </section>
       <section class="metric">
-        <span>Previous period</span><strong>{number(report.summary.previous_count)}</strong><small
-          >{shortDate(report.previous_start)} – {shortDate(report.previous_end)}</small
-        >
+        <span>{ui('Previous period')}</span><strong>{number(report.summary.previous_count)}</strong
+        ><small>{shortDate(report.previous_start)} – {shortDate(report.previous_end)}</small>
       </section>
       <section class="metric">
-        <span>Change in records</span><strong
+        <span>{ui('Change in records')}</span><strong
           >{report.summary.change_percent === null
             ? '—'
             : `${report.summary.change_percent > 0 ? '+' : ''}${report.summary.change_percent}%`}</strong
         ><small
           >{report.summary.previous_count === 0
-            ? 'No previous records to compare'
+            ? ui('No previous records to compare')
             : `${number(report.summary.count - report.summary.previous_count)} records vs. previous period`}</small
         >
       </section>
       {#if report.object === 'deals'}
         <section class="metric">
-          <span>Deal value in period</span>
+          <span>{ui('Deal value in period')}</span>
           <div class="amounts">
             {#each report.summary.amounts as item}<strong
                 >{money(item.amount, item.currency)} <small>{item.currency}</small></strong
               >{:else}<strong>—</strong>{/each}
           </div>
-          <small>Current amounts · all included stages</small>
+          <small>{ui('Current amounts · all included stages')}</small>
         </section>
       {/if}
     </div>
     {#if report.object === 'deals' && report.summary.won_amounts.length}<div class="won-value">
-        <span>Currently won in this selection</span>{#each report.summary.won_amounts as item}<b
+        <span>{ui('Currently won in this selection')}</span
+        >{#each report.summary.won_amounts as item}<b
             >{money(item.amount, item.currency)} {item.currency}</b
           >{/each}
       </div>{/if}
@@ -254,12 +261,12 @@
       <section class="chart-panel">
         <div class="panel-heading">
           <div>
-            <h3>Records over time</h3>
+            <h3>{ui('Records over time')}</h3>
             <p>{report.date_label}</p>
           </div>
           <select
             class="v2-input"
-            aria-label="Time interval"
+            aria-label={ui('Time interval')}
             value={report.interval}
             onchange={(e) => update({ interval: e.currentTarget.value })}
             disabled={busy}
@@ -267,22 +274,22 @@
               value="day"
               disabled={(new Date(report.end).getTime() - new Date(report.start).getTime()) /
                 86400000 >
-                365}>Day</option
+                365}>{ui('Day')}</option
             ><option
               value="week"
               disabled={(new Date(report.end).getTime() - new Date(report.start).getTime()) /
                 86400000 >
-                2561}>Week</option
-            ><option value="month">Month</option></select
+                2561}>{ui('Week')}</option
+            ><option value="month">{ui('Month')}</option></select
           >
         </div>
         {#if report.summary.count}
           <div
             class="time-chart"
             role="group"
-            aria-label="Records over time, dates on the X axis and record count on the Y axis"
+            aria-label={ui('Records over time, dates on the X axis and record count on the Y axis')}
           >
-            <div class="y-axis-title">Records</div>
+            <div class="y-axis-title">{ui('Records')}</div>
             <div class="chart-frame">
               <div class="y-axis" aria-hidden="true">
                 {#each yTicks as value}<span style={`bottom:${(value / axisMax) * 100}%`}
@@ -311,7 +318,8 @@
                           aria-hidden="true"
                         >
                           <span>{shortDate(item.date)}</span><strong
-                            >{number(item.count)} {item.count === 1 ? 'record' : 'records'}</strong
+                            >{number(item.count)}
+                            {item.count === 1 ? ui('record') : ui('records')}</strong
                           >
                         </span>
                       </button>
@@ -328,22 +336,25 @@
                 </div>
               </div>
             </div>
-            <div class="x-axis-title">Date</div>
+            <div class="x-axis-title">{ui('Date')}</div>
           </div>
         {:else}<div class="empty-chart">
-            <ChartNoAxesCombined size={30} /><strong>No records in this period</strong><span
-              >Try another date range or date property.</span
+            <ChartNoAxesCombined size={30} /><strong>{ui('No records in this period')}</strong><span
+              >{ui('Try another date range or date property.')}</span
             >
           </div>{/if}
         <button
           class="text-action"
           aria-expanded={chartTable}
           onclick={() => (chartTable = !chartTable)}
-          >{chartTable ? 'Hide data' : 'View data'}</button
+          >{chartTable ? ui('Hide data') : ui('View data')}</button
         >
         {#if chartTable}<div class="series-table">
             <table>
-              <thead><tr><th>{report.interval} beginning</th><th>Records</th></tr></thead><tbody
+              <thead
+                ><tr><th>{report.interval} {ui('beginning')}</th><th>{ui('Records')}</th></tr
+                ></thead
+              ><tbody
                 >{#each report.series as item}<tr
                     ><td>{shortDate(item.date)}</td><td>{number(item.count)}</td></tr
                   >{/each}</tbody
@@ -353,10 +364,10 @@
       </section>
       <section class="chart-panel breakdown">
         <div class="panel-heading">
-          <h3>Breakdown</h3>
+          <h3>{ui('Breakdown')}</h3>
           <select
             class="v2-input"
-            aria-label="Breakdown"
+            aria-label={ui('Breakdown')}
             value={report.group_by}
             onchange={(e) => update({ group_by: e.currentTarget.value })}
             disabled={busy}
@@ -373,22 +384,25 @@
                 >
               </div>
               <div class="track"><div style={`width:${(item.count / maxGroup) * 100}%`}></div></div>
-            </div>{:else}<p class="empty-small">No data for these filters.</p>{/each}
+            </div>{:else}<p class="empty-small">{ui('No data for these filters.')}</p>{/each}
         </div>
       </section>
     </div>
     <section class="records-panel">
       <div class="panel-heading">
-        <h3>Included records <span>{number(report.summary.count)}</span></h3>
+        <h3>{ui('Included records')} <span>{number(report.summary.count)}</span></h3>
         <span>{report.date_label}</span>
       </div>
       <div class="records-scroll">
         <table>
           <thead
             ><tr
-              ><th>Name</th><th>{report.object === 'events' ? 'Status' : 'Stage'}</th><th
-                >{report.object === 'events' ? 'Host' : 'Owner'}</th
-              >{#if report.object === 'deals'}<th>Amount</th>{/if}<th>{report.date_label}</th></tr
+              ><th>{ui('Name')}</th><th
+                >{report.object === 'events' ? ui('Status') : ui('Stage')}</th
+              ><th>{report.object === 'events' ? ui('Host') : ui('Owner')}</th
+              >{#if report.object === 'deals'}<th>{ui('Amount')}</th>{/if}<th
+                >{report.date_label}</th
+              ></tr
             ></thead
           ><tbody
             >{#each report.records as item}<tr
@@ -396,63 +410,68 @@
                   ><a class="record-link" href={resolve(asInternalPath(item.url))}
                     >{item.name || 'Unnamed record'}</a
                   ></td
-                ><td>{item.state || '—'}</td><td>{item.owners.join(', ') || 'Unassigned'}</td
+                ><td>{item.state || '—'}</td><td>{item.owners.join(', ') || ui('Unassigned')}</td
                 >{#if report.object === 'deals'}<td
                     >{item.amount === null ? '—' : money(item.amount, item.currency)}
                     {item.currency}</td
                   >{/if}<td class="record-date">{recordDate(item.date)}</td></tr
               >{:else}<tr
                 ><td colspan={report.object === 'deals' ? 5 : 4} class="empty-small"
-                  >No records match this report.</td
+                  >{ui('No records match this report.')}</td
                 ></tr
               >{/each}</tbody
           >
         </table>
       </div>
       {#if report.pages > 1}<div class="pagination">
-          <span>Page {report.page} of {number(report.pages)}</span><button
+          <span>{ui('Page')} {report.page} {ui('of')} {number(report.pages)}</span><button
             class="v2-btn"
-            aria-label="Previous page"
+            aria-label={ui('Previous page')}
             disabled={busy || report.page <= 1}
             onclick={() => update({ page: report.page - 1 })}><ChevronLeft size={16} /></button
           ><button
             class="v2-btn"
-            aria-label="Next page"
+            aria-label={ui('Next page')}
             disabled={busy || report.page >= report.pages}
             onclick={() => update({ page: report.page + 1 })}><ChevronRight size={16} /></button
           >
         </div>{/if}
     </section>
     <details class="definitions">
-      <summary><Info size={15} />How this report is calculated</summary>
+      <summary><Info size={15} />{ui('How this report is calculated')}</summary>
       <div>
         <p>
-          Dates include the entire first and last day in {report.timezone}. The previous period has
-          the same number of days. Reports include only records you can access.
+          {ui('Dates include the entire first and last day in')}
+          {report.timezone}{ui(
+            '. The previous period has the same number of days. Reports include only records you can access.'
+          )}
         </p>
         <p>
-          Stages, owners and amounts reflect current values of existing records. This is not a
-          snapshot of their values at the end of the period. Deleted records and merged duplicates
-          are excluded.
+          {ui(
+            'Stages, owners and amounts reflect current values of existing records. This is not a snapshot of their values at the end of the period. Deleted records and merged duplicates are excluded.'
+          )}
         </p>
         {#if report.object === 'deals'}<p>
-            Expected close date is a planned date. “Currently won” means deals that are won now and
-            match the selected date filter; it is not cash collected or a history of wins during
-            that period.
+            {ui(
+              'Expected close date is a planned date. “Currently won” means deals that are won now and match the selected date filter; it is not cash collected or a history of wins during that period.'
+            )}
           </p>{/if}{#if report.date_field === 'last_activity_at'}<p>
-            Last activity counts each record once, using its latest recorded property change (or
-            creation date). Opening a record does not count as activity.
+            {ui(
+              'Last activity counts each record once, using its latest recorded property change (or creation date). Opening a record does not count as activity.'
+            )}
           </p>{/if}{#if report.date_field.includes('stage')}<p>
-            Last stage change is the latest transition only. It does not count every stage
-            transition.
+            {ui(
+              'Last stage change is the latest transition only. It does not count every stage transition.'
+            )}
           </p>{/if}{#if report.object === 'events'}<p>
-            Events are counted once, regardless of attendee count. Cancelled events remain included
-            unless you filter by Scheduled. Scheduled means not cancelled; it does not confirm
-            attendance.
+            {ui(
+              'Events are counted once, regardless of attendee count. Cancelled events remain included unless you filter by Scheduled. Scheduled means not cancelled; it does not confirm attendance.'
+            )}
           </p>{/if}
         <p>
-          Export report downloads these totals, the complete breakdown and time series. It requires
-          export permission covering this report.
+          {ui(
+            'Export report downloads these totals, the complete breakdown and time series. It requires export permission covering this report.'
+          )}
         </p>
       </div>
     </details>

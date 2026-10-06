@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { recordValidation } from '$lib/components/creation/validation.js';
   import { creationEnhance } from '$lib/components/creation/enhance.js';
   const enhance = creationEnhance();
@@ -27,7 +30,7 @@
   let busy = $state(false);
 </script>
 
-<PageHeader title="New ticket" />
+<PageHeader title={ui('New ticket')} />
 <div class="v2-scroll v2-pad">
   <form
     use:recordValidation={form?.fieldErrors}
@@ -42,12 +45,12 @@
       };
     }}
   >
-    {#if form?.error}<p role="alert" class="v2-error">{form.error}</p>{/if}
+    {#if form?.error}<p role="alert" class="v2-error">{ui(form.error)}</p>{/if}
     <TicketFields bind:values options={data} />
     <div class="actions">
       <button class="v2-btn v2-btn-primary" disabled={busy}
-        >{busy ? 'Saving…' : 'Create ticket'}</button
-      ><a class="v2-btn" href={resolve('/tickets')}>Cancel</a>
+        >{busy ? ui('Saving…') : ui('Create ticket')}</button
+      ><a class="v2-btn" href={resolve('/tickets')}>{ui('Cancel')}</a>
     </div>
   </form>
 </div>

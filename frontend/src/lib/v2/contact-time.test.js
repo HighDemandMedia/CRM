@@ -15,3 +15,10 @@ it('hides day zero and shows only completed days', () => {
   expect(stageDuration(start, now + 2 * 86400000)).toBe('2 days');
   expect(stageDuration(start, now - 1000)).toBe('');
 });
+
+it('uses the account locale for stage age and missing timestamps', () => {
+  const start = '2026-09-09T12:00:00Z';
+  expect(stageDuration(start, Date.parse(start) + 86400000, 'es-US')).toBe('1 día');
+  expect(stageDuration(start, Date.parse(start) + 2 * 86400000, 'es-US')).toBe('2 días');
+  expect(exactTime(null, 'es-US')).toBe('Sin registrar');
+});

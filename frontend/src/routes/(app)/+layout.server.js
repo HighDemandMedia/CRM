@@ -1,3 +1,4 @@
+import { normalizeLocale } from '$lib/i18n/messages.js';
 import { apiRequest } from '$lib/api-helpers.js';
 import { listTickets, OPEN_STATUSES } from '$lib/server/v2/tickets.js';
 
@@ -60,6 +61,16 @@ export async function load(event) {
   };
 
   const context = await apiRequest('/org/ui-context/', {}, { cookies: event.cookies });
+  const uiLocale = normalizeLocale(context.ui_language);
+  if (event.cookies.get('crm_language') !== uiLocale) {
+    event.cookies.set('crm_language', uiLocale, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: event.url?.protocol === 'https:',
+      maxAge: 31536000
+    });
+  }
   shell.org.terminology = context.terminology;
   shell.isSuperAdmin = !!context.is_super_admin;
   const countKeys = Object.keys(LIVE_COUNTS);
@@ -75,6 +86,7 @@ export async function load(event) {
   });
   return {
     ...shell,
+    uiLocale,
     counts,
     permissions: context.permissions,
     propertyLayout: context.property_layout,

@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { List, Columns3 } from '@lucide/svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
@@ -42,41 +45,40 @@
   <input
     class="v2-input search"
     name="q"
-    aria-label="Search tasks"
-    placeholder="Search tasks…"
+    aria-label={ui('Search tasks')}
+    placeholder={ui('Search tasks…')}
     value={url.searchParams.get('q') ?? ''}
   />
   <select
     class="v2-input"
     name="assigned_to"
-    aria-label="Owner"
+    aria-label={ui('Owner')}
     value={url.searchParams.get('assigned_to') ?? ''}
-    ><option value="">All owners</option>{#each people as person}<option value={person.id}
+    ><option value="">{ui('All owners')}</option>{#each people as person}<option value={person.id}
         >{person.name}</option
       >{/each}</select
   >
   <select
     class="v2-input"
     name="status"
-    aria-label="Status"
+    aria-label={ui('Status')}
     value={url.searchParams.get('status') ?? ''}
-    ><option value="">All statuses</option
+    ><option value="">{ui('All statuses')}</option
     >{#each ['New', 'In Progress', 'Completed'] as status}<option>{status}</option>{/each}</select
   >
   <select
     class="v2-input"
     name="priority"
-    aria-label="Priority"
+    aria-label={ui('Priority')}
     value={url.searchParams.get('priority') ?? ''}
-    ><option value="">All priorities</option>{#each ['Low', 'Medium', 'High'] as priority}<option
-        >{priority}</option
-      >{/each}</select
+    ><option value="">{ui('All priorities')}</option
+    >{#each ['Low', 'Medium', 'High'] as priority}<option>{priority}</option>{/each}</select
   >
   <details>
-    <summary>Filters</summary>
+    <summary>{ui('Filters')}</summary>
     <div class="extra">
       <label
-        >Due from<input
+        >{ui('Due from')}<input
           class="v2-input"
           type="date"
           name="due_date__gte"
@@ -84,7 +86,7 @@
         /></label
       >
       <label
-        >Due through<input
+        >{ui('Due through')}<input
           class="v2-input"
           type="date"
           name="due_date__lte"
@@ -99,19 +101,19 @@
       name="all"
       value="1"
       checked={url.searchParams.get('all') !== '0'}
-    />Show completed</label
+    />{ui('Show completed')}</label
   >
-  <nav class="views" aria-label="Task view">
+  <nav class="views" aria-label={ui('Task view')}>
     <a
       href={viewHref('list')}
-      aria-label="List view"
-      title="List"
+      aria-label={ui('List view')}
+      title={ui('List')}
       aria-current={url.searchParams.get('view') !== 'pipeline' ? 'page' : undefined}
       ><List size={17} /></a
     ><a
       href={viewHref('pipeline')}
-      aria-label="Pipeline view"
-      title="Pipeline"
+      aria-label={ui('Pipeline view')}
+      title={ui('Pipeline')}
       aria-current={url.searchParams.get('view') === 'pipeline' ? 'page' : undefined}
       ><Columns3 size={17} /></a
     >

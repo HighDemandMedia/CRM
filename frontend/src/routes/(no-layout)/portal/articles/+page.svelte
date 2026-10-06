@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   /**
    * Built for a 390px phone first, and a stack of cards for the same reason the
    * requests list is one: a customer reads a handful of these, not a table.
@@ -14,26 +17,26 @@
 </script>
 
 <svelte:head>
-  <title>Help articles</title>
+  <title>{ui('Help articles')}</title>
 </svelte:head>
 
 <PortalShell>
   <header class="head">
-    <h1>Help articles</h1>
-    <a class="btn" href={resolve('/portal/cases')}>Your requests</a>
+    <h1>{ui('Help articles')}</h1>
+    <a class="btn" href={resolve('/portal/cases')}>{ui('Your requests')}</a>
   </header>
 
   <form method="GET" class="find">
-    <label class="sr-only" for="search">Search help articles</label>
-    <input id="search" name="search" value={data.search} placeholder="Search for an answer" />
-    <button type="submit">Search</button>
+    <label class="sr-only" for="search">{ui('Search help articles')}</label>
+    <input id="search" name="search" value={data.search} placeholder={ui('Search for an answer')} />
+    <button type="submit">{ui('Search')}</button>
   </form>
 
   {#if data.articles.length === 0}
     <p class="empty">
       {data.search
         ? `Nothing matches "${data.search}". Try a different word, or send us a request.`
-        : 'There are no help articles yet.'}
+        : ui('There are no help articles yet.')}
     </p>
   {:else}
     <ul class="list">

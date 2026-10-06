@@ -1,14 +1,7 @@
-<!doctype html>
-<html>
-  <body style="font-family: Arial, Helvetica, sans-serif; color: #1f2933; line-height: 1.5">
-    <p>Hello {{ contact_name }},</p>
-
-    <p>Your sign-in code for {{ org_name }} support is:</p>
-    <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px">{{ code }}</p>
-    <p>It expires in 10 minutes and can be used once.</p>
-
-    <p style="color: #6b7280; font-size: 13px">
-      If you did not ask to sign in, you can ignore this email and nothing will happen.
-    </p>
-  </body>
-</html>
+{% extends "root_email_template_new.html" %}
+{% block preheader %}Your sign-in code for {{ org_name }} support{% endblock %}
+{% block heading %}Your support sign-in code{% endblock %}
+{% block content_body %}<p>Hello {{ contact_name }},</p><p>Your sign-in code for {{ org_name }} support is:</p>
+<p style="padding:20px;background-color:{{ email_theme.secondary }};color:{{ email_theme.graphite }};font-size:28px;font-weight:bold;letter-spacing:4px;text-align:center;">{{ code }}</p>
+<p>It expires in 10 minutes and can be used once.</p>{% endblock %}
+{% block extra_content %}<p style="color:{{ email_theme.muted }};font-size:13px;line-height:1.5;">If you did not ask to sign in, you can ignore this email and nothing will happen.</p>{% endblock %}

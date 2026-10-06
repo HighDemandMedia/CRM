@@ -1,11 +1,14 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, money, shortDate } = useI18n();
+
   import { page } from '$app/state';
   import { can } from '$lib/v2/permissions.js';
   import { Plus, Ellipsis } from '@lucide/svelte';
   import { resolve } from '$app/paths';
   import { deserialize } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
-  import { money, shortDate } from '$lib/v2/format.js';
+
   import { statusLabel, priorityLabel } from '$lib/components/tickets/options.js';
   import { STAGE_LABEL } from '$lib/v2/enums.js';
   /** @type {{contactId:string,kind:'company'|'deal'|'contact'|'ticket',items:any[],detailed?:boolean,summary?:import('svelte').Snippet,parentKind?:'contact'|'company'|'deal'}} */
@@ -96,14 +99,14 @@
   }
 </script>
 
-<section class="relations" aria-label={`Associated ${label.toLowerCase()}`}>
+<section class="relations" aria-label={ui('Associated {kind}', { kind: ui(label) })}>
   <header class="association-heading">
-    <h2>{label} <span>{items.length}</span></h2>
+    <h2>{ui(label)} <span>{items.length}</span></h2>
     {#if editable}<button
         class="add association-icon"
         type="button"
         disabled={busy}
-        aria-label={`Add ${kind} association`}
+        aria-label={ui('Add association: {kind}', { kind: ui(label) })}
         onclick={() => {
           adding = !adding;
           menu = '';
@@ -111,8 +114,8 @@
       >{:else if parentKind !== 'deal'}
       <a
         class="add association-icon"
-        aria-label="Create ticket"
-        title="Create ticket"
+        aria-label={ui('Create ticket')}
+        title={ui('Create ticket')}
         href={`${resolve('/tickets/new')}?${parentKind === 'company' ? 'account' : 'contact'}=${encodeURIComponent(contactId)}`}
         ><Plus size={16} /></a
       >
@@ -128,11 +131,11 @@
         disabled={busy}
       />
       <div class="results">
-        {#if loading}<p>Searching…</p>{:else}{#each results as item}<button
+        {#if loading}<p>{ui('Searching…')}</p>{:else}{#each results as item}<button
               type="button"
               disabled={busy}
               onclick={() => change('add', item.id)}>{item.name}<span>+</span></button
-            >{:else}<p>No available records.</p>{/each}{/if}
+            >{:else}<p>{ui('No available records.')}</p>{/each}{/if}
       </div>
     </div>{/if}
   {#each items as item (item.id)}<div class="record">
@@ -147,9 +150,12 @@
         ><strong>{item.name}</strong>{#if detailed && kind === 'contact'}<small
             >{[item.email, item.phone].filter(Boolean).join(' · ') || 'No contact details'}</small
           >{/if}{#if detailed && kind === 'deal'}<span class="deal-details"
-            ><span><small>Amount</small>{money(item.amount, item.currency)}</span><span
-              ><small>Stage</small>{STAGE_LABEL[item.stage] ?? item.stage}</span
-            ><span><small>Close date</small>{item.closed_on ? shortDate(item.closed_on) : '—'}</span
+            ><span><small>{ui('Amount')}</small>{money(item.amount, item.currency)}</span><span
+              ><small>{ui('Stage')}</small>{STAGE_LABEL[item.stage] ?? item.stage}</span
+            ><span
+              ><small>{ui('Close date')}</small>{item.closed_on
+                ? shortDate(item.closed_on)
+                : '—'}</span
             ></span
           >{:else if kind === 'deal'}<small
             >{STAGE_LABEL[item.stage] ?? item.stage} · {money(item.amount, item.currency)}</small
@@ -175,13 +181,14 @@
               class="remove"
               type="button"
               disabled={busy}
-              onclick={() => change('remove', item.id)}>Remove association</button
+              onclick={() => change('remove', item.id)}>{ui('Remove association')}</button
             >{/if}
         </div>{/if}
     </div>{:else}<p class="empty">
-      No associated {label.toLowerCase()}.
+      {ui('No associated')}
+      {label.toLowerCase()}.
     </p>{/each}
-  {#if error}<p class="error" role="alert">{error}</p>{/if}
+  {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
 </section>
 
 <style>

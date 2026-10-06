@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { tick } from 'svelte';
   import { TriangleAlert } from '@lucide/svelte';
   import { fieldNames } from './feedback.js';
@@ -57,20 +60,22 @@
     <div>
       <strong
         >{issue.code === 'source_stage'
-          ? 'This stage change is not allowed'
+          ? ui('This stage change is not allowed')
           : `Complete the requirements for ${issue.stage_label}`}</strong
       >
       <p>
         {issue.code === 'source_stage'
           ? issue.message
           : completion
-            ? 'Complete the fields below, then choose Save and move.'
-            : 'The stage has not changed. Complete the highlighted fields, then save again.'}
+            ? ui('Complete the fields below, then choose Save and move.')
+            : ui('The stage has not changed. Complete the highlighted fields, then save again.')}
       </p>
       {#if issue.fields?.length}<ul>
           {#each issue.fields as field}<li>
               {field.label}{#if field.is_read_only === true || field.is_read_only === 'True'}
-                — managed in Calendar. Schedule the appointment there before entering this stage.{/if}
+                {ui(
+                  '— managed in Calendar. Schedule the appointment there before entering this stage.'
+                )}{/if}
             </li>{/each}
         </ul>{/if}
     </div>

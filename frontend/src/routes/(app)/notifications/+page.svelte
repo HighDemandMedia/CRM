@@ -1,11 +1,14 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale, relativeTime } = useI18n();
+
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
   import { enhance, deserialize } from '$app/forms';
   import { page } from '$app/state';
   import { reminderLabel, reminderDetail } from '$lib/v2/notification-content.js';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import { relativeTime } from '$lib/v2/format.js';
+
   import { Bell, Check, ChevronLeft, ChevronRight } from '@lucide/svelte';
 
   /** @type {{data:any, form:any}} */
@@ -59,35 +62,35 @@
   }
 </script>
 
-<PageHeader title="Notifications">
-  {#snippet sub()}{data.totals.unread} unread{/snippet}
+<PageHeader title={ui('Notifications')}>
+  {#snippet sub()}{data.totals.unread} {ui('unread')}{/snippet}
   {#snippet actions()}
     {#if !preferencesOpen}
       <form method="POST" action="?/readAll" use:enhance={submit}>
         <button class="v2-btn v2-btn-sm" disabled={busy || !data.totals.unread}
-          ><Check size={15} />Mark all read</button
+          ><Check size={15} />{ui('Mark all read')}</button
         >
       </form>
     {/if}
   {/snippet}
 </PageHeader>
-<nav class="tabs" aria-label="Notification sections">
+<nav class="tabs" aria-label={ui('Notification sections')}>
   <a
     href={resolve('/notifications')}
     class:active={!preferencesOpen}
-    aria-current={!preferencesOpen ? 'page' : undefined}>History</a
+    aria-current={!preferencesOpen ? 'page' : undefined}>{ui('History')}</a
   >
   <a
     href={resolve('/notifications?tab=preferences')}
     class:active={preferencesOpen}
-    aria-current={preferencesOpen ? 'page' : undefined}>Preferences</a
+    aria-current={preferencesOpen ? 'page' : undefined}>{ui('Preferences')}</a
   >
 </nav>
 <div class="v2-scroll">
   <div class="content">
     {#if preferencesOpen}
-      <h2>Notification preferences</h2>
-      <p class="muted">Choose the notifications you receive in this organization.</p>
+      <h2>{ui('Notification preferences')}</h2>
+      <p class="muted">{ui('Choose the notifications you receive in this organization.')}</p>
       <form
         class="preferences"
         method="POST"
@@ -103,13 +106,15 @@
             /></label
           >
         {/each}
-        <button class="v2-btn save" disabled={busy}>{busy ? 'Saving…' : 'Save preferences'}</button>
+        <button class="v2-btn save" disabled={busy}
+          >{busy ? ui('Saving…') : ui('Save preferences')}</button
+        >
         {#if form?.scope === 'preferences'}<p role="status" class:error={form.message}>
             {form.message || 'Preferences saved.'}
           </p>{/if}
       </form>
     {:else}
-      <nav class="filters" aria-label="Filter notifications">
+      <nav class="filters" aria-label={ui('Filter notifications')}>
         {#each [['all', 'All'], ['unread', 'Unread'], ['read', 'Read']] as [value, label]}
           <a
             href={resolve(historyLink(value))}
@@ -118,8 +123,8 @@
           >
         {/each}
       </nav>
-      {#if error}<p class="error" role="alert">{error}</p>{/if}
-      {#if form?.error}<p class="error" role="alert">{form.error}</p>{/if}
+      {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
+      {#if form?.error}<p class="error" role="alert">{ui(form.error)}</p>{/if}
       {#if data.results.length}
         <ul class="feed">
           {#each data.results as n (n.id)}
@@ -127,24 +132,28 @@
               <span
                 class="indicator"
                 class:dot={!n.read_at}
-                aria-label={n.read_at ? 'Read' : 'Unread'}
+                aria-label={n.read_at ? ui('Read') : ui('Unread')}
               ></span>
               <div class="message">
                 <p>
-                  {#if reminderLabel(n)}<strong>{reminderLabel(n)}:</strong>{:else}<strong
+                  {#if reminderLabel(n)}<strong>{ui(reminderLabel(n))}:</strong>{:else}<strong
                       >{n.actor?.name || 'The system'}</strong
                     >
-                    {phrase(n.verb)}{/if}
+                    {ui(phrase(n.verb))}{/if}
                   {#if n.resolved_link}<a
                       href={resolve(n.resolved_link)}
                       onclick={(event) => openNotification(event, n)}
                       >{n.entity_name || 'a ticket'}</a
                     >{:else}{n.entity_name || 'a ticket'}{/if}
                 </p>
-                {#if reminderDetail(n)}<p class="excerpt">{reminderDetail(n)}</p>{/if}
+                {#if reminderDetail(n, locale())}<p class="excerpt">
+                    {reminderDetail(n, locale())}
+                  </p>{/if}
                 {#if n.data?.comment_excerpt}<p class="excerpt">{n.data.comment_excerpt}</p>{/if}
-                <time datetime={n.created_at} title={new Date(n.created_at).toLocaleString()}
-                  >{relativeTime(n.created_at)} · {n.read_at ? 'Read' : 'Unread'}</time
+                <time
+                  datetime={n.created_at}
+                  title={new Date(n.created_at).toLocaleString(locale())}
+                  >{relativeTime(n.created_at)} · {n.read_at ? ui('Read') : ui('Unread')}</time
                 >
               </div>
               {#if !n.read_at}
@@ -153,8 +162,8 @@
                   <button
                     class="read-button"
                     disabled={busy}
-                    aria-label="Mark notification read"
-                    title="Mark read"><Check size={16} /></button
+                    aria-label={ui('Mark notification read')}
+                    title={ui('Mark read')}><Check size={16} /></button
                   >
                 </form>
               {/if}
@@ -165,23 +174,27 @@
         <div class="empty">
           <Bell size={26} />
           <h2>
-            {data.pagination.status === 'unread' ? 'You’re all caught up' : 'No notifications here'}
+            {data.pagination.status === 'unread'
+              ? ui('You’re all caught up')
+              : ui('No notifications here')}
           </h2>
-          <p>New notifications will appear here as they arrive.</p>
+          <p>{ui('New notifications will appear here as they arrive.')}</p>
         </div>
       {/if}
       {#if data.pagination.pages > 1 || data.pagination.page > 1}
-        <nav class="pagination" aria-label="Notification pages">
+        <nav class="pagination" aria-label={ui('Notification pages')}>
           {#if data.pagination.page > 1}<a
               class="v2-btn v2-btn-sm"
               href={resolve(historyLink(data.pagination.status, data.pagination.page - 1))}
-              ><ChevronLeft size={14} />Previous</a
+              ><ChevronLeft size={14} />{ui('Previous')}</a
             >{/if}
-          <span>Page {data.pagination.page} · {data.totals.count} notifications</span>
+          <span
+            >{ui('Page')} {data.pagination.page} · {data.totals.count} {ui('notifications')}</span
+          >
           {#if data.pagination.page < data.pagination.pages}<a
               class="v2-btn v2-btn-sm"
               href={resolve(historyLink(data.pagination.status, data.pagination.page + 1))}
-              >Next<ChevronRight size={14} /></a
+              >{ui('Next')}<ChevronRight size={14} /></a
             >{/if}
         </nav>
       {/if}

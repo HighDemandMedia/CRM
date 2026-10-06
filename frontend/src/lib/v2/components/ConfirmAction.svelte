@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   /**
    * A destructive action that takes two clicks.
    *
@@ -50,7 +53,7 @@
     {/if}
     <button class="v2-btn v2-btn-sm" type="submit" disabled={busy}>{confirmLabel}</button>
     <button class="v2-btn v2-btn-sm" type="button" disabled={busy} onclick={() => (armed = false)}>
-      Cancel
+      {ui('Cancel')}
     </button>
   </form>
 {:else}

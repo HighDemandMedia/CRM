@@ -23,6 +23,7 @@ class UIContextView(APIView):
         org = profile.org
         return Response(
             {
+                "ui_language": request.user.ui_language,
                 "terminology": org.terminology,
                 "is_super_admin": profile.is_super_admin,
                 "permissions": permissions_payload(profile),

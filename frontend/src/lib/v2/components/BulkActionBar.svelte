@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { enhance } from '$app/forms';
   import { CASE_STATUSES, CASE_PRIORITIES, CASE_TYPES } from '$lib/v2/enums.js';
 
@@ -42,13 +45,13 @@
   }
 </script>
 
-<div class="v2-bulkbar" role="region" aria-label="Bulk actions">
-  <span class="v2-num">{ids.length} selected</span>
-  <button type="button" class="v2-btn" onclick={onclear}>Clear</button>
+<div class="v2-bulkbar" role="region" aria-label={ui('Bulk actions')}>
+  <span class="v2-num">{ids.length} {ui('selected')}</span>
+  <button type="button" class="v2-btn" onclick={onclear}>{ui('Clear')}</button>
 
   {#if action === ''}
-    <select class="v2-input" bind:value={action} aria-label="Choose a bulk action">
-      <option value="">Actions</option>
+    <select class="v2-input" bind:value={action} aria-label={ui('Choose a bulk action')}>
+      <option value="">{ui('Actions')}</option>
       {#each ACTIONS as a (a.key)}
         <option value={a.key}>{a.label}</option>
       {/each}
@@ -66,14 +69,15 @@
       {#each ids as id (id)}<input type="hidden" name="ids" value={id} />{/each}
       {#if !armed}
         <button type="button" class="v2-btn" onclick={() => (armed = true)}>
-          Delete {ids.length}
+          {ui('Delete')}
+          {ids.length}
         </button>
       {:else}
-        <button type="submit" class="v2-btn v2-btn-primary">Confirm</button>
-        <button type="button" class="v2-btn" onclick={() => (armed = false)}>Cancel</button>
+        <button type="submit" class="v2-btn v2-btn-primary">{ui('Confirm')}</button>
+        <button type="button" class="v2-btn" onclick={() => (armed = false)}>{ui('Cancel')}</button>
       {/if}
       <button type="button" class="v2-btn" onclick={() => ((action = ''), (armed = false))}>
-        Back
+        {ui('Back')}
       </button>
     </form>
   {:else}
@@ -91,7 +95,7 @@
 
       {#if action === 'assigned_to'}
         <select class="v2-input" name="value" required>
-          <option value="">Choose a person</option>
+          <option value="">{ui('Choose a person')}</option>
           {#each people as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
         </select>
       {:else if action === 'tags'}
@@ -100,17 +104,17 @@
         </select>
       {:else if action === 'priority'}
         <select class="v2-input" name="value" required>
-          <option value="">Choose a priority</option>
+          <option value="">{ui('Choose a priority')}</option>
           {#each CASE_PRIORITIES as v (v)}<option value={v}>{v}</option>{/each}
         </select>
       {:else if action === 'case_type'}
         <select class="v2-input" name="value" required>
-          <option value="">Choose a type</option>
+          <option value="">{ui('Choose a type')}</option>
           {#each CASE_TYPES as v (v)}<option value={v}>{v}</option>{/each}
         </select>
       {:else if action === 'status'}
         <select class="v2-input" name="value" bind:value={statusValue} required>
-          <option value="">Choose a status</option>
+          <option value="">{ui('Choose a status')}</option>
           {#each CASE_STATUSES as v (v)}<option value={v}>{v}</option>{/each}
         </select>
         {#if statusValue === 'Closed'}
@@ -118,8 +122,8 @@
         {/if}
       {/if}
 
-      <button type="submit" class="v2-btn v2-btn-primary">Apply</button>
-      <button type="button" class="v2-btn" onclick={() => (action = '')}>Back</button>
+      <button type="submit" class="v2-btn v2-btn-primary">{ui('Apply')}</button>
+      <button type="button" class="v2-btn" onclick={() => (action = '')}>{ui('Back')}</button>
     </form>
   {/if}
 </div>

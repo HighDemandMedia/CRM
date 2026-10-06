@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
   import { page } from '$app/state';
   import { configuredStages } from '$lib/v2/pipeline-config.js';
@@ -39,13 +42,13 @@
   let currentId = $derived(form?.values?.parent_id ?? data.form.parent_id ?? '');
 </script>
 
-<PageHeader title="Edit task" record center width="62ch">
+<PageHeader title={ui('Edit task')} record center width="62ch">
   {#snippet crumb()}
-    <a href={resolve('/tasks')}>Tasks</a>
+    <a href={resolve('/tasks')}>{ui('Tasks')}</a>
     <ChevronRight size={12} />
     <a href={resolve(`/tasks/${data.task.id}`)}>{data.task.title}</a>
     <ChevronRight size={12} />
-    <span>Edit</span>
+    <span>{ui('Edit')}</span>
   {/snippet}
 </PageHeader>
 
@@ -60,7 +63,7 @@
     <StageRuleNotice issue={form?.stageRequirements} />
     {#if form?.error && !form?.stageRequirements}
       <p style="color:var(--v2-rust);font-size:var(--crm-text-sm);margin:0 0 14px" role="alert">
-        {form.error}
+        {ui(form.error)}
       </p>
     {/if}
 
@@ -68,28 +71,28 @@
     <input type="hidden" name="parent_id_original" value={data.form.parent_id} />
 
     <label class="v2-field">
-      <span class="v2-label">Task</span>
+      <span class="v2-label">{ui('Task')}</span>
       <input class="v2-input" name="title" required maxlength="200" value={values.title ?? ''} />
     </label>
 
     <div style="display:flex;gap:12px;flex-wrap:wrap">
       <label class="v2-field" style="flex:1;min-width:150px">
-        <span class="v2-label">Priority</span>
+        <span class="v2-label">{ui('Priority')}</span>
         <select class="v2-input" name="priority" value={values.priority ?? 'Medium'}
-          ><option value="">None</option>
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
+          ><option value="">{ui('None')}</option>
+          <option value="Low">{ui('Low')}</option>
+          <option value="Medium">{ui('Medium')}</option>
+          <option value="High">{ui('High')}</option>
         </select>
       </label>
       <label class="v2-field" style="flex:1;min-width:150px">
-        <span class="v2-label">Status</span>
+        <span class="v2-label">{ui('Status')}</span>
         <select class="v2-input" name="status" value={values.status ?? 'New'}>
           {#each statusOptions as option}<option value={option.value}>{option.label}</option>{/each}
         </select>
       </label>
       <label class="v2-field" style="flex:1;min-width:150px">
-        <span class="v2-label">Due</span>
+        <span class="v2-label">{ui('Due')}</span>
         <input class="v2-input" type="date" name="due_date" value={values.due_date ?? ''} />
       </label>
     </div>
@@ -101,13 +104,13 @@
     <TaskAssignees people={data.owners} bind:selected={assignees} />
 
     <label class="v2-field">
-      <span class="v2-label">Description</span>
+      <span class="v2-label">{ui('Description')}</span>
       <textarea class="v2-input" name="description" rows="4">{values.description ?? ''}</textarea>
     </label>
 
     <div style="display:flex;gap:9px;margin-top:6px">
-      <button class="v2-btn v2-btn-primary" type="submit">Save</button>
-      <a class="v2-btn" href={resolve(`/tasks/${data.task.id}`)}>Cancel</a>
+      <button class="v2-btn v2-btn-primary" type="submit">{ui('Save')}</button>
+      <a class="v2-btn" href={resolve(`/tasks/${data.task.id}`)}>{ui('Cancel')}</a>
     </div>
   </form>
 </div>

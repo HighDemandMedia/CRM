@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import HelpHeader from '$lib/help/HelpHeader.svelte';
@@ -10,9 +13,8 @@
 <div class="article-scroll">
   <div class="article-layout">
     <article>
-      <a class="back" href={resolve('/help/knowledge')}><ArrowLeft size={15} />All guides</a><span
-        class="category">{data.article.category}</span
-      >
+      <a class="back" href={resolve('/help/knowledge')}><ArrowLeft size={15} />{ui('All guides')}</a
+      ><span class="category">{data.article.category}</span>
       <h1>{data.article.title}</h1>
       <p class="summary">{data.article.summary}</p>
       {#each data.article.sections as section, index}<section id={`section-${index}`}>
@@ -22,19 +24,19 @@
             </ol>{/if}
         </section>{/each}
       <div class="support">
-        <span>Need help with this?</span><a href={resolve('/help')}
-          >Contact support <ArrowUpRight size={15} /></a
+        <span>{ui('Need help with this?')}</span><a href={resolve('/help')}
+          >{ui('Contact support')} <ArrowUpRight size={15} /></a
         >
       </div>
     </article>
     <aside>
-      <h2>In this guide</h2>
-      <nav aria-label="In this guide">
+      <h2>{ui('In this guide')}</h2>
+      <nav aria-label={ui('In this guide')}>
         {#each data.article.sections as section, index}<a href={`#section-${index}`}
             >{section.title}</a
           >{/each}
       </nav>
-      {#if data.related.length}<h2 class="related">Related guides</h2>
+      {#if data.related.length}<h2 class="related">{ui('Related guides')}</h2>
         {#each data.related as article}<a
             class="related-link"
             href={resolve(asInternalPath(`/help/knowledge/${article.slug}`))}

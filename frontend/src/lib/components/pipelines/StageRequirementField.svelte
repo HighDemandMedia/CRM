@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { countryOptions } from '$lib/constants/countries.js';
   import { onMount } from 'svelte';
   import TagPicker from '$lib/v2/components/TagPicker.svelte';
@@ -65,7 +68,9 @@
   {#if field.is_read_only === true || field.is_read_only === 'True'}
     <strong>{field.label}</strong>
     <p>
-      Schedule the appointment in <a href="/calendar">Calendar</a>, then return to change the stage.
+      {ui('Schedule the appointment in')} <a href="/calendar">{ui('Calendar')}</a>{ui(
+        ', then return to change the stage.'
+      )}
     </p>
   {:else}
     <label for={`requirement-${field.key}`}
@@ -75,7 +80,7 @@
     {#if field.relation && field.relation !== 'Tags'}<input
         class="v2-input"
         aria-label={`Search ${field.label}`}
-        placeholder="Search by name…"
+        placeholder={ui('Search by name…')}
         bind:value={search}
         oninput={() => {
           clearTimeout(timer);
@@ -101,28 +106,28 @@
       {#each value || [] as entry, index}<div class="page-link">
           <input
             class="v2-input"
-            aria-label="Page name"
-            placeholder="Page name"
+            aria-label={ui('Page name')}
+            placeholder={ui('Page name')}
             bind:value={entry.name}
             {required}
           /><input
             class="v2-input"
             type="url"
-            aria-label="Page URL"
+            aria-label={ui('Page URL')}
             placeholder="https://…"
             bind:value={entry.url}
             {required}
           /><button
             class="v2-btn"
             type="button"
-            aria-label="Remove page"
+            aria-label={ui('Remove page')}
             onclick={() => (value = value.filter((_, i) => i !== index))}>×</button
           >
         </div>{/each}
       <button
         type="button"
         class="v2-btn"
-        onclick={() => (value = [...(value || []), { name: '', url: '' }])}>Add page</button
+        onclick={() => (value = [...(value || []), { name: '', url: '' }])}>{ui('Add page')}</button
       >
     {:else if field.relation || ['dropdown', 'multi_select'].includes(field.field_type)}
       {#if multiple}<div class="options">
@@ -135,7 +140,7 @@
             >{/each}
         </div>
       {:else}<select id={`requirement-${field.key}`} class="v2-input" bind:value {required}
-          ><option value="">Select…</option>{#each choices as option}<option
+          ><option value="">{ui('Select…')}</option>{#each choices as option}<option
               value={String(option.value)}>{option.label}</option
             >{/each}</select
         >{/if}
@@ -144,8 +149,8 @@
         class="v2-input"
         bind:value
         {required}
-        ><option value="">Select…</option><option value="true">Yes</option><option value="false"
-          >No</option
+        ><option value="">{ui('Select…')}</option><option value="true">{ui('Yes')}</option><option
+          value="false">{ui('No')}</option
         ></select
       >
     {:else if ['textarea', 'list'].includes(field.field_type)}<textarea
@@ -154,7 +159,7 @@
         bind:value
         {required}
         rows="3"
-        placeholder={field.field_type === 'list' ? 'JSON list' : ''}></textarea>
+        placeholder={field.field_type === 'list' ? ui('JSON list') : ''}></textarea>
     {:else}<input
         id={`requirement-${field.key}`}
         class="v2-input"
@@ -163,7 +168,8 @@
         {required}
         step={field.field_type === 'integer' ? '1' : 'any'}
       />{/if}
-    {#if loading}<small>Loading options…</small>{:else if error}<small role="alert">{error}</small
+    {#if loading}<small>{ui('Loading options…')}</small>{:else if error}<small role="alert"
+        >{ui(error)}</small
       >{/if}
   {/if}
 </div>

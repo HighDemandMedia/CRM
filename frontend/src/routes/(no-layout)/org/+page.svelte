@@ -1,11 +1,14 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { resolve, base } from '$app/paths';
   import '../../../app.css';
   import '$lib/v2/styles/v2.css';
   import { Building2, LogOut, Plus, ChevronRight } from '@lucide/svelte';
   import { enhance } from '$app/forms';
 
-  let { data = { orgs: [] } } = $props();
+  let { data = { orgs: [], canCreateOrganization: false, uiLocale: 'en' } } = $props();
   let orgs = $derived(data?.orgs ?? []);
 
   let loading = $state(false);
@@ -13,23 +16,31 @@
 </script>
 
 <svelte:head>
-  <title>Choose organisation · High Demand Media CRM</title>
+  <title>{ui('Choose organisation · High Demand Media CRM')}</title>
 </svelte:head>
 
 <div class="v2-root v2-auth">
   <div class="v2-auth-box">
     <a href={resolve('/')} class="v2-auth-brand">
-      <img src={`${base}/brand/hdm-symbol.png`} alt="" />
+      <img
+        class="v2-brand-mark"
+        src={`${base}/brand/hdm-symbol.png`}
+        alt=""
+        width="228"
+        height="155"
+      />
       <b>High Demand Media CRM</b>
     </a>
 
     <div class="v2-auth-card">
       <div class="v2-auth-head">
-        <h1>Choose an organisation</h1>
+        <h1>{ui('Choose an organisation')}</h1>
         <p>
           {orgs.length
-            ? "Pick the workspace you'd like to open."
-            : 'Create your first workspace to get started.'}
+            ? ui("Pick the workspace you'd like to open.")
+            : data.canCreateOrganization
+              ? ui('Create your first workspace to get started.')
+              : ui('Use your invitation to join your organization.')}
         </p>
       </div>
 
@@ -60,7 +71,7 @@
               <span class="v2-auth-org-body">
                 <b>{org.name}</b>
                 <span class="v2-sub" style="display:block;text-transform:capitalize">
-                  {org.role?.toLowerCase() || 'member'}
+                  {org.role?.toLowerCase() || ui('member')}
                 </span>
               </span>
               {#if loading && selectedOrgId === org.id}
@@ -75,25 +86,30 @@
         {#if data.canCreateOrganization}
           <a href={resolve('/org/new')} class="v2-auth-add">
             <Plus />
-            Create new organisation
+            {ui('Create new organisation')}
           </a>
         {/if}
       {:else}
         <div class="v2-state" style="padding:22px 0 8px">
           <div class="v2-state-icon"><Building2 size={22} /></div>
-          <h3>No organisations yet</h3>
-          <p>Create your first workspace to start using High Demand Media CRM.</p>
-          <a href={resolve('/org/new')} class="v2-btn v2-btn-primary">
-            <Plus size={15} />
-            Create organisation
-          </a>
+          <h3>{ui('No organisations yet')}</h3>
+          {#if data.canCreateOrganization}
+            <p>{ui('Create your first workspace to start using High Demand Media CRM.')}</p>
+            <a href={resolve('/org/new')} class="v2-btn v2-btn-primary">
+              <Plus size={15} />
+              {ui('Create organisation')}
+            </a>
+          {:else}<p>
+              {ui('Open the invitation sent to your email, or contact your administrator.')}
+            </p>{/if}
         </div>
       {/if}
     </div>
 
     <div class="v2-auth-foot">
       <a href={resolve('/logout')} style="display:inline-flex;align-items:center;gap:5px">
-        <LogOut size={13} /> Sign out
+        <LogOut size={13} />
+        {ui('Sign out')}
       </a>
     </div>
   </div>

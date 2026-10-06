@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { resolve } from '$app/paths';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import ContactForm from '$lib/components/contacts/ContactForm.svelte';
@@ -7,10 +10,10 @@
   let { data, form } = $props();
 </script>
 
-<PageHeader title="Edit contact" center>
-  {#snippet crumb()}<a href={resolve('/contacts')}>Contacts</a><ChevronRight size={12} /><span
-      >Edit</span
-    >{/snippet}
+<PageHeader title={ui('Edit contact')} center>
+  {#snippet crumb()}<a href={resolve('/contacts')}>{ui('Contacts')}</a><ChevronRight
+      size={12}
+    /><span>{ui('Edit')}</span>{/snippet}
 </PageHeader>
 <div class="v2-scroll v2-pad" style="padding-top:18px">
   <ContactForm {data} result={form} editing={true} />

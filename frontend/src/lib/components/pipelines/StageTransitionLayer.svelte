@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { onMount } from 'svelte';
   onMount(() => {
     window.addEventListener('crm-stage-requirements', open);
@@ -74,7 +77,7 @@
 
 {#if pending}<TeamPanel
     title={pending.issue.code === 'source_stage'
-      ? 'Stage change blocked'
+      ? ui('Stage change blocked')
       : `Move to ${pending.issue.stage_label}`}
     subtitle="The record stays in its current stage until the change is saved."
     {busy}
@@ -91,17 +94,17 @@
         />{#each pending.issue.fields || [] as field (field.key)}<StageRequirementField
             {field}
             bind:value={values[field.key]}
-          />{/each}{#if error}<p class="panel-error" role="alert">{error}</p>{/if}
+          />{/each}{#if error}<p class="panel-error" role="alert">{ui(error)}</p>{/if}
       </div>
       <div class="panel-footer">
         <button type="button" class="v2-btn" disabled={busy} onclick={() => (pending = null)}
-          >Cancel</button
+          >{ui('Cancel')}</button
         >{#if pending.issue.code === 'missing_properties'}<button
             class="v2-btn v2-btn-primary"
             disabled={busy ||
               pending.issue.fields.some(
                 (f) => f.is_read_only === true || f.is_read_only === 'True'
-              )}>{busy ? 'Saving…' : 'Save and move'}</button
+              )}>{busy ? ui('Saving…') : ui('Save and move')}</button
           >{/if}
       </div>
     </form></TeamPanel

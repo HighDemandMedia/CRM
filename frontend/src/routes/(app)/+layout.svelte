@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import StageTransitionLayer from '$lib/components/pipelines/StageTransitionLayer.svelte';
   import CreateLayer from '$lib/components/creation/CreateLayer.svelte';
   import { Toaster } from 'svelte-sonner';
@@ -105,8 +108,8 @@
       class="navigation-toggle"
       type="button"
       onclick={toggleNavigation}
-      aria-label={navigationHidden ? 'Show navigation' : 'Hide navigation'}
-      title={navigationHidden ? 'Show navigation' : 'Hide navigation'}
+      aria-label={navigationHidden ? ui('Show navigation') : ui('Hide navigation')}
+      title={navigationHidden ? ui('Show navigation') : ui('Hide navigation')}
       aria-expanded={!navigationHidden}
       aria-controls="desktop-navigation-content"
     >
@@ -121,19 +124,25 @@
         class="v2-btn v2-btn-quiet"
         type="button"
         onclick={() => (menuOpen = true)}
-        aria-label="Open menu"
+        aria-label={ui('Open menu')}
         aria-expanded={menuOpen}
       >
         <Menu />
       </button>
-      <img src={`${base}/brand/hdm-symbol.png`} alt="High Demand Media" width="36" height="25" />
+      <img
+        class="v2-brand-mark"
+        src={`${base}/brand/hdm-symbol.png`}
+        alt="High Demand Media"
+        width="228"
+        height="155"
+      />
       <h2>{data.org.name}</h2>
       <button
         class="v2-btn v2-btn-quiet"
         type="button"
         style="margin-left:auto"
         onclick={() => (paletteOpen = true)}
-        aria-label="Search"
+        aria-label={ui('Search')}
       >
         <Search />
       </button>
@@ -144,14 +153,14 @@
       <div class="route-content" class:with-preferences={preferencesOpen}>{@render children()}</div>
     </div>
 
-    <nav class="v2-tabbar" aria-label="Sections">
+    <nav class="v2-tabbar" aria-label={ui('Sections')}>
       {#each TABS as tab (tab.href)}
         <a
           href={resolve(asInternalPath(tab.href))}
           aria-current={isActive(tab.href, tab.exact) ? 'page' : undefined}
         >
           <tab.icon />
-          {tab.label}
+          {ui(tab.label)}
         </a>
       {/each}
     </nav>
@@ -159,7 +168,9 @@
 
   <!-- Both live inside .v2-root so they inherit the scoped tokens; both are
        position:fixed, so the shell's overflow:hidden does not clip them. -->
-  <a class="v2-fab" href={resolve('/pipeline/new')} aria-label="New deal"><Plus size={21} /></a>
+  <a class="v2-fab" href={resolve('/pipeline/new')} aria-label={ui('New deal')}
+    ><Plus size={21} /></a
+  >
 
   <!-- Mobile navigation drawer. Only openable from the mobile top bar, so it
        never surfaces on desktop; a backdrop click, Escape, or navigating all
@@ -176,7 +187,7 @@
         class="v2-drawer"
         role="dialog"
         aria-modal="true"
-        aria-label="Navigation"
+        aria-label={ui('Navigation')}
         tabindex="-1"
         use:autofocus
         onkeydown={(e) => {

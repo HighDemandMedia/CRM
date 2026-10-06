@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   import { deserialize } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
   import { toast } from 'svelte-sonner';
@@ -154,15 +157,15 @@
   }
 </script>
 
-<PageHeader title="Tags">
+<PageHeader title={ui('Tags')}>
   {#snippet actions()}{#if data.can_edit}<button
         class="v2-btn v2-btn-primary"
         disabled={busy}
-        onclick={() => openEditor()}><Plus size={16} />New tag</button
+        onclick={() => openEditor()}><Plus size={16} />{ui('New tag')}</button
       >{/if}{/snippet}
 </PageHeader>
 <div class="tag-settings">
-  <div class="status-filters" role="group" aria-label="Tag status">
+  <div class="status-filters" role="group" aria-label={ui('Tag status')}>
     {#each filters as filter}<button
         type="button"
         class:chosen={status === filter.key}
@@ -173,21 +176,24 @@
   <div class="toolbar">
     <label class="search"
       ><Search size={16} /><input
-        aria-label="Search tags"
+        aria-label={ui('Search tags')}
         type="search"
-        placeholder="Search tags…"
+        placeholder={ui('Search tags…')}
         bind:value={query}
       /></label
     >
-    <select class="v2-input object-filter" aria-label="Filter tags by object" bind:value={object}
-      ><option value="">All objects</option>{#each objectOptions as [key, label]}<option value={key}
-          >{label}</option
+    <select
+      class="v2-input object-filter"
+      aria-label={ui('Filter tags by object')}
+      bind:value={object}
+      ><option value="">{ui('All objects')}</option>{#each objectOptions as [key, label]}<option
+          value={key}>{label}</option
         >{/each}</select
     >
   </div>
-  {#if error && !panel}<p class="v2-error" role="alert">{error}</p>{/if}
+  {#if error && !panel}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard access to horizontal scrolling.) -->
-  <div class="tag-table" role="region" aria-label="Tags list" tabindex="0">
+  <div class="tag-table" role="region" aria-label={ui('Tags list')} tabindex="0">
     <table>
       <thead
         ><tr>
@@ -195,18 +201,19 @@
             scope="col"
             aria-sort={sort === 'name' ? (descending ? 'descending' : 'ascending') : 'none'}
             ><button onclick={() => reorder('name')}
-              >Tag {sort === 'name' ? (descending ? '↓' : '↑') : ''}</button
+              >{ui('Tag')} {sort === 'name' ? (descending ? '↓' : '↑') : ''}</button
             ></th
           >
           <th
             scope="col"
             aria-sort={sort === 'usage' ? (descending ? 'descending' : 'ascending') : 'none'}
             ><button onclick={() => reorder('usage')}
-              >Used in records {sort === 'usage' ? (descending ? '↓' : '↑') : ''}</button
+              >{ui('Used in records')} {sort === 'usage' ? (descending ? '↓' : '↑') : ''}</button
             ></th
           >
-          <th scope="col">Status</th>{#if data.can_edit}<th scope="col" class="actions-heading"
-              >Actions</th
+          <th scope="col">{ui('Status')}</th>{#if data.can_edit}<th
+              scope="col"
+              class="actions-heading">{ui('Actions')}</th
             >{/if}
         </tr></thead
       >
@@ -220,13 +227,13 @@
                   aria-expanded={expanded === tag.id}
                   aria-controls={`usage-${tag.id}`}
                   onclick={() => (expanded = expanded === tag.id ? '' : tag.id)}
-                  >{used(tag).toLocaleString()}
-                  {used(tag) === 1 ? 'record' : 'records'}<ChevronDown size={13} /></button
-                >{:else}<span class="muted">Unused</span>{/if}</td
+                  >{used(tag).toLocaleString(locale())}
+                  {used(tag) === 1 ? ui('record') : ui('records')}<ChevronDown size={13} /></button
+                >{:else}<span class="muted">{ui('Unused')}</span>{/if}</td
             >
             <td
               ><span class="status" class:archived={!tag.is_active}
-                >{tag.is_active ? 'Active' : 'Archived'}</span
+                >{tag.is_active ? ui('Active') : ui('Archived')}</span
               ></td
             >
             {#if data.can_edit}<td class="row-actions"
@@ -235,23 +242,24 @@
                     class="v2-btn v2-btn-sm"
                     disabled={busy}
                     aria-label={`Actions for ${tag.name}`}
-                    >Actions<ChevronDown size={13} /></Dropdown.Trigger
+                    >{ui('Actions')}<ChevronDown size={13} /></Dropdown.Trigger
                   >
                   <Dropdown.Content align="end">
                     <Dropdown.Item onclick={() => openEditor(tag)}
-                      ><Pencil size={14} />Edit name & color</Dropdown.Item
+                      ><Pencil size={14} />{ui('Edit name & color')}</Dropdown.Item
                     >
                     {#if tag.is_active}
                       <Dropdown.Item
                         disabled={data.tags.filter((t) => t.is_active).length < 2}
-                        onclick={() => openMerge(tag)}><Merge size={14} />Merge</Dropdown.Item
+                        onclick={() => openMerge(tag)}
+                        ><Merge size={14} />{ui('Merge')}</Dropdown.Item
                       >
                       <Dropdown.Separator />
                       <Dropdown.Item onclick={() => perform('archive', { id: tag.id })}
-                        ><Archive size={14} />Archive</Dropdown.Item
+                        ><Archive size={14} />{ui('Archive')}</Dropdown.Item
                       >
                     {:else}<Dropdown.Item onclick={() => perform('restore', { id: tag.id })}
-                        ><RotateCcw size={14} />Restore</Dropdown.Item
+                        ><RotateCcw size={14} />{ui('Restore')}</Dropdown.Item
                       >{/if}
                   </Dropdown.Content>
                 </Dropdown.Root></td
@@ -261,14 +269,15 @@
               ><td colspan={data.can_edit ? 4 : 3}
                 ><div class="usage-details">
                   {#each usage(tag) as [key, total]}<span
-                      >{labelFor(key)} <strong>{Number(total).toLocaleString()}</strong></span
+                      >{labelFor(key)}
+                      <strong>{Number(total).toLocaleString(locale())}</strong></span
                     >{/each}
                 </div></td
               ></tr
             >{/if}
         {:else}<tr
             ><td class="empty" colspan={data.can_edit ? 4 : 3}
-              >{data.tags.length ? 'No tags match these filters.' : 'No tags yet.'}</td
+              >{data.tags.length ? ui('No tags match these filters.') : ui('No tags yet.')}</td
             ></tr
           >{/each}</tbody
       >
@@ -277,7 +286,11 @@
 </div>
 
 {#if panel}<TeamPanel
-    title={panel === 'create' ? 'New tag' : panel === 'edit' ? 'Edit tag' : 'Merge tags'}
+    title={panel === 'create'
+      ? ui('New tag')
+      : panel === 'edit'
+        ? ui('Edit tag')
+        : ui('Merge tags')}
     {busy}
     onclose={() => {
       panel = '';
@@ -287,36 +300,40 @@
     <form class="panel-form" onsubmit={submit}>
       <div class="panel-body">
         {#if panel === 'merge'}
-          <div class="merge-source"><span>Merge</span><TagBadge tag={selected} /></div>
+          <div class="merge-source"><span>{ui('Merge')}</span><TagBadge tag={selected} /></div>
           <label class="field"
-            >Into<select class="v2-input" bind:value={destination} required disabled={busy}
-              ><option value="">Select the tag to keep</option>{#each mergeTargets as target}<option
-                  value={target.id}>{target.name}</option
+            >{ui('Into')}<select class="v2-input" bind:value={destination} required disabled={busy}
+              ><option value="">{ui('Select the tag to keep')}</option
+              >{#each mergeTargets as target}<option value={target.id}>{target.name}</option
                 >{/each}</select
             ></label
           >
           {#if into}<p class="merge-info">
-              Records tagged <strong>{selected.name}</strong> will use <strong>{into.name}</strong>.
-              Existing assignments of that tag stay unchanged. <strong>{selected.name}</strong> will be
-              archived. This merge cannot be undone.
+              {ui('Records tagged')} <strong>{selected.name}</strong>
+              {ui('will use')} <strong>{into.name}</strong>{ui(
+                '. Existing assignments of that tag stay unchanged.'
+              )} <strong>{selected.name}</strong>
+              {ui('will be archived. This merge cannot be undone.')}
             </p>
             <label class="confirm"
-              ><input type="checkbox" required bind:checked={confirmed} disabled={busy} />Confirm
-              merge into {into.name}</label
+              ><input type="checkbox" required bind:checked={confirmed} disabled={busy} />{ui(
+                'Confirm merge into'
+              )}
+              {into.name}</label
             >{/if}
         {:else}
           <label class="field"
-            >Name<input
+            >{ui('Name')}<input
               class="v2-input"
               bind:value={name}
               required
               maxlength="50"
               disabled={busy}
-              placeholder="e.g. VIP"
+              placeholder={ui('e.g. VIP')}
             /></label
           >
           <fieldset disabled={busy} class="color-field">
-            <legend>Color</legend>
+            <legend>{ui('Color')}</legend>
             <div class="colors">
               {#each Object.entries(tagColors) as [key, hex]}<label
                   class="swatch"
@@ -335,7 +352,7 @@
           </fieldset>
           <div class="tag-example"><TagBadge tag={{ name: name.trim() || 'Tag', color }} /></div>
         {/if}
-        {#if error}<p class="v2-error" role="alert">{error}</p>{/if}
+        {#if error}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
       </div>
       <footer class="panel-footer">
         <button
@@ -345,17 +362,17 @@
           onclick={() => {
             panel = '';
             error = '';
-          }}>Cancel</button
+          }}>{ui('Cancel')}</button
         ><button
           class="v2-btn v2-btn-primary"
           disabled={busy || (panel === 'merge' ? !confirmed || !destination : !name.trim())}
           >{busy
-            ? 'Saving…'
+            ? ui('Saving…')
             : panel === 'create'
-              ? 'Create tag'
+              ? ui('Create tag')
               : panel === 'edit'
-                ? 'Save changes'
-                : 'Merge tags'}</button
+                ? ui('Save changes')
+                : ui('Merge tags')}</button
         >
       </footer>
     </form>

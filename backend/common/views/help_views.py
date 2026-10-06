@@ -7,7 +7,8 @@ import uuid
 
 from django.conf import settings
 from django.core.cache import cache
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -243,13 +244,17 @@ class HelpRequestView(APIView):
                     ],
                 ]
             )
-            message = EmailMessage(
+            message = EmailMultiAlternatives(
                 subject=f"[HDM CRM · {CATEGORIES[values['category']]}] {values['subject']}",
                 body=body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 to=[SUPPORT_EMAIL],
                 reply_to=[request.user.email],
                 headers={"X-HDM-Support-Reference": reference},
+            )
+            message.attach_alternative(
+                render_to_string("emails/support_request.html", {"body": body}),
+                "text/html",
             )
             try:
                 sent = message.send(fail_silently=False)

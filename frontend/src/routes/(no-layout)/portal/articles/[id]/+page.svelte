@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   /**
    * The article body is rendered as text, not as HTML.
    *
@@ -15,7 +18,7 @@
 
   function formatDate(value) {
     if (!value) return '';
-    return new Date(value).toLocaleDateString(undefined, {
+    return new Date(value).toLocaleDateString(locale(), {
       day: 'numeric',
       month: 'short',
       year: 'numeric'
@@ -28,19 +31,19 @@
 </svelte:head>
 
 <PortalShell>
-  <a class="back" href={resolve('/portal/articles')}>Back to help articles</a>
+  <a class="back" href={resolve('/portal/articles')}>{ui('Back to help articles')}</a>
 
   <article>
     <h1>{data.article.title}</h1>
     {#if data.article.updated_at}
-      <p class="when">Updated {formatDate(data.article.updated_at)}</p>
+      <p class="when">{ui('Updated')} {formatDate(data.article.updated_at)}</p>
     {/if}
     <div class="body">{data.article.description}</div>
   </article>
 
   {#if data.related.length > 0}
-    <nav class="related" aria-label="Related articles">
-      <h2>Related articles</h2>
+    <nav class="related" aria-label={ui('Related articles')}>
+      <h2>{ui('Related articles')}</h2>
       <ul>
         {#each data.related as item (item.id)}
           <li><a href={resolve(`/portal/articles/${item.id}`)}>{item.title}</a></li>
@@ -53,8 +56,8 @@
        inline prose it measured 17px tall, well under a thumb, and it is the
        action this whole page exists to avoid needing. -->
   <div class="ask">
-    <p>Still stuck?</p>
-    <a href={resolve('/portal/cases')}>Send us a request</a>
+    <p>{ui('Still stuck?')}</p>
+    <a href={resolve('/portal/cases')}>{ui('Send us a request')}</a>
   </div>
 </PortalShell>
 

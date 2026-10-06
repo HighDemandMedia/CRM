@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   /** @type {{id:string,href?:string|null}} */
   let { id, href } = $props();
   let email = $state(/** @type {any} */ (null)),
@@ -22,12 +25,16 @@
 </script>
 
 <details ontoggle={load}>
-  <summary>Read email</summary>
-  {#if busy}<p>Loading email…</p>{/if}
-  {#if error}<p class="v2-error" role="alert">{error}</p>{/if}
-  {#if email}<p class="meta">From: {email.sender}<br />To: {email.recipients.join(', ')}</p>
+  <summary>{ui('Read email')}</summary>
+  {#if busy}<p>{ui('Loading email…')}</p>{/if}
+  {#if error}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
+  {#if email}<p class="meta">
+      {ui('From:')}
+      {email.sender}<br />{ui('To:')}
+      {email.recipients.join(', ')}
+    </p>
     <div class="email-body">{email.body || '(Empty message)'}</div>{/if}
-  {#if href}<a {href} target="_blank" rel="noopener noreferrer">Open in Gmail</a>{/if}
+  {#if href}<a {href} target="_blank" rel="noopener noreferrer">{ui('Open in Gmail')}</a>{/if}
 </details>
 
 <style>

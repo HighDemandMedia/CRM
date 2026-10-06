@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { enhance } from '$app/forms';
   import { untrack } from 'svelte';
   import TaskAssignees from '$lib/components/tasks/TaskAssignees.svelte';
@@ -10,7 +13,7 @@
 </script>
 
 <TeamPanel
-  title={team.id ? 'Edit team' : 'Create team'}
+  title={team.id ? ui('Edit team') : ui('Create team')}
   subtitle="Organize users who work together."
   {busy}
   {onclose}
@@ -41,38 +44,38 @@
     <div class="panel-body">
       <input type="hidden" name="id" value={team.id ?? ''} />
       <label class="field"
-        >Team name<input
+        >{ui('Team name')}<input
           class="v2-input"
           name="name"
           value={team.name ?? ''}
-          placeholder="e.g. Sales"
+          placeholder={ui('e.g. Sales')}
           required
           maxlength="100"
           disabled={busy}
         /></label
       >
       <label class="field"
-        >Description <span class="optional">Optional</span><textarea
+        >{ui('Description')} <span class="optional">{ui('Optional')}</span><textarea
           class="v2-input"
           name="description"
           rows="3"
-          placeholder="What does this team work on?"
+          placeholder={ui('What does this team work on?')}
           disabled={busy}>{team.description ?? ''}</textarea
         ></label
       >
       <TaskAssignees
-        label="Members"
+        label={ui('Members')}
         fieldName="members"
         people={people.filter((p) => p.is_active || selected.includes(p.id))}
         bind:selected
         disabled={busy}
       />
-      {#if error}<p role="alert" class="panel-error">{error}</p>{/if}
+      {#if error}<p role="alert" class="panel-error">{ui(error)}</p>{/if}
     </div>
     <footer class="panel-footer">
-      <button class="v2-btn" type="button" disabled={busy} onclick={onclose}>Cancel</button><button
-        class="v2-btn v2-btn-primary"
-        disabled={busy}>{busy ? 'Saving…' : team.id ? 'Save changes' : 'Create team'}</button
+      <button class="v2-btn" type="button" disabled={busy} onclick={onclose}>{ui('Cancel')}</button
+      ><button class="v2-btn v2-btn-primary" disabled={busy}
+        >{busy ? ui('Saving…') : team.id ? ui('Save changes') : ui('Create team')}</button
       >
     </footer>
   </form>

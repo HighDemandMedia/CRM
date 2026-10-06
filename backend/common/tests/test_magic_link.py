@@ -32,6 +32,7 @@ class TestMagicLinkRequest:
         assert "message" in response.data
 
     def test_request_creates_token(self, unauthenticated_client):
+        User.objects.create_user(email="test@example.com")
         """Should create a MagicLinkToken record."""
         with patch("common.tasks.send_magic_link_email") as mock_task:
             mock_task.delay = lambda *a, **kw: None
@@ -41,6 +42,7 @@ class TestMagicLinkRequest:
         assert MagicLinkToken.objects.filter(email="test@example.com").exists()
 
     def test_request_invalidates_previous_tokens(self, unauthenticated_client):
+        User.objects.create_user(email="test@example.com")
         """New request should invalidate existing unused tokens."""
         old_token = MagicLinkToken.objects.create(
             email="test@example.com",
@@ -56,6 +58,7 @@ class TestMagicLinkRequest:
         assert old_token.is_used is True
 
     def test_request_rate_limit(self, unauthenticated_client):
+        User.objects.create_user(email="ratelimit@example.com")
         """Should silently reject after 5 requests per hour."""
         email = "ratelimit@example.com"
         for _ in range(5):
@@ -110,16 +113,14 @@ class TestMagicLinkVerify:
         assert "user" in response.data
 
     def test_verify_valid_token_new_user(self, unauthenticated_client):
-        """Valid token for new email should create user and return tokens."""
+        """An old token cannot create an uninvited account."""
         token_obj = self._create_valid_token(email="newuser@example.com")
         response = unauthenticated_client.post(
             self.url, {"token": token_obj.token}, format="json"
         )
-        assert response.status_code == status.HTTP_200_OK
-        assert "access_token" in response.data
-        assert User.objects.filter(email="newuser@example.com").exists()
-        user = User.objects.get(email="newuser@example.com")
-        assert user.is_active is True
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "access_token" not in response.data
+        assert not User.objects.exists()
 
     def test_verify_marks_token_used(self, unauthenticated_client):
         """Token should be marked as used after verification."""
@@ -176,15 +177,17 @@ class TestMagicLinkVerify:
         assert response.data["current_org"]["id"] == str(org_a.id)
 
     def test_verify_new_user_no_org(self, unauthenticated_client):
-        """New user should not have current_org."""
+        """An uninvited user cannot sign in."""
         token_obj = self._create_valid_token(email="brand-new@example.com")
         response = unauthenticated_client.post(
             self.url, {"token": token_obj.token}, format="json"
         )
-        assert response.status_code == status.HTTP_200_OK
-        assert "current_org" not in response.data
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "access_token" not in response.data
+        assert not User.objects.exists()
 
     def test_verify_replay_attack_prevented(self, unauthenticated_client):
+        User.objects.create_user(email="test@example.com")
         """Same token should not work twice."""
         token_obj = self._create_valid_token()
         # First use
@@ -224,6 +227,7 @@ class TestMagicLinkRequestCode:
     url = "/api/auth/magic-link/request/"
 
     def test_request_code_creates_code_hash(self, unauthenticated_client):
+        User.objects.create_user(email="otp@example.com")
         """delivery=code should populate code_hash and set delivery."""
         captured = {}
 
@@ -248,6 +252,7 @@ class TestMagicLinkRequestCode:
         assert captured["raw_code"].isdigit()
 
     def test_request_link_default_delivery(self, unauthenticated_client):
+        User.objects.create_user(email="linkdefault@example.com")
         """Omitting delivery should default to link (no code_hash)."""
         with patch("common.tasks.send_magic_link_email") as mock_task:
             mock_task.delay = lambda *a, **kw: None
@@ -278,17 +283,16 @@ class TestMagicLinkVerifyCode:
         )
 
     def test_verify_code_valid_new_user(self, unauthenticated_client):
-        """Valid code for a new email mints tokens and creates the user."""
+        """A code cannot provision an uninvited CRM user."""
         self._create_code_token(email="newotp@example.com", code="654321")
         response = unauthenticated_client.post(
             self.url,
             {"email": "newotp@example.com", "code": "654321"},
             format="json",
         )
-        assert response.status_code == status.HTTP_200_OK
-        assert "access_token" in response.data
-        assert "refresh_token" in response.data
-        assert User.objects.filter(email="newotp@example.com").exists()
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "access_token" not in response.data
+        assert not User.objects.exists()
 
     def test_verify_code_valid_existing_user(
         self, unauthenticated_client, admin_user, admin_profile
@@ -367,6 +371,7 @@ class TestMagicLinkVerifyCode:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_verify_code_replay_rejected(self, unauthenticated_client):
+        User.objects.create_user(email="replay@example.com")
         """Second use of the same code is rejected."""
         self._create_code_token(email="replay@example.com", code="666666")
         first = unauthenticated_client.post(
@@ -542,6 +547,7 @@ class TestVerifyCodeOrgSelection:
     def test_user_with_no_org_gets_an_empty_list_not_a_missing_key(
         self, unauthenticated_client
     ):
+        User.objects.create_user(email="orgless@example.com")
         self._code_token("orgless@example.com")
         response = self._verify(unauthenticated_client, "orgless@example.com")
 

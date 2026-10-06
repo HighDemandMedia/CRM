@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { exactTime, ui, money } = useI18n();
+
   import { page } from '$app/state';
   import { configuredLabel } from '$lib/v2/pipeline-config.js';
 
@@ -11,13 +14,12 @@
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
   import { Pencil } from '@lucide/svelte';
   let editingProperties = $state(false);
-  import { exactTime } from '$lib/v2/contact-time.js';
   import Attachments from '$lib/v2/components/Attachments.svelte';
   import CompanyForm from '$lib/components/companies/CompanyForm.svelte';
   import { invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import { money } from '$lib/v2/format.js';
+
   import { ChevronRight, Mail } from '@lucide/svelte';
 
   /** @type {{ data: any, form?:any }} */
@@ -30,7 +32,7 @@
 
 <PageHeader title={account.name || `Company · ${account.id.slice(0, 8)}`} record>
   {#snippet crumb()}
-    <a href={resolve('/accounts')}>Companies</a>
+    <a href={resolve('/accounts')}>{ui('Companies')}</a>
     <ChevronRight size={12} />
     <span>{account.industry || 'No industry'}</span>
   {/snippet}
@@ -39,7 +41,8 @@
   {/snippet}
 
   {#snippet actions()}
-    {#if account.email}<a class="v2-btn" href={`mailto:${account.email}`}><Mail size={15} />Email</a
+    {#if account.email}<a class="v2-btn" href={`mailto:${account.email}`}
+        ><Mail size={15} />{ui('Email')}</a
       >{/if}
     <CreateAppointment
       hosts={data.hosts}
@@ -55,18 +58,18 @@
   {/snippet}
 </PageHeader>
 {#if scheduled}<div class="scheduled-message" role="status">
-    Event scheduled. <a href={resolve('/calendar')}>View calendar</a>
+    {ui('Event scheduled.')} <a href={resolve('/calendar')}>{ui('View calendar')}</a>
   </div>{/if}
 
 <div class="v2-scroll company-layout">
-  <aside class="company-properties" aria-label="Company properties">
+  <aside class="company-properties" aria-label={ui('Company properties')}>
     <div class="properties-heading">
-      <h2>Properties</h2>
+      <h2>{ui('Properties')}</h2>
       <button
         class="v2-btn"
         type="button"
         disabled={editingProperties}
-        onclick={() => (editingProperties = true)}><Pencil size={13} />Edit</button
+        onclick={() => (editingProperties = true)}><Pencil size={13} />{ui('Edit')}</button
       >
     </div>
     {#if editingProperties}
@@ -125,7 +128,7 @@
         ]}
       />
       {#if account.pages?.length}<div class="property-pages">
-          <span>Pages</span>{#each account.pages as page}<a
+          <span>{ui('Pages')}</span>{#each account.pages as page}<a
               href={page.url}
               target="_blank"
               rel="noopener noreferrer">{page.name || page.url}</a
@@ -157,17 +160,18 @@
         >
           {#snippet summary()}<div class="deal-totals">
               <span
-                ><strong>{account.open_deal_count ?? 0}</strong> open · {money(
-                  account.open_pipeline ?? 0,
-                  data.org.currency
-                )}</span
+                ><strong>{account.open_deal_count ?? 0}</strong>
+                {ui('open ·')}
+                {money(account.open_pipeline ?? 0, data.org.currency)}</span
               >
-              <span class:overdue={overdueDeals > 0}><strong>{overdueDeals}</strong> past due</span>
-              <span>Won {money(account.won_amount ?? 0, data.org.currency)}</span>
+              <span class:overdue={overdueDeals > 0}
+                ><strong>{overdueDeals}</strong> {ui('past due')}</span
+              >
+              <span>{ui('Won')} {money(account.won_amount ?? 0, data.org.currency)}</span>
             </div>{/snippet}
         </ContactAssociations>
       </section>
-      <section class="v2-card company-journal" aria-label="Company notes and activity">
+      <section class="v2-card company-journal" aria-label={ui('Company notes and activity')}>
         <RecordTabs>
           {#snippet notes()}{#key account.id}<NotesEditor
                 notes={data.activity ?? []}
@@ -176,16 +180,16 @@
               {#each data.eventHistory ?? [] as entry (entry.id)}<div class="history-entry">
                   <div>{entry.body}</div>
                   <p class="v2-sub">{entry.by} · {exactTime(entry.at)}</p>
-                </div>{:else}<p class="v2-sub">No activity yet.</p>{/each}
+                </div>{:else}<p class="v2-sub">{ui('No activity yet.')}</p>{/each}
             </div>{/snippet}
         </RecordTabs>
       </section>
       <details class="v2-card company-secondary">
-        <summary>Attachments <span>{data.attachments.length}</span></summary>
+        <summary>{ui('Attachments')} <span>{data.attachments.length}</span></summary>
         <div class="secondary-content"><Attachments attachments={data.attachments} /></div>
       </details>
       <details class="v2-card company-secondary">
-        <summary>Tickets <span>{tickets.length}</span></summary>
+        <summary>{ui('Tickets')} <span>{tickets.length}</span></summary>
         <div class="secondary-content">
           <ContactAssociations
             contactId={account.id}

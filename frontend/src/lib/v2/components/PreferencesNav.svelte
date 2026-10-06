@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
@@ -56,21 +59,23 @@
 
 <aside class="preferences-sidebar">
   <div class="preferences-heading">
-    <h2>Profile &amp; Preferences</h2>
-    <a href={resolve('/')} aria-label="Back to CRM" title="Back to CRM"><ArrowLeft size={16} /></a>
+    <h2>{ui('Profile & Preferences')}</h2>
+    <a href={resolve('/')} aria-label={ui('Back to CRM')} title={ui('Back to CRM')}
+      ><ArrowLeft size={16} /></a
+    >
   </div>
-  <nav aria-label="Profile and preferences">
+  <nav aria-label={ui('Profile and preferences')}>
     {#each groups as group}
       <details
         open={['Personal', 'Organization & access', 'CRM configuration'].includes(group.label) ||
           group.items.some((item) => active(item.href))}
       >
-        <summary>{group.label}<ChevronDown size={12} /></summary>
+        <summary>{ui(group.label)}<ChevronDown size={12} /></summary>
         {#each group.items as item}
           <a
             href={resolve(asInternalPath(item.href))}
             aria-current={active(item.href) ? 'page' : undefined}
-            ><item.icon size={16} /><span class="preference-label">{item.label}</span>
+            ><item.icon size={16} /><span class="preference-label">{ui(item.label)}</span>
             {#if item.beta}<Pill>Beta</Pill>{/if}
           </a>
         {/each}
@@ -78,15 +83,16 @@
     {/each}
   </nav>
   <label class="mobile-preferences"
-    >Section
+    >{ui('Section')}
     <select
+      class="v2-input"
       value={selected}
       onchange={(event) => goto(resolve(asInternalPath(event.currentTarget.value)))}
     >
-      {#if !selected}<option value="" disabled>Choose a section</option>{/if}
-      {#each groups as group}<optgroup label={group.label}
+      {#if !selected}<option value="" disabled>{ui('Choose a section')}</option>{/if}
+      {#each groups as group}<optgroup label={ui(group.label)}
           >{#each group.items as item}<option value={item.href}
-              >{item.label}{item.beta ? ' · Beta' : ''}</option
+              >{ui(item.label)}{item.beta ? ' · Beta' : ''}</option
             >{/each}</optgroup
         >{/each}
     </select>
@@ -168,8 +174,15 @@
     background: var(--crm-surface-secondary);
   }
   nav a[aria-current='page'] {
-    background: var(--crm-surface-selected);
+    background: var(--crm-action-bg);
+    color: var(--crm-primary-text);
     font-weight: 650;
+  }
+  nav a[aria-current='page']:hover {
+    background: var(--crm-action-hover-bg);
+  }
+  nav a[aria-current='page']:active {
+    background: var(--crm-action-active-bg);
   }
   summary:focus-visible,
   a:focus-visible,

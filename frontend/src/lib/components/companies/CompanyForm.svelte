@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { countryOptions } from '$lib/constants/countries.js';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import RecordSection from '$lib/components/creation/RecordSection.svelte';
@@ -234,12 +237,12 @@
           onclick={() => {
             queued = snapshotValues();
             void flushAutoSave();
-          }}>Retry</button
+          }}>{ui('Retry')}</button
         >
       </div>{/if}{/if}
-  <RecordSection title="Company details">
+  <RecordSection title={ui('Company details')}>
     <label
-      >Name *<input
+      >{ui('Name *')}<input
         class="v2-input"
         name="name"
         required
@@ -248,7 +251,7 @@
       /></label
     >
     <label
-      >Domain<input
+      >{ui('Domain')}<input
         class="v2-input"
         name="website"
         placeholder="example.com"
@@ -256,7 +259,7 @@
       /></label
     >
     <label
-      >Email<input
+      >{ui('Email')}<input
         class="v2-input"
         name="email"
         maxlength="254"
@@ -265,7 +268,7 @@
       /></label
     >
     <label
-      >Phone<input
+      >{ui('Phone')}<input
         class="v2-input"
         name="phone"
         type="tel"
@@ -274,30 +277,30 @@
       /></label
     >
   </RecordSection>
-  <RecordSection title="Ownership & stage">
+  <RecordSection title={ui('Ownership & stage')}>
     <label
-      >Owner<select class="v2-input" name="assigned_to" bind:value={values.assigned_to}
-        ><option value="">Select user</option>{#each data.owners ?? [] as owner}<option
+      >{ui('Owner')}<select class="v2-input" name="assigned_to" bind:value={values.assigned_to}
+        ><option value="">{ui('Select user')}</option>{#each data.owners ?? [] as owner}<option
             value={owner.id}>{owner.name}</option
           >{/each}</select
       ></label
     >
     <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
     <label
-      >Stage<select class="v2-input" name="stage" bind:value={values.stage}
+      >{ui('Stage')}<select class="v2-input" name="stage" bind:value={values.stage}
         >{#each companyStages as stage}<option value={stage.value}>{stage.label}</option
           >{/each}</select
       ></label
     >
     <label
-      >Source<select class="v2-input" name="source" bind:value={values.source}
-        ><option value="">Select source</option>{#each sources as [value, label]}<option {value}
-            >{label}</option
+      >{ui('Source')}<select class="v2-input" name="source" bind:value={values.source}
+        ><option value="">{ui('Select source')}</option>{#each sources as [value, label]}<option
+            {value}>{label}</option
           >{/each}</select
       ></label
     >
     <div class="v2-field">
-      <span class="tags-label">Tags</span><TagPicker
+      <span class="tags-label">{ui('Tags')}</span><TagPicker
         options={data.tagOptions ?? []}
         original={data.form?.tags ?? []}
         canCreate={data.canCreateTags}
@@ -306,9 +309,9 @@
       />
     </div>
   </RecordSection>
-  <RecordSection title="Associated contacts">
+  <RecordSection title={ui('Associated contacts')}>
     <div class="contacts-field">
-      <span id="company-contacts-label">Contacts</span>
+      <span id="company-contacts-label">{ui('Contacts')}</span>
       <details class="contacts-dropdown">
         <summary
           class="v2-input"
@@ -323,7 +326,7 @@
                       'Selected contact'
                   )
                   .join(', ')
-              : 'Select contacts'}</span
+              : ui('Select contacts')}</span
           ><span aria-hidden="true">▾</span>
         </summary>
         <div class="contacts-menu">
@@ -337,8 +340,8 @@
           <input
             class="v2-input"
             type="search"
-            aria-label="Search contacts"
-            placeholder="Search contacts"
+            aria-label={ui('Search contacts')}
+            placeholder={ui('Search contacts')}
             bind:value={contactSearch}
           />
           <div class="contact-options">
@@ -355,22 +358,22 @@
                       : contacts.filter((id) => id !== String(c.id)))}
                 />{c.name ?? c.first_name}</label
               >
-            {:else}<span class="v2-sub">No matching contacts.</span>{/each}
+            {:else}<span class="v2-sub">{ui('No matching contacts.')}</span>{/each}
           </div>
         </div>
       </details>
     </div>
   </RecordSection>
-  <RecordSection title="Business details" collapsible={!editing}>
+  <RecordSection title={ui('Business details')} collapsible={!editing}>
     <label
-      >Industry<select class="v2-input" name="industry" bind:value={values.industry}
-        ><option value="">Select industry</option>{#each data.industries ?? [] as option}<option
-            value={option.value}>{option.label}</option
+      >{ui('Industry')}<select class="v2-input" name="industry" bind:value={values.industry}
+        ><option value="">{ui('Select industry')}</option
+        >{#each data.industries ?? [] as option}<option value={option.value}>{option.label}</option
           >{/each}</select
       ></label
     >
     <label
-      >Number of Employees<input
+      >{ui('Number of Employees')}<input
         class="v2-input"
         name="number_of_employees"
         type="number"
@@ -380,7 +383,7 @@
       /></label
     >
     <label
-      >Annual revenue<input
+      >{ui('Annual revenue')}<input
         class="v2-input"
         name="annual_revenue"
         type="number"
@@ -390,7 +393,7 @@
       /></label
     >
     <label
-      >Currency<input
+      >{ui('Currency')}<input
         class="v2-input"
         name="currency"
         maxlength="3"
@@ -398,30 +401,30 @@
       /></label
     >
   </RecordSection>
-  <RecordSection title="Communication" collapsible={!editing}>
+  <RecordSection title={ui('Communication')} collapsible={!editing}>
     <LanguageSelect bind:value={values.language} />
     <label
-      >Preferred Communication Channel<select
+      >{ui('Preferred Communication Channel')}<select
         class="v2-input"
         name="preferred_communication_channel"
         bind:value={values.preferred_communication_channel}
-        ><option value="">Select channel</option><option value="SMS">SMS</option><option
-          value="CALL">Call</option
-        ><option value="EMAIL">Email</option></select
+        ><option value="">{ui('Select channel')}</option><option value="SMS">SMS</option><option
+          value="CALL">{ui('Call')}</option
+        ><option value="EMAIL">{ui('Email')}</option></select
       ></label
     >
   </RecordSection>
-  <RecordSection title="Address" collapsible={!editing}>
+  <RecordSection title={ui('Address')} collapsible={!editing}>
     <label
-      >Country<select class="v2-input" name="country" bind:value={values.country}
-        ><option value="">Select country</option
+      >{ui('Country')}<select class="v2-input" name="country" bind:value={values.country}
+        ><option value="">{ui('Select country')}</option
         >{#each countryOptions(values.country) as option}<option value={option.value}
             >{option.label}</option
           >{/each}</select
       ></label
     >
     {#each addresses as [key, label]}<label
-        >{label}<input
+        >{ui(label)}<input
           class="v2-input"
           name={key}
           maxlength={key === 'postcode' ? 64 : 255}
@@ -430,12 +433,12 @@
       >{/each}
   </RecordSection>
   <fieldset>
-    <legend>Pages</legend>
+    <legend>{ui('Pages')}</legend>
     {#each pages as page, index}<div class="page-row">
         <input
           class="v2-input"
           aria-label={`Page ${index + 1} name`}
-          placeholder="Page name"
+          placeholder={ui('Page name')}
           required
           maxlength="100"
           bind:value={page.name}
@@ -458,21 +461,21 @@
       class="v2-btn"
       type="button"
       disabled={pages.length >= 50}
-      onclick={() => (pages = [...pages, { name: '', url: '' }])}>Add page</button
+      onclick={() => (pages = [...pages, { name: '', url: '' }])}>{ui('Add page')}</button
     >
   </fieldset>
 
   {#if !autoSave}<div class="actions">
       <button class="v2-btn v2-btn-primary" type="submit" disabled={saving || creatingTag}
-        >{saving ? 'Saving…' : editing ? 'Save company' : 'Create company'}</button
+        >{saving ? ui('Saving…') : editing ? ui('Save company') : ui('Create company')}</button
       >{#if inline}<button
           class="v2-btn"
           type="button"
           disabled={saving || creatingTag}
-          onclick={onCancel}>Cancel</button
+          onclick={onCancel}>{ui('Cancel')}</button
         >{:else}<a
           class="v2-btn"
-          href={resolve(editing ? `/accounts/${data.account.id}` : '/accounts')}>Cancel</a
+          href={resolve(editing ? `/accounts/${data.account.id}` : '/accounts')}>{ui('Cancel')}</a
         >{/if}
     </div>
   {/if}

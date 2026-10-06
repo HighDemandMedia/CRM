@@ -54,7 +54,8 @@ RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 FROM node:24-slim AS runtime
 WORKDIR /app
-ENV NODE_ENV=production
+# Allow one 25 MiB CRM file plus multipart framing; keep the request bounded.
+ENV NODE_ENV=production BODY_SIZE_LIMIT=27262976
 
 COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/build ./build

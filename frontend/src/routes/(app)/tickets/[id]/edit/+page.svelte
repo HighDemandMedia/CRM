@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
   import { resolve } from '$app/paths';
   /**
@@ -68,9 +71,9 @@
   };
 </script>
 
-<PageHeader title="Edit ticket" center>
+<PageHeader title={ui('Edit ticket')} center>
   {#snippet crumb()}
-    <a href={resolve('/tickets')}>Tickets</a>
+    <a href={resolve('/tickets')}>{ui('Tickets')}</a>
     <ChevronRight size={12} />
     <a href={resolve(`/tickets/${ticket.id}`)}>{ticket.name}</a>
   {/snippet}
@@ -87,14 +90,14 @@
       >
         <TriangleAlert size={17} style="color:var(--v2-rust);flex:none" />
         <div class="v2-next-body">
-          <div style="font-weight:600">The server refused this change</div>
+          <div style="font-weight:600">{ui('The server refused this change')}</div>
           <div class="v2-sub" style="margin-top:2px">{result.error}</div>
         </div>
       </div>
     {/if}
 
     <div class="v2-field">
-      <label for="f-name">Subject</label>
+      <label for="f-name">{ui('Subject')}</label>
       <input
         id="f-name"
         name="name"
@@ -108,7 +111,7 @@
 
     <div class="triple">
       <div class="v2-field">
-        <label for="f-status">Status</label>
+        <label for="f-status">{ui('Status')}</label>
         <select id="f-status" name="status" class="v2-input" bind:value={form.status}>
           {#each data.statuses as s (s.value)}
             <option value={s.value}>{s.label}</option>
@@ -116,7 +119,7 @@
         </select>
       </div>
       <div class="v2-field">
-        <label for="f-priority">Priority</label>
+        <label for="f-priority">{ui('Priority')}</label>
         <select id="f-priority" name="priority" class="v2-input" bind:value={form.priority}>
           {#each data.priorities as p (p.value)}
             <option value={p.value}>{p.label}</option>
@@ -124,9 +127,9 @@
         </select>
       </div>
       <div class="v2-field">
-        <label for="f-type">Type</label>
+        <label for="f-type">{ui('Type')}</label>
         <select id="f-type" name="case_type" class="v2-input" bind:value={form.case_type}>
-          <option value="">Not set</option>
+          <option value="">{ui('Not set')}</option>
           {#each data.caseTypes as t (t.value)}
             <option value={t.value}>{t.label}</option>
           {/each}
@@ -136,7 +139,7 @@
 
     <div class="pair">
       <div class="v2-field">
-        <label for="f-closed">Closed on</label>
+        <label for="f-closed">{ui('Closed on')}</label>
         <input
           id="f-closed"
           name="closed_on"
@@ -149,13 +152,13 @@
         {#if show('closed_on')}
           <p class="v2-error">{errors.closed_on}</p>
         {:else}
-          <p class="v2-hint">Required once the status is Closed.</p>
+          <p class="v2-hint">{ui('Required once the status is Closed.')}</p>
         {/if}
       </div>
       <div class="v2-field">
-        <label for="f-owner">Assignee</label>
+        <label for="f-owner">{ui('Assignee')}</label>
         <select id="f-owner" name="assigned_to" class="v2-input" bind:value={form.assigned_to}>
-          <option value="">Nobody</option>
+          <option value="">{ui('Nobody')}</option>
           {#each data.owners as o (o.id)}
             <option value={o.id}>{o.name}</option>
           {/each}
@@ -168,15 +171,15 @@
         <input type="hidden" name="assigned_to_original" value={data.form.assigned_to} />
         {#if data.server.assignee_count > 1}
           <p class="v2-hint">
-            <span class="v2-num">{data.server.assignee_count}</span> people are on this ticket. Changing
-            this replaces all of them.
+            <span class="v2-num">{data.server.assignee_count}</span>
+            {ui('people are on this ticket. Changing this replaces all of them.')}
           </p>
         {/if}
       </div>
     </div>
 
     <div class="v2-field">
-      <label for="f-contacts">People affected</label>
+      <label for="f-contacts">{ui('People affected')}</label>
       <select
         id="f-contacts"
         name="contacts"
@@ -195,11 +198,11 @@
         what makes "remove the last person" expressible.
       -->
       <input type="hidden" name="contacts_present" value="1" />
-      <p class="v2-hint">Hold ctrl or cmd to pick more than one.</p>
+      <p class="v2-hint">{ui('Hold ctrl or cmd to pick more than one.')}</p>
     </div>
 
     <div class="v2-field">
-      <label for="f-desc">What happened</label>
+      <label for="f-desc">{ui('What happened')}</label>
       <textarea
         id="f-desc"
         name="description"
@@ -210,25 +213,25 @@
 
     <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:6px 0 0">
       {#if data.server.account}
-        Linked to <a href={resolve(`/accounts/${data.server.account.id}`)}
-          >{data.server.account.name}</a
-        >, which cannot be changed after the ticket is raised.
+        {ui('Linked to')}
+        <a href={resolve(`/accounts/${data.server.account.id}`)}>{data.server.account.name}</a>{ui(
+          ', which cannot be changed after the ticket is raised.'
+        )}
       {:else}
-        Not linked to an account, and that cannot be changed after the ticket is raised.
+        {ui('Not linked to an account, and that cannot be changed after the ticket is raised.')}
       {/if}
       {#if data.server.team_count || data.server.tag_count}
-        <span class="v2-num">{data.server.team_count}</span> team{data.server.team_count === 1
-          ? ''
-          : 's'} and <span class="v2-num">{data.server.tag_count}</span> tag{data.server
-          .tag_count === 1
-          ? ''
-          : 's'} are kept as they are.
+        <span class="v2-num">{data.server.team_count}</span>
+        {ui('team')}{data.server.team_count === 1 ? '' : 's'}
+        {ui('and')} <span class="v2-num">{data.server.tag_count}</span>
+        {ui('tag')}{data.server.tag_count === 1 ? '' : 's'}
+        {ui('are kept as they are.')}
       {/if}
     </p>
 
     <div class="actions">
-      <button class="v2-btn v2-btn-primary" type="submit">Save ticket</button>
-      <a class="v2-btn" href={resolve(`/tickets/${ticket.id}`)}>Cancel</a>
+      <button class="v2-btn v2-btn-primary" type="submit">{ui('Save ticket')}</button>
+      <a class="v2-btn" href={resolve(`/tickets/${ticket.id}`)}>{ui('Cancel')}</a>
     </div>
   </form>
 </div>

@@ -1,11 +1,14 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { untrack } from 'svelte';
   let { value = $bindable('') } = $props();
   let custom = $state(untrack(() => !['', '0', '1', '2', '3'].includes(String(value ?? ''))));
 </script>
 
 <label class="v2-field"
-  ><span class="v2-label">Reminder</span>
+  ><span class="v2-label">{ui('Reminder')}</span>
   <select
     class="v2-input"
     value={custom ? 'custom' : String(value ?? '')}
@@ -15,17 +18,17 @@
       value = custom ? '7' : choice;
     }}
   >
-    <option value="">No reminder</option>
-    <option value="0">On due date</option>
-    <option value="1">1 day before</option>
-    <option value="2">2 days before</option>
-    <option value="3">3 days before</option>
-    <option value="custom">Custom…</option>
+    <option value="">{ui('No reminder')}</option>
+    <option value="0">{ui('On due date')}</option>
+    <option value="1">{ui('1 day before')}</option>
+    <option value="2">{ui('2 days before')}</option>
+    <option value="3">{ui('3 days before')}</option>
+    <option value="custom">{ui('Custom…')}</option>
   </select>
 </label>
 {#if custom}
   <label class="v2-field"
-    ><span class="v2-label">Days before due date</span>
+    ><span class="v2-label">{ui('Days before due date')}</span>
     <input
       class="v2-input"
       type="number"

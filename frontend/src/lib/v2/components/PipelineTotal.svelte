@@ -1,5 +1,7 @@
 <script>
-  import { money, count } from '$lib/v2/format.js';
+  import { useI18n } from '$lib/i18n/context.js';
+  const { money, count } = useI18n();
+
   /** @type {{ values?: {amount: string|number, currency?: string}[], label?: string, currency?: string }} */
   let { values = [], label = 'Total value', currency = 'USD' } = $props();
   let text = $derived(

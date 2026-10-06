@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   /**
    * A stat tile. The value is tabular mono so a changing figure never
    * reflows the tile it sits in.
@@ -18,7 +21,8 @@
 
 <div class="v2-stat">
   <div class="v2-label">
-    {label}{#if review}<span class="review-badge" title="Pending review">Review</span>{/if}
+    {label}{#if review}<span class="review-badge" title={ui('Pending review')}>{ui('Review')}</span
+      >{/if}
   </div>
   <div class="v2-stat-value" style="color:{VAR[tone] ?? VAR.ink}">{value}</div>
   {#if detail}<div class="v2-sub" style="font-size:var(--crm-text-xs);margin-top:2px">

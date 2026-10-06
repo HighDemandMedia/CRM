@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, relativeDays } = useI18n();
+
   import { resolve } from '$app/paths';
   import { enhance } from '$app/forms';
   import {
@@ -13,7 +16,7 @@
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import Avatar from '$lib/v2/components/Avatar.svelte';
   import NextAction from '$lib/v2/components/NextAction.svelte';
-  import { relativeDays } from '$lib/v2/format.js';
+
   import MemberActions from '$lib/components/team/MemberActions.svelte';
   import TeamEditor from '$lib/components/team/TeamEditor.svelte';
   import InviteMember from '$lib/components/team/InviteMember.svelte';
@@ -74,29 +77,31 @@
 </script>
 
 {#if data.forbidden}
-  <PageHeader title="Users & Teams" />
+  <PageHeader title={ui('Users & Teams')} />
   <div class="v2-pad">
     <NextAction
-      label="Admins only"
+      label={ui('Admins only')}
       text="An organization admin can invite users, manage teams and change access."
     />
   </div>
 {:else}
-  <PageHeader title="Users & Teams">
+  <PageHeader title={ui('Users & Teams')}>
     {#snippet sub()}<span
-        >{data.active.length} active · {data.teams.length}
-        {data.teams.length === 1 ? 'team' : 'teams'}</span
+        >{data.active.length}
+        {ui('active ·')}
+        {data.teams.length}
+        {data.teams.length === 1 ? ui('team') : ui('teams')}</span
       >{/snippet}
     {#snippet actions()}
       {#if activeTab === 'teams'}<button
           class="v2-btn v2-btn-primary"
-          onclick={() => (editingTeam = {})}><Plus size={16} />Create team</button
+          onclick={() => (editingTeam = {})}><Plus size={16} />{ui('Create team')}</button
         >{:else}<button class="v2-btn v2-btn-primary" onclick={() => (inviting = true)}
-          ><UserPlus size={16} />Invite user</button
+          ><UserPlus size={16} />{ui('Invite user')}</button
         >{/if}
     {/snippet}
   </PageHeader>
-  <nav class="team-tabs" aria-label="Users and teams sections">
+  <nav class="team-tabs" aria-label={ui('Users and teams sections')}>
     {#each [['users', 'Users', members.length], ['teams', 'Teams', data.teams.length], ['invitations', 'Invitations', invitations.length]] as [id, label, total]}
       <button
         class:active={activeTab === id}
@@ -104,13 +109,14 @@
         onclick={() => tab(id)}>{label}<span>{total}</span></button
       >
     {/each}
-    <a href={resolve('/settings/roles')}>Roles &amp; permissions<ArrowUpRight size={14} /></a>
+    <a href={resolve('/settings/roles')}>{ui('Roles & permissions')}<ArrowUpRight size={14} /></a>
   </nav>
   <div class="v2-scroll">
     <div class="team-content">
       {#if form?.invited}<p class="notice" role="status">
-          Invitation sent to {form.invited}.
-        </p>{:else if form?.error}<p class="error" role="alert">{form.error}</p>{/if}
+          {ui('Invitation sent to')}
+          {form.invited}.
+        </p>{:else if form?.error}<p class="error" role="alert">{ui(form.error)}</p>{/if}
 
       <div class="toolbar">
         <label class="search"
@@ -118,26 +124,32 @@
             type="search"
             aria-label={`Search ${activeTab}`}
             placeholder={activeTab === 'users'
-              ? 'Search name or email'
+              ? ui('Search name or email')
               : activeTab === 'teams'
-                ? 'Search teams'
-                : 'Search invitations'}
+                ? ui('Search teams')
+                : ui('Search invitations')}
             bind:value={search}
           /></label
         >
         {#if activeTab === 'users'}
-          <select class="v2-input filter" aria-label="Filter users by status" bind:value={status}
-            ><option value="all">All statuses</option><option value="active">Active</option><option
-              value="inactive">Deactivated</option
-            ></select
+          <select
+            class="v2-input filter"
+            aria-label={ui('Filter users by status')}
+            bind:value={status}
+            ><option value="all">{ui('All statuses')}</option><option value="active"
+              >{ui('Active')}</option
+            ><option value="inactive">{ui('Deactivated')}</option></select
           >
-          <select class="v2-input filter" aria-label="Filter users by role" bind:value={role}
-            ><option value="">All roles</option
+          <select class="v2-input filter" aria-label={ui('Filter users by role')} bind:value={role}
+            ><option value="">{ui('All roles')}</option
             >{#each [...new Set(members.map(roleName))] as name}<option value={name}>{name}</option
               >{/each}</select
           >
-          <select class="v2-input filter" aria-label="Filter users by team" bind:value={teamFilter}
-            ><option value="">All teams</option>{#each data.teams as t}<option value={t.id}
+          <select
+            class="v2-input filter"
+            aria-label={ui('Filter users by team')}
+            bind:value={teamFilter}
+            ><option value="">{ui('All teams')}</option>{#each data.teams as t}<option value={t.id}
                 >{t.name}</option
               >{/each}</select
           >
@@ -148,9 +160,10 @@
           <table class="access-table">
             <thead
               ><tr
-                ><th>User</th><th>Permission set</th><th>Teams</th><th>Status</th><th
-                  >Last sign-in</th
-                ><th><span class="sr-only">Actions</span></th></tr
+                ><th>{ui('User')}</th><th>{ui('Permission set')}</th><th>{ui('Teams')}</th><th
+                  >{ui('Status')}</th
+                ><th>{ui('Last sign-in')}</th><th><span class="sr-only">{ui('Actions')}</span></th
+                ></tr
               ></thead
             >
             <tbody
@@ -160,7 +173,7 @@
                       <Avatar name={m.name} size={30} />
                       <div>
                         <strong
-                          >{m.name}{#if m.is_you}<small class="you">You</small>{/if}</strong
+                          >{m.name}{#if m.is_you}<small class="you">{ui('You')}</small>{/if}</strong
                         ><span>{m.email}</span>
                       </div>
                     </div></td
@@ -179,16 +192,17 @@
                   >
                   <td
                     ><span class="status" class:inactive={!m.is_active}
-                      ><i></i>{m.is_active ? 'Active' : 'Deactivated'}</span
+                      ><i></i>{m.is_active ? ui('Active') : ui('Deactivated')}</span
                     ></td
                   >
-                  <td class="muted">{m.last_login ? relativeDays(m.last_login) : 'Not yet'}</td>
+                  <td class="muted">{m.last_login ? relativeDays(m.last_login) : ui('Not yet')}</td>
                   <td class="row-actions"
-                    >{#if m.is_super_admin}<span class="protected" title="Organization creator"
-                        >Protected</span
+                    >{#if m.is_super_admin}<span
+                        class="protected"
+                        title={ui('Organization creator')}>{ui('Protected')}</span
                       >{:else if m.role === 'ADMIN' && !(data.isSuperAdmin || data.isPlatformOwner)}<span
                         class="protected"
-                        title="Managed by Super Admin">Protected</span
+                        title={ui('Managed by Super Admin')}>{ui('Protected')}</span
                       >{:else if m.is_you}<span class="muted">—</span>{:else}<MemberActions
                         member={m}
                         roles={data.accessRoles}
@@ -199,8 +213,8 @@
                 </tr>{:else}<tr
                   ><td colspan="6"
                     ><div class="empty">
-                      <UsersRound size={26} /><strong>No users found</strong><span
-                        >Try another search or filter.</span
+                      <UsersRound size={26} /><strong>{ui('No users found')}</strong><span
+                        >{ui('Try another search or filter.')}</span
                       >
                     </div></td
                   ></tr
@@ -212,7 +226,10 @@
         <div class="table-wrap">
           <table class="access-table teams-table">
             <thead
-              ><tr><th>Team</th><th>Members</th><th><span class="sr-only">Actions</span></th></tr
+              ><tr
+                ><th>{ui('Team')}</th><th>{ui('Members')}</th><th
+                  ><span class="sr-only">{ui('Actions')}</span></th
+                ></tr
               ></thead
             >
             <tbody
@@ -234,30 +251,31 @@
                         .slice(0, 3) as person}<span class="member-chip">{person.name}</span
                         >{/each}{#if t.member_count > 3}<span class="muted"
                           >+{t.member_count - 3}</span
-                        >{/if}{#if !t.member_count}<span class="muted">No members</span>{/if}
+                        >{/if}{#if !t.member_count}<span class="muted">{ui('No members')}</span
+                        >{/if}
                     </div>
                     <small class="member-total"
-                      >{t.member_count} {t.member_count === 1 ? 'member' : 'members'}</small
+                      >{t.member_count} {t.member_count === 1 ? ui('member') : ui('members')}</small
                     ></td
                   >
                   <td class="row-actions"
                     ><button
                       class="v2-btn v2-btn-sm"
                       onclick={() => (editingTeam = t)}
-                      aria-label={`Edit ${t.name}`}><Pencil size={14} />Edit</button
+                      aria-label={`Edit ${t.name}`}><Pencil size={14} />{ui('Edit')}</button
                     ></td
                   >
                 </tr>{:else}<tr
                   ><td colspan="3"
                     ><div class="empty">
                       <UsersRound size={26} /><strong
-                        >{search ? 'No matching teams' : 'No teams yet'}</strong
+                        >{search ? ui('No matching teams') : ui('No teams yet')}</strong
                       ><span
                         >{search
-                          ? 'Try another search.'
-                          : 'Create a team and choose its members.'}</span
+                          ? ui('Try another search.')
+                          : ui('Create a team and choose its members.')}</span
                       >{#if !search}<button class="v2-btn" onclick={() => (editingTeam = {})}
-                          >Create team</button
+                          >{ui('Create team')}</button
                         >{/if}
                     </div></td
                   ></tr
@@ -270,8 +288,8 @@
           <table class="access-table">
             <thead
               ><tr
-                ><th>Email</th><th>Permission set</th><th>Status</th><th
-                  ><span class="sr-only">Actions</span></th
+                ><th>{ui('Email')}</th><th>{ui('Permission set')}</th><th>{ui('Status')}</th><th
+                  ><span class="sr-only">{ui('Actions')}</span></th
                 ></tr
               ></thead
             >
@@ -280,8 +298,8 @@
                   <td><strong>{invite.email}</strong></td><td
                     ><span class="role-badge"
                       >{invite.role === 'ADMIN'
-                        ? 'Admin'
-                        : invite.access_role_name || 'Member'}</span
+                        ? ui('Admin')
+                        : invite.access_role_name || ui('Member')}</span
                     ></td
                   ><td><span class="muted">{invite.status}</span></td>
                   <td
@@ -296,7 +314,7 @@
                             type="hidden"
                             name="access_role_id"
                             value={invite.access_role_id || ''}
-                          /><button class="v2-btn v2-btn-sm" disabled={busy}>Resend</button>
+                          /><button class="v2-btn v2-btn-sm" disabled={busy}>{ui('Resend')}</button>
                         </form>
                         {#if invite.status === 'Pending'}<form
                             method="POST"
@@ -305,7 +323,7 @@
                           >
                             <input type="hidden" name="id" value={invite.id} /><button
                               class="v2-btn v2-btn-sm"
-                              disabled={busy}>Cancel invite</button
+                              disabled={busy}>{ui('Cancel invite')}</button
                             >
                           </form>{/if}
                       {/if}
@@ -315,8 +333,8 @@
                   ><td colspan="4"
                     ><div class="empty">
                       <UserPlus size={26} /><strong
-                        >{search ? 'No matching invitations' : 'No invitations'}</strong
-                      ><span>Invitations appear here until accepted.</span>
+                        >{search ? ui('No matching invitations') : ui('No invitations')}</strong
+                      ><span>{ui('Invitations appear here until accepted.')}</span>
                     </div></td
                   ></tr
                 >{/each}</tbody

@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   /**
    * A conversation, not a record view. The customer wants to know what was said
    * and to say something back, so the thread is the page and the case fields are
@@ -14,7 +17,7 @@
 
   function formatWhen(value) {
     if (!value) return '';
-    return new Date(value).toLocaleString(undefined, {
+    return new Date(value).toLocaleString(locale(), {
       day: 'numeric',
       month: 'short',
       hour: '2-digit',
@@ -28,7 +31,7 @@
 </svelte:head>
 
 <PortalShell>
-  <a class="back" href={resolve('/portal/cases')}>Back to your requests</a>
+  <a class="back" href={resolve('/portal/cases')}>{ui('Back to your requests')}</a>
 
   <header class="head">
     <h1>{data.case.name}</h1>
@@ -41,12 +44,12 @@
 
   <section class="thread">
     {#if data.comments.length === 0}
-      <p class="empty">No replies yet. We will email you when support responds.</p>
+      <p class="empty">{ui('No replies yet. We will email you when support responds.')}</p>
     {:else}
       {#each data.comments as entry (entry.id)}
         <article class="msg" class:mine={entry.is_mine}>
           <div class="who">
-            <strong>{entry.is_mine ? 'You' : entry.author}</strong>
+            <strong>{entry.is_mine ? ui('You') : entry.author}</strong>
             <span class="when">{formatWhen(entry.commented_on)}</span>
           </div>
           <p>{entry.comment}</p>
@@ -56,11 +59,11 @@
   </section>
 
   <form method="POST" action="?/reply" use:enhance class="reply">
-    <label for="comment">Add a reply</label>
-    <textarea id="comment" name="comment" rows="4" placeholder="Type your message" required
+    <label for="comment">{ui('Add a reply')}</label>
+    <textarea id="comment" name="comment" rows="4" placeholder={ui('Type your message')} required
     ></textarea>
-    {#if form?.error}<p class="err">{form.error}</p>{/if}
-    <button type="submit">Send reply</button>
+    {#if form?.error}<p class="err">{ui(form.error)}</p>{/if}
+    <button type="submit">{ui('Send reply')}</button>
   </form>
 </PortalShell>
 

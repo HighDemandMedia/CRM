@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { X, Search } from '@lucide/svelte';
   let { values = $bindable(), options } = $props();
   const id = $props.id();
@@ -92,12 +95,12 @@
 
 <svelte:window onpointerdown={outside} onfocusin={outside} />
 <div class="associates" bind:this={root}>
-  <label for={`${id}-search`}>Associates</label>
+  <label for={`${id}-search`}>{ui('Associates')}</label>
   <div class="search">
     <Search size={15} /><input
       id={`${id}-search`}
       class="v2-input"
-      placeholder="Search contacts, companies or deals…"
+      placeholder={ui('Search contacts, companies or deals…')}
       bind:value={search}
       role="combobox"
       aria-autocomplete="list"
@@ -117,7 +120,7 @@
       class="results"
       id={`${id}-results`}
       role="listbox"
-      aria-label="Matching associates"
+      aria-label={ui('Matching associates')}
     >
       {#each matches as record, index (`${record.kind}-${record.id}`)}<button
           type="button"
@@ -127,7 +130,7 @@
           class:active={active === index}
           onclick={() => choose(record)}
           ><span>{record.name}</span><small>{record.kind}</small></button
-        >{:else}<div class="empty" role="presentation">No matches.</div>{/each}
+        >{:else}<div class="empty" role="presentation">{ui('No matches.')}</div>{/each}
     </div>{/if}
   <div class="chosen">
     {#each chosen as record (`${record.kind}-${record.id}`)}<div class="chip">

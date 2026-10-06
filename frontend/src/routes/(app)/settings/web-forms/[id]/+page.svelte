@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, shortDate } = useI18n();
+
   import { untrack } from 'svelte';
   import { enhance } from '$app/forms';
   import { resolve } from '$app/paths';
@@ -14,7 +17,7 @@
   import { appearanceDefaults, inspectFormHtml, mappingRows } from '$lib/v2/webform-builder.js';
   import { connectorSnippet, previewUrl } from '$lib/v2/webform-connection.js';
   import { LEAD_SOURCES, LEAD_SOURCE_LABEL } from '$lib/v2/enums.js';
-  import { shortDate } from '$lib/v2/format.js';
+
   import { ArrowUp, ArrowDown, Plus, Trash2, Copy, Check } from '@lucide/svelte';
   /** @type {{ data:any, form:any }} */
   let { data, form } = $props();
@@ -232,26 +235,26 @@
 </script>
 
 <PageHeader title={data.form.name} record>
-  {#snippet crumb()}<a href={resolve('/settings/web-forms')}>Web forms</a>{/snippet}
+  {#snippet crumb()}<a href={resolve('/settings/web-forms')}>{ui('Web forms')}</a>{/snippet}
   {#snippet sub()}<Pill tone={data.form.is_published ? 'moss' : 'slate'}
-      >{data.form.is_published ? 'Published' : 'Draft'}</Pill
+      >{data.form.is_published ? ui('Published') : ui('Draft')}</Pill
     >{/snippet}
   {#snippet actions()}<a class="v2-btn" href={resolve('/help/knowledge/website-forms')}
-      >Setup guide</a
+      >{ui('Setup guide')}</a
     >{/snippet}
 </PageHeader>
 <div class="v2-scroll">
   <div class="v2-pad builder">
-    <nav class="top-nav" aria-label="Form sections">
-      <button class:active={!activity} onclick={() => (activity = false)}>Setup</button>
+    <nav class="top-nav" aria-label={ui('Form sections')}>
+      <button class:active={!activity} onclick={() => (activity = false)}>{ui('Setup')}</button>
       <button class:active={activity} onclick={() => (activity = true)}
-        >Submissions ({data.count ?? 0})</button
+        >{ui('Submissions (')}{data.count ?? 0})</button
       >
     </nav>
     {#if actionError}<p class="error" role="alert">{actionError}</p>{/if}
     {#if notice}<p role="status">{notice}</p>{/if}
     {#if !activity}
-      <nav class="steps" aria-label="Setup steps">
+      <nav class="steps" aria-label={ui('Setup steps')}>
         {#each ['Start', 'Prepare', 'Configure', 'Install & test'] as title, i}
           <button
             class:current={step === i + 1}
@@ -268,33 +271,33 @@
         <fieldset disabled={!data.canManage || busy}>
           {#if step === 1}
             <section class="v2-card panel">
-              <h2>How would you like to start?</h2>
+              <h2>{ui('How would you like to start?')}</h2>
               <div class="choices">
                 <label class:selected={!existing}
                   ><input type="radio" bind:group={config.connection_mode} value="new" /><span
-                    ><strong>Create a form</strong><small
-                      >Build and place a form on your website.</small
+                    ><strong>{ui('Create a form')}</strong><small
+                      >{ui('Build and place a form on your website.')}</small
                     ></span
                   ></label
                 >
                 <label class:selected={existing}
                   ><input type="radio" bind:group={config.connection_mode} value="existing" /><span
-                    ><strong>Connect my existing form</strong><small
-                      >Keep your website’s form and send a copy to the CRM.</small
+                    ><strong>{ui('Connect my existing form')}</strong><small
+                      >{ui('Keep your website’s form and send a copy to the CRM.')}</small
                     ></span
                   ></label
                 >
               </div>
               <label class="control"
-                >Form name<input
+                >{ui('Form name')}<input
                   class="v2-input"
                   maxlength="255"
                   bind:value={config.name}
-                  placeholder="Contact us"
+                  placeholder={ui('Contact us')}
                 /></label
               >
               <label class="control"
-                >Website addresses<textarea
+                >{ui('Website addresses')}<textarea
                   class="v2-input"
                   rows="2"
                   bind:value={originsText}
@@ -304,28 +307,32 @@
                       .map((s) => s.trim())
                       .filter(Boolean))}
                   placeholder="https://example.com"></textarea><small
-                  >One address per line. Include https:// and add www separately if used.</small
+                  >{ui(
+                    'One address per line. Include https:// and add www separately if used.'
+                  )}</small
                 ></label
               >
             </section>
           {:else if step === 2}
             {#if existing}
               <section class="v2-card panel">
-                <h2>Match your website fields</h2>
+                <h2>{ui('Match your website fields')}</h2>
                 <details>
-                  <summary>Paste your form HTML to detect fields</summary>
+                  <summary>{ui('Paste your form HTML to detect fields')}</summary>
                   <label class="control"
-                    >Form HTML<textarea
+                    >{ui('Form HTML')}<textarea
                       class="v2-input code"
                       rows="6"
                       bind:value={html}
                       placeholder="<form>…</form>"></textarea></label
                   >
-                  <button type="button" class="v2-btn" onclick={inspect}>Detect fields</button>
+                  <button type="button" class="v2-btn" onclick={inspect}
+                    >{ui('Detect fields')}</button
+                  >
                   {#if inspectError}<p class="error" role="alert">{inspectError}</p>{/if}
                   {#if detected.length}
                     {#if detected.length > 1}<label class="control"
-                        >Choose the form<select
+                        >{ui('Choose the form')}<select
                           class="v2-input"
                           bind:value={selectedForm}
                           onchange={selectDetected}
@@ -338,8 +345,8 @@
                         ><code>{mapping.name}</code><select
                           class="v2-input"
                           bind:value={mapping.property}
-                          ><option value="">Choose a CRM property</option><option value="skip"
-                            >Skip this field</option
+                          ><option value="">{ui('Choose a CRM property')}</option><option
+                            value="skip">{ui('Skip this field')}</option
                           >{#each options as opt}<option value={opt.value}>{opt.label}</option
                             >{/each}{#each data.customFields as f}<option value={`custom:${f.id}`}
                               >{f.label}</option
@@ -348,38 +355,39 @@
                       >
                     {/each}
                     <button type="button" class="v2-btn v2-btn-primary" onclick={applyMappings}
-                      >Use these matches</button
+                      >{ui('Use these matches')}</button
                     >
                   {/if}
                 </details>
                 <label class="control"
-                  >Website form ID<input
+                  >{ui('Website form ID')}<input
                     class="v2-input"
                     bind:value={config.website_form_id}
                     placeholder="contact-form"
                     maxlength="128"
                   /><small
-                    >From &lt;form id="contact-form"&gt;. Leave blank only when the page has one
-                    form.</small
+                    >{ui(
+                      'From <form id="contact-form">. Leave blank only when the page has one form.'
+                    )}</small
                   ></label
                 >
               </section>
             {/if}
-            {#if !existing}<nav class="top-nav" aria-label="Form editor">
+            {#if !existing}<nav class="top-nav" aria-label={ui('Form editor')}>
                 <button
                   type="button"
                   class:active={editorTab === 'fields'}
-                  onclick={() => (editorTab = 'fields')}>Fields</button
+                  onclick={() => (editorTab = 'fields')}>{ui('Fields')}</button
                 ><button
                   type="button"
                   class:active={editorTab === 'appearance'}
-                  onclick={() => (editorTab = 'appearance')}>Appearance</button
+                  onclick={() => (editorTab = 'appearance')}>{ui('Appearance')}</button
                 >
               </nav>{/if}
             <div class:editor-layout={!existing}>
               <div>
                 <section class="v2-card panel" hidden={!existing && editorTab !== 'fields'}>
-                  <h2>{existing ? 'Fields to send to the CRM' : 'Contact form fields'}</h2>
+                  <h2>{existing ? ui('Fields to send to the CRM') : ui('Contact form fields')}</h2>
                   {#each config.fields as row, i}
                     <div class="field-row">
                       <div class="row-head">
@@ -413,21 +421,21 @@
                       </div>
                       <div class="two">
                         <label class="control"
-                          >CRM property<select
+                          >{ui('CRM property')}<select
                             class="v2-input"
                             value={row.source === 'custom'
                               ? `custom:${row.custom_field}`
                               : row.lead_field}
                             onchange={(e) => chooseField(row, e.currentTarget.value)}
-                            ><option value="">Select property</option>{#each options as opt}<option
-                                value={opt.value}>{opt.label}</option
+                            ><option value="">{ui('Select property')}</option
+                            >{#each options as opt}<option value={opt.value}>{opt.label}</option
                               >{/each}{#each data.customFields as f}<option value={`custom:${f.id}`}
                                 >{f.label}</option
                               >{/each}</select
                           ></label
                         >
                         <label class="control"
-                          >{existing ? 'Website input name' : 'Label'}<input
+                          >{existing ? ui('Website input name') : ui('Label')}<input
                             class="v2-input"
                             maxlength="128"
                             bind:value={row[existing ? 'external_name' : 'label']}
@@ -436,7 +444,7 @@
                         >
                       </div>
                       {#if !existing}<label class="control"
-                          >Placeholder<input
+                          >{ui('Placeholder')}<input
                             class="v2-input"
                             maxlength="128"
                             bind:value={row.placeholder}
@@ -448,34 +456,34 @@
                           disabled={config.target_model === 'Contact' &&
                             ['first_name', 'email'].includes(row.lead_field)}
                           bind:checked={row.is_required}
-                        />Required</label
+                        />{ui('Required')}</label
                       >
                     </div>
                   {/each}
                   <button class="v2-btn" type="button" onclick={addField}
-                    ><Plus size={16} />Add field</button
+                    ><Plus size={16} />{ui('Add field')}</button
                   >
                 </section>
                 {#if !existing}
                   <section class="v2-card panel" hidden={editorTab !== 'appearance'}>
-                    <h2>Appearance</h2>
+                    <h2>{ui('Appearance')}</h2>
                     <label class="control"
-                      >Title<input
+                      >{ui('Title')}<input
                         class="v2-input"
                         maxlength="120"
                         bind:value={config.appearance.title}
-                        placeholder="Contact us"
+                        placeholder={ui('Contact us')}
                       /></label
                     >
                     <label class="control"
-                      >Description<textarea
+                      >{ui('Description')}<textarea
                         class="v2-input"
                         rows="2"
                         maxlength="500"
                         bind:value={config.appearance.description}></textarea></label
                     >
                     <label class="control"
-                      >Button text<input
+                      >{ui('Button text')}<input
                         class="v2-input"
                         maxlength="64"
                         bind:value={config.submit_button_label}
@@ -490,13 +498,14 @@
                           /></label
                         >{/each}
                       <label class="control"
-                        >Font<select class="v2-input" bind:value={config.appearance.font}
-                          ><option value="system">System</option><option value="arial">Arial</option
+                        >{ui('Font')}<select class="v2-input" bind:value={config.appearance.font}
+                          ><option value="system">{ui('System')}</option><option value="arial"
+                            >Arial</option
                           ><option value="georgia">Georgia</option></select
                         ></label
                       >
                       <label class="control"
-                        >Maximum width (px)<input
+                        >{ui('Maximum width (px)')}<input
                           class="v2-input"
                           type="number"
                           min="280"
@@ -505,7 +514,7 @@
                         /></label
                       >
                       <label class="control"
-                        >Rounded corners (px)<input
+                        >{ui('Rounded corners (px)')}<input
                           class="v2-input"
                           type="number"
                           min="0"
@@ -514,8 +523,12 @@
                         /></label
                       >
                       <label class="control"
-                        >Columns<select class="v2-input" bind:value={config.appearance.columns}
-                          ><option value={1}>One</option><option value={2}>Two</option></select
+                        >{ui('Columns')}<select
+                          class="v2-input"
+                          bind:value={config.appearance.columns}
+                          ><option value={1}>{ui('One')}</option><option value={2}
+                            >{ui('Two')}</option
+                          ></select
                         ></label
                       >
                     </div>
@@ -524,18 +537,18 @@
               </div>
               {#if !existing}<aside class="preview-card v2-card">
                   <div class="preview-head">
-                    <strong>Live preview</strong>
+                    <strong>{ui('Live preview')}</strong>
                     <div>
                       <button
                         type="button"
                         class="v2-btn"
                         aria-pressed={!mobile}
-                        onclick={() => (mobile = false)}>Desktop</button
+                        onclick={() => (mobile = false)}>{ui('Desktop')}</button
                       ><button
                         type="button"
                         class="v2-btn"
                         aria-pressed={mobile}
-                        onclick={() => (mobile = true)}>Mobile</button
+                        onclick={() => (mobile = true)}>{ui('Mobile')}</button
                       >
                     </div>
                   </div>
@@ -545,27 +558,31 @@
                     button={config.submit_button_label}
                     {mobile}
                   />
-                  <p class="v2-hint">Preview only. Test submissions after publishing.</p>
+                  <p class="v2-hint">{ui('Preview only. Test submissions after publishing.')}</p>
                 </aside>{/if}
             </div>
           {:else if step === 3}
             <section class="v2-card panel">
-              <h2>Assign and notify</h2>
+              <h2>{ui('Assign and notify')}</h2>
               <label class="control"
-                >Responsible user<select class="v2-input" bind:value={config.assign_to}
-                  ><option value={null}>Unassigned</option>{#each data.profiles as p}<option
+                >{ui('Responsible user')}<select class="v2-input" bind:value={config.assign_to}
+                  ><option value={null}>{ui('Unassigned')}</option>{#each data.profiles as p}<option
                       value={p.id}>{p.name}</option
                     >{/each}</select
                 ></label
               >
               <label class="check"
-                ><input type="checkbox" bind:checked={config.notify_in_app} />Notify in the CRM</label
+                ><input type="checkbox" bind:checked={config.notify_in_app} />{ui(
+                  'Notify in the CRM'
+                )}</label
               >
               <label class="check"
-                ><input type="checkbox" bind:checked={config.notify_email} />Notify by email</label
+                ><input type="checkbox" bind:checked={config.notify_email} />{ui(
+                  'Notify by email'
+                )}</label
               >
               <details>
-                <summary>Additional recipients</summary>{#each data.profiles as p}<label
+                <summary>{ui('Additional recipients')}</summary>{#each data.profiles as p}<label
                     class="check"
                     ><input
                       type="checkbox"
@@ -574,35 +591,37 @@
                     />{p.name}</label
                   >{/each}
               </details>
-              <p class="v2-hint">The responsible user is included automatically.</p>
+              <p class="v2-hint">{ui('The responsible user is included automatically.')}</p>
             </section>
             {#if !existing}<section class="v2-card panel">
-                <h2>After submission</h2>
+                <h2>{ui('After submission')}</h2>
                 <label class="control"
-                  >Confirmation<select class="v2-input" bind:value={config.success_mode}
-                    ><option value="message">Show a message</option><option value="redirect"
-                      >Open a thank-you page</option
+                  >{ui('Confirmation')}<select class="v2-input" bind:value={config.success_mode}
+                    ><option value="message">{ui('Show a message')}</option><option value="redirect"
+                      >{ui('Open a thank-you page')}</option
                     ></select
                   ></label
                 >
                 {#if config.success_mode === 'redirect'}<label class="control"
-                    >Thank-you page URL<input
+                    >{ui('Thank-you page URL')}<input
                       class="v2-input"
                       type="url"
                       bind:value={config.redirect_url}
                       placeholder="https://example.com/thank-you"
                     /></label
                   >{:else}<label class="control"
-                    >Message<textarea class="v2-input" rows="3" bind:value={config.success_message}
-                    ></textarea></label
+                    >{ui('Message')}<textarea
+                      class="v2-input"
+                      rows="3"
+                      bind:value={config.success_message}></textarea></label
                   >{/if}
               </section>{:else}<p class="v2-hint">
-                Your website keeps its confirmation page and existing email delivery.
+                {ui('Your website keeps its confirmation page and existing email delivery.')}
               </p>{/if}
             <details class="v2-card panel">
-              <summary>More settings</summary>
+              <summary>{ui('More settings')}</summary>
               <label class="control"
-                >Source<select
+                >{ui('Source')}<select
                   class="v2-input"
                   bind:value={
                     config[config.target_model === 'Contact' ? 'contact_source' : 'lead_source']
@@ -614,7 +633,7 @@
                 ></label
               >
               <details>
-                <summary>Tags</summary>{#each data.tags as tag}<label class="check"
+                <summary>{ui('Tags')}</summary>{#each data.tags as tag}<label class="check"
                     ><input
                       type="checkbox"
                       value={tag.id}
@@ -623,32 +642,36 @@
                   >{/each}
               </details>
               <label class="check"
-                ><input type="checkbox" bind:checked={config.reject_disposable_email} />Block
-                disposable email addresses</label
+                ><input type="checkbox" bind:checked={config.reject_disposable_email} />{ui(
+                  'Block disposable email addresses'
+                )}</label
               >
               <label class="control"
-                >Visitor verification<select class="v2-input" bind:value={config.captcha_provider}
-                  ><option value="">Basic spam protection</option><option value="turnstile"
+                >{ui('Visitor verification')}<select
+                  class="v2-input"
+                  bind:value={config.captcha_provider}
+                  ><option value="">{ui('Basic spam protection')}</option><option value="turnstile"
                     >Cloudflare Turnstile</option
                   ></select
                 ></label
               >
               {#if config.captcha_provider === 'turnstile'}<label class="control"
-                  >Turnstile site key<input
+                  >{ui('Turnstile site key')}<input
                     class="v2-input"
                     bind:value={config.captcha_site_key}
                   /></label
                 ><label class="control"
-                  >Turnstile secret<input
+                  >{ui('Turnstile secret')}<input
                     class="v2-input"
                     type="password"
                     autocomplete="off"
                     bind:value={config.captcha_secret}
                     placeholder={data.form.has_captcha_secret
-                      ? 'Stored. Leave blank to keep it.'
-                      : 'Enter secret'}
+                      ? ui('Stored. Leave blank to keep it.')
+                      : ui('Enter secret')}
                   /></label
-                ><a href={resolve('/help/knowledge/website-forms')}>Turnstile setup instructions</a
+                ><a href={resolve('/help/knowledge/website-forms')}
+                  >{ui('Turnstile setup instructions')}</a
                 >{/if}
             </details>
           {/if}
@@ -658,48 +681,55 @@
               type="button"
               class="v2-btn"
               disabled={step === 1 || busy}
-              onclick={() => step--}>Back</button
+              onclick={() => step--}>{ui('Back')}</button
             >
-            <span class="v2-hint">{dirty ? 'Unsaved changes' : 'Saved'}</span>
-            {#if data.canManage}<button class="v2-btn" disabled={busy} value="save">Save</button
+            <span class="v2-hint">{dirty ? ui('Unsaved changes') : ui('Saved')}</span>
+            {#if data.canManage}<button class="v2-btn" disabled={busy} value="save"
+                >{ui('Save')}</button
               ><button class="v2-btn v2-btn-primary" disabled={busy} value="next"
-                >{busy ? 'Saving…' : 'Save & continue'}</button
-              >{:else}<button type="button" class="v2-btn" onclick={() => step++}>Continue</button
+                >{busy ? ui('Saving…') : ui('Save & continue')}</button
+              >{:else}<button type="button" class="v2-btn" onclick={() => step++}
+                >{ui('Continue')}</button
               >{/if}
           </footer>{:else if dirty}<div class="save-needed">
-            <span>Save your changes to update the installation code.</span><button
+            <span>{ui('Save your changes to update the installation code.')}</span><button
               class="v2-btn v2-btn-primary"
-              disabled={busy || !data.canManage}>Save changes</button
+              disabled={busy || !data.canManage}>{ui('Save changes')}</button
             >
           </div>{/if}
       </form>
       {#if step === 4}
         <section class="v2-card panel install">
-          <h2>Install on your website</h2>
+          <h2>{ui('Install on your website')}</h2>
           {#if blocker}<p class="error">{blocker}</p>{/if}
           {#if !data.form.is_published}
-            <p>Publish this form to enable submissions.</p>
+            <p>{ui('Publish this form to enable submissions.')}</p>
             <form method="POST" action="?/publish" use:enhance={working}>
               <button
                 class="v2-btn v2-btn-primary"
-                disabled={busy || dirty || !!blocker || !data.canManage}>Publish form</button
+                disabled={busy || dirty || !!blocker || !data.canManage}
+                >{ui('Publish form')}</button
               >
             </form>
           {:else if !dirty && !blocker}
             <ol>
-              <li>Open the page’s HTML editor.</li>
+              <li>{ui('Open the page’s HTML editor.')}</li>
               <li>
-                {#if existing}Paste this code once, immediately after the closing <code
-                    >&lt;/form&gt;</code
-                  > tag.{:else}Paste this code in an HTML/embed block where the form should appear.{/if}
+                {#if existing}{ui('Paste this code once, immediately after the closing')}
+                  <code>&lt;/form&gt;</code>
+                  {ui('tag.')}{:else}{ui(
+                    'Paste this code in an HTML/embed block where the form should appear.'
+                  )}{/if}
               </li>
-              <li>Save and publish the website page.</li>
+              <li>{ui('Save and publish the website page.')}</li>
             </ol>
             <button class="v2-btn" onclick={copyCode}
-              >{#if copied}<Check size={16} />Copied{:else}<Copy size={16} />Copy code{/if}</button
+              >{#if copied}<Check size={16} />{ui('Copied')}{:else}<Copy size={16} />{ui(
+                  'Copy code'
+                )}{/if}</button
             >
             <textarea
-              aria-label="Installation code"
+              aria-label={ui('Installation code')}
               readonly
               class="v2-input code snippet"
               value={code}
@@ -708,52 +738,62 @@
                 class="v2-btn"
                 target="_blank"
                 rel="noreferrer"
-                href={previewUrl(data.form.submit_url)}>Open published form</a
+                href={previewUrl(data.form.submit_url)}>{ui('Open published form')}</a
               >{/if}
           {/if}
         </section>
         {#if data.form.is_published && !dirty}
           <section class="v2-card panel">
-            <h2>Test the connection</h2>
-            <p>Start a test, then send an enquiry from your published website.</p>
+            <h2>{ui('Test the connection')}</h2>
+            <p>{ui('Start a test, then send an enquiry from your published website.')}</p>
             <form method="POST" action="?/verify" use:enhance={verify}>
               <input type="hidden" name="since" value={testingSince} />
               <button class="v2-btn v2-btn-primary" disabled={busy}
-                >{busy ? 'Checking…' : testingSince ? 'Check for submission' : 'Start test'}</button
+                >{busy
+                  ? ui('Checking…')
+                  : testingSince
+                    ? ui('Check for submission')
+                    : ui('Start test')}</button
               >
             </form>
             {#if testStatus}<p role="status" class:received={testStatus === 'Submission received'}>
                 {testStatus}
               </p>{/if}
             {#if testStatus === 'Submission received'}<p class="v2-hint">
-                The CRM received a submission. Check the contact and recipient inbox to verify
-                alerts.
+                {ui(
+                  'The CRM received a submission. Check the contact and recipient inbox to verify alerts.'
+                )}
               </p>
               <button
                 class="v2-btn"
                 onclick={() => {
                   testingSince = '';
                   testStatus = '';
-                }}>New test</button
+                }}>{ui('New test')}</button
               >{/if}
           </section>
         {/if}
-        <button class="v2-btn" onclick={() => (step = 3)}>Back</button>
+        <button class="v2-btn" onclick={() => (step = 3)}>{ui('Back')}</button>
       {/if}
     {:else}
       <section class="v2-card panel">
-        <h2>Received submissions</h2>
+        <h2>{ui('Received submissions')}</h2>
         {#if data.analytics?.totals}<p class="v2-hint">
-            Last 30 days: {data.analytics.totals.submissions ?? 0} accepted · {data.analytics.totals
-              .spam ?? 0} spam blocked
+            {ui('Last 30 days:')}
+            {data.analytics.totals.submissions ?? 0}
+            {ui('accepted ·')}
+            {data.analytics.totals.spam ?? 0}
+            {ui('spam blocked')}
           </p>{/if}
         {#if data.activityError}<p class="error">
             {data.activityError}
-          </p>{:else if !data.submissions?.length}<p>No submissions yet.</p>{:else}<div
+          </p>{:else if !data.submissions?.length}<p>{ui('No submissions yet.')}</p>{:else}<div
             class="table-wrap"
           >
             <table>
-              <thead><tr><th>Date</th><th>Status</th><th>Record</th></tr></thead><tbody
+              <thead
+                ><tr><th>{ui('Date')}</th><th>{ui('Status')}</th><th>{ui('Record')}</th></tr></thead
+              ><tbody
                 >{#each data.submissions as entry}<tr
                     ><td>{shortDate(entry.created_at)}</td><td
                       ><Pill
@@ -778,18 +818,22 @@
             </table>
           </div>
           {#if data.count > data.submissions.length}<p class="v2-hint">
-              Showing the latest {data.submissions.length} of {data.count} submissions.
+              {ui('Showing the latest')}
+              {data.submissions.length}
+              {ui('of')}
+              {data.count}
+              {ui('submissions.')}
             </p>{/if}{/if}
       </section>
       {#if data.canManage}<div class="management">
           {#if data.form.is_published}<ConfirmAction
               action="?/unpublish"
-              label="Unpublish"
+              label={ui('Unpublish')}
               confirmLabel="Unpublish form"
               explain="Stop new submissions. Existing contacts are kept."
             />{/if}<ConfirmAction
             action="?/delete"
-            label="Delete form"
+            label={ui('Delete form')}
             confirmLabel="Delete form"
             explain="Delete this form and its submission history. Existing contacts are kept."
           />

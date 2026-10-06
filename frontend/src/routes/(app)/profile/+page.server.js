@@ -126,7 +126,7 @@ export const actions = {
     const form = await request.formData();
     /** @type {Record<string, string>} */
     const body = {};
-    for (const field of ['name', 'phone', 'language', 'timezone']) {
+    for (const field of ['name', 'phone', 'language', 'timezone', 'ui_language']) {
       if (form.has(field)) body[field] = form.get(field)?.toString().trim() ?? '';
     }
 

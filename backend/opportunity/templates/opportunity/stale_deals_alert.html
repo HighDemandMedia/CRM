@@ -9,20 +9,20 @@ Hello {{ user.get_username }}
 
 <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;">
   <thead>
-    <tr style="background:#f0f0f0;">
-      <th style="text-align:left;padding:8px 12px;border-bottom:2px solid #ddd;">Deal</th>
-      <th style="text-align:left;padding:8px 12px;border-bottom:2px solid #ddd;">Stage</th>
-      <th style="text-align:center;padding:8px 12px;border-bottom:2px solid #ddd;">Days in Stage</th>
-      <th style="text-align:center;padding:8px 12px;border-bottom:2px solid #ddd;">Expected</th>
+    <tr style="background:{{ email_theme.secondary }};">
+      <th style="text-align:left;padding:8px 12px;border-bottom:2px solid {{ email_theme.border }};">Deal</th>
+      <th style="text-align:left;padding:8px 12px;border-bottom:2px solid {{ email_theme.border }};">Stage</th>
+      <th style="text-align:center;padding:8px 12px;border-bottom:2px solid {{ email_theme.border }};">Days in Stage</th>
+      <th style="text-align:center;padding:8px 12px;border-bottom:2px solid {{ email_theme.border }};">Expected</th>
     </tr>
   </thead>
   <tbody>
     {% for deal in deals %}
     <tr>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;">{{ deal.name }}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;">{{ deal.stage }}</td>
-      <td style="text-align:center;padding:8px 12px;border-bottom:1px solid #eee;color:#dc2626;font-weight:600;">{{ deal.days_in_stage }}d</td>
-      <td style="text-align:center;padding:8px 12px;border-bottom:1px solid #eee;">{{ deal.expected_days }}d</td>
+      <td style="padding:8px 12px;border-bottom:1px solid {{ email_theme.border }};">{{ deal.name }}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid {{ email_theme.border }};">{{ deal.stage }}</td>
+      <td style="text-align:center;padding:8px 12px;border-bottom:1px solid {{ email_theme.border }};color:#dc2626;font-weight:600;">{{ deal.days_in_stage }}d</td>
+      <td style="text-align:center;padding:8px 12px;border-bottom:1px solid {{ email_theme.border }};">{{ deal.expected_days }}d</td>
     </tr>
     {% endfor %}
   </tbody>
@@ -30,8 +30,5 @@ Hello {{ user.get_username }}
 {% endblock content_body %}
 
 {% block button_link %}
-<div style="margin-bottom:20px">
-    <a href="{{ url }}"
-        style="display:block;width:200px;background:#dc2626;padding:10px;text-align:center;color:#fff;font-size:1rem;font-weight:600;margin:0px auto;margin-bottom:20px;border-radius:5px;text-decoration:none">View Stale Deals</a>
-</div>
+{% include "emails/button.html" with url=url label="View Stale Deals" %}
 {% endblock button_link %}

@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { untrack, getContext } from 'svelte';
   import { deserialize } from '$app/forms';
   import TagBadge from './TagBadge.svelte';
@@ -108,8 +111,8 @@
       >{/each}
     <input
       id={inputId}
-      aria-label={canCreate ? 'Search or create tag' : 'Search tags'}
-      placeholder={canCreate ? 'Search or create tag…' : 'Search tags…'}
+      aria-label={canCreate ? ui('Search or create tag') : ui('Search tags')}
+      placeholder={canCreate ? ui('Search or create tag…') : ui('Search tags…')}
       maxlength="50"
       autocomplete="off"
       bind:value={search}
@@ -144,7 +147,7 @@
       </div>
       {#if search.trim() && !exact && canCreate}
         <div class="create">
-          <div class="colors" role="group" aria-label="Tag color">
+          <div class="colors" role="group" aria-label={ui('Tag color')}>
             {#each Object.entries(tagColors) as [name, hex]}<button
                 type="button"
                 class="swatch"
@@ -157,12 +160,12 @@
               >{/each}
           </div>
           <button type="button" class="create-button" disabled={creating} onclick={create}
-            >{creating ? 'Creating…' : '＋ Create'}
+            >{creating ? ui('Creating…') : ui('＋ Create')}
             <TagBadge tag={{ name: search.trim(), color }} /></button
           >
         </div>
-      {:else if !matches.length}<p>No matching tags.</p>{/if}
-      {#if error}<p role="alert" class="error">{error}</p>{/if}
+      {:else if !matches.length}<p>{ui('No matching tags.')}</p>{/if}
+      {#if error}<p role="alert" class="error">{ui(error)}</p>{/if}
     </div>{/if}
 </div>
 

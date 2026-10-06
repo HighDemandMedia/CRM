@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { X, ChevronDown } from '@lucide/svelte';
   let {
     people,
@@ -88,11 +91,11 @@
         {disabled}
         placeholder={selected.length
           ? multiple
-            ? 'Add a user…'
-            : 'Change user…'
+            ? ui('Add a user…')
+            : ui('Change user…')
           : multiple
-            ? 'Select users…'
-            : 'Select user…'}
+            ? ui('Select users…')
+            : ui('Select user…')}
         bind:value={query}
         autocomplete="off"
         required={required && !selected.length}
@@ -130,7 +133,7 @@
       class="suggestions"
       id={`${id}-results`}
       role="listbox"
-      aria-label="Suggested users"
+      aria-label={ui('Suggested users')}
     >
       {#each matches as person, index (person.id)}<button
           type="button"
@@ -145,7 +148,7 @@
             >{/if}</button
         >
       {:else}<p role="status">
-          {query.trim() ? 'No matching users.' : 'No more users available.'}
+          {query.trim() ? ui('No matching users.') : ui('No more users available.')}
         </p>{/each}
     </div>{/if}
   {#each selected as personId}<input type="hidden" name={fieldName} value={personId} />{/each}

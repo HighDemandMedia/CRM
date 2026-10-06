@@ -1,4 +1,8 @@
 <script>
+  import { attachmentError } from '$lib/v2/attachment-policy.js';
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, longDate, relativeTime } = useI18n();
+
   import Attachments from '$lib/v2/components/Attachments.svelte';
   import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
   import TicketProfile from '$lib/components/tickets/TicketProfile.svelte';
@@ -9,7 +13,7 @@
   import NextAction from '$lib/v2/components/NextAction.svelte';
   import Pill from '$lib/v2/components/Pill.svelte';
   import Avatar from '$lib/v2/components/Avatar.svelte';
-  import { shortAge, longDate, relativeTime } from '$lib/v2/format.js';
+  import { shortAge } from '$lib/v2/format.js';
   import { PRIORITY_TONE, CASE_STATUS_TONE } from '$lib/v2/enums.js';
   import { cascadeSummary } from './close.js';
   import { ChevronRight, Lock, Paperclip, Pencil, Ticket, X } from '@lucide/svelte';
@@ -58,7 +62,14 @@
   let fileInput = $state();
 
   /** @param {Event} e */
+  let fileError = $state('');
   function pickFile(e) {
+    const input = /** @type {HTMLInputElement} */ (e.currentTarget);
+    fileError = attachmentError(input.files?.[0]);
+    if (fileError) {
+      clearFile();
+      return;
+    }
     fileName = /** @type {HTMLInputElement} */ (e.currentTarget).files?.[0]?.name ?? '';
   }
   function clearFile() {
@@ -72,7 +83,12 @@
   let canSend = $derived(Boolean(body.trim() || fileName));
 
   /** @type {import('@sveltejs/kit').SubmitFunction} */
-  const send = () => {
+  const send = ({ cancel }) => {
+    fileError = attachmentError(fileInput?.files?.[0]);
+    if (fileError) {
+      cancel();
+      return;
+    }
     sending = true;
     return async ({ result, update }) => {
       sending = false;
@@ -142,7 +158,7 @@
 </script>
 
 {#if advanced}
-  <button class="v2-btn" onclick={() => (advanced = false)}>Back to ticket</button>
+  <button class="v2-btn" onclick={() => (advanced = false)}>{ui('Back to ticket')}</button>
   <PageHeader title={ticket.name} record>
     {#snippet leading()}
       <!-- Whose ticket this is, at a glance. The account's mark where there is
@@ -154,33 +170,37 @@
       {/if}
     {/snippet}
     {#snippet crumb()}
-      <a href={resolve('/tickets')}>Tickets</a>
+      <a href={resolve('/tickets')}>{ui('Tickets')}</a>
       {#if ticket.account}
         <ChevronRight size={12} />
         <a href={resolve(`/accounts/${ticket.account.id}`)}>{ticket.account.name}</a>
       {/if}
     {/snippet}
     {#snippet actions()}
-      <a class="v2-btn" href={resolve(`/tickets/${ticket.id}/edit`)}><Pencil size={12} />Edit</a>
+      <a class="v2-btn" href={resolve(`/tickets/${ticket.id}/edit`)}
+        ><Pencil size={12} />{ui('Edit')}</a
+      >
       {#if ticket.is_open}
         <form method="POST" action="?/setStatus" use:enhance style="display:contents">
           {#if ticket.status !== 'Pending'}
-            <button class="v2-btn" name="status" value="Pending">Set to pending</button>
+            <button class="v2-btn" name="status" value="Pending">{ui('Set to pending')}</button>
           {/if}
           {#if !data.close}
-            <button class="v2-btn v2-btn-primary" name="status" value="Closed">Close</button>
+            <button class="v2-btn v2-btn-primary" name="status" value="Closed">{ui('Close')}</button
+            >
           {/if}
         </form>
         <!-- A parent ticket closes through a confirm step, since the same click
            can close tickets belonging to other people. Outside the form above
            so this button never submits it. -->
         {#if data.close && !closePanel}
-          <button class="v2-btn v2-btn-primary" type="button" onclick={openClosePanel}>Close</button
+          <button class="v2-btn v2-btn-primary" type="button" onclick={openClosePanel}
+            >{ui('Close')}</button
           >
         {/if}
       {:else}
         <form method="POST" action="?/setStatus" use:enhance style="display:contents">
-          <button class="v2-btn" name="status" value="New">Reopen</button>
+          <button class="v2-btn" name="status" value="New">{ui('Reopen')}</button>
         </form>
       {/if}
     {/snippet}
@@ -198,12 +218,14 @@
         <span class="v2-sub">
           <!-- There is no ticket number. `Case` has a UUID and a subject, so the
              subject is the identifier and the age is the useful fact. -->
-          Opened {shortAge(ticket.opened_at)} ago
+          {ui('Opened')}
+          {shortAge(ticket.opened_at)}
+          {ui('ago')}
           {#if ticket.first_response_at}
-            · first reply {relativeTime(ticket.first_response_at)}
+            {ui('· first reply')} {relativeTime(ticket.first_response_at)}
           {/if}
           {#if ticket.escalation_count > 0}
-            · <span style="color:var(--v2-rust)">escalated {ticket.escalation_count}×</span>
+            · <span style="color:var(--v2-rust)">{ui('escalated')} {ticket.escalation_count}×</span>
           {/if}
         </span>
       </div>
@@ -216,7 +238,7 @@
               class="v2-card"
               style="padding:10px 13px;margin-bottom:16px;color:var(--v2-rust);font-size:var(--crm-text-sm)"
             >
-              {form.error}
+              {ui(form.error)}
             </p>
           {/if}
 
@@ -250,7 +272,10 @@
                     closePanel = false;
                   }}
               >
-                <div style="font-weight:600;font-size:var(--crm-text-sm)">Close {ticket.name}</div>
+                <div style="font-weight:600;font-size:var(--crm-text-sm)">
+                  {ui('Close')}
+                  {ticket.name}
+                </div>
                 <p
                   class="v2-sub"
                   style="font-size:var(--crm-text-sm);margin:6px 0 0;line-height:1.5"
@@ -274,35 +299,37 @@
                   <label class="v2-close-check">
                     <input type="checkbox" name="cascade" bind:checked={cascade} />
                     <span>
-                      <span style="font-weight:600">Close these as well</span>
+                      <span style="font-weight:600">{ui('Close these as well')}</span>
                       <span
                         class="v2-sub"
                         style="display:block;font-size:var(--crm-text-xs);margin-top:2px"
                       >
-                        Each one gets a note saying it was closed with this ticket. Leave it
-                        unticked to close only this one.
+                        {ui(
+                          'Each one gets a note saying it was closed with this ticket. Leave it unticked to close only this one.'
+                        )}
                       </span>
                     </span>
                   </label>
 
                   <div class="v2-field" style="margin-top:12px">
-                    <label for="close-comment">Why (optional)</label>
+                    <label for="close-comment">{ui('Why (optional)')}</label>
                     <textarea
                       id="close-comment"
                       class="v2-input"
                       name="resolution_comment"
                       rows="2"
                       maxlength="1000"
-                      placeholder="Recorded against every ticket closed with this one"></textarea>
+                      placeholder={ui('Recorded against every ticket closed with this one')}
+                    ></textarea>
                   </div>
                 {/if}
 
                 <div style="display:flex;gap:8px;margin-top:14px">
                   <button class="v2-btn v2-btn-primary" type="submit">
-                    {cascade ? 'Close all of them' : 'Close this ticket'}
+                    {cascade ? ui('Close all of them') : ui('Close this ticket')}
                   </button>
                   <button class="v2-btn" type="button" onclick={() => (closePanel = false)}>
-                    Cancel
+                    {ui('Cancel')}
                   </button>
                 </div>
               </form>
@@ -315,13 +342,15 @@
             </div>
           {:else if waiting}
             <p class="v2-sub" style="margin:0 0 18px;font-size:var(--crm-text-sm)">
-              Waiting on the customer: the first-reply clock is paused while it sits in Pending.
+              {ui(
+                'Waiting on the customer: the first-reply clock is paused while it sits in Pending.'
+              )}
             </p>
           {/if}
 
           {#if ticket.description}
             <div class="v2-card" style="padding:13px 15px;margin-bottom:18px">
-              <div class="v2-label" style="margin-bottom:7px">What was reported</div>
+              <div class="v2-label" style="margin-bottom:7px">{ui('What was reported')}</div>
               <div style="font-size:var(--crm-text-sm);line-height:1.55;white-space:pre-wrap">
                 {ticket.description}
               </div>
@@ -330,8 +359,9 @@
 
           {#if conversation.length === 0}
             <p class="v2-sub" style="margin:0 0 18px;font-size:var(--crm-text-sm)">
-              Nothing has been said on this ticket yet. A reply below is the first response. It is
-              what stops the first-reply clock.
+              {ui(
+                'Nothing has been said on this ticket yet. A reply below is the first response. It is what stops the first-reply clock.'
+              )}
             </p>
           {/if}
 
@@ -349,7 +379,9 @@
                 >
                   <Lock size={11} />
                   <b style="color:var(--v2-ink);font-weight:600">{m.author}</b>
-                  · internal note · {shortAge(m.at)} ago
+                  {ui('· internal note ·')}
+                  {shortAge(m.at)}
+                  {ui('ago')}
                 </div>
                 <div style="font-size:var(--crm-text-sm);line-height:1.55;white-space:pre-wrap">
                   {m.body}
@@ -370,8 +402,9 @@
                 >
                   <div class="v2-sub" style="font-size:var(--crm-text-xs);margin-bottom:5px">
                     <b style="color:var(--v2-ink);font-weight:600">{m.author}</b>
-                    {#if m.kind === 'email'}· email{/if}
-                    · {shortAge(m.at)} ago
+                    {#if m.kind === 'email'}{ui('· email')}{/if}
+                    · {shortAge(m.at)}
+                    {ui('ago')}
                   </div>
                   {#if m.subject}
                     <div style="font-size:var(--crm-text-sm);font-weight:600;margin-bottom:4px">
@@ -393,7 +426,7 @@
                   name="body"
                   bind:value={body}
                   rows="3"
-                  placeholder={internal ? 'Note for the team…' : 'Write a reply…'}
+                  placeholder={internal ? ui('Note for the team…') : ui('Write a reply…')}
                   style="width:100%;border:none;background:transparent;resize:vertical;font:inherit;font-size:var(--crm-text-sm);line-height:1.55;color:var(--v2-ink);outline:none"
                 ></textarea>
                 <div
@@ -404,7 +437,7 @@
                     style="display:flex;align-items:center;gap:5px;font-size:var(--crm-text-xs);cursor:pointer"
                   >
                     <input type="checkbox" name="internal" bind:checked={internal} />
-                    Internal note
+                    {ui('Internal note')}
                   </label>
                   <!-- The whole chip is the click target: a label wrapping a hidden
                      input. A file may ride with the reply or go on its own. -->
@@ -415,6 +448,7 @@
                       bind:this={fileInput}
                       type="file"
                       name="attachment"
+                      aria-describedby="ticket-attachment-limit"
                       onchange={pickFile}
                       hidden
                     />
@@ -424,13 +458,13 @@
                       type="button"
                       class="clear-file"
                       onclick={clearFile}
-                      title="Remove file"
+                      title={ui('Remove file')}
                     >
                       <X size={12} />
                     </button>
                   {/if}
                   <span class="v2-sub" style="margin-left:auto;font-size:var(--crm-text-xs)"
-                    >Status on send</span
+                    >{ui('Status on send')}</span
                   >
                   <!-- Answering and moving the ticket is one decision, so it is
                      one submit. Empty means "leave the status alone". -->
@@ -439,35 +473,38 @@
                     class="v2-input"
                     style="width:auto;font-size:var(--crm-text-xs)"
                   >
-                    <option value="">Unchanged</option>
-                    <option value="Assigned">Assigned</option>
-                    <option value="Pending">Pending</option>
+                    <option value="">{ui('Unchanged')}</option>
+                    <option value="Assigned">{ui('Assigned')}</option>
+                    <option value="Pending">{ui('Pending')}</option>
                   </select>
                   <button class="v2-btn v2-btn-primary" disabled={sending || !canSend}>
                     {sending
-                      ? 'Sending…'
+                      ? ui('Sending…')
                       : body.trim()
                         ? internal
-                          ? 'Add note'
-                          : 'Send reply'
+                          ? ui('Add note')
+                          : ui('Send reply')
                         : fileName
-                          ? 'Attach file'
+                          ? ui('Attach file')
                           : internal
-                            ? 'Add note'
-                            : 'Send reply'}
+                            ? ui('Add note')
+                            : ui('Send reply')}
                   </button>
                 </div>
               </div>
               {#if internal}
                 <p class="v2-sub" style="margin:8px 2px 0;font-size:var(--crm-text-xs)">
-                  A note stays inside the team and does not stop the first-reply clock.
+                  {ui('A note stays inside the team and does not stop the first-reply clock.')}
                 </p>
               {/if}
             </form>
           {:else}
+            <p id="ticket-attachment-limit" class="v2-sub">{ui('Up to 25 MB per file.')}</p>
+            {#if fileError}<p class="v2-error" role="alert">{ui(fileError)}</p>{/if}
             <p class="v2-sub" style="margin-top:18px;font-size:var(--crm-text-sm)">
-              You can read this ticket but not reply to it. Ask an admin, or whoever it is assigned
-              to.
+              {ui(
+                'You can read this ticket but not reply to it. Ask an admin, or whoever it is assigned to.'
+              )}
             </p>
           {/if}
         </div>
@@ -475,40 +512,41 @@
     </div>
 
     <aside class="v2-rail">
-      <div class="v2-label v2-rail-head">Ticket</div>
+      <div class="v2-label v2-rail-head">{ui('Ticket')}</div>
       <dl class="v2-kv">
-        <dt>Priority</dt>
+        <dt>{ui('Priority')}</dt>
         <dd><Pill tone={PRIORITY_TONE[ticket.priority]}>{ticket.priority}</Pill></dd>
-        <dt>Status</dt>
+        <dt>{ui('Status')}</dt>
         <dd><Pill tone={CASE_STATUS_TONE[ticket.status]}>{ticket.status}</Pill></dd>
-        <dt>Type</dt>
-        <dd>{ticket.case_type ?? 'Not set'}</dd>
-        <dt>Assignee</dt>
+        <dt>{ui('Type')}</dt>
+        <dd>{ticket.case_type ?? ui('Not set')}</dd>
+        <dt>{ui('Assignee')}</dt>
         <dd>
-          {ticket.assignee ?? 'Unassigned'}
+          {ticket.assignee ?? ui('Unassigned')}
           {#if ticket.assignee_count > 1}
             <span class="v2-sub">+{ticket.assignee_count - 1}</span>
           {/if}
         </dd>
-        <dt>Opened</dt>
+        <dt>{ui('Opened')}</dt>
         <dd>{longDate(ticket.opened_at)}</dd>
-        <dt>First reply</dt>
+        <dt>{ui('First reply')}</dt>
         <dd>
           {#if ticket.first_response_at}
             {relativeTime(ticket.first_response_at)}
           {:else if ticket.first_response_deadline}
             <span style={slaColor(ticket.first_response_breached, ticket.first_response_at_risk)}>
-              due {relativeTime(ticket.first_response_deadline)}
+              {ui('due')}
+              {relativeTime(ticket.first_response_deadline)}
             </span>
           {:else}
-            No target
+            {ui('No target')}
           {/if}
         </dd>
         {#if ticket.resolved_at}
-          <dt>Resolved</dt>
+          <dt>{ui('Resolved')}</dt>
           <dd>{longDate(ticket.resolved_at)}</dd>
         {:else if ticket.resolution_deadline}
-          <dt>Resolve by</dt>
+          <dt>{ui('Resolve by')}</dt>
           <dd>
             <span style={slaColor(ticket.resolution_breached, ticket.resolution_at_risk)}>
               {relativeTime(ticket.resolution_deadline)}
@@ -517,12 +555,12 @@
         {/if}
         {#if ticket.paused_at}
           <dt>SLA</dt>
-          <dd>Paused while pending</dd>
+          <dd>{ui('Paused while pending')}</dd>
         {/if}
       </dl>
 
       {#if ticket.account}
-        <div class="v2-label v2-rail-head">Account</div>
+        <div class="v2-label v2-rail-head">{ui('Account')}</div>
         <a
           class="v2-rail-row"
           href={resolve(`/accounts/${ticket.account.id}`)}
@@ -533,11 +571,11 @@
             <div style="font-size:var(--crm-text-sm);font-weight:550">{ticket.account.name}</div>
             <div class="v2-sub" style="font-size:var(--crm-text-xs)">
               {#if contacts.length === 1}
-                Reported by {contacts[0].name}
+                {ui('Reported by')} {contacts[0].name}
               {:else if contacts.length > 1}
-                {contacts.length} people on this ticket
+                {contacts.length} {ui('people on this ticket')}
               {:else}
-                Nobody named on this ticket
+                {ui('Nobody named on this ticket')}
               {/if}
             </div>
           </div>
@@ -545,7 +583,7 @@
       {/if}
 
       {#if contacts.length}
-        <div class="v2-label v2-rail-head">People</div>
+        <div class="v2-label v2-rail-head">{ui('People')}</div>
         {#each contacts as c (c.id)}
           <a
             class="v2-rail-row"
@@ -564,7 +602,7 @@
       />
 
       {#if alsoOpen.length}
-        <div class="v2-label v2-rail-head">Also open here</div>
+        <div class="v2-label v2-rail-head">{ui('Also open here')}</div>
         {#each alsoOpen as t (t.id)}
           <a
             class="v2-rail-row"
@@ -576,7 +614,8 @@
                 {t.name}
               </div>
               <div class="v2-sub" style="font-size:var(--crm-text-xs)">
-                {t.priority} · {shortAge(t.opened_at)} old
+                {t.priority} · {shortAge(t.opened_at)}
+                {ui('old')}
               </div>
             </div>
           </a>
@@ -584,7 +623,7 @@
       {/if}
 
       {#if activity.length}
-        <div class="v2-label v2-rail-head">History</div>
+        <div class="v2-label v2-rail-head">{ui('History')}</div>
         {#each activity.slice(0, 8) as a (a.id)}
           <div class="v2-rail-row">
             <div>
@@ -592,7 +631,8 @@
                 {a.label}
               </div>
               <div class="v2-sub" style="font-size:var(--crm-text-xs)">
-                {a.by ?? 'System'} · {shortAge(a.at)} ago
+                {a.by ?? ui('System')} · {shortAge(a.at)}
+                {ui('ago')}
               </div>
             </div>
           </div>

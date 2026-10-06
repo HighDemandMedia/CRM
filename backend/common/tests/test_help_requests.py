@@ -119,7 +119,7 @@ class TestHelpRequests:
     def test_failure_does_not_report_success_and_allows_retry(self, admin_client):
         data = payload()
         with patch(
-            "common.views.help_views.EmailMessage.send",
+            "common.views.help_views.EmailMultiAlternatives.send",
             side_effect=OSError("Unavailable"),
         ):
             assert admin_client.post(URL, data, format="json").status_code == 503
@@ -127,7 +127,7 @@ class TestHelpRequests:
         assert len(mail.outbox) == 1
 
     def test_zero_send_is_not_success(self, admin_client):
-        with patch("common.views.help_views.EmailMessage.send", return_value=0):
+        with patch("common.views.help_views.EmailMultiAlternatives.send", return_value=0):
             assert admin_client.post(URL, payload(), format="json").status_code == 503
 
     def test_metadata_and_production_without_mail(self, user_client, user_profile):
@@ -148,7 +148,7 @@ class TestHelpRequests:
             EMAIL_HOST="smtp.example.com",
         ):
             with patch(
-                "common.views.help_views.EmailMessage.send", return_value=1
+                "common.views.help_views.EmailMultiAlternatives.send", return_value=1
             ) as send:
                 response = admin_client.post(URL, data, format="json")
                 assert response.status_code == 201, response.data
@@ -159,7 +159,7 @@ class TestHelpRequests:
         assert unauthenticated_client.post(
             URL, payload(), format="json"
         ).status_code in (401, 403)
-        with patch("common.views.help_views.EmailMessage.send", return_value=1):
+        with patch("common.views.help_views.EmailMultiAlternatives.send", return_value=1):
             for _ in range(10):
                 assert (
                     admin_client.post(URL, payload(), format="json").status_code == 201

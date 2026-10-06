@@ -57,6 +57,7 @@ export const actions = {
 
     // Get the submitted form data
     const formData = await request.formData();
+    const administratorEmail = formData.get('administrator_email')?.toString().trim();
     const orgName = formData.get('org_name')?.toString();
     // Optional end to end: the field is a select with a value, but the API
     // treats a missing timezone as UTC so a submission without one still works.
@@ -86,7 +87,11 @@ export const actions = {
       // Django's OrgProfileCreateView creates both org and profile
       const response = await axios.post(
         `${apiUrl}/api/org/`,
-        timezone ? { name: orgName.trim(), timezone } : { name: orgName.trim() },
+        {
+          name: orgName.trim(),
+          ...(timezone ? { timezone } : {}),
+          ...(administratorEmail ? { administrator_email: administratorEmail } : {})
+        },
         {
           headers: {
             Authorization: `Bearer ${jwtAccess}`,
@@ -187,7 +192,8 @@ export const actions = {
       // Return success
       return {
         data: {
-          name: orgName
+          name: orgName,
+          invitationWarning: response.data.invitation_warning
         }
       };
     } catch (err) {

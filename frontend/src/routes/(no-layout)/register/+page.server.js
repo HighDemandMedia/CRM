@@ -35,6 +35,8 @@ export const actions = {
       return fail(400, { error: 'Passwords do not match.', values });
     let data;
     const invitation = cookies.get('crm_invitation');
+    if (!invitation)
+      return fail(403, { error: 'An invitation is required to create an account.', values });
     try {
       const response = await axios.post(
         `${API_ORIGIN}/api/auth/password/register/`,
@@ -56,6 +58,13 @@ export const actions = {
     }
     savePasswordSession(cookies, data);
     cookies.delete('crm_invitation', { path: '/' });
-    redirect(303, data.current_org ? '/' : '/org');
+    redirect(
+      303,
+      data.needs_organization_setup
+        ? '/settings/organization?onboarding=1'
+        : data.current_org
+          ? '/'
+          : '/org'
+    );
   }
 };

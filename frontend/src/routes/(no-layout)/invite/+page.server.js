@@ -3,7 +3,7 @@ import { env } from '$env/dynamic/private';
 import { apiRequest } from '$lib/api-helpers.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
 import { previewInvitation } from '$lib/server/invitation.js';
-import { passwordError } from '$lib/server/password-session.js';
+import { passwordError, savePasswordSession } from '$lib/server/password-session.js';
 export async function load({ url, cookies, locals }) {
   const token = url.searchParams.get('token');
   if (token && /^[A-Za-z0-9_-]{20,128}$/.test(token)) {
@@ -48,8 +48,9 @@ export const actions = {
   accept: async ({ cookies }) => {
     const token = cookies.get('crm_invitation');
     if (!token) return fail(400, { error: 'Open the link from your invitation email.' });
+    let accepted;
     try {
-      await apiRequest(
+      accepted = await apiRequest(
         '/auth/accept-invitation/',
         { method: 'POST', body: { token } },
         { cookies }
@@ -58,6 +59,24 @@ export const actions = {
       return fail(400, { error: readableError(err, 'Could not accept this invitation.') });
     }
     cookies.delete('crm_invitation', { path: '/' });
+    if (accepted.needs_organization_setup) {
+      try {
+        const session = await apiRequest(
+          '/auth/switch-org/',
+          {
+            method: 'POST',
+            body: { org_id: accepted.org_id, refresh: cookies.get('jwt_refresh') }
+          },
+          { cookies }
+        );
+        savePasswordSession(cookies, { ...session, current_org: { id: accepted.org_id } });
+      } catch {
+        return fail(503, {
+          error: 'Invitation accepted. Sign in and open Organization settings to finish setup.'
+        });
+      }
+      redirect(303, '/settings/organization?onboarding=1');
+    }
     redirect(303, '/org');
   }
 };

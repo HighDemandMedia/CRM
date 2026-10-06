@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { beforeNavigate, preloadData, invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
   import CreatePanel from './CreatePanel.svelte';
@@ -79,9 +82,9 @@
 
 {#if panel}<CreatePanel {...panel} onclose={() => (panel = null)} oncreated={created} />{/if}
 {#if loading || message || error}<div class="notice" role={error ? 'alert' : 'status'}>
-    {loading ? 'Opening form…' : error || message}
+    {loading ? ui('Opening form…') : error || message}
     {#if !loading}<button
-        aria-label="Dismiss notification"
+        aria-label={ui('Dismiss notification')}
         onclick={() => {
           message = '';
           error = '';

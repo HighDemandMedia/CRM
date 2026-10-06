@@ -1,5 +1,5 @@
-/* HDM website brand colors; semantic states remain independent.
-   Stone is decorative, never an input boundary. */
+/* Winter Concrete, Graphite Shadow and Signal Red with HDM gradient actions.
+   Decorative separators and accessible control boundaries have separate roles. */
 :root {
   --crm-paper: #f6f4f1;
   --crm-stone: #e4ded2;
@@ -14,21 +14,21 @@
   --crm-action-active-bg:
     linear-gradient(rgb(0 0 0 / 24%), rgb(0 0 0 / 24%)), var(--crm-brand-gradient);
   --crm-black: #000000;
-  --crm-canvas: var(--crm-paper);
+  --crm-canvas: #f1f2f4;
   --crm-surface: #ffffff;
-  --crm-surface-secondary: var(--crm-stone);
-  --crm-surface-hover: #eee9e0;
-  --crm-surface-selected: #ffe1d9;
-  --crm-text: #1d0502;
-  --crm-text-muted: #4a302c;
-  --crm-border: var(--crm-stone);
-  --crm-control-border: #81766a;
-  --crm-primary: var(--crm-brand-red);
+  --crm-surface-secondary: #e6e8ec;
+  --crm-surface-hover: #e6e8ec;
+  --crm-surface-selected: #fbe5e5;
+  --crm-text: #292d30;
+  --crm-text-muted: #505960;
+  --crm-border: #cdd2d8;
+  --crm-control-border: #697581;
+  --crm-primary: #c82322;
   --crm-primary-text: #ffffff;
-  --crm-primary-hover: #ad100b;
-  --crm-primary-active: #970d09;
-  --crm-link: #740a03;
-  --crm-focus: #740a03;
+  --crm-primary-hover: #ad1e1d;
+  --crm-primary-active: #921918;
+  --crm-link: #a61e1d;
+  --crm-focus: #a61e1d;
   --crm-success: #27613d;
   --crm-success-bg: #e8f3e9;
   --crm-warning: #80500c;
@@ -41,11 +41,11 @@
   --crm-calendar-external-bg: #f1eafa;
   --crm-inverse: #ffffff;
   --crm-overlay: rgb(0 0 0 / 40%);
-  --crm-nav-bg: var(--crm-black);
-  --crm-nav-text: var(--crm-paper);
-  --crm-nav-muted: #c6beb2;
-  --crm-nav-hover: #292622;
-  --crm-nav-border: #514a41;
+  --crm-nav-bg: #292d30;
+  --crm-nav-text: #dcdfe6;
+  --crm-nav-muted: #c0c6ce;
+  --crm-nav-hover: #393f44;
+  --crm-nav-border: #515960;
   --crm-font-ui: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --crm-font-title: var(--crm-font-ui);
   --crm-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'DejaVu Sans Mono', Menlo, monospace;
@@ -77,6 +77,12 @@
   --crm-shadow-md: 0 4px 16px rgb(0 0 0 / 10%);
   --crm-shadow-lg: 0 16px 48px rgb(0 0 0 / 16%);
   --crm-control-height: 2.5rem;
+  --crm-control-padding-x: var(--crm-space-4);
+  --crm-control-padding-y: var(--crm-space-2);
+  --crm-control-gap: var(--crm-space-2);
+  --crm-control-icon: 1rem;
+  --crm-select-padding-end: 2.75rem;
+  --crm-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23505960' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
   --crm-target-size: 2.75rem;
   --crm-row-height: 3rem;
   --crm-duration: 140ms;
@@ -84,6 +90,7 @@
 
 /* Preserve the existing dark-mode contract with the same accessible semantics. */
 .dark {
+  --crm-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23c6beb2' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
   --crm-canvas: #171614;
   --crm-surface: #211f1c;
   --crm-surface-secondary: #302c26;
@@ -239,5 +246,5 @@
   --sidebar-active-fill: var(--crm-nav-hover);
   --sidebar-accent-foreground: var(--crm-nav-text);
   --sidebar-border: var(--crm-nav-border);
-  --sidebar-ring: var(--crm-coral);
+  --sidebar-ring: var(--crm-nav-text);
 }

@@ -1,65 +1,74 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale, money } = useI18n();
+
   import { resolve } from '$app/paths';
   import { invalidateAll } from '$app/navigation';
   import { enhance } from '$app/forms';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import EventDetails from '$lib/v2/components/EventDetails.svelte';
-  import { money } from '$lib/v2/format.js';
+
   import { CalendarDays, Circle, CheckCheck, Clock3, ArrowUpRight } from '@lucide/svelte';
   let { data, form } = $props();
   let day = $derived(data.day);
   let details;
   let saving = $state({});
   const clock = (value) =>
-    new Date(value).toLocaleTimeString('en-US', {
+    new Date(value).toLocaleTimeString(locale(), {
       hour: 'numeric',
       minute: '2-digit',
       timeZone: day.timezone
     });
   const date = (value) =>
-    new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', {
+    new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString(locale(), {
       month: 'short',
       day: 'numeric'
     });
 </script>
 
-<PageHeader title="Today">
-  {#snippet sub()}Your day at a glance · {new Date(`${day.date}T12:00:00`).toLocaleDateString(
-      'en-US',
-      { weekday: 'long', month: 'long', day: 'numeric' }
-    )}{/snippet}
+<PageHeader title={ui('Today')}>
+  {#snippet sub()}{ui('Your day at a glance ·')}
+    {new Date(`${day.date}T12:00:00`).toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric'
+    })}{/snippet}
   {#snippet actions()}{#if day.can_select_user}<form method="GET">
         <select
           class="v2-input"
-          aria-label="Whose day"
+          aria-label={ui('Whose day')}
           name="user"
           value={day.selected_user}
           onchange={(event) => event.currentTarget.form?.requestSubmit()}
-          ><option value="all">Team day</option>{#each day.people as person}<option
-              value={person.id}>{person.id === day.current_user ? 'My day' : person.name}</option
+          ><option value="all">{ui('Team day')}</option>{#each day.people as person}<option
+              value={person.id}
+              >{person.id === day.current_user ? ui('My day') : person.name}</option
             >{/each}</select
         >
-      </form>{:else}<span class="my-day">My day</span>{/if}{/snippet}
+      </form>{:else}<span class="my-day">{ui('My day')}</span>{/if}{/snippet}
 </PageHeader>
 <EventDetails bind:this={details} onChanged={() => void invalidateAll()} />
-{#if form?.error}<p class="error" role="alert">{form.error}</p>{/if}
+{#if form?.error}<p class="error" role="alert">{ui(form.error)}</p>{/if}
 <div class="today-scroll">
   <div class="day-counts">
     <div>
-      <CalendarDays size={18} /><strong>{day.counts.events}</strong><span>Events today</span>
+      <CalendarDays size={18} /><strong>{day.counts.events}</strong><span>{ui('Events today')}</span
+      >
     </div>
     <div>
-      <CheckCheck size={18} /><strong>{day.counts.tasks_today}</strong><span>Tasks due today</span>
+      <CheckCheck size={18} /><strong>{day.counts.tasks_today}</strong><span
+        >{ui('Tasks due today')}</span
+      >
     </div>
     <div class:late={day.counts.overdue > 0}>
-      <Clock3 size={18} /><strong>{day.counts.overdue}</strong><span>Overdue</span>
+      <Clock3 size={18} /><strong>{day.counts.overdue}</strong><span>{ui('Overdue')}</span>
     </div>
   </div>
   <div class="day-layout">
     <section class="panel agenda">
       <header>
-        <h2>Today's agenda <span>{day.counts.events}</span></h2>
-        <a href={resolve('/calendar')}>View calendar <ArrowUpRight size={13} /></a>
+        <h2>{ui("Today's agenda")} <span>{day.counts.events}</span></h2>
+        <a href={resolve('/calendar')}>{ui('View calendar')} <ArrowUpRight size={13} /></a>
       </header>
       <p class="timezone">{day.timezone.replaceAll('_', ' ')}</p>
       {#each day.events as event}<button
@@ -69,35 +78,35 @@
           ><span class="event-time">{clock(event.start)}<small>{clock(event.end)}</small></span
           ><span
             ><strong>{event.title}</strong>{#if event.attendee}<small
-                >{event.attendee.type === 'company' ? 'Company' : 'Contact'} · {event.attendee
-                  .name}</small
+                >{event.attendee.type === 'company' ? ui('Company') : ui('Contact')} · {event
+                  .attendee.name}</small
               >{/if}<small>{event.host}</small></span
           ></button
         >{:else}<div class="empty">
           <CalendarDays size={24} />
-          <p>No events scheduled today.</p>
-          <a href={resolve('/calendar')}>Schedule an event</a>
+          <p>{ui('No events scheduled today.')}</p>
+          <a href={resolve('/calendar')}>{ui('Schedule an event')}</a>
         </div>{/each}
       {#if day.counts.events > day.events.length}<a class="more" href={resolve('/calendar')}
-          >View all {day.counts.events} events</a
+          >{ui('View all')} {day.counts.events} {ui('events')}</a
         >{/if}
     </section>
     <div class="work">
       {#if day.reminders?.length}<section class="panel">
           <header>
-            <h2>Task reminders <span>{day.counts.reminders}</span></h2>
-            <a href={resolve('/tasks')}>View all <ArrowUpRight size={13} /></a>
+            <h2>{ui('Task reminders')} <span>{day.counts.reminders}</span></h2>
+            <a href={resolve('/tasks')}>{ui('View all')} <ArrowUpRight size={13} /></a>
           </header>
           {#each day.reminders as task}<a class="work-row" href={resolve(`/tasks/${task.id}`)}
               ><span class="record"
-                ><strong>{task.name}</strong><small>{task.priority} priority</small></span
-              ><span class="due">Due {date(task.due)}</span></a
+                ><strong>{task.name}</strong><small>{task.priority} {ui('priority')}</small></span
+              ><span class="due">{ui('Due')} {date(task.due)}</span></a
             >{/each}
         </section>{/if}
       <section class="panel">
         <header>
-          <h2>Tasks <span>{day.counts.tasks}</span></h2>
-          <a href={resolve('/tasks')}>View all <ArrowUpRight size={13} /></a>
+          <h2>{ui('Tasks')} <span>{day.counts.tasks}</span></h2>
+          <a href={resolve('/tasks')}>{ui('View all')} <ArrowUpRight size={13} /></a>
         </header>
         {#each day.tasks as task}<div class="work-row">
             <form
@@ -117,21 +126,21 @@
               <input type="hidden" name="id" value={task.id} /><button
                 class="complete"
                 aria-label={`Complete ${task.name}`}
-                title="Complete task"
+                title={ui('Complete task')}
                 disabled={saving[task.id]}><Circle size={19} /></button
               >
             </form>
             <a class="record" href={resolve(`/tasks/${task.id}`)}
               ><strong>{task.name}</strong><small>{task.priority} · {task.status}</small></a
             ><span class="due" class:late={task.overdue}
-              >{task.overdue ? date(task.due) : 'Today'}</span
+              >{task.overdue ? date(task.due) : ui('Today')}</span
             >
-          </div>{:else}<p class="empty-copy">No tasks due today or overdue.</p>{/each}
+          </div>{:else}<p class="empty-copy">{ui('No tasks due today or overdue.')}</p>{/each}
       </section>
       <section class="panel">
         <header>
-          <h2>Deals to follow up <span>{day.counts.deals}</span></h2>
-          <a href={resolve('/pipeline')}>View all <ArrowUpRight size={13} /></a>
+          <h2>{ui('Deals to follow up')} <span>{day.counts.deals}</span></h2>
+          <a href={resolve('/pipeline')}>{ui('View all')} <ArrowUpRight size={13} /></a>
         </header>
         {#each day.deals as deal}<a class="work-row record" href={resolve(`/pipeline/${deal.id}`)}
             ><span
@@ -139,14 +148,16 @@
                 >{deal.stage} · {money(deal.amount, deal.currency)}</small
               ></span
             ><span class="due" class:late={deal.overdue}
-              >{deal.overdue ? date(deal.due) : 'Today'}</span
+              >{deal.overdue ? date(deal.due) : ui('Today')}</span
             ></a
-          >{:else}<p class="empty-copy">No open deals due to close today or overdue.</p>{/each}
+          >{:else}<p class="empty-copy">
+            {ui('No open deals due to close today or overdue.')}
+          </p>{/each}
       </section>
       <section class="panel">
         <header>
-          <h2>Tickets <span>{day.counts.tickets}</span></h2>
-          <a href={resolve('/tickets')}>View all <ArrowUpRight size={13} /></a>
+          <h2>{ui('Tickets')} <span>{day.counts.tickets}</span></h2>
+          <a href={resolve('/tickets')}>{ui('View all')} <ArrowUpRight size={13} /></a>
         </header>
         {#each day.tickets as ticket}<a
             class="work-row record"
@@ -154,9 +165,9 @@
             ><span
               ><strong>{ticket.name}</strong><small>{ticket.code} · {ticket.priority}</small></span
             ><span class="due" class:late={ticket.overdue}
-              >{ticket.overdue ? date(ticket.due) : 'Today'}</span
+              >{ticket.overdue ? date(ticket.due) : ui('Today')}</span
             ></a
-          >{:else}<p class="empty-copy">No open tickets due today or overdue.</p>{/each}
+          >{:else}<p class="empty-copy">{ui('No open tickets due today or overdue.')}</p>{/each}
       </section>
     </div>
   </div>

@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { countryOptions } from '$lib/constants/countries.js';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import RecordSection from '$lib/components/creation/RecordSection.svelte';
@@ -217,7 +220,7 @@
   {#if result?.error && !result?.stageRequirements}<p class="v2-error" role="alert">
       {result.error}
     </p>{/if}
-  {#if result?.saved}<p role="status">Saved</p>{/if}
+  {#if result?.saved}<p role="status">{ui('Saved')}</p>{/if}
   {#if autoSave}<div class="save-status" role="status">{autoStatus}</div>
     {#if autoError && !autoIssue}<div class="v2-error" role="alert">
         {autoError}<button
@@ -226,12 +229,12 @@
           onclick={() => {
             queued = snapshotValues();
             void flushAutoSave();
-          }}>Retry</button
+          }}>{ui('Retry')}</button
         >
       </div>{/if}{/if}
-  <RecordSection title="Deal details">
+  <RecordSection title={ui('Deal details')}>
     <label
-      >Name *<input
+      >{ui('Name *')}<input
         class="v2-input"
         name="name"
         required
@@ -240,7 +243,7 @@
       /></label
     >
     <label
-      >Amount<input
+      >{ui('Amount')}<input
         class="v2-input"
         name="amount"
         type="number"
@@ -251,13 +254,13 @@
       /></label
     >
     <label
-      >Stage<select class="v2-input" name="stage" bind:value={values.stage}
+      >{ui('Stage')}<select class="v2-input" name="stage" bind:value={values.stage}
         >{#each stageOptions as stage}<option value={stage.value}>{stage.label}</option
           >{/each}</select
       ></label
     >
     <label
-      >Close Date<input
+      >{ui('Close Date')}<input
         class="v2-input"
         name="closed_on"
         type="date"
@@ -265,19 +268,19 @@
       /></label
     >
   </RecordSection>
-  <RecordSection title="Associated records">
+  <RecordSection title={ui('Associated records')}>
     <label
-      >Company<select class="v2-input" name="account" bind:value={values.account}
-        ><option value="">Select company</option>{#each data.accounts as company}<option
+      >{ui('Company')}<select class="v2-input" name="account" bind:value={values.account}
+        ><option value="">{ui('Select company')}</option>{#each data.accounts as company}<option
             value={company.id}>{company.name}</option
           >{/each}</select
       ></label
     >
     <div class="contacts">
-      <span>Contacts</span>
+      <span>{ui('Contacts')}</span>
       <details>
         <summary class="v2-input"
-          >{contacts.length ? `${contacts.length} selected` : 'Select contacts'}</summary
+          >{contacts.length ? `${contacts.length} selected` : ui('Select contacts')}</summary
         >
         <div class="options">
           {#each data.contacts as contact}<label class="choice"
@@ -289,7 +292,7 @@
                     ? [...new Set([...contacts, String(contact.id)])]
                     : contacts.filter((id) => id !== String(contact.id)))}
               />{contact.name}</label
-            >{:else}<span>No contacts available.</span>{/each}
+            >{:else}<span>{ui('No contacts available.')}</span>{/each}
         </div>
       </details>
     </div>
@@ -300,31 +303,32 @@
     />
     {#each contacts as id}<input type="hidden" name="contacts" value={id} />{/each}
   </RecordSection>
-  <RecordSection title="Ownership & classification">
+  <RecordSection title={ui('Ownership & classification')}>
     <label
-      >Deal Owner<select class="v2-input" name="assigned_to" bind:value={values.assigned_to}
-        ><option value="">Select user</option>{#each data.owners as owner}<option value={owner.id}
-            >{owner.name}</option
+      >{ui('Deal Owner')}<select class="v2-input" name="assigned_to" bind:value={values.assigned_to}
+        ><option value="">{ui('Select user')}</option>{#each data.owners as owner}<option
+            value={owner.id}>{owner.name}</option
           >{/each}</select
       ></label
     >
     <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
     <label
-      >Priority<select class="v2-input" name="priority" bind:value={values.priority}
-        ><option value="">Select priority</option>{#each ['Low', 'Medium', 'High'] as label}<option
-            value={label.toUpperCase()}>{label}</option
+      >{ui('Priority')}<select class="v2-input" name="priority" bind:value={values.priority}
+        ><option value="">{ui('Select priority')}</option
+        >{#each ['Low', 'Medium', 'High'] as label}<option value={label.toUpperCase()}
+            >{ui(label)}</option
           >{/each}</select
       ></label
     >
     <label
-      >Source<select class="v2-input" name="lead_source" bind:value={values.lead_source}
-        ><option value="">Select source</option>{#each sources as [value, label]}<option {value}
-            >{label}</option
+      >{ui('Source')}<select class="v2-input" name="lead_source" bind:value={values.lead_source}
+        ><option value="">{ui('Select source')}</option>{#each sources as [value, label]}<option
+            {value}>{label}</option
           >{/each}</select
       ></label
     >
     <div class="v2-field">
-      <span class="tags-label">Tags</span><TagPicker
+      <span class="tags-label">{ui('Tags')}</span><TagPicker
         options={data.tagOptions ?? []}
         original={data.form?.tags ?? []}
         canCreate={data.canCreateTags}
@@ -333,9 +337,9 @@
       />
     </div>
   </RecordSection>
-  <RecordSection title="Communication" collapsible={!editing}>
+  <RecordSection title={ui('Communication')} collapsible={!editing}>
     <label
-      >Email<input
+      >{ui('Email')}<input
         class="v2-input"
         type="email"
         name="email"
@@ -344,7 +348,7 @@
       /></label
     >
     <label
-      >Phone<input
+      >{ui('Phone')}<input
         class="v2-input"
         type="tel"
         name="phone"
@@ -354,16 +358,16 @@
     >
     <LanguageSelect bind:value={values.language} />
   </RecordSection>
-  <RecordSection title="Address" collapsible={!editing}>
+  <RecordSection title={ui('Address')} collapsible={!editing}>
     <label
-      >Country<select class="v2-input" name="country" bind:value={values.country}
-        ><option value="">Select country</option
+      >{ui('Country')}<select class="v2-input" name="country" bind:value={values.country}
+        ><option value="">{ui('Select country')}</option
         >{#each countryOptions(values.country) as { value, label }}<option {value}>{label}</option
           >{/each}</select
       ></label
     >
     {#each addressFields as [key, label]}<label
-        >{label}<input
+        >{ui(label)}<input
           class="v2-input"
           name={key}
           maxlength={key === 'postcode' ? 64 : 255}
@@ -372,24 +376,27 @@
       >{/each}
   </RecordSection>
 
-  {#if showNotes}<RecordSection title="Notes" collapsible={!editing}
+  {#if showNotes}<RecordSection title={ui('Notes')} collapsible={!editing}
       ><label class="notes-field"
-        >Notes<textarea class="v2-input" name="description" rows="4" bind:value={values.description}
-        ></textarea></label
+        >{ui('Notes')}<textarea
+          class="v2-input"
+          name="description"
+          rows="4"
+          bind:value={values.description}></textarea></label
       ></RecordSection
     >
   {/if}
   {#if !autoSave}<div class="actions">
       <button class="v2-btn v2-btn-primary" disabled={saving || creatingTag} type="submit"
-        >{saving ? 'Saving…' : editing ? 'Save deal' : 'Create deal'}</button
+        >{saving ? ui('Saving…') : editing ? ui('Save deal') : ui('Create deal')}</button
       >{#if inline}<button
           class="v2-btn"
           type="button"
           disabled={saving || creatingTag}
-          onclick={onCancel}>Cancel</button
+          onclick={onCancel}>{ui('Cancel')}</button
         >{:else}<a
           class="v2-btn"
-          href={resolve(editing ? `/pipeline/${data.deal.id}` : '/pipeline')}>Cancel</a
+          href={resolve(editing ? `/pipeline/${data.deal.id}` : '/pipeline')}>{ui('Cancel')}</a
         >{/if}
     </div>
   {/if}

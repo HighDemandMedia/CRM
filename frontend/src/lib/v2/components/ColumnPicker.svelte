@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { tick } from 'svelte';
   import { X } from '@lucide/svelte';
   /** @type {{fields: any[], selected: string[], onToggle: (key: string) => void, onShowAll?: () => void, onReset?: () => void}} */
@@ -26,14 +29,14 @@
 
 <div class="column-picker" bind:this={root}>
   <button class="v2-btn" type="button" bind:this={trigger} aria-expanded={open} onclick={toggle}
-    >Edit columns</button
+    >{ui('Edit columns')}</button
   >
   {#if open}
-    <div class="dropdown" role="group" aria-label="Visible columns">
+    <div class="dropdown" role="group" aria-label={ui('Visible columns')}>
       <div class="picker-heading">
-        <strong>Columns</strong><button
+        <strong>{ui('Columns')}</strong><button
           type="button"
-          aria-label="Close columns"
+          aria-label={ui('Close columns')}
           onclick={() => {
             open = false;
             trigger?.focus();
@@ -43,8 +46,8 @@
       <input
         class="v2-input"
         type="search"
-        placeholder="Search columns…"
-        aria-label="Search columns"
+        placeholder={ui('Search columns…')}
+        aria-label={ui('Search columns')}
         bind:this={searchInput}
         bind:value={search}
         oninput={(event) => event.stopPropagation()}
@@ -53,9 +56,9 @@
         }}
       />
       <div class="picker-actions">
-        <span aria-live="polite">{selected.length} of {fields.length}</span>
-        {#if onShowAll}<button type="button" onclick={onShowAll}>Show all</button>{/if}
-        {#if onReset}<button type="button" onclick={onReset}>Reset</button>{/if}
+        <span aria-live="polite">{selected.length} {ui('of')} {fields.length}</span>
+        {#if onShowAll}<button type="button" onclick={onShowAll}>{ui('Show all')}</button>{/if}
+        {#if onReset}<button type="button" onclick={onReset}>{ui('Reset')}</button>{/if}
       </div>
       <div class="options">
         {#each matches as [key, label] (key)}
@@ -68,7 +71,7 @@
               onchange={() => onToggle(key)}
             />{label}</label
           >
-        {:else}<p>No matching columns.</p>{/each}
+        {:else}<p>{ui('No matching columns.')}</p>{/each}
       </div>
     </div>
   {/if}

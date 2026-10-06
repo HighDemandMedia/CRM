@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import DealForm from '$lib/components/deals/DealForm.svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { resolve } from '$app/paths';
@@ -6,7 +9,7 @@
   let { data, form } = $props();
 </script>
 
-<PageHeader title="Edit deal"
-  >{#snippet crumb()}<a href={resolve('/pipeline')}>Deals</a>{/snippet}</PageHeader
+<PageHeader title={ui('Edit deal')}
+  >{#snippet crumb()}<a href={resolve('/pipeline')}>{ui('Deals')}</a>{/snippet}</PageHeader
 >
 <div class="v2-scroll v2-pad"><DealForm {data} result={form} editing /></div>

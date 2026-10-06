@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   import CreateAppointment from '$lib/v2/components/CreateAppointment.svelte';
   let { data } = $props();
   import EventDetails from '$lib/v2/components/EventDetails.svelte';
@@ -31,10 +34,10 @@
   const days = $derived(calendarDays(selected, view));
   const title = $derived(
     view === 'day'
-      ? selected.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      ? selected.toLocaleDateString(locale(), { month: 'long', day: 'numeric', year: 'numeric' })
       : view === 'week'
-        ? `${days[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${days[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-        : selected.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        ? `${days[0].toLocaleDateString(locale(), { month: 'short', day: 'numeric' })} – ${days[6].toLocaleDateString(locale(), { month: 'short', day: 'numeric', year: 'numeric' })}`
+        : selected.toLocaleDateString(locale(), { month: 'long', year: 'numeric' })
   );
   const grouped = $derived.by(() => {
     const result = new Map();
@@ -106,7 +109,7 @@
           : 'Event'}
   <button
     type="button"
-    title={`${typeLabel} · ${event.title} · ${event.allDay ? 'All day' : new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
+    title={`${typeLabel} · ${event.title} · ${event.allDay ? 'All day' : new Date(event.start).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' })}`}
     class="appointment"
     class:company={attendeeType === 'company'}
     class:unlinked={attendeeType !== 'company' && attendeeType !== 'contact'}
@@ -114,42 +117,46 @@
   >
     <div class="event-time">
       {event.allDay
-        ? 'All day'
-        : new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+        ? ui('All day')
+        : new Date(event.start).toLocaleTimeString(locale(), {
+            hour: 'numeric',
+            minute: '2-digit'
+          })}
     </div>
     <strong
       >{#if attendeeType === 'company'}<Building2
           size={12}
-          aria-label="Company"
+          aria-label={ui('Company')}
         />{:else if attendeeType === 'contact'}<UserRound
           size={12}
-          aria-label="Contact"
+          aria-label={ui('Contact')}
         />{/if}{event.title}</strong
     >
   </button>
 {/snippet}
 
 <EventDetails bind:this={details} onChanged={() => refresh++} />
-<PageHeader title="Calendar" />
+<PageHeader title={ui('Calendar')} />
 {#if googleError}<p class="v2-error" role="status">
-    Google Calendar: {googleError} <a href="/profile?google=settings">Manage connection</a>
+    {ui('Google Calendar:')}
+    {googleError} <a href="/profile?google=settings">{ui('Manage connection')}</a>
   </p>{/if}
 <div class="calendar-toolbar">
-  <button class="v2-btn" onclick={() => (selected = new Date())}>Today</button>
+  <button class="v2-btn" onclick={() => (selected = new Date())}>{ui('Today')}</button>
   <button
     class="v2-btn"
-    aria-label="Previous period"
+    aria-label={ui('Previous period')}
     onclick={() => (selected = shiftDate(selected, view, -1))}><ChevronLeft size={16} /></button
   >
   <button
     class="v2-btn"
-    aria-label="Next period"
+    aria-label={ui('Next period')}
     onclick={() => (selected = shiftDate(selected, view, 1))}><ChevronRight size={16} /></button
   >
   <h2>{title}</h2>
-  <div class="event-legend" aria-label="Event types">
-    <span class="contact-key"><UserRound size={13} />Contacts</span><span class="company-key"
-      ><Building2 size={13} />Companies</span
+  <div class="event-legend" aria-label={ui('Event types')}>
+    <span class="contact-key"><UserRound size={13} />{ui('Contacts')}</span><span
+      class="company-key"><Building2 size={13} />{ui('Companies')}</span
     >
   </div>
   <CreateAppointment
@@ -158,7 +165,7 @@
     {selected}
     onCreated={() => refresh++}
   />
-  <div class="views" aria-label="Calendar view">
+  <div class="views" aria-label={ui('Calendar view')}>
     {#each ['day', 'week', 'month'] as mode}<button
         class="v2-btn"
         class:active={view === mode}
@@ -168,9 +175,9 @@
   </div>
 </div>
 {#if failure}<div class="calendar-message" role="alert">
-    {failure} <button class="v2-btn" onclick={() => refresh++}>Retry</button>
+    {ui(failure)} <button class="v2-btn" onclick={() => refresh++}>{ui('Retry')}</button>
   </div>
-{:else if busy}<div class="calendar-message" role="status">Loading appointments…</div>{/if}
+{:else if busy}<div class="calendar-message" role="status">{ui('Loading appointments…')}</div>{/if}
 <div
   class="calendar-scroll"
   bind:this={scroller}
@@ -186,7 +193,7 @@
           aria-label={day.toDateString()}
         >
           <header>
-            <span>{day.toLocaleDateString('en-US', { weekday: 'short' })}</span><button
+            <span>{day.toLocaleDateString(locale(), { weekday: 'short' })}</span><button
               class:today={dateKey(day) === dateKey(new Date())}
               aria-label={`View ${day.toDateString()}`}
               onclick={() => {
@@ -199,7 +206,7 @@
             {#each grouped.get(dateKey(day)) ?? [] as event (event.id)}
               {@render eventCard(event)}
             {:else}{#if view !== 'month' && !busy && !failure}<p class="v2-sub">
-                  No appointments
+                  {ui('No appointments')}
                 </p>{/if}{/each}
           </div>
         </section>
@@ -207,10 +214,10 @@
     </div>
   {:else}
     <div class="time-grid" style={`--day-count:${days.length}`}>
-      <div class="time-corner">Time</div>
+      <div class="time-corner">{ui('Time')}</div>
       {#each days as day (dateKey(day))}
         <header class="time-header">
-          <span>{day.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+          <span>{day.toLocaleDateString(locale(), { weekday: 'short' })}</span>
           <button
             class:today={dateKey(day) === dateKey(new Date())}
             aria-label={`View ${day.toDateString()}`}
@@ -221,7 +228,7 @@
           >
         </header>
       {/each}
-      <div class="all-day-label">All day</div>
+      <div class="all-day-label">{ui('All day')}</div>
       {#each days as day (dateKey(day))}<div class="all-day-events">
           {#each (grouped.get(dateKey(day)) ?? []).filter((event) => event.allDay) as event (event.id)}{@render eventCard(
               event

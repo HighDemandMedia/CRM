@@ -57,6 +57,7 @@ export async function getProfile({ cookies }) {
       },
       role: u.role,
       phone: u.phone || '',
+      ui_language: u.ui_language === 'es' ? 'es' : 'en',
       language: u.language || '',
       timezone: u.timezone || '',
       organization_timezone: u.organization_timezone || 'UTC',

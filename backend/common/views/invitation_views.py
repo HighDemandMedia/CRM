@@ -2,7 +2,6 @@ import hashlib
 import secrets
 from datetime import timedelta
 
-from django.conf import settings
 from django.core.mail import send_mail
 from django.db import connection, transaction
 from django.shortcuts import get_object_or_404
@@ -13,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+from common.invitations import accept_ownership, send_invitation
 from common.models import CRMRole, Org, OrganizationInvitation, Profile
 from common.permissions import HasOrgContext, IsOrgAdmin
 from common.rbac import ensure_default_roles
@@ -57,68 +57,83 @@ class InvitationsView(APIView):
         return Response({"invitations": [invitation_data(row) for row in rows]})
 
     def post(self, request):
-        data = InviteInput(data=request.data)
-        data.is_valid(raise_exception=True)
-        from common.member_access import assert_member_management
+        return create_invitation(request)
 
-        assert_member_management(request.profile, new_role=data.validated_data["role"])
-        email = data.validated_data["email"].strip().lower()
-        access_role = None
-        if data.validated_data["role"] != "ADMIN":
-            role_id = data.validated_data.get("access_role_id")
-            access_role = (
-                get_object_or_404(CRMRole, pk=role_id, org=request.org)
-                if role_id
-                else ensure_default_roles(request.org)[0]
-            )
-        raw = secrets.token_urlsafe(32)
-        with transaction.atomic():
-            # Lock the organization so simultaneous invites cannot create two grants.
-            org = Org.objects.select_for_update().get(pk=request.profile.org_id)
-            if Profile.objects.filter(
-                org=org, user__email__iexact=email, removed_at__isnull=True
-            ).exists():
-                return Response(
-                    {
-                        "error": "This person already belongs to this organization. Manage their access in Users."
-                    },
-                    status=400,
-                )
-            existing = OrganizationInvitation.objects.filter(
-                org=org, email=email, accepted_at__isnull=True
-            ).first()
-            if existing and existing.role == "ADMIN":
-                assert_member_management(request.profile, new_role="ADMIN")
-            row, _ = OrganizationInvitation.objects.update_or_create(
-                org=org,
-                email=email,
-                defaults={
-                    "role": data.validated_data["role"],
-                    "access_role": access_role,
-                    "token_hash": digest(raw),
-                    "invited_by": request.user,
-                    "expires_at": timezone.now() + timedelta(days=7),
-                    "accepted_at": None,
-                    "revoked_at": None,
-                },
-            )
-        link = f"{settings.FRONTEND_URL.rstrip('/')}/invite?token={raw}"
-        try:
-            send_mail(
-                f"Invitation to {org.name} · High Demand Media CRM",
-                f"You have been invited to {org.name}.\n\nOpen this link to join:\n{link}\n\nIf you are new to High Demand Media CRM, you will create your own password for {email}. If you already have an account, sign in with that email to accept.\n\nThis invitation expires in 7 days. If you were not expecting it, you can ignore this email.",
-                settings.DEFAULT_FROM_EMAIL,
-                [email],
-                fail_silently=False,
-            )
-        except Exception:
+
+def create_invitation(request):
+    data = InviteInput(data=request.data)
+    data.is_valid(raise_exception=True)
+    from common.member_access import assert_member_management
+
+    assert_member_management(request.profile, new_role=data.validated_data["role"])
+    email = data.validated_data["email"].strip().lower()
+    access_role = None
+    if data.validated_data["role"] != "ADMIN":
+        role_id = data.validated_data.get("access_role_id")
+        access_role = (
+            get_object_or_404(CRMRole, pk=role_id, org=request.org)
+            if role_id
+            else ensure_default_roles(request.org)[0]
+        )
+    raw = secrets.token_urlsafe(32)
+    with transaction.atomic():
+        # Lock the organization so simultaneous invites cannot create two grants.
+        org = Org.objects.select_for_update().get(pk=request.profile.org_id)
+        if Profile.objects.filter(
+            org=org, user__email__iexact=email, removed_at__isnull=True
+        ).exists():
             return Response(
                 {
-                    "error": "Invitation saved, but email delivery failed. Use Resend after checking mail settings."
+                    "error": "This person already belongs to this organization. Manage their access in Users."
                 },
-                status=503,
+                status=400,
             )
-        return Response(invitation_data(row), status=201)
+        existing = OrganizationInvitation.objects.filter(
+            org=org, email=email, accepted_at__isnull=True
+        ).first()
+        if existing and existing.grants_ownership and not request.user.is_superuser:
+            return Response(
+                {
+                    "error": "Only the platform owner can manage this administrator invitation."
+                },
+                status=403,
+            )
+        if (
+            existing
+            and existing.grants_ownership
+            and data.validated_data["role"] != "ADMIN"
+        ):
+            return Response(
+                {
+                    "error": "The initial organization invitation must remain an administrator invitation."
+                },
+                status=400,
+            )
+        if existing and existing.role == "ADMIN":
+            assert_member_management(request.profile, new_role="ADMIN")
+        row, _ = OrganizationInvitation.objects.update_or_create(
+            org=org,
+            email=email,
+            defaults={
+                "role": data.validated_data["role"],
+                "access_role": access_role,
+                "token_hash": digest(raw),
+                "invited_by": request.user,
+                "expires_at": timezone.now() + timedelta(days=7),
+                "accepted_at": None,
+                "revoked_at": None,
+            },
+        )
+    try:
+        send_invitation(row, raw, sender=send_mail)
+    except Exception:
+        return Response(
+            {
+                "error": "Invitation saved, but email delivery failed. Use Resend after checking mail settings."
+            },
+            status=503,
+        )
+    return Response(invitation_data(row), status=201)
 
 
 class InvitationDetailView(APIView):
@@ -213,6 +228,13 @@ class AcceptInvitationView(APIView):
                     "date_of_joining": timezone.localdate(),
                 },
             )
+            accept_ownership(row, request.user)
             row.accepted_at = timezone.now()
             row.save(update_fields=["accepted_at"])
-        return Response({"org_id": str(row.org_id), "name": row.org.name})
+        return Response(
+            {
+                "org_id": str(row.org_id),
+                "name": row.org.name,
+                "needs_organization_setup": row.grants_ownership,
+            }
+        )

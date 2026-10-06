@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { enhance } from '$app/forms';
   import TeamPanel from './TeamPanel.svelte';
   let { roles, isSuperAdmin, onclose } = $props();
@@ -15,7 +18,7 @@
 </script>
 
 <TeamPanel
-  title="Invite user"
+  title={ui('Invite user')}
   subtitle="Give someone access to this organization."
   {busy}
   {onclose}
@@ -47,7 +50,7 @@
   >
     <div class="panel-body">
       <label class="field"
-        >Email<input
+        >{ui('Email')}<input
           class="v2-input"
           name="email"
           type="email"
@@ -58,12 +61,12 @@
         /></label
       >
       <label class="field"
-        >Permission set<select class="v2-input" bind:value={role} disabled={busy}
-          ><option value="">Member</option
+        >{ui('Permission set')}<select class="v2-input" bind:value={role} disabled={busy}
+          ><option value="">{ui('Member')}</option
           >{#each roles.filter((r) => r.name !== 'Member') as r}<option value={r.id}
               >{r.name}</option
-            >{/each}{#if isSuperAdmin}<option value="ADMIN">Admin</option>{/if}</select
-        ><small>Record access: {scope}</small></label
+            >{/each}{#if isSuperAdmin}<option value="ADMIN">{ui('Admin')}</option>{/if}</select
+        ><small>{ui('Record access:')} {scope}</small></label
       >
       <input type="hidden" name="role" value={role === 'ADMIN' ? 'ADMIN' : 'USER'} />
       <input
@@ -72,15 +75,16 @@
         value={role === 'ADMIN' ? '' : role || roles.find((r) => r.name === 'Member')?.id || ''}
       />
       <p class="invite-note">
-        They’ll receive an email to accept the invitation. You can add them to a team after they
-        join.
+        {ui(
+          'They’ll receive an email to accept the invitation. You can add them to a team after they join.'
+        )}
       </p>
-      {#if error}<p class="panel-error" role="alert">{error}</p>{/if}
+      {#if error}<p class="panel-error" role="alert">{ui(error)}</p>{/if}
     </div>
     <footer class="panel-footer">
-      <button class="v2-btn" type="button" disabled={busy} onclick={onclose}>Cancel</button><button
-        class="v2-btn v2-btn-primary"
-        disabled={busy}>{busy ? 'Sending…' : 'Send invitation'}</button
+      <button class="v2-btn" type="button" disabled={busy} onclick={onclose}>{ui('Cancel')}</button
+      ><button class="v2-btn v2-btn-primary" disabled={busy}
+        >{busy ? ui('Sending…') : ui('Send invitation')}</button
       >
     </footer>
   </form>

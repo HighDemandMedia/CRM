@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   import * as Dialog from '$lib/components/ui/dialog/index.js';
   import { goto, invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
@@ -84,7 +87,7 @@
     }
   }
   function display(value, row) {
-    if (row.is_datetime && value) return new Date(value).toLocaleString();
+    if (row.is_datetime && value) return new Date(value).toLocaleString(locale());
     return value == null || value === ''
       ? '—'
       : typeof value === 'object'
@@ -110,10 +113,10 @@
     }}
   >
     <Dialog.Header>
-      <Dialog.Title>Merge contacts</Dialog.Title>
+      <Dialog.Title>{ui('Merge contacts')}</Dialog.Title>
       <Dialog.Description
         >{preview
-          ? 'Choose which values to keep in the surviving contact.'
+          ? ui('Choose which values to keep in the surviving contact.')
           : `Find the contact to merge with ${contact.name}.`}</Dialog.Description
       >
     </Dialog.Header>
@@ -121,40 +124,38 @@
       <label class="search"
         ><Search size={16} /><input
           class="v2-input"
-          aria-label="Find contact to merge"
-          placeholder="Search name, email or phone…"
+          aria-label={ui('Find contact to merge')}
+          placeholder={ui('Search name, email or phone…')}
           bind:value={query}
           disabled={busy}
         /></label
       >
       <div class="matches">
-        {#if searching}<p>Searching…</p>{:else}{#each results as result (result.id)}
+        {#if searching}<p>{ui('Searching…')}</p>{:else}{#each results as result (result.id)}
             <button class="match" disabled={busy} onclick={() => compare(result.id)}
               ><strong>{result.name}</strong><span
                 >{[result.email, result.phone].filter(Boolean).join(' · ') || result.id}</span
               ></button
             >
-          {:else}{#if query.trim().length >= 2}<p>No matching contacts.</p>{/if}{/each}{/if}
+          {:else}{#if query.trim().length >= 2}<p>{ui('No matching contacts.')}</p>{/if}{/each}{/if}
       </div>
     {:else}
       <div class="records">
         <div>
-          <small>Keep this contact and its ID</small><strong>{preview.primary.name}</strong><span
-            >{preview.primary.id.slice(0, 8)}…{preview.primary.id.slice(-4)}</span
-          >
+          <small>{ui('Keep this contact and its ID')}</small><strong>{preview.primary.name}</strong
+          ><span>{preview.primary.id.slice(0, 8)}…{preview.primary.id.slice(-4)}</span>
         </div>
         <button
           class="v2-btn"
           disabled={busy}
-          aria-label="Switch primary contact"
-          title="Switch primary contact"
+          aria-label={ui('Switch primary contact')}
+          title={ui('Switch primary contact')}
           onclick={() => compare(preview.primary.id, preview.secondary.id)}
           ><ArrowLeftRight size={16} /></button
         >
         <div>
-          <small>Merge into the primary</small><strong>{preview.secondary.name}</strong><span
-            >{preview.secondary.id.slice(0, 8)}…{preview.secondary.id.slice(-4)}</span
-          >
+          <small>{ui('Merge into the primary')}</small><strong>{preview.secondary.name}</strong
+          ><span>{preview.secondary.id.slice(0, 8)}…{preview.secondary.id.slice(-4)}</span>
         </div>
       </div>
       <div class="comparison">
@@ -177,24 +178,25 @@
                 >{/each}
             </div>
           </fieldset>
-        {:else}<p>Both contacts have the same properties.</p>{/each}
+        {:else}<p>{ui('Both contacts have the same properties.')}</p>{/each}
       </div>
       <div class="consequences">
-        Notes, files, activity, tags, owners and associations will be combined. The secondary
-        contact will be archived and its old links will open the primary. Its portal access will
-        end. There is no automatic undo.
+        {ui(
+          'Notes, files, activity, tags, owners and associations will be combined. The secondary contact will be archived and its old links will open the primary. Its portal access will end. There is no automatic undo.'
+        )}
       </div>
       <label class="confirmation"
-        ><input type="checkbox" bind:checked={confirmed} disabled={busy} />I confirm these records
-        represent the same contact.</label
+        ><input type="checkbox" bind:checked={confirmed} disabled={busy} />{ui(
+          'I confirm these records represent the same contact.'
+        )}</label
       >
     {/if}
-    {#if error}<p class="v2-error" role="alert">{error}</p>
+    {#if error}<p class="v2-error" role="alert">{ui(error)}</p>
       {#if preview}<button
           class="v2-btn"
           disabled={busy}
           onclick={() => compare(preview.secondary.id, preview.primary.id)}
-          >Refresh comparison</button
+          >{ui('Refresh comparison')}</button
         >{/if}{/if}
     <Dialog.Footer>
       <button
@@ -203,7 +205,7 @@
         onclick={() => {
           open = false;
           onClose();
-        }}>Cancel</button
+        }}>{ui('Cancel')}</button
       >
       {#if preview}<button
           class="v2-btn"
@@ -212,9 +214,9 @@
             preview = null;
             confirmed = false;
             error = '';
-          }}>Choose another contact</button
+          }}>{ui('Choose another contact')}</button
         ><button class="v2-btn v2-btn-primary" disabled={busy || !confirmed} onclick={merge}
-          >{busy ? 'Merging…' : 'Merge contacts'}</button
+          >{busy ? ui('Merging…') : ui('Merge contacts')}</button
         >{/if}
     </Dialog.Footer>
   </Dialog.Content>

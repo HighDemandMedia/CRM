@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   /**
    * Built for a 390px phone first. The list is a stack of cards rather than a
    * table, because a customer has a handful of requests and a table of six
@@ -53,7 +56,7 @@
 
   function formatDate(value) {
     if (!value) return '';
-    return new Date(value).toLocaleDateString(undefined, {
+    return new Date(value).toLocaleDateString(locale(), {
       day: 'numeric',
       month: 'short',
       year: 'numeric'
@@ -62,35 +65,35 @@
 </script>
 
 <svelte:head>
-  <title>Your support requests</title>
+  <title>{ui('Your support requests')}</title>
 </svelte:head>
 
 <PortalShell>
   <header class="head">
-    <h1>Your requests</h1>
+    <h1>{ui('Your requests')}</h1>
     <div class="actions">
-      <a class="btn" href={resolve('/portal/articles')}>Help</a>
+      <a class="btn" href={resolve('/portal/articles')}>{ui('Help')}</a>
       <button type="button" onclick={() => (composing = !composing)}>
-        {composing ? 'Cancel' : 'New request'}
+        {composing ? ui('Cancel') : ui('New request')}
       </button>
     </div>
   </header>
 
   {#if composing}
     <form method="POST" action="?/create" use:enhance class="compose">
-      <label for="name">What do you need help with?</label>
+      <label for="name">{ui('What do you need help with?')}</label>
       <input
         id="name"
         name="name"
         required
-        placeholder="Short summary"
+        placeholder={ui('Short summary')}
         bind:value={summary}
         oninput={findAnswers}
       />
 
       {#if suggestions.length > 0}
         <aside class="deflect">
-          <p class="deflect-head">These might already answer it</p>
+          <p class="deflect-head">{ui('These might already answer it')}</p>
           <ul>
             {#each suggestions as article (article.id)}
               <li>
@@ -104,18 +107,18 @@
         </aside>
       {/if}
 
-      <label for="description">Any detail that would help</label>
+      <label for="description">{ui('Any detail that would help')}</label>
       <textarea id="description" name="description" rows="4"></textarea>
 
-      <label for="priority">How urgent is it?</label>
+      <label for="priority">{ui('How urgent is it?')}</label>
       <select id="priority" name="priority">
-        <option value="Low">Low</option>
+        <option value="Low">{ui('Low')}</option>
         <option value="Normal" selected>Normal</option>
-        <option value="High">High</option>
+        <option value="High">{ui('High')}</option>
       </select>
 
-      {#if form?.error}<p class="err">{form.error}</p>{/if}
-      <button type="submit" class="primary">Send request</button>
+      {#if form?.error}<p class="err">{ui(form.error)}</p>{/if}
+      <button type="submit" class="primary">{ui('Send request')}</button>
     </form>
   {/if}
 
@@ -134,7 +137,7 @@
     <p class="empty">
       {data.status
         ? `You have no ${data.status.toLowerCase()} requests.`
-        : 'You have not sent us any requests yet.'}
+        : ui('You have not sent us any requests yet.')}
     </p>
   {:else}
     <ul class="list">

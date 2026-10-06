@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import EmptyState from '$lib/v2/components/EmptyState.svelte';
@@ -47,9 +50,11 @@
     {/snippet}
     {#snippet actions()}
       {#if status >= 500}
-        <button class="v2-btn v2-btn-primary" onclick={() => location.reload()}>Try again</button>
+        <button class="v2-btn v2-btn-primary" onclick={() => location.reload()}
+          >{ui('Try again')}</button
+        >
       {/if}
-      <a class="v2-btn" href={resolve('/')}>Back to Today</a>
+      <a class="v2-btn" href={resolve('/')}>{ui('Back to Today')}</a>
     {/snippet}
   </EmptyState>
 

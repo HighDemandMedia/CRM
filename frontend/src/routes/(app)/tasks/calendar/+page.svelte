@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, count } = useI18n();
+
   import { resolve } from '$app/paths';
   /**
    * The task calendar. One month at a time, dated tasks sitting on the day they
@@ -12,7 +15,7 @@
    */
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import SectionTabs from '$lib/v2/components/SectionTabs.svelte';
-  import { count } from '$lib/v2/format.js';
+
   import { TASK_PRIORITY_TONE } from '$lib/v2/enums.js';
   import { ChevronLeft, ChevronRight, CalendarDays } from '@lucide/svelte';
 
@@ -34,16 +37,16 @@
   const CAP = 4; // chips per cell before it collapses to "+N more"
 </script>
 
-<PageHeader title="Tasks">
+<PageHeader title={ui('Tasks')}>
   {#snippet sub()}
-    {data.monthLabel} · <span class="v2-num">{count(data.datedCount)}</span> scheduled
+    {data.monthLabel} · <span class="v2-num">{count(data.datedCount)}</span> {ui('scheduled')}
   {/snippet}
   {#snippet actions()}
     <div class="v2-cal-nav">
       <a
         class="v2-btn v2-btn-icon"
         href={resolve(`/tasks/calendar?month=${data.prevMonth}`)}
-        aria-label="Previous month"
+        aria-label={ui('Previous month')}
         data-sveltekit-noscroll
       >
         <ChevronLeft size={15} />
@@ -52,13 +55,13 @@
         <a
           class="v2-btn v2-btn-sm"
           href={resolve(`/tasks/calendar?month=${data.thisMonth}`)}
-          data-sveltekit-noscroll>Today</a
+          data-sveltekit-noscroll>{ui('Today')}</a
         >
       {/if}
       <a
         class="v2-btn v2-btn-icon"
         href={resolve(`/tasks/calendar?month=${data.nextMonth}`)}
-        aria-label="Next month"
+        aria-label={ui('Next month')}
         data-sveltekit-noscroll
       >
         <ChevronRight size={15} />
@@ -106,7 +109,7 @@
                 </a>
               {/each}
               {#if cell.tasks.length > CAP}
-                <span class="v2-cal-more">+{cell.tasks.length - CAP} more</span>
+                <span class="v2-cal-more">+{cell.tasks.length - CAP} {ui('more')}</span>
               {/if}
             </div>
           </div>
@@ -120,15 +123,15 @@
     {#if data.agenda.length === 0}
       <div class="v2-state" style="padding:34px 0">
         <div class="v2-state-icon"><CalendarDays size={22} /></div>
-        <h3>Nothing scheduled</h3>
-        <p>No tasks fall due in {data.monthLabel}.</p>
+        <h3>{ui('Nothing scheduled')}</h3>
+        <p>{ui('No tasks fall due in')} {data.monthLabel}.</p>
       </div>
     {:else}
       {#each data.agenda as day (day.date)}
         <div class="v2-cal-agenda-day">
           <div class="v2-cal-agenda-date" class:v2-cal-agenda-today={day.isToday}>
             <span class="v2-num">{day.day}</span>
-            {#if day.isToday}<span class="v2-cal-agenda-todaytag">Today</span>{/if}
+            {#if day.isToday}<span class="v2-cal-agenda-todaytag">{ui('Today')}</span>{/if}
           </div>
           <div class="v2-cal-agenda-list">
             {#each day.tasks as t (t.id)}
@@ -139,7 +142,7 @@
               >
                 <i class="v2-cal-dot" style="background:{dot(t)}"></i>
                 <span class="v2-cal-chip-text">{t.title}</span>
-                {#if t.overdue}<span class="v2-cal-overdue">overdue</span>{/if}
+                {#if t.overdue}<span class="v2-cal-overdue">{ui('overdue')}</span>{/if}
               </a>
             {/each}
           </div>
@@ -149,10 +152,10 @@
   </div>
 
   <p class="v2-sub v2-pad v2-cal-foot">
-    Tasks without a due date don't appear here,
-    <a href={resolve('/tasks')} style="color:inherit">see the task list</a>.
+    {ui("Tasks without a due date don't appear here,")}
+    <a href={resolve('/tasks')} style="color:inherit">{ui('see the task list')}</a>.
     {#if data.truncated}
-      This month has more scheduled tasks than fit on the calendar; the list shows them all.
+      {ui('This month has more scheduled tasks than fit on the calendar; the list shows them all.')}
     {/if}
   </p>
 </div>

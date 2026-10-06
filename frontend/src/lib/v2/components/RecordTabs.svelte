@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   /** @type {{notes: import('svelte').Snippet, activity: import('svelte').Snippet}} */
   let { notes, activity } = $props();
   let active = $state('notes');
@@ -24,7 +27,7 @@
     class="tabs"
     role="tablist"
     tabindex="-1"
-    aria-label="Notes and activity"
+    aria-label={ui('Notes and activity')}
     onkeydown={navigate}
   >
     <button
@@ -35,7 +38,7 @@
       aria-controls={`${id}-notes`}
       aria-selected={active === 'notes'}
       tabindex={active === 'notes' ? 0 : -1}
-      onclick={() => (active = 'notes')}>Notes</button
+      onclick={() => (active = 'notes')}>{ui('Notes')}</button
     >
     <button
       type="button"
@@ -45,7 +48,7 @@
       aria-controls={`${id}-activity`}
       aria-selected={active === 'activity'}
       tabindex={active === 'activity' ? 0 : -1}
-      onclick={() => (active = 'activity')}>Activity</button
+      onclick={() => (active = 'activity')}>{ui('Activity')}</button
     >
   </div>
   <div

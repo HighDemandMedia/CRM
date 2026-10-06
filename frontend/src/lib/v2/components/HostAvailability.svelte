@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   import { resolve } from '$app/paths';
   /** @type {{host:string,date:string,start:string,end:string,active?:boolean,exclude?:string,blocked?:boolean}} */
   let { host, date, start, end, active = true, exclude = '', blocked = $bindable(true) } = $props();
@@ -48,20 +51,20 @@
     return () => controller.abort();
   });
   const time = (value) =>
-    new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    new Date(value).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' });
 </script>
 
 <div class="availability" aria-live="polite">
-  {#if loading}<span>Checking availability…</span>
-  {:else if error}<span>{error}</span>
-    <button type="button" class="v2-btn" onclick={() => retry++}>Retry</button>
+  {#if loading}<span>{ui('Checking availability…')}</span>
+  {:else if error}<span>{ui(error)}</span>
+    <button type="button" class="v2-btn" onclick={() => retry++}>{ui('Retry')}</button>
   {:else if host && date}
-    {#if slots.length}<strong>Host busy</strong>
+    {#if slots.length}<strong>{ui('Host busy')}</strong>
       <div class="slots">
         {#each slots as slot}<span>{time(slot.starts_at)} – {time(slot.ends_at)}</span>{/each}
-      </div>{:else}<span>No bookings for this host on this date.</span>{/if}
+      </div>{:else}<span>{ui('No bookings for this host on this date.')}</span>{/if}
     {#if conflict}<p role="alert">
-        This time overlaps another event. Choose a different time.
+        {ui('This time overlaps another event. Choose a different time.')}
       </p>{/if}
   {/if}
 </div>

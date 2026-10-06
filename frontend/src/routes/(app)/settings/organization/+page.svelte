@@ -1,10 +1,13 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, shortDate } = useI18n();
+
   import { untrack } from 'svelte';
   import { enhance } from '$app/forms';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { countryOptions } from '$lib/constants/countries.js';
   import { CURRENCY_CODES } from '$lib/constants/filters.js';
-  import { shortDate } from '$lib/v2/format.js';
+
   /** @type {{data:any, form:any}} */
   let { data, form } = $props();
   let org = $derived(data.org);
@@ -66,12 +69,15 @@
 </script>
 
 <div class="organization-shell">
-  <PageHeader title="Organization"
-    >{#snippet sub()}Organization information and regional defaults{/snippet}</PageHeader
+  <PageHeader title={data.onboarding ? ui('Welcome to your organization') : ui('Organization')}
+    >{#snippet sub()}{data.onboarding
+        ? ui('Complete your company details and confirm your currency, country and time zone.')
+        : ui('Organization information and regional defaults')}{/snippet}</PageHeader
   >
   <div class="v2-scroll">
     <div class="organization-content">
       <form method="POST" action="?/save" use:enhance={save}>
+        {#if data.onboarding}<input type="hidden" name="onboarding" value="1" />{/if}
         <fieldset disabled={!data.can_edit || busy}>
           {#each sections as section}
             <section>
@@ -90,8 +96,11 @@
                 {/each}
                 {#if section.title === 'Address'}
                   <label
-                    >Country<select class="v2-input" name="country" bind:value={draft.country}
-                      ><option value="">Select country</option
+                    >{ui('Country')}<select
+                      class="v2-input"
+                      name="country"
+                      bind:value={draft.country}
+                      ><option value="">{ui('Select country')}</option
                       >{#each countryOptions(draft.country) as country}<option value={country.value}
                           >{country.label}</option
                         >{/each}</select
@@ -102,10 +111,10 @@
             </section>
           {/each}
           <section>
-            <h2>Regional defaults</h2>
+            <h2>{ui('Regional defaults')}</h2>
             <div class="fields">
               <label
-                >Currency<select
+                >{ui('Currency')}<select
                   class="v2-input"
                   name="default_currency"
                   bind:value={draft.default_currency}
@@ -115,18 +124,21 @@
                 ></label
               >
               <label
-                >Default country<select
+                >{ui('Default country')}<select
                   class="v2-input"
                   name="default_country"
                   bind:value={draft.default_country}
-                  ><option value="">Select country</option
+                  ><option value="">{ui('Select country')}</option
                   >{#each countryOptions(draft.default_country) as country}<option
                       value={country.value}>{country.label}</option
                     >{/each}</select
                 ></label
               >
               <label class="wide"
-                >Time zone<select class="v2-input" name="timezone" bind:value={draft.timezone}
+                >{ui('Time zone')}<select
+                  class="v2-input"
+                  name="timezone"
+                  bind:value={draft.timezone}
                   >{#each data.timezones as timezone}<option value={timezone.name}
                       >{timezone.label}</option
                     >{/each}</select
@@ -136,30 +148,33 @@
           </section>
         </fieldset>
         {#if data.can_edit}<div class="actions">
-            <button class="v2-btn v2-btn-primary" disabled={busy || !dirty}
-              >{busy ? 'Saving…' : 'Save changes'}</button
+            <button class="v2-btn v2-btn-primary" disabled={busy || (!dirty && !data.onboarding)}
+              >{busy
+                ? ui('Saving…')
+                : data.onboarding
+                  ? ui('Save and open CRM')
+                  : ui('Save changes')}</button
             ><button class="v2-btn" type="button" disabled={busy || !dirty} onclick={reset}
-              >Cancel</button
+              >{ui('Cancel')}</button
             >
           </div>{/if}
-        {#if form?.message}<p class="error" role="alert">{form.message}</p>{:else if form?.saved}<p
-            class="success"
-            role="status"
-          >
-            Organization details saved.
+        {#if form?.message}<p class="error" role="alert">
+            {ui(form.message)}
+          </p>{:else if form?.saved}<p class="success" role="status">
+            {ui('Organization details saved.')}
           </p>{/if}
       </form>
       <dl class="metadata">
         <div>
-          <dt>Organization ID</dt>
+          <dt>{ui('Organization ID')}</dt>
           <dd>{org.id}</dd>
         </div>
         <div>
-          <dt>Created</dt>
+          <dt>{ui('Created')}</dt>
           <dd>{shortDate(org.created_at)}</dd>
         </div>
         <div>
-          <dt>Members</dt>
+          <dt>{ui('Members')}</dt>
           <dd>{org.member_count}</dd>
         </div>
       </dl>

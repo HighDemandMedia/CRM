@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { page } from '$app/state';
   import { resolve } from '$app/paths';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
@@ -6,15 +9,15 @@
   let knowledge = $derived(page.url.pathname.startsWith('/help/knowledge'));
 </script>
 
-<PageHeader title="Help"
-  >{#snippet sub()}Guidance and support from High Demand Media{/snippet}</PageHeader
+<PageHeader title={ui('Help')}
+  >{#snippet sub()}{ui('Guidance and support from High Demand Media')}{/snippet}</PageHeader
 >
-<nav class="help-tabs" aria-label="Help sections">
+<nav class="help-tabs" aria-label={ui('Help sections')}>
   <a href={resolve('/help')} aria-current={!knowledge ? 'page' : undefined}
-    ><MessageCircle size={16} />Contact support</a
+    ><MessageCircle size={16} />{ui('Contact support')}</a
   >
   <a href={resolve('/help/knowledge')} aria-current={knowledge ? 'page' : undefined}
-    ><BookOpen size={16} />Knowledge base</a
+    ><BookOpen size={16} />{ui('Knowledge base')}</a
   >
 </nav>
 

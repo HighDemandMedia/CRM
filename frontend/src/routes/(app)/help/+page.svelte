@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { enhance } from '$app/forms';
   import { page } from '$app/state';
   import { resolve } from '$app/paths';
@@ -123,11 +126,11 @@
   {@const spec = current.fields.find((item) => item.key === key)}
   <label
     ><span
-      >{spec.label}{#if !spec.required}<small>Optional</small>{/if}</span
+      >{spec.label}{#if !spec.required}<small>{ui('Optional')}</small>{/if}</span
     >
     {#if spec.options}
       <select class="v2-input" name={key} required={spec.required} bind:value={draft[key]}>
-        <option value="">Select…</option>
+        <option value="">{ui('Select…')}</option>
         {#each spec.options as option}<option value={option.value}>{option.label}</option>{/each}
       </select>
     {:else if spec.input === 'url'}
@@ -156,8 +159,8 @@
 <div class="help-scroll">
   <div class="help-layout">
     <aside class="request-sidebar">
-      <h2>How can we help?</h2>
-      <div class="request-types" role="group" aria-label="Request type">
+      <h2>{ui('How can we help?')}</h2>
+      <div class="request-types" role="group" aria-label={ui('Request type')}>
         {#each requestTypes as type}{@const Icon = icons[type.key]}<button
             type="button"
             class:active={kind === type.key}
@@ -171,8 +174,8 @@
       </div>
       <a class="guide-link" href={resolve('/help/knowledge')}
         ><BookOpen size={18} /><span
-          ><strong>Explore the knowledge base</strong><small
-            >Step-by-step guides for your CRM.</small
+          ><strong>{ui('Explore the knowledge base')}</strong><small
+            >{ui('Step-by-step guides for your CRM.')}</small
           ></span
         ></a
       >
@@ -190,18 +193,18 @@
           <CircleCheck size={30} />
           <h2>
             {form.receipt.delivery_mode === 'local_test'
-              ? 'Captured in the local test inbox'
-              : 'Request sent'}
+              ? ui('Captured in the local test inbox')
+              : ui('Request sent')}
           </h2>
           <p>
             {form.receipt.delivery_mode === 'local_test'
               ? `This local environment captured the message addressed to ${form.receipt.recipient}. It has not been delivered to the external mailbox.`
               : `Your request was accepted by the email service for ${form.receipt.recipient}. Replies will go to ${data.support.reply_to}.`}
           </p>
-          <span class="reference">Reference: {form.receipt.reference}</span><a
+          <span class="reference">{ui('Reference:')} {form.receipt.reference}</span><a
             class="v2-btn"
             href={resolve('/help')}
-            data-sveltekit-reload>New request</a
+            data-sveltekit-reload>{ui('New request')}</a
           >
         </div>
       {:else}
@@ -210,15 +213,16 @@
           <p>{current.introduction}</p>
         </div>
         {#if data.support.delivery_mode === 'local_test'}<p class="delivery-note">
-            Local test mode · Requests are captured in the test inbox. External email delivery is
-            not active.
+            {ui(
+              'Local test mode · Requests are captured in the test inbox. External email delivery is not active.'
+            )}
           </p>{:else if data.support.delivery_mode === 'unavailable'}<p
             class="delivery-note"
             role="status"
           >
-            Email delivery is not configured. Contact <a href={`mailto:${data.support.recipient}`}
-              >{data.support.recipient}</a
-            > directly.
+            {ui('Email delivery is not configured. Contact')}
+            <a href={`mailto:${data.support.recipient}`}>{data.support.recipient}</a>
+            {ui('directly.')}
           </p>{/if}
         <form method="POST" use:enhance={submit}>
           <input
@@ -230,21 +234,22 @@
             {#key kind}
               {#if kind === 'bug'}
                 <div class="form-section">
-                  <h3><span class="step">1</span> Locate the problem</h3>
+                  <h3><span class="step">1</span> {ui('Locate the problem')}</h3>
                   {@render areaField('Where did it happen?')}
                   {@render subjectField()}
                 </div>
                 <div class="form-section">
-                  <h3><span class="step">2</span> Describe the difference</h3>
+                  <h3><span class="step">2</span> {ui('Describe the difference')}</h3>
                   <div class="field-pair">{@render field('actual')}{@render field('expected')}</div>
                 </div>
                 <div class="form-section">
-                  <h3><span class="step">3</span> Help us investigate</h3>
+                  <h3><span class="step">3</span> {ui('Help us investigate')}</h3>
                   <div class="field-pair">
                     {@render field('impact')}{@render field('frequency')}
                   </div>
                   <details open={Boolean(draft.steps || draft.record_link)}>
-                    <summary>Add steps or a page link <span>Optional</span></summary>
+                    <summary>{ui('Add steps or a page link')} <span>{ui('Optional')}</span></summary
+                    >
                     <div class="optional-fields">
                       {@render field('steps')}{@render field('record_link')}
                     </div>
@@ -254,14 +259,18 @@
                 {@render subjectField()}
                 {@render areaField('Which part of the CRM would improve?')}
                 <div class="idea-story">
-                  <div><span class="story-label">Today</span>{@render field('problem')}</div>
                   <div>
-                    <span class="story-label">Better outcome</span>{@render field('benefit')}
+                    <span class="story-label">{ui('Today')}</span>{@render field('problem')}
+                  </div>
+                  <div>
+                    <span class="story-label">{ui('Better outcome')}</span>{@render field(
+                      'benefit'
+                    )}
                   </div>
                 </div>
                 {@render field('audience')}
                 <details open={Boolean(draft.suggestion)}>
-                  <summary>Have a solution in mind? <span>Optional</span></summary>
+                  <summary>{ui('Have a solution in mind?')} <span>{ui('Optional')}</span></summary>
                   <div class="optional-fields">{@render field('suggestion', 4)}</div>
                 </details>
               {:else}
@@ -269,7 +278,7 @@
                 {@render field('question', 5)}
                 {#if suggestedGuides.length}
                   <div class="suggested-guides">
-                    <h3><BookOpen size={16} /> These guides may help</h3>
+                    <h3><BookOpen size={16} /> {ui('These guides may help')}</h3>
                     {#each suggestedGuides as article}
                       <a
                         href={resolve(asInternalPath(`/help/knowledge/${article.slug}`))}
@@ -282,7 +291,7 @@
                   </div>
                 {/if}
                 <details open={Boolean(draft.tried)}>
-                  <summary>Add more context <span>Optional</span></summary>
+                  <summary>{ui('Add more context')} <span>{ui('Optional')}</span></summary>
                   <div class="optional-fields">{@render field('tried')}</div>
                 </details>
               {/if}
@@ -290,16 +299,17 @@
           </fieldset>
           <div class="sender">
             <span
-              >Sending as <strong>{data.support.name}</strong> · {data.support.organization}</span
-            ><span>Reply email: {data.support.reply_to}</span>
+              >{ui('Sending as')} <strong>{data.support.name}</strong> · {data.support
+                .organization}</span
+            ><span>{ui('Reply email:')} {data.support.reply_to}</span>
           </div>
-          {#if form?.error}<div class="form-error" role="alert">{form.error}</div>{/if}
+          {#if form?.error}<div class="form-error" role="alert">{ui(form.error)}</div>{/if}
           <div class="form-footer">
-            <span>To {data.support.recipient}</span><button
+            <span>{ui('To')} {data.support.recipient}</span><button
               class="v2-btn v2-btn-primary"
               type="submit"
               disabled={busy || data.support.delivery_mode === 'unavailable'}
-              >{busy ? 'Sending…' : current.action}</button
+              >{busy ? ui('Sending…') : current.action}</button
             >
           </div>
         </form>

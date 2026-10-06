@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import TagBadge from '$lib/v2/components/TagBadge.svelte';
   import { page } from '$app/state';
   import { invalidateAll } from '$app/navigation';
@@ -78,11 +81,13 @@
 <dl>
   {#each rows as row (row.key)}<div>
       <dt>
-        {row.label}{#if row.definition?.is_required}<span> *</span>{/if}
+        {row.definition ? row.label : ui(row.label)}{#if row.definition?.is_required}<span>
+            *</span
+          >{/if}
         {#if row.definition && record && editing !== row.key}<button
             type="button"
             class="edit-property"
-            aria-label={`Edit ${row.label}`}
+            aria-label={`Edit ${row.definition ? row.label : ui(row.label)}`}
             disabled={busy}
             onclick={() => edit(row)}><Pencil size={13} /></button
           >{/if}
@@ -94,10 +99,10 @@
               required={row.definition.is_required}
               bind:value={draft}
             />
-            {#if error}<p class="v2-error" role="alert">{error}</p>{/if}
-            <button class="v2-btn v2-btn-primary" disabled={busy}>Save</button>
+            {#if error}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
+            <button class="v2-btn v2-btn-primary" disabled={busy}>{ui('Save')}</button>
             <button type="button" class="v2-btn" disabled={busy} onclick={() => (editing = '')}
-              >Cancel</button
+              >{ui('Cancel')}</button
             >
           </form>
         {:else if row.key === 'id' && row.value}
@@ -112,12 +117,12 @@
             <button
               type="button"
               class="copy-id"
-              aria-label="Copy full record ID"
-              title="Copy full record ID"
+              aria-label={ui('Copy full record ID')}
+              title={ui('Copy full record ID')}
               onclick={copyRecordId}><Copy size={13} /></button
             >
           </span>
-          <span class="copy-status" role="status">{copyStatus}</span>
+          <span class="copy-status" role="status">{ui(copyStatus)}</span>
         {:else if row.definition}{customDisplay(row.value, row.definition)}
         {:else if row.label === 'Stage' && row.value && row.value !== '—'}<span class="stage-value"
             >{row.value}</span

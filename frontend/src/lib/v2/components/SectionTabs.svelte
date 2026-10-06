@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import { page } from '$app/state';
@@ -30,13 +33,13 @@
     exact ? page.url.pathname === href : page.url.pathname.startsWith(href);
 </script>
 
-<nav class="v2-tabs" aria-label="Section">
+<nav class="v2-tabs" aria-label={ui('Section')}>
   {#each tabs as tab (tab.href)}
     <a
       href={resolve(asInternalPath(tab.href))}
       aria-current={isActive(tab.href, tab.exact) ? 'page' : undefined}
     >
-      {tab.label}
+      {ui(tab.label)}
       {#if tab.count}
         {#await counts then readyCounts}
           {#if readyCounts[tab.count]}<span class="v2-tab-count v2-num"

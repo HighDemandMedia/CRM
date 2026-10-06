@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { resolve } from '$app/paths';
   /** @type {{name?:string, email?:string, phone?:string, exclude?:string}} */
   let { name = '', email = '', phone = '', exclude = '' } = $props();
@@ -42,20 +45,20 @@
 </script>
 
 {#if matches.length}
-  <aside class="matches" aria-label="Possible existing contacts">
-    <strong>This contact may already exist</strong>
+  <aside class="matches" aria-label={ui('Possible existing contacts')}>
+    <strong>{ui('This contact may already exist')}</strong>
     {#each matches as contact (contact.id)}
       <a data-open-record href={resolve(`/contacts/${contact.id}`)}>
         <span class="match-name"
-          >{contact.name || 'Contact'}<span class="open">Open contact →</span></span
+          >{contact.name || ui('Contact')}<span class="open">{ui('Open contact →')}</span></span
         >
         <span class="details">{[contact.email, contact.phone].filter(Boolean).join(' · ')}</span>
         <span class="reasons">{contact.reasons.join(' · ')}</span>
       </a>
     {/each}
   </aside>
-{:else if checking}<p class="lookup-status" role="status">Checking existing contacts…</p>
-{:else if error}<p class="lookup-status" role="status">{error}</p>{/if}
+{:else if checking}<p class="lookup-status" role="status">{ui('Checking existing contacts…')}</p>
+{:else if error}<p class="lookup-status" role="status">{ui(error)}</p>{/if}
 
 <style>
   .matches {

@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale, longDate } = useI18n();
+
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
   import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
   import { page } from '$app/state';
@@ -20,7 +23,7 @@
   import TaskAssignees from '$lib/components/tasks/TaskAssignees.svelte';
   import TaskParent from '$lib/components/tasks/TaskParent.svelte';
   import Pill from '$lib/v2/components/Pill.svelte';
-  import { longDate, daysSince } from '$lib/v2/format.js';
+  import { daysSince } from '$lib/v2/format.js';
   import { TASK_PRIORITY_TONE, TASK_STATUS_TONE } from '$lib/v2/enums.js';
   import { CircleCheck, RotateCcw, Pencil } from '@lucide/svelte';
   let { data, form } = $props();
@@ -46,7 +49,7 @@
   let late = $derived(!task.is_done && task.due_date && (daysSince(task.due_date) ?? 0) > 0);
   const exactDate = (value) =>
     value
-      ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+      ? new Date(value).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' })
       : '—';
   function edit() {
     draft = { ...data.editor.form, assigned_to: [...task.assigned_ids] };
@@ -66,20 +69,23 @@
 </script>
 
 <PageHeader title={task.title || `Task · ${task.id.slice(0, 8)}`} record>
-  {#snippet crumb()}<a href={resolve('/tasks')}>Tasks</a><span
+  {#snippet crumb()}<a href={resolve('/tasks')}>{ui('Tasks')}</a><span
       >{configuredLabel(page.data.pipelineConfig, 'Task', task.status, task.status)}</span
     >{/snippet}
   {#snippet actions()}
     {#if editing}<button class="v2-btn v2-btn-primary" type="submit" form={formId} disabled={busy}
-        >{busy ? 'Saving…' : 'Save'}</button
-      ><button class="v2-btn" disabled={busy} onclick={() => (editing = false)}>Cancel</button>
-    {:else}<button class="v2-btn" onclick={edit}><Pencil size={14} />Edit</button>
+        >{busy ? ui('Saving…') : ui('Save')}</button
+      ><button class="v2-btn" disabled={busy} onclick={() => (editing = false)}
+        >{ui('Cancel')}</button
+      >
+    {:else}<button class="v2-btn" onclick={edit}><Pencil size={14} />{ui('Edit')}</button>
       <form method="POST" action="?/toggle" use:enhance>
         <input type="hidden" name="done" value={task.is_done ? 'false' : 'true'} /><button
           class="v2-btn v2-btn-primary"
           type="submit"
-          >{#if task.is_done}<RotateCcw size={15} />Reopen{:else}<CircleCheck size={15} />Complete
-            task{/if}</button
+          >{#if task.is_done}<RotateCcw size={15} />{ui('Reopen')}{:else}<CircleCheck
+              size={15}
+            />{ui('Complete task')}{/if}</button
         >
       </form>
     {/if}
@@ -87,13 +93,13 @@
 </PageHeader>
 <StageRuleNotice issue={form?.stageRequirements} />
 {#if form?.error && !form?.stageRequirements}<p class="v2-error error" role="alert">
-    {form.error}
+    {ui(form.error)}
   </p>{/if}
 <div class="task-profile">
   <main>
     <section class="panel description">
       {#if editing}<label
-          >Task name<input
+          >{ui('Task name')}<input
             class="v2-input"
             form={formId}
             name="title"
@@ -104,7 +110,7 @@
           /></label
         >
         <label
-          >Description<textarea
+          >{ui('Description')}<textarea
             class="v2-input"
             form={formId}
             name="description"
@@ -112,7 +118,7 @@
             bind:value={draft.description}
             rows="5"></textarea></label
         >
-      {:else}<h2>Description</h2>
+      {:else}<h2>{ui('Description')}</h2>
         <p class="body">{task.description || 'No description.'}</p>{/if}
     </section>
     <section class="panel journal">
@@ -135,20 +141,20 @@
           >
             <textarea
               class="v2-input"
-              aria-label="Add a note"
+              aria-label={ui('Add a note')}
               name="comment"
               rows="3"
-              placeholder="Write a note…"
+              placeholder={ui('Write a note…')}
               bind:value={comment}></textarea>
             <button class="v2-btn" disabled={commentBusy || !comment.trim()}
-              >{commentBusy ? 'Saving…' : 'Add note'}</button
+              >{commentBusy ? ui('Saving…') : ui('Add note')}</button
             >
           </form>
           <div class="entries">
             {#each comments as entry (entry.id)}<article>
                 <p class="body">{entry.body}</p>
                 <small>{entry.by || '—'} · {exactDate(entry.at)}</small>
-              </article>{:else}<p class="muted">No notes.</p>{/each}
+              </article>{:else}<p class="muted">{ui('No notes.')}</p>{/each}
           </div>
         {/snippet}
         {#snippet activity()}<div class="entries">
@@ -160,36 +166,36 @@
                   >{:else}<p class="body">{entry.body}</p>{/if}<small
                   >{entry.by ? `${entry.by} · ` : ''}{exactDate(entry.at)}</small
                 >
-              </article>{:else}<p class="muted">No activity yet.</p>{/each}
+              </article>{:else}<p class="muted">{ui('No activity yet.')}</p>{/each}
           </div>{/snippet}
       </RecordTabs>
     </section>
     <details class="panel attachments">
-      <summary>Attachments <span>{files.length}</span></summary>
+      <summary>{ui('Attachments')} <span>{files.length}</span></summary>
       <div><Attachments attachments={files} action="?/comment" /></div>
     </details>
   </main>
   <aside class="panel properties">
-    <h2>Properties</h2>
+    <h2>{ui('Properties')}</h2>
     {#if editing}<form id={formId} method="POST" action="?/properties" use:enhance={save}>
         <input type="hidden" name="parent_kind_original" value={data.editor.form.parent_kind} />
         <input type="hidden" name="parent_id_original" value={data.editor.form.parent_id} />
         <fieldset disabled={busy}>
           <label
-            >Status<select class="v2-input" name="status" bind:value={draft.status}
+            >{ui('Status')}<select class="v2-input" name="status" bind:value={draft.status}
               >{#each ['New', 'In Progress', 'Completed'] as status}<option>{status}</option
                 >{/each}</select
             ></label
           >
           <label
-            >Priority<select class="v2-input" name="priority" bind:value={draft.priority}
-              ><option value="">None</option>{#each ['Low', 'Medium', 'High'] as priority}<option
-                  >{priority}</option
+            >{ui('Priority')}<select class="v2-input" name="priority" bind:value={draft.priority}
+              ><option value="">{ui('None')}</option
+              >{#each ['Low', 'Medium', 'High'] as priority}<option>{priority}</option
                 >{/each}</select
             ></label
           >
           <label
-            >Due date<input
+            >{ui('Due date')}<input
               class="v2-input"
               type="date"
               name="due_date"
@@ -234,17 +240,17 @@
       />
 
       <section class="associations">
-        <h2>Association</h2>
+        <h2>{ui('Association')}</h2>
         {#if task.related}<a class="associated" href={resolve(asInternalPath(task.related.href))}
             ><small
               >{{ account: 'Company', deal: 'Deal', ticket: 'Ticket', lead: 'Lead' }[
                 task.related.kind
               ] || task.related.kind}</small
             ><strong>{task.related.name}</strong></a
-          >{:else}<p class="muted">No association.</p>{/if}
+          >{:else}<p class="muted">{ui('No association.')}</p>{/if}
       </section>
       {#if data.contacts.length}<section class="associations">
-          <h2>Contacts</h2>
+          <h2>{ui('Contacts')}</h2>
           {#each data.contacts as contact}<a
               class="associated"
               href={resolve(`/contacts/${contact.id}`)}
@@ -255,7 +261,7 @@
     {/if}
 
     {#if data.canDelete}<form class="delete" method="POST" action="?/delete" use:enhance>
-        <button type="submit" class="v2-btn">Delete</button>
+        <button type="submit" class="v2-btn">{ui('Delete')}</button>
       </form>{/if}
   </aside>
 </div>

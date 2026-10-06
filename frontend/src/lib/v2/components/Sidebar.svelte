@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import NotificationBell from '$lib/v2/components/NotificationBell.svelte';
   import { afterNavigate } from '$app/navigation';
   import { onMount } from 'svelte';
@@ -111,6 +114,7 @@
       /* Keep navigation usable when browser storage is unavailable. */
     }
   }
+  /** @type {{label: string, items: {href: string, label: string, icon: typeof Sun, exact?: boolean, termKey?: string, count?: string}[]}[]} */
   const GROUPS = [
     {
       label: 'Sell',
@@ -162,7 +166,9 @@
           );
         })
         .map((item) =>
-          item.termKey ? { ...item, label: t(terminology, item.termKey, item.label) } : item
+          item.termKey
+            ? { ...item, label: t(terminology, item.termKey, ui(item.label)) }
+            : { ...item, label: ui(item.label) }
         )
     })).filter((group) => group.items.length > 0)
   );
@@ -171,28 +177,34 @@
     exact ? page.url.pathname === href : page.url.pathname.startsWith(href);
 </script>
 
-<nav class="v2-nav" class:collapsed aria-label="Main">
+<nav class="v2-nav" class:collapsed aria-label={ui('Main')}>
   <div class="nav-scroll">
     <a
       class="v2-org brand-home"
       href={resolve('/')}
       aria-label="High Demand Media — Today"
-      title="Today"
+      title={ui('Today')}
     >
-      <img class="brand-symbol" src={`${base}/brand/hdm-symbol.png`} alt="High Demand Media" />
+      <img
+        class="v2-brand-mark brand-symbol"
+        src={`${base}/brand/hdm-symbol.png`}
+        alt="High Demand Media"
+        width="228"
+        height="155"
+      />
       <b>High Demand<br />Media</b>
     </a>
-    {#if !collapsed}<div class="workspace-name" title={org.name}>{org.name}</div>{/if}
+    {#key accountId + (user.email || '')}<NotificationBell {collapsed} />{/key}
 
     <button
       class="v2-link v2-nav-search"
       type="button"
       onclick={onsearch}
-      aria-label="Search"
-      title={collapsed ? 'Search' : undefined}
+      aria-label={ui('Search')}
+      title={collapsed ? ui('Search') : undefined}
     >
       <Search />
-      <span class="nav-text">Search</span>
+      <span class="nav-text">{ui('Search')}</span>
       <span class="v2-count">⌘K</span>
     </button>
 
@@ -207,7 +219,7 @@
           type="button"
           aria-expanded={!folded.includes(group.label)}
           onclick={() => toggleGroup(group.label)}
-          >{group.label}<ChevronDown
+          >{ui(group.label)}<ChevronDown
             size={12}
             style={folded.includes(group.label) ? 'transform:rotate(-90deg)' : ''}
           /></button
@@ -224,7 +236,7 @@
             <item.icon />
             <span class="nav-text">{item.label}</span>
 
-            {#if item.count}
+            {#if 'count' in item && item.count}
               {#await counts then readyCounts}
                 {#if readyCounts[item.count]}<span class="v2-count">{readyCounts[item.count]}</span
                   >{/if}
@@ -239,18 +251,17 @@
     <a
       class="v2-link"
       href={resolve('/help')}
-      aria-label="Help"
-      title={collapsed ? 'Help' : undefined}
+      aria-label={ui('Help')}
+      title={collapsed ? ui('Help') : undefined}
       aria-current={isActive('/help', false) ? 'page' : undefined}
     >
-      <CircleHelp /><span class="nav-text">Help</span>
+      <CircleHelp /><span class="nav-text">{ui('Help')}</span>
     </a>
-    {#key accountId + (user.email || '')}<NotificationBell {collapsed} />{/key}
     <button
       type="button"
       class="account-trigger"
       popovertarget={`${uid}-account`}
-      aria-label="Organization menu"
+      aria-label={ui('Organization menu')}
       aria-expanded={accountOpen}
       title={collapsed ? displayName : undefined}
       onclick={positionAccount}
@@ -280,7 +291,8 @@
       href={resolve('/profile')}
       onclick={() => accountPanel?.hidePopover()}
     >
-      <CircleUser size={17} /> Profile &amp; Preferences
+      <CircleUser size={17} />
+      {ui('Profile & Preferences')}
     </a>
     <form
       class="account-details"
@@ -288,50 +300,59 @@
       action={resolve('/settings/organization?/switchOrg')}
       onsubmit={() => (switchingOrganization = true)}
     >
-      <label for={`${uid}-organization`}>Organization</label>
+      {#if organizations.length > 1}
+        <label for={`${uid}-organization`}>{ui('Organization')}</label>
+      {:else}
+        <span>{ui('Organization')}</span>
+      {/if}
       <div class="organization-name">
-        <input type="hidden" name="org_id" value={selectedOrganization || accountId} />
-        <select
-          id={`${uid}-organization`}
-          value={selectedOrganization || accountId}
-          disabled={organizationLoading || switchingOrganization}
-          onchange={(event) => {
-            selectedOrganization = event.currentTarget.value;
-            if (selectedOrganization && selectedOrganization !== accountId) {
-              const form = event.currentTarget.form;
-              const input = form?.elements.namedItem('org_id');
-              if (input instanceof HTMLInputElement) input.value = selectedOrganization;
-              form?.requestSubmit();
-            }
-          }}
-        >
-          {#if !organizations.some((organization) => organization.id === accountId)}<option
-              value={accountId}>{org.name}</option
-            >{/if}
-          {#each organizations as organization (organization.id)}<option value={organization.id}
-              >{organization.name}</option
-            >{/each}
-        </select>
-        <ChevronDown size={14} aria-hidden="true" />
+        {#if organizations.length > 1}
+          <input type="hidden" name="org_id" value={selectedOrganization || accountId} />
+          <select
+            id={`${uid}-organization`}
+            value={selectedOrganization || accountId}
+            disabled={organizationLoading || switchingOrganization}
+            onchange={(event) => {
+              selectedOrganization = event.currentTarget.value;
+              if (selectedOrganization && selectedOrganization !== accountId) {
+                const form = event.currentTarget.form;
+                const input = form?.elements.namedItem('org_id');
+                if (input instanceof HTMLInputElement) input.value = selectedOrganization;
+                form?.requestSubmit();
+              }
+            }}
+          >
+            {#if !organizations.some((organization) => organization.id === accountId)}<option
+                value={accountId}>{org.name}</option
+              >{/if}
+            {#each organizations as organization (organization.id)}<option value={organization.id}
+                >{organization.name}</option
+              >{/each}
+          </select>
+          <ChevronDown size={14} aria-hidden="true" />
+        {:else}
+          <strong class="current-organization">{org.name}</strong>
+        {/if}
       </div>
       {#if accountId}<span class="account-id">ID: {accountId}</span>{/if}
       <span
         >{page.data.isPlatformOwner
-          ? 'Platform owner'
+          ? ui('Platform owner')
           : isSuperAdmin
-            ? 'Super Admin'
+            ? ui('Super Admin')
             : role === 'ADMIN'
-              ? 'Admin'
-              : 'Member'}</span
+              ? ui('Admin')
+              : ui('Member')}</span
       >
-      {#if switchingOrganization}<small role="status">Switching organization…</small>{/if}
+      {#if switchingOrganization}<small role="status">{ui('Switching organization…')}</small>{/if}
       {#if organizationError}<p class="organization-error" role="alert">{organizationError}</p>
-        <button class="account-action" type="button" onclick={loadOrganizations}>Try again</button
+        <button class="account-action" type="button" onclick={loadOrganizations}
+          >{ui('Try again')}</button
         >{/if}
     </form>
     <div class="account-signout">
       <a class="account-action" href={resolve('/logout')} data-sveltekit-reload
-        ><LogOut size={17} />Sign out</a
+        ><LogOut size={17} />{ui('Sign out')}</a
       >
     </div>
   </div>
@@ -454,7 +475,7 @@
   }
   .account-action:focus-visible,
   .account-trigger:focus-visible {
-    outline: 2px solid var(--crm-focus);
+    outline: 2px solid var(--crm-nav-text);
     outline-offset: 2px;
   }
   .account-details {
@@ -479,11 +500,20 @@
     display: flex;
     align-items: center;
   }
+  .current-organization {
+    color: var(--crm-text);
+    font-size: var(--crm-text-sm);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    padding-block: 7px;
+  }
   .organization-name select {
     appearance: none;
     width: 100%;
     min-width: 0;
-    padding: 7px var(--crm-space-6) 7px 0;
+    min-height: var(--crm-control-height);
+    padding: var(--crm-control-padding-y) var(--crm-select-padding-end) var(--crm-control-padding-y)
+      var(--crm-space-3);
     border: 0;
     border-radius: var(--crm-radius-sm);
     background: transparent;
@@ -498,7 +528,7 @@
     background: var(--crm-surface-secondary);
   }
   .organization-name select:focus-visible {
-    outline: 2px solid var(--crm-focus);
+    outline: 2px solid var(--crm-nav-text);
     outline-offset: 2px;
   }
   .organization-name select:disabled {
@@ -507,7 +537,7 @@
   }
   .organization-name :global(svg) {
     position: absolute;
-    right: 4px;
+    right: var(--crm-control-padding-x);
     pointer-events: none;
   }
   .organization-error {
@@ -554,22 +584,7 @@
     flex-shrink: 0;
   }
   .brand-symbol {
-    width: 52px;
-    height: 38px;
-    object-fit: contain;
-    flex-shrink: 0;
-  }
-  .workspace-name {
-    flex-shrink: 0;
-    margin: var(--crm-space-1) 7px 10px;
-    padding: 10px;
-    background: var(--crm-nav-hover);
-    border-radius: var(--crm-radius-sm);
-    font-size: var(--crm-text-xs);
-    color: var(--crm-nav-muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    width: 3.25rem;
   }
   .v2-link {
     color: var(--crm-nav-text);
@@ -583,12 +598,18 @@
     color: var(--crm-nav-text);
   }
   .v2-link[aria-current='page'] {
-    background: var(--crm-primary);
+    background: var(--crm-action-bg);
     color: var(--crm-primary-text);
     font-weight: 700;
   }
+  .v2-link[aria-current='page']:hover {
+    background: var(--crm-action-hover-bg);
+  }
+  .v2-link[aria-current='page']:active {
+    background: var(--crm-action-active-bg);
+  }
   .v2-nav :focus-visible {
-    outline: 2px solid var(--crm-coral);
+    outline: 2px solid var(--crm-nav-text);
     outline-offset: 2px;
   }
   .v2-link[aria-current='page'] :global(svg) {
@@ -601,7 +622,7 @@
     color: var(--crm-nav-muted);
   }
   .collapsed .brand-symbol {
-    width: 36px;
+    width: 2.25rem;
   }
 
   .collapsed {

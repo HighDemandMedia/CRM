@@ -16,7 +16,7 @@ beforeEach(() => {
 function event(canPreview) {
   return /** @type {any} */ ({
     locals: { org: { id: 'org', name: 'Example' }, profile: { can_preview: canPreview } },
-    cookies: { get: vi.fn() }
+    cookies: { get: vi.fn(), set: vi.fn() }
   });
 }
 

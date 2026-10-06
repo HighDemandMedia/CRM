@@ -1,5 +1,7 @@
 <script>
-  import { exactTime } from '$lib/v2/contact-time.js';
+  import { useI18n } from '$lib/i18n/context.js';
+  const { exactTime, ui, money, longDate } = useI18n();
+
   import { configuredStages } from '$lib/v2/pipeline-config.js';
   import { page } from '$app/state';
 
@@ -17,7 +19,7 @@
   import { resolve } from '$app/paths';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import Timeline from '$lib/v2/components/Timeline.svelte';
-  import { money, longDate } from '$lib/v2/format.js';
+
   import { STAGES, STAGE_LABEL } from '$lib/v2/enums.js';
   import { ChevronRight } from '@lucide/svelte';
 
@@ -47,7 +49,7 @@
 
 <PageHeader title={deal.name || `Deal · ${deal.id.slice(0, 8)}`} record>
   {#snippet crumb()}
-    <a href={resolve('/pipeline')}>Deals</a>
+    <a href={resolve('/pipeline')}>{ui('Deals')}</a>
     <ChevronRight size={12} />
     {#if deal.account.id}<a href={resolve(`/accounts/${deal.account.id}`)}>{deal.account.name}</a
       >{/if}
@@ -56,31 +58,34 @@
 
 <div class="deal-layout">
   <div class="v2-main">
-    <section class="deal-overview" aria-label="Deal overview">
+    <section class="deal-overview" aria-label={ui('Deal overview')}>
       <div class="deal-value">
-        <span>Amount</span><strong>{money(deal.amount, deal.currency)}</strong>
+        <span>{ui('Amount')}</span><strong>{money(deal.amount, deal.currency)}</strong>
       </div>
       <div>
-        <span class="overview-label">Stage</span><StageProgress
+        <span class="overview-label">{ui('Stage')}</span><StageProgress
           stage={deal.stage}
           stages={stageOptions}
         />
       </div>
       <div>
-        <span class="overview-label">Close date</span><strong
+        <span class="overview-label">{ui('Close date')}</span><strong
           >{deal.closed_on ? longDate(deal.closed_on) : '—'}</strong
         >
       </div>
-      <div><span class="overview-label">Deal owner</span><strong>{deal.owner || '—'}</strong></div>
+      <div>
+        <span class="overview-label">{ui('Deal owner')}</span><strong>{deal.owner || '—'}</strong>
+      </div>
       {#if deal.days_in_current_stage > 0}<p class="stage-age">
           {deal.days_in_current_stage}
-          {deal.days_in_current_stage === 1 ? 'day' : 'days'} in stage
+          {deal.days_in_current_stage === 1 ? ui('day') : ui('days')}
+          {ui('in stage')}
         </p>{/if}
     </section>
 
     <div class="v2-scroll">
       <div class="v2-pad" style="padding-top:14px;padding-bottom:32px">
-        <section class="v2-card deal-journal" aria-label="Deal notes and activity">
+        <section class="v2-card deal-journal" aria-label={ui('Deal notes and activity')}>
           <RecordTabs>
             {#snippet notes()}{#key deal.id}<DealNotes notes={data.notes} />{/key}{/snippet}
             {#snippet activity()}<div class="deal-history">
@@ -89,22 +94,22 @@
           </RecordTabs>
         </section>
         <details class="v2-card deal-secondary">
-          <summary>Attachments <span>{data.attachments.length}</span></summary>
+          <summary>{ui('Attachments')} <span>{data.attachments.length}</span></summary>
           <div class="secondary-content"><Attachments attachments={data.attachments} /></div>
         </details>
 
         {#if lineItems.length}
           <details class="v2-card deal-secondary">
-            <summary>Line items <span>{lineItems.length}</span></summary>
+            <summary>{ui('Line items')} <span>{lineItems.length}</span></summary>
             <div class="line-items-scroll">
               <table class="v2-table">
                 <thead>
                   <tr>
-                    <th>Product</th>
-                    <th class="v2-r">Qty</th>
-                    <th class="v2-r">Unit price</th>
-                    <th class="v2-r">Discount</th>
-                    <th class="v2-r">Total</th>
+                    <th>{ui('Product')}</th>
+                    <th class="v2-r">{ui('Qty')}</th>
+                    <th class="v2-r">{ui('Unit price')}</th>
+                    <th class="v2-r">{ui('Discount')}</th>
+                    <th class="v2-r">{ui('Total')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -129,12 +134,12 @@
                 style="display:flex;justify-content:flex-end;gap:24px;padding:11px 14px;border-top:1px solid var(--v2-line);font-size:var(--crm-text-sm)"
               >
                 {#if discount > 0}
-                  <span class="v2-muted">Subtotal</span>
+                  <span class="v2-muted">{ui('Subtotal')}</span>
                   <span class="v2-num v2-muted">{money(subtotal, deal.currency)}</span>
-                  <span class="v2-muted">Discounts</span>
+                  <span class="v2-muted">{ui('Discounts')}</span>
                   <span class="v2-num v2-muted">−{money(discount, deal.currency)}</span>
                 {/if}
-                <span style="font-weight:650">Total</span>
+                <span style="font-weight:650">{ui('Total')}</span>
                 <span class="v2-num" style="font-weight:650"
                   >{money(deal.amount, deal.currency)}</span
                 >
@@ -146,7 +151,7 @@
     </div>
   </div>
 
-  <aside class="v2-rail deal-properties" aria-label="Deal properties">
+  <aside class="v2-rail deal-properties" aria-label={ui('Deal properties')}>
     <div style="margin-bottom:20px">
       <ContactAssociations
         contactId={deal.id}
@@ -169,12 +174,12 @@
     </div>
 
     <div class="properties-heading">
-      <h2>Properties</h2>
+      <h2>{ui('Properties')}</h2>
       <button
         class="v2-btn"
         type="button"
         disabled={editingProperties}
-        onclick={() => (editingProperties = true)}><Pencil size={13} />Edit</button
+        onclick={() => (editingProperties = true)}><Pencil size={13} />{ui('Edit')}</button
       >
     </div>
     {#if editingProperties}
@@ -217,7 +222,7 @@
       />
     {/if}
     <dl class="v2-kv">
-      <dt>Stage since</dt>
+      <dt>{ui('Stage since')}</dt>
       <dd>{longDate(deal.stage_changed_at)}</dd>
     </dl>
 

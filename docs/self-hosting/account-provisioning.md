@@ -45,17 +45,13 @@ organizations. Switching does not transfer ownership of a customer's organizatio
 
 ## Independent customer organization
 
-Run the same command **without `--platform-owner`**, with the customer's actual
-email and a new organization name:
+Use the platform owner's **Create organisation** screen. Enter the organization name and its administrator's email. The CRM sends a seven-day invitation; it stores a hashed token and does not create an active customer account before acceptance.
 
-```sh
-python manage.py provision_crm_account --email CUSTOMER_EMAIL --organization "CUSTOMER_ORGANIZATION"
-```
+The invited administrator sets their own password (or signs in with their existing identity), accepts, and completes Organization information and regional defaults. Ownership is granted only within that organization. They can then invite colleagues in **Users & Teams**. Team members do not receive organization ownership or the setup screen.
 
-Replace both placeholders before running. This creates an independent
-organization and its Super Admin, with no demo records and no Preview access.
-Other colleagues are invited from **Users & Teams** inside that organization;
-they do not need new organizations.
+A mail failure leaves the organization and pending invitation available to the platform owner for resend. Deploy migration `common.0071_invitation_grants_ownership` before using this flow. Existing invitations keep their previous membership-only behavior.
+
+The private `provision_crm_account` command remains available for controlled operator/bootstrap use; it is not the normal customer onboarding path.
 
 ## Revocation and operational checks
 

@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
   let { id, hideTrigger = false } = $props();
@@ -50,7 +53,7 @@
 </script>
 
 {#if !hideTrigger}<button class="v2-btn v2-btn-sm danger" type="button" onclick={open}
-    >Remove</button
+    >{ui('Remove')}</button
   >{/if}
 <dialog
   bind:this={dialog}
@@ -59,15 +62,18 @@
     if (busy) e.preventDefault();
   }}
 >
-  <h2 id={`remove-member-${id}`}>Remove from organization</h2>
-  {#if loading}<p>Loading assigned records…</p>{:else if preview}
+  <h2 id={`remove-member-${id}`}>{ui('Remove from organization')}</h2>
+  {#if loading}<p>{ui('Loading assigned records…')}</p>{:else if preview}
     <p>
-      <strong>{preview.name}</strong> will lose access to this organization. Their account and access
-      to other organizations will remain.
+      <strong>{preview.name}</strong>
+      {ui(
+        'will lose access to this organization. Their account and access to other organizations will remain.'
+      )}
     </p>
     <p>
-      Records, history and meetings are kept. Team membership and access tokens for this
-      organization are removed.
+      {ui(
+        'Records, history and meetings are kept. Team membership and access tokens for this organization are removed.'
+      )}
     </p>
     <div class="counts">
       {#each Object.entries(preview.counts) as [label, count]}<span
@@ -75,8 +81,11 @@
         >{/each}
     </div>
     <label
-      >Reassign their records to<select class="v2-input" bind:value={reassign} disabled={busy}
-        ><option value="">Remove their assignment only</option
+      >{ui('Reassign their records to')}<select
+        class="v2-input"
+        bind:value={reassign}
+        disabled={busy}
+        ><option value="">{ui('Remove their assignment only')}</option
         >{#each preview.candidates as person}<option value={person.id}
             >{person.name}{preview.candidates.filter((p) => p.name === person.name).length > 1
               ? ` · ${person.email}`
@@ -85,13 +94,15 @@
       ></label
     >
     <p class="hint">
-      Other assigned users stay assigned. Without a replacement, records with no remaining owner
-      become unassigned.
+      {ui(
+        'Other assigned users stay assigned. Without a replacement, records with no remaining owner become unassigned.'
+      )}
     </p>
     <label
-      >Type <strong>{preview.email}</strong> to confirm<input
+      >{ui('Type')} <strong>{preview.email}</strong>
+      {ui('to confirm')}<input
         class="v2-input"
-        aria-label="Confirm user email"
+        aria-label={ui('Confirm user email')}
         bind:value={confirmation}
         disabled={busy}
         autocomplete="off"
@@ -99,15 +110,15 @@
       /></label
     >
   {/if}
-  {#if error}<p class="error" role="alert">{error}</p>{/if}
+  {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
   <div class="actions">
     <button class="v2-btn" type="button" disabled={busy} onclick={() => dialog.close()}
-      >Cancel</button
+      >{ui('Cancel')}</button
     ><button
       class="v2-btn danger"
       type="button"
       disabled={loading || busy || !preview || confirmation !== preview.email}
-      onclick={remove}>{busy ? 'Removing…' : 'Remove from organization'}</button
+      onclick={remove}>{busy ? ui('Removing…') : ui('Remove from organization')}</button
     >
   </div>
 </dialog>

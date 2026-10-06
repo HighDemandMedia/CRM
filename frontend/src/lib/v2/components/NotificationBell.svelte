@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale, relativeTime } = useI18n();
+
   import { onMount } from 'svelte';
   import { afterNavigate, goto } from '$app/navigation';
   import { resolve } from '$app/paths';
@@ -6,7 +9,7 @@
   import { Bell, X, Check } from '@lucide/svelte';
   import { resolvedLink, reminderLabel, reminderDetail } from '$lib/v2/notification-content.js';
   import { announceReminders } from '$lib/v2/reminder-alerts.js';
-  import { relativeTime } from '$lib/v2/format.js';
+
   let { collapsed = false } = $props();
   const id = $props.id();
   let rows = $state(/** @type {any[]} */ ([]));
@@ -17,7 +20,7 @@
     open = $state(false);
   let panel = $state(/** @type {HTMLDivElement | undefined} */ (undefined));
   let left = $state(8),
-    bottom = $state(70);
+    top = $state(70);
   let controller;
   let alive = false;
   let generation = 0;
@@ -37,7 +40,7 @@
       const data = await response.json();
       if (!alive || version !== generation) return;
       rows = data.results || [];
-      announceReminders(rows);
+      announceReminders(rows, Date.now(), ui, locale());
       unread = data.unread_count || 0;
       failure = '';
     } catch (error) {
@@ -74,7 +77,7 @@
   function show(event) {
     const rect = event.currentTarget.getBoundingClientRect();
     left = Math.max(8, Math.min(rect.left, window.innerWidth - 388));
-    bottom = Math.max(8, window.innerHeight - rect.top + 8);
+    top = Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 160));
     void refresh();
   }
   function destination(row) {
@@ -82,11 +85,11 @@
   }
 
   function description(row) {
-    if (reminderLabel(row)) return reminderLabel(row);
-    const actor = row.actor?.user_details?.name || row.actor?.user_details?.email || 'Someone';
-    if (row.verb === 'webform.submitted') return 'New website submission';
-    if (row.verb === 'case.mentioned') return actor + ' mentioned you';
-    if (row.verb === 'case.commented') return actor + ' added a comment';
+    if (reminderLabel(row)) return ui(reminderLabel(row));
+    const actor = row.actor?.user_details?.name || row.actor?.user_details?.email || ui('Someone');
+    if (row.verb === 'webform.submitted') return ui('New website submission');
+    if (row.verb === 'case.mentioned') return ui('{actor} mentioned you', { actor });
+    if (row.verb === 'case.commented') return ui('{actor} added a comment', { actor });
     return (
       actor +
       ' · ' +
@@ -137,15 +140,15 @@
   class:collapsed
   type="button"
   popovertarget={id}
-  aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
+  aria-label={unread ? `Notifications, ${unread} unread` : ui('Notifications')}
   aria-expanded={open}
-  title="Notifications"
+  title={ui('Notifications')}
   onclick={show}
 >
   <span class="bell-icon"
     ><Bell size={19} />{#if collapsed && unread}<span class="dot"></span>{/if}</span
   >
-  {#if !collapsed}<span>Notifications</span>{#if unread}<b>{unread > 99 ? '99+' : unread}</b
+  {#if !collapsed}<span>{ui('Notifications')}</span>{#if unread}<b>{unread > 99 ? '99+' : unread}</b
       >{/if}{/if}
 </button>
 <div
@@ -153,33 +156,37 @@
   bind:this={panel}
   popover="auto"
   role="dialog"
-  aria-label="Notifications"
+  aria-label={ui('Notifications')}
   class="notification-panel"
   style:left={`${left}px`}
-  style:bottom={`${bottom}px`}
+  style:top={`${top}px`}
+  style:max-height={`calc(100dvh - ${top + 8}px)`}
   ontoggle={(event) => (open = event.newState === 'open')}
 >
   <header>
     <h2>
-      Notifications {#if unread}<span>{unread}</span>{/if}
+      {ui('Notifications')}
+      {#if unread}<span>{unread}</span>{/if}
     </h2>
-    <button type="button" aria-label="Close notifications" onclick={() => panel?.hidePopover()}
-      ><X size={17} /></button
+    <button
+      type="button"
+      aria-label={ui('Close notifications')}
+      onclick={() => panel?.hidePopover()}><X size={17} /></button
     >
   </header>
   {#if unread}<div class="read-actions">
       <button type="button" disabled={writing} onclick={() => mark()}
-        ><Check size={13} />Mark all read</button
+        ><Check size={13} />{ui('Mark all read')}</button
       >
     </div>{/if}
   <div class="feed" aria-busy={loading}>
     {#if failure}<p role="alert" class="error">
-        {failure}<button type="button" onclick={() => refresh()}>Retry</button>
+        {ui(failure)}<button type="button" onclick={() => refresh()}>{ui('Retry')}</button>
       </p>{/if}
-    {#if loading && !rows.length}<p class="empty" role="status">Loading notifications…</p>
+    {#if loading && !rows.length}<p class="empty" role="status">{ui('Loading notifications…')}</p>
     {:else if !rows.length && !failure}<div class="empty">
-        <Bell size={25} /><strong>You're all caught up</strong><span
-          >New notifications will appear here.</span
+        <Bell size={25} /><strong>{ui("You're all caught up")}</strong><span
+          >{ui('New notifications will appear here.')}</span
         >
       </div>
     {:else}
@@ -190,11 +197,11 @@
           disabled={writing}
           onclick={() => openRow(row)}
         >
-          <span class="read-dot" aria-label={row.read_at ? 'Read' : 'Unread'}></span>
+          <span class="read-dot" aria-label={row.read_at ? ui('Read') : ui('Unread')}></span>
           <span class="row-body"
             ><strong>{description(row)}</strong>{#if row.entity_name}<span>{row.entity_name}</span
-              >{/if}{#if reminderDetail(row)}<p>
-                {reminderDetail(row)}
+              >{/if}{#if reminderDetail(row, locale())}<p>
+                {reminderDetail(row, locale())}
               </p>{/if}{#if row.data?.comment_excerpt}<p>{row.data.comment_excerpt}</p>{/if}<small
               >{relativeTime(row.created_at)}</small
             ></span
@@ -204,7 +211,8 @@
     {/if}
   </div>
   <footer>
-    <a href={resolve('/notifications')} onclick={() => panel?.hidePopover()}>View history</a>
+    <a href={resolve('/notifications')} onclick={() => panel?.hidePopover()}>{ui('View history')}</a
+    >
   </footer>
 </div>
 

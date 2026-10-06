@@ -1,0 +1,7 @@
+{% extends "root_email_template_new.html" %}
+{% block preheader %}You are invited to {{ organization }}{% endblock %}
+{% block heading %}You’re invited{% endblock %}
+{% block content_body %}<p>You have been invited to <strong>{{ organization }}</strong> in High Demand Media CRM.</p>
+<p>Accept using <strong>{{ email }}</strong>. If you are new, you’ll create your own password. If you already have an account, sign in to accept.</p>{% endblock %}
+{% block button_link %}{% include "emails/button.html" with url=link label="Accept invitation" %}{% endblock %}
+{% block extra_content %}<p style="color:{{ email_theme.muted }};font-size:13px;line-height:1.5;">This invitation expires in 7 days. If you were not expecting it, you can ignore this email.</p>{% endblock %}

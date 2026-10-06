@@ -71,7 +71,8 @@ export async function load({ url, cookies }) {
   // Generate OAuth parameters and return login URL
   return {
     ...(await generateOAuthUrl(cookies)),
-    recovery: url.searchParams.get('recover') === '1'
+    recovery: url.searchParams.get('recover') === '1',
+    signin: url.searchParams.get('signin') === '1'
   };
 }
 

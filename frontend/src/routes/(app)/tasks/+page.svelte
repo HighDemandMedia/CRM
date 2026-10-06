@@ -1,4 +1,8 @@
 <script>
+  import { listViewPreference } from '$lib/v2/list-view-preference.svelte.js';
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale, count, relativeDays } = useI18n();
+
   import { can } from '$lib/v2/permissions.js';
   import { showStageRequirements } from '$lib/components/pipelines/feedback.js';
   import { configuredStages, configuredLabel } from '$lib/v2/pipeline-config.js';
@@ -23,7 +27,7 @@
   import '$lib/v2/styles/list-view.css';
   import Pill from '$lib/v2/components/Pill.svelte';
   import EmptyState from '$lib/v2/components/EmptyState.svelte';
-  import { count, relativeDays, daysSince } from '$lib/v2/format.js';
+  import { daysSince } from '$lib/v2/format.js';
   import { TASK_PRIORITY_TONE, TASK_STATUS_TONE } from '$lib/v2/enums.js';
   import { invalidateAll } from '$app/navigation';
   import '$lib/v2/styles/pipeline.css';
@@ -34,7 +38,11 @@
   let { data, form } = $props();
 
   const catalog = $derived(listColumns('Task', page.data.propertyLayout?.Task));
-  const fields = $derived(catalog.map((c) => [c.key, c.label]));
+  const fields = $derived(catalog.map((c) => [c.key, c.system ? ui(c.label) : c.label]));
+  listViewPreference(
+    () => `${page.data.accountId}.${page.data.accountUser?.email}.Task`,
+    () => page.url
+  );
   const selection = columnSelection(
     () => catalog,
     () => `${page.data.accountId}.${page.data.accountUser?.email}.Task`
@@ -99,23 +107,25 @@
   };
 </script>
 
-<PageHeader title="Tasks">
+<PageHeader title={ui('Tasks')}>
   {#snippet sub()}
-    <span class="v2-num">{count(totals.open)}</span> open ·
-    <span class="v2-num" style="color:var(--v2-rust)">{count(totals.overdue)}</span> overdue
+    <span class="v2-num">{count(totals.open)}</span>
+    {ui('open ·')}
+    <span class="v2-num" style="color:var(--v2-rust)">{count(totals.overdue)}</span>
+    {ui('overdue')}
   {/snippet}
   {#snippet actions()}
     {#if can(page.data.permissions, 'tasks', 'create')}<a
         class="v2-btn v2-btn-primary"
-        href={resolve('/tasks/new')}><Plus />New task</a
+        href={resolve('/tasks/new')}><Plus />{ui('New task')}</a
       >{/if}
   {/snippet}
 </PageHeader>
 
 <SectionTabs set="tasks" />
 <div class="task-totals">
-  <span>{count(totals.due_this_week)} due this week</span><span
-    >{count(totals.no_due_date)} without due date</span
+  <span>{count(totals.due_this_week)} {ui('due this week')}</span><span
+    >{count(totals.no_due_date)} {ui('without due date')}</span
   >
 </div>
 <TaskFilters url={page.url} people={data.people} />
@@ -130,13 +140,13 @@
   </div>{/if}
 
 {#if form?.error}
-  <p class="v2-pad v2-form-error" role="alert">{form.error}</p>
+  <p class="v2-pad v2-form-error" role="alert">{ui(form.error)}</p>
 {/if}
 
 {#if moveError}<p class="v2-pad v2-form-error" role="alert">{moveError}</p>{/if}
 <div class="v2-scroll" class:task-list={!pipeline} class:pipeline-scroll={pipeline}>
   {#if pipeline}
-    <div class="hdm-board" aria-label="Task pipeline">
+    <div class="hdm-board" aria-label={ui('Task pipeline')}>
       {#each statuses as status}
         <section
           class="pipeline-column"
@@ -185,15 +195,15 @@
                 >
                 <dl>
                   <div>
-                    <dt>Owner</dt>
+                    <dt>{ui('Owner')}</dt>
                     <dd>{task.assigned_names.join(', ') || '—'}</dd>
                   </div>
                   <div>
-                    <dt>Priority</dt>
+                    <dt>{ui('Priority')}</dt>
                     <dd>{task.priority}</dd>
                   </div>
                   <div>
-                    <dt>Due</dt>
+                    <dt>{ui('Due')}</dt>
                     <dd>{task.due_date ? relativeDays(task.due_date) : '—'}</dd>
                   </div>
                 </dl>
@@ -210,24 +220,24 @@
                     >{/each}</select
                 >
               </article>
-            {:else}<p class="pipeline-empty">No tasks</p>{/each}
+            {:else}<p class="pipeline-empty">{ui('No tasks')}</p>{/each}
           </div>
         </section>
       {/each}
     </div>
   {:else if tasks.length === 0}
     <EmptyState
-      title={data.showAll ? 'No tasks yet' : 'Nothing on your list'}
+      title={data.showAll ? ui('No tasks yet') : ui('Nothing on your list')}
       body={data.showAll ? 'Create a task to get started.' : 'No open tasks match this view.'}
     >
       {#snippet icon()}<CircleCheck size={21} />{/snippet}
       {#snippet actions()}
         {#if can(page.data.permissions, 'tasks', 'create')}<a
             class="v2-btn v2-btn-primary"
-            href={resolve('/tasks/new')}>New task</a
+            href={resolve('/tasks/new')}>{ui('New task')}</a
           >{/if}
         {#if !data.showAll}
-          <a class="v2-btn" href={resolve('/tasks?all=1')}>Show completed</a>
+          <a class="v2-btn" href={resolve('/tasks?all=1')}>{ui('Show completed')}</a>
         {/if}
       {/snippet}
     </EmptyState>
@@ -236,16 +246,16 @@
     <div
       class="v2-table-wrap hdm-list"
       role="region"
-      aria-label="Tasks; scroll horizontally to see all columns"
+      aria-label={ui('Tasks; scroll horizontally to see all columns')}
       tabindex="0"
     >
       <table class="v2-table">
         <thead>
           <tr>
-            <th style="width:38px"><span class="v2-sr-only">Done</span></th>
+            <th style="width:38px"><span class="v2-sr-only">{ui('Done')}</span></th>
             {#each columns as key (key)}<th scope="col">{fields.find(([id]) => id === key)?.[1]}</th
               >{/each}
-            <th>Actions</th>
+            <th>{ui('Actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -303,7 +313,7 @@
                   {:else if ['account', 'opportunity', 'case'].includes(key) && t.related && t[key]?.id === t.related.id}
                     <a href={resolve(t.related.href)}>{t.related.name}</a>
                   {:else if key === 'last_activity_at' || key === 'created_at'}
-                    <span title={t[key] ? new Date(t[key]).toLocaleString() : undefined}
+                    <span title={t[key] ? new Date(t[key]).toLocaleString(locale()) : undefined}
                       >{t[key] ? relativeDays(t[key]) : '—'}</span
                     >
                   {:else}
@@ -314,7 +324,7 @@
               <td class="list-row-actions"
                 >{#if can(page.data.permissions, 'tasks', 'edit')}<a
                     aria-label={`Edit ${t.title}`}
-                    href={resolve(`/tasks/${t.id}/edit`)}>Edit</a
+                    href={resolve(`/tasks/${t.id}/edit`)}>{ui('Edit')}</a
                   >{/if}</td
               >
             </tr>

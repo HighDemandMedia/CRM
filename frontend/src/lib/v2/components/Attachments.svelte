@@ -1,4 +1,8 @@
 <script>
+  import { attachmentError } from '$lib/v2/attachment-policy.js';
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui } = useI18n();
+
   import { page } from '$app/state';
   import { can, recordModule } from '$lib/v2/permissions.js';
   import { enhance } from '$app/forms';
@@ -46,12 +50,18 @@
 
 <div class="attachment-section">
   <header class="association-heading">
-    <h2>Attachments</h2>
+    <h2>{ui('Attachments')}</h2>
     {#if allowUpload && (!recordModule(page.url.pathname) || can(page.data.permissions, recordModule(page.url.pathname), 'attachments'))}<form
         method="POST"
         {action}
         enctype="multipart/form-data"
-        use:enhance={() => {
+        use:enhance={({ cancel }) => {
+          const message = attachmentError(fileInput.files?.[0]);
+          if (message) {
+            fileError = message;
+            cancel();
+            return;
+          }
           fileBusy = true;
           fileError = '';
           uploadStatus = '';
@@ -73,19 +83,27 @@
           bind:this={fileInput}
           type="file"
           name="attachment"
-          aria-label="Choose attachment"
+          aria-label={ui('Choose attachment')}
           hidden
           disabled={fileBusy}
           onchange={(event) => {
-            fileName = event.currentTarget.files?.[0]?.name ?? '';
+            const file = event.currentTarget.files?.[0];
+            fileError = attachmentError(file);
+            uploadStatus = '';
+            if (fileError) {
+              event.currentTarget.value = '';
+              fileName = '';
+              return;
+            }
+            fileName = file?.name ?? '';
             if (fileName) event.currentTarget.form?.requestSubmit();
           }}
         />
         <button
           type="button"
           class="association-icon"
-          aria-label={fileBusy ? 'Uploading attachment' : 'Add attachment'}
-          title={fileBusy ? 'Uploading…' : 'Add attachment'}
+          aria-label={fileBusy ? ui('Uploading attachment') : ui('Add attachment')}
+          title={fileBusy ? ui('Uploading…') : ui('Add attachment')}
           disabled={fileBusy}
           onclick={() => fileInput.click()}
         >
@@ -93,16 +111,17 @@
         </button>
       </form>{/if}
   </header>
+  {#if allowUpload}<p class="v2-sub">{ui('Up to 25 MB per file.')}</p>{/if}
   {#if fileBusy || uploadStatus}<p class="v2-sub" role="status">
-      {fileBusy ? `Uploading ${fileName}…` : uploadStatus}
+      {fileBusy ? ui('Uploading {name}…', { name: fileName }) : ui(uploadStatus)}
     </p>{/if}
   {#if fileError}
-    <p class="v2-error" role="alert">{fileError}</p>
+    <p class="v2-error" role="alert">{ui(fileError)}</p>
     {#if fileName}<button
         type="button"
         class="v2-btn"
         disabled={fileBusy}
-        onclick={() => fileInput.form?.requestSubmit()}>Retry upload</button
+        onclick={() => fileInput.form?.requestSubmit()}>{ui('Retry upload')}</button
       >{/if}
   {/if}
   {#each attachments.filter((file) => !removed.includes(file.id)) as file (file.id)}
@@ -122,7 +141,7 @@
           type="button"
           class="association-icon delete-file"
           aria-label={`Delete attachment ${file.name}`}
-          title="Delete attachment"
+          title={ui('Delete attachment')}
           onclick={() => {
             selected = file;
             deleteError = '';
@@ -132,7 +151,7 @@
         </button>
       {/if}
     </div>
-  {:else}<p class="v2-sub">No attachments.</p>{/each}
+  {:else}<p class="v2-sub">{ui('No attachments.')}</p>{/each}
 </div>
 
 {#if selected}
@@ -148,18 +167,18 @@
       if (!deleting) selected = null;
     }}
   >
-    <h2 id="delete-attachment-title">Delete attachment?</h2>
+    <h2 id="delete-attachment-title">{ui('Delete attachment?')}</h2>
     <p id="delete-attachment-description">
-      <strong>{selected.name}</strong> will be permanently removed from this record and file storage.
-      This cannot be undone.
+      <strong>{selected.name}</strong>
+      {ui('will be permanently removed from this record and file storage. This cannot be undone.')}
     </p>
-    {#if deleteError}<p class="v2-error" role="alert">{deleteError}</p>{/if}
+    {#if deleteError}<p class="v2-error" role="alert">{ui(deleteError)}</p>{/if}
     <div class="dialog-actions">
       <button class="v2-btn" type="button" disabled={deleting} onclick={() => (selected = null)}
-        >Cancel</button
+        >{ui('Cancel')}</button
       >
       <button class="v2-btn danger" type="button" disabled={deleting} onclick={remove}
-        >{deleting ? 'Deleting…' : 'Delete attachment'}</button
+        >{deleting ? ui('Deleting…') : ui('Delete attachment')}</button
       >
     </div>
   </dialog>

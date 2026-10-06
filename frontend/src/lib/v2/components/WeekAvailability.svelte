@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   import { resolve } from '$app/paths';
   import { dateKey } from '$lib/v2/calendar.js';
   import { tick } from 'svelte';
@@ -122,54 +125,56 @@
           title: s.title || 'Busy',
           top,
           height: Math.max(4, bottom - top),
-          label: `${a.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} – ${b.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+          label: `${a.toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' })} – ${b.toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' })}`
         };
       });
   }
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 </script>
 
-<section class="week-picker" aria-label="Host weekly availability">
+<section class="week-picker" aria-label={ui('Host weekly availability')}>
   <header>
     <div class="week-nav">
       <button
         type="button"
         class="v2-btn"
-        aria-label="Previous week"
+        aria-label={ui('Previous week')}
         {disabled}
         onclick={() => moveWeek(-7)}>‹</button
       ><strong
-        >{days[0]?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {days[6]?.toLocaleDateString(
+        >{days[0]?.toLocaleDateString(locale(), { month: 'short', day: 'numeric' })} – {days[6]?.toLocaleDateString(
           'en-US',
           { month: 'short', day: 'numeric', year: 'numeric' }
         )}</strong
       ><button
         type="button"
         class="v2-btn"
-        aria-label="Next week"
+        aria-label={ui('Next week')}
         {disabled}
         onclick={() => moveWeek(7)}>›</button
       ><button type="button" class="v2-btn" {disabled} onclick={() => (date = dateKey(new Date()))}
-        >Today</button
+        >{ui('Today')}</button
       >
     </div>
     <div class="legend">
-      <span><i class="busy-key"></i>Busy</span><span><i class="selected-key"></i>Selected</span
+      <span><i class="busy-key"></i>{ui('Busy')}</span><span
+        ><i class="selected-key"></i>{ui('Selected')}</span
       ><span>{zone}</span>
     </div>
   </header>
   <div class="status" aria-live="polite">
-    {#if loading}Checking availability…{:else if error}{error}
-      <button type="button" onclick={() => retry++}>Retry</button>{:else if !host}Select a Host to
-      see availability.{:else if conflict}<span role="alert"
-        >This host already has an event at this time.</span
+    {#if loading}{ui('Checking availability…')}{:else if error}{error}
+      <button type="button" onclick={() => retry++}>{ui('Retry')}</button>{:else if !host}{ui(
+        'Select a Host to see availability.'
+      )}{:else if conflict}<span role="alert"
+        >{ui('This host already has an event at this time.')}</span
       >{/if}
   </div>
   <div class="week-scroll" bind:this={scroll}>
     <div class="calendar-grid">
       <div class="day-head">
         <span></span>{#each days as day}<div class:chosen={dateKey(day) === date}>
-            {day.toLocaleDateString('en-US', { weekday: 'short' })}<b>{day.getDate()}</b>
+            {day.toLocaleDateString(locale(), { weekday: 'short' })}<b>{day.getDate()}</b>
           </div>{/each}
       </div>
       <div class="hours">
@@ -185,7 +190,7 @@
                 class="slot"
                 type="button"
                 disabled={disabled || loading || !!error || !host}
-                aria-label={`Select ${day.toLocaleDateString('en-US')} at ${time(minute)}`}
+                aria-label={`Select ${day.toLocaleDateString(locale())} at ${time(minute)}`}
                 style:top={`${minute}px`}
                 onclick={() => choose(day, minute)}
                 ondragover={(e) => e.preventDefault()}

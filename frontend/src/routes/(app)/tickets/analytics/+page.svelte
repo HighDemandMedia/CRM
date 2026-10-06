@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, count, shortDate } = useI18n();
+
   import { resolve } from '$app/paths';
   /**
    * Service health. Four questions, in the order a support lead asks them:
@@ -20,7 +23,7 @@
   import SectionTabs from '$lib/v2/components/SectionTabs.svelte';
   import StatCard from '$lib/v2/components/StatCard.svelte';
   import Avatar from '$lib/v2/components/Avatar.svelte';
-  import { count, shortDate } from '$lib/v2/format.js';
+
   import { Clock } from '@lucide/svelte';
 
   /** @type {{ data: any }} */
@@ -67,15 +70,16 @@
   let net = $derived(totals.opened - totals.closed);
 </script>
 
-<PageHeader title="Service analytics">
+<PageHeader title={ui('Service analytics')}>
   {#snippet sub()}
     {#if canView}
-      Last <span class="v2-num">{totals.window_days}</span> days
+      {ui('Last')} <span class="v2-num">{totals.window_days}</span>
+      {ui('days')}
       {#if totals.business_hours_applied}
-        · measured in business hours ({totals.calendar_name})
+        {ui('· measured in business hours (')}{totals.calendar_name})
       {/if}
     {:else}
-      Service health
+      {ui('Service health')}
     {/if}
   {/snippet}
 </PageHeader>
@@ -88,22 +92,22 @@
          so a capped card pinned to the left leaves the rest of a wide screen
          empty. margin-inline centres the column. -->
     <div class="v2-card" style="padding:20px 22px;max-width:520px;margin-inline:auto">
-      <strong>This dashboard is for administrators.</strong>
+      <strong>{ui('This dashboard is for administrators.')}</strong>
       <p>
-        Opened and closed volume, first-response attainment and the queue breakdown are
-        whole-organisation figures, so they are limited to admins. Your own tickets are on the <a
-          href={resolve('/tickets')}>Tickets</a
-        > tab.
+        {ui(
+          'Opened and closed volume, first-response attainment and the queue breakdown are whole-organisation figures, so they are limited to admins. Your own tickets are on the'
+        )} <a href={resolve('/tickets')}>{ui('Tickets')}</a>
+        {ui('tab.')}
       </p>
     </div>
   </div>
 {:else}
   <div class="v2-pad" style="padding-top:16px;flex:none">
     <div class="v2-stats">
-      <StatCard label="Opened" value={count(totals.opened)} tone="ink" />
-      <StatCard label="Closed" value={count(totals.closed)} tone="moss" />
+      <StatCard label={ui('Opened')} value={count(totals.opened)} tone="ink" />
+      <StatCard label={ui('Closed')} value={count(totals.closed)} tone="moss" />
       <StatCard
-        label="Backlog"
+        label={ui('Backlog')}
         value={count(totals.open_now)}
         tone={net > 0 ? 'clay' : 'slate'}
         detail={net > 0
@@ -113,7 +117,7 @@
             : 'Level over the window'}
       />
       <StatCard
-        label="Median resolution"
+        label={ui('Median resolution')}
         value={`${totals.median_resolution_hours}h`}
         tone="slate"
         detail="Median, not mean. One three-week ticket should not move it"
@@ -126,10 +130,10 @@
       <!-- Volume -->
       <div class="v2-card" style="padding:16px 18px 14px;margin-bottom:18px">
         <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px">
-          <div class="v2-label">Opened and closed, per day</div>
+          <div class="v2-label">{ui('Opened and closed, per day')}</div>
           <span class="v2-sub" style="font-size:var(--crm-text-xs);margin-left:auto">
-            <i class="v2-swatch v2-swatch-in"></i>opened
-            <i class="v2-swatch" style="margin-left:10px"></i>closed
+            <i class="v2-swatch v2-swatch-in"></i>{ui('opened')}
+            <i class="v2-swatch" style="margin-left:10px"></i>{ui('closed')}
           </span>
         </div>
         <div class="v2-cols">
@@ -151,10 +155,13 @@
       <div class="v2-split" style="margin-bottom:18px">
         <!-- First response -->
         <div class="v2-card" style="padding:16px 18px">
-          <div class="v2-label" style="margin-bottom:4px">First response, against target</div>
+          <div class="v2-label" style="margin-bottom:4px">
+            {ui('First response, against target')}
+          </div>
           <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:0 0 14px">
-            Each priority carries its own target from the escalation policy, so each one is scored
-            against its own promise.
+            {ui(
+              'Each priority carries its own target from the escalation policy, so each one is scored against its own promise.'
+            )}
           </p>
           {#each data.firstResponse as r (r.priority)}
             {@const pct = attainment(r)}
@@ -164,7 +171,10 @@
               >
                 <b style="font-weight:600">{r.priority}</b>
                 <span class="v2-sub" style="font-size:var(--crm-text-xs)">
-                  target {duration(r.target_minutes)} · median {duration(r.median_minutes)}
+                  {ui('target')}
+                  {duration(r.target_minutes)}
+                  {ui('· median')}
+                  {duration(r.median_minutes)}
                 </span>
                 <span
                   class="v2-num"
@@ -179,12 +189,12 @@
                 <i style="width:{pct ?? 0}%;background:{barColor(pct)}"></i>
               </div>
               <div class="v2-bar-legend">
-                <span><span class="v2-num">{r.met}</span> in time</span>
+                <span><span class="v2-num">{r.met}</span> {ui('in time')}</span>
                 <span>
                   {#if r.missed}
-                    <span class="v2-num" style="color:var(--v2-rust)">{r.missed}</span> late
+                    <span class="v2-num" style="color:var(--v2-rust)">{r.missed}</span> {ui('late')}
                   {:else}
-                    none late
+                    {ui('none late')}
                   {/if}
                 </span>
               </div>
@@ -194,9 +204,11 @@
 
         <!-- Mix -->
         <div class="v2-card" style="padding:16px 18px">
-          <div class="v2-label" style="margin-bottom:4px">What the queue is made of</div>
+          <div class="v2-label" style="margin-bottom:4px">{ui('What the queue is made of')}</div>
           <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:0 0 14px">
-            Incidents and problems are work; questions are usually a gap in the knowledge base.
+            {ui(
+              'Incidents and problems are work; questions are usually a gap in the knowledge base.'
+            )}
           </p>
           {#each data.byType as t (t.case_type)}
             {@const share = Math.round(
@@ -218,16 +230,16 @@
       </div>
 
       <!-- Per agent -->
-      <div class="v2-label" style="margin-bottom:10px">Who is carrying it</div>
+      <div class="v2-label" style="margin-bottom:10px">{ui('Who is carrying it')}</div>
       <div class="v2-table-wrap">
         <table class="v2-table">
           <thead>
             <tr>
-              <th>Agent</th>
-              <th class="v2-r">Open now</th>
-              <th class="v2-r">Closed this week</th>
-              <th class="v2-r">Median first response</th>
-              <th class="v2-r">Missed target</th>
+              <th>{ui('Agent')}</th>
+              <th class="v2-r">{ui('Open now')}</th>
+              <th class="v2-r">{ui('Closed this week')}</th>
+              <th class="v2-r">{ui('Median first response')}</th>
+              <th class="v2-r">{ui('Missed target')}</th>
             </tr>
           </thead>
           <tbody>
@@ -271,11 +283,14 @@
         <Clock size={15} style="color:var(--v2-slate);flex:none;margin-top:2px" />
         <p class="v2-sub" style="font-size:var(--crm-text-xs);margin:0">
           {#if totals.business_hours_applied}
-            Elapsed time is counted inside {totals.calendar_name}, so evenings, weekends and
-            holidays do not count against a target.
+            {ui('Elapsed time is counted inside')}
+            {totals.calendar_name}{ui(
+              ', so evenings, weekends and holidays do not count against a target.'
+            )}
           {:else}
-            Elapsed time is counted around the clock, no business-hours calendar is set, so evenings
-            and weekends count against a target.
+            {ui(
+              'Elapsed time is counted around the clock, no business-hours calendar is set, so evenings and weekends count against a target.'
+            )}
           {/if}
         </p>
       </div>

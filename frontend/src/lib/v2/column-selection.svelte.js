@@ -1,4 +1,5 @@
 import { validColumns } from './list-columns.js';
+import { browserStorage, readPreference } from './list-preferences.js';
 
 /** @param {() => any[]} getColumns @param {() => string} getScope */
 export function columnSelection(getColumns, getScope) {
@@ -7,13 +8,21 @@ export function columnSelection(getColumns, getScope) {
   const storageKey = () => `crm.columns.v2.${getScope()}`;
   $effect(() => {
     const key = storageKey();
-    let keys = null;
-    try {
-      keys = JSON.parse(localStorage.getItem(key) || 'null');
-    } catch {
-      /* Optional browser preferences. */
-    }
+    const storage = browserStorage();
+    const keys = readPreference(storage, key, null);
     preference = { key, keys };
+    function sync(event) {
+      if (event.storageArea !== storage || (event.key !== key && event.key !== null)) return;
+      let updated = null;
+      try {
+        updated = JSON.parse(event.newValue || 'null');
+      } catch {
+        /* Corrupt preferences use defaults. */
+      }
+      preference = { key, keys: updated };
+    }
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
   });
   function set(keys) {
     const key = storageKey();

@@ -10,13 +10,13 @@
 
 {% block button_link %}
 <a class="btn-link" href="{{ magic_link_url }}"
-   style="display:inline-block;padding:14px 32px;background-color:#EA580C;color:#ffffff;text-decoration:none;border-radius:6px;font-size:16px;font-weight:600;line-height:1;">
+   style="{{ email_theme.button_style }}">
   Sign in to High Demand Media CRM
 </a>
 {% endblock button_link %}
 
 {% block extra_content %}
-<p style="font-size:13px;color:#757575;margin:0;">
+<p style="font-size:13px;color:{{ email_theme.muted }};margin:0;">
   If you didn't request this link, you can safely ignore this email.
 </p>
 {% endblock extra_content %}

@@ -1,4 +1,7 @@
 <script>
+  import { useI18n } from '$lib/i18n/context.js';
+  const { ui, locale } = useI18n();
+
   import { resolve } from '$app/paths';
   import { untrack } from 'svelte';
   import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
@@ -49,6 +52,7 @@
   }
   let editName = $state(untrack(() => name)),
     editPhone = $state(untrack(() => p.phone)),
+    editUiLanguage = $state(untrack(() => p.ui_language)),
     editLanguage = $state(untrack(() => p.language)),
     editTimezone = $state(untrack(() => p.timezone));
   let saving = $state(false);
@@ -56,12 +60,14 @@
   let dirty = $derived(
     editName !== name ||
       editPhone !== p.phone ||
+      editUiLanguage !== p.ui_language ||
       editLanguage !== p.language ||
       editTimezone !== p.timezone
   );
   $effect(() => {
     editName = name;
     editPhone = p.phone;
+    editUiLanguage = p.ui_language;
     editLanguage = p.language;
     editTimezone = p.timezone;
   });
@@ -69,6 +75,7 @@
   function resetDetails() {
     editName = name;
     editPhone = p.phone;
+    editUiLanguage = p.ui_language;
     editLanguage = p.language;
     editTimezone = p.timezone;
   }
@@ -76,6 +83,7 @@
     for (const [key, previous] of Object.entries({
       name,
       phone: p.phone,
+      ui_language: p.ui_language,
       language: p.language,
       timezone: p.timezone
     })) {
@@ -90,11 +98,11 @@
 </script>
 
 <div class="profile-shell">
-  <PageHeader title="Profile">
-    {#snippet sub()}Your details, preferences and connected accounts{/snippet}
+  <PageHeader title={ui('Profile')}>
+    {#snippet sub()}{ui('Your details, preferences and connected accounts')}{/snippet}
   </PageHeader>
 
-  <div class="profile-tabs" role="tablist" aria-label="Profile sections">
+  <div class="profile-tabs" role="tablist" aria-label={ui('Profile sections')}>
     {#each tabs as tab, index}
       <button
         id={`profile-tab-${tab.id}`}
@@ -107,7 +115,7 @@
         onclick={() => (activeTab = tab.id)}
         onkeydown={(event) => navigateTabs(event, index)}
       >
-        <tab.icon size={16} /><span>{tab.label}</span>
+        <tab.icon size={16} /><span>{ui(tab.label)}</span>
       </button>
     {/each}
   </div>
@@ -123,15 +131,15 @@
       >
         <div class="section-heading">
           <div>
-            <h2>Personal information</h2>
-            <p class="section-description">Manage your details and personal preferences.</p>
+            <h2>{ui('Personal information')}</h2>
+            <p class="section-description">{ui('Manage your details and personal preferences.')}</p>
           </div>
         </div>
         <form class="details-form" method="POST" action="?/edit" use:enhance={onEdit}>
           <fieldset disabled={saving}>
             <div class="settings-group">
               <label
-                >Full name<input
+                >{ui('Full name')}<input
                   class="v2-input"
                   name="name"
                   bind:value={editName}
@@ -140,7 +148,7 @@
                 /></label
               >
               <label
-                >Email<input
+                >{ui('Email')}<input
                   class="v2-input"
                   type="email"
                   value={p.user_details.email}
@@ -148,9 +156,9 @@
                   aria-describedby="email-help"
                 /></label
               >
-              <p id="email-help" class="help">Your sign-in email.</p>
+              <p id="email-help" class="help">{ui('Your sign-in email.')}</p>
               <label
-                >Phone<input
+                >{ui('Phone')}<input
                   class="v2-input"
                   name="phone"
                   bind:value={editPhone}
@@ -161,12 +169,26 @@
               >
             </div>
             <div class="settings-group">
-              <h3>Regional preferences</h3>
+              <h3>{ui('Regional preferences')}</h3>
+              <label
+                >{ui('CRM language')}
+                <select class="v2-input" name="ui_language" bind:value={editUiLanguage}>
+                  <option value="en">English</option><option value="es">Español</option>
+                </select>
+              </label>
+              <p class="help">
+                {ui('Only changes your interface. Applies across your organizations and devices.')}
+              </p>
               <LanguageSelect bind:value={editLanguage} />
               <label
-                >Time zone<select class="v2-input" name="timezone" bind:value={editTimezone}>
+                >{ui('Time zone')}<select
+                  class="v2-input"
+                  name="timezone"
+                  bind:value={editTimezone}
+                >
                   <option value=""
-                    >Organization default · {p.organization_timezone.replaceAll('_', ' ')}</option
+                    >{ui('Organization default ·')}
+                    {p.organization_timezone.replaceAll('_', ' ')}</option
                   >
                   {#each data.timezones as zone}<option value={zone.name}>{zone.label}</option
                     >{/each}
@@ -174,29 +196,29 @@
               >
             </div>
             {#if p.teams.length}<div class="team-summary">
-                <span>Teams</span><strong>{p.teams.join(', ')}</strong>
+                <span>{ui('Teams')}</span><strong>{p.teams.join(', ')}</strong>
               </div>{/if}
           </fieldset>
           {#if !form?.scope && form?.message}<p class="feedback failure" role="alert">
-              {form.message}
+              {ui(form.message)}
             </p>{/if}
           {#if !form?.scope && form?.saved && !dirty}<p class="feedback" role="status">
-              Profile saved.
+              {ui('Profile saved.')}
             </p>{/if}
           <div class="form-actions detail-actions">
             <button class="v2-btn v2-btn-primary" disabled={saving || !dirty}
-              >{saving ? 'Saving…' : 'Save changes'}</button
+              >{saving ? ui('Saving…') : ui('Save changes')}</button
             >
             {#if dirty}<button class="v2-btn" type="button" disabled={saving} onclick={resetDetails}
-                >Cancel</button
+                >{ui('Cancel')}</button
               >{/if}
           </div>
         </form>
         <form class="details-form" method="POST" action="?/password" use:enhance>
           <fieldset>
-            <h3>{data.hasPassword ? 'Change password' : 'Set your password'}</h3>
+            <h3>{data.hasPassword ? ui('Change password') : ui('Set your password')}</h3>
             {#if data.hasPassword}<label
-                >Current password<input
+                >{ui('Current password')}<input
                   class="v2-input"
                   type="password"
                   name="current_password"
@@ -206,7 +228,7 @@
                 /></label
               >{/if}
             <label
-              >New password<input
+              >{ui('New password')}<input
                 class="v2-input"
                 type="password"
                 name="password"
@@ -217,7 +239,7 @@
               /></label
             >
             <label
-              >Confirm password<input
+              >{ui('Confirm password')}<input
                 class="v2-input"
                 type="password"
                 name="confirm_password"
@@ -233,10 +255,10 @@
               class:failure={form.message}
               role="status"
             >
-              {form.message || 'Password saved.'}
+              {ui(form.message || 'Password saved.')}
             </p>{/if}
           <div class="form-actions">
-            <button class="v2-btn v2-btn-primary">Save password</button>
+            <button class="v2-btn v2-btn-primary">{ui('Save password')}</button>
           </div>
         </form>
       </div>
@@ -249,25 +271,27 @@
         class="profile-panel"
       >
         <div class="section-heading">
-          <h2 id="integration-title"><Link2 size={17} />Connected accounts</h2>
-          <span class="subtle-badge">Per user</span>
+          <h2 id="integration-title"><Link2 size={17} />{ui('Connected accounts')}</h2>
+          <span class="subtle-badge">{ui('Per user')}</span>
         </div>
-        <p class="section-description">Manage your email and calendar connections.</p>
+        <p class="section-description">{ui('Manage your email and calendar connections.')}</p>
         {#if data.googleResult}<p class="feedback" role="status">
             {data.googleResult === 'settings'
-              ? 'Manage your Google connections below.'
+              ? ui('Manage your Google connections below.')
               : data.googleResult === 'connected'
-                ? 'Google connected. The first synchronization is running.'
+                ? ui('Google connected. The first synchronization is running.')
                 : data.googleResult === 'cancelled'
-                  ? 'Connection cancelled or expired. Try connecting again.'
-                  : 'Could not connect Google. Check the configuration and required permissions, then try again.'}
+                  ? ui('Connection cancelled or expired. Try connecting again.')
+                  : ui(
+                      'Could not connect Google. Check the configuration and required permissions, then try again.'
+                    )}
           </p>{/if}
         {#if form?.scope === 'google'}<p
             class="feedback"
             class:failure={form.message}
             role="status"
           >
-            {form.message || form.googleMessage}
+            {ui(form.message || form.googleMessage)}
           </p>{/if}
         {#each [{ key: 'gmail', service: 'gmail', title: 'Gmail' }, { key: 'google_calendar', service: 'calendar', title: 'Google Calendar' }] as item}
           {@const connection = p.integrations?.[item.key]}
@@ -284,36 +308,45 @@
               </div>
               <span class="status-badge"
                 >{connection?.status === 'connected'
-                  ? 'Connected'
+                  ? ui('Connected')
                   : connection?.status === 'reconnect'
-                    ? 'Reconnect required'
-                    : 'Not connected'}</span
+                    ? ui('Reconnect required')
+                    : ui('Not connected')}</span
               >
             </div>
             <p class="help">
               {item.service === 'gmail'
-                ? 'Sent and received emails are matched to your contacts by email address. Only you can see your connected mailbox activity, including the message text. Initial import covers the last 90 days; attachments are not imported.'
-                : 'Events synchronize in both directions. Your hosted CRM appointments and their meeting notes appear in Google Calendar. Google changes update the linked appointment. No invitation emails are sent by this sync.'}
+                ? ui(
+                    'Sent and received emails are matched to your contacts by email address. Only you can see your connected mailbox activity, including the message text. Initial import covers the last 90 days; attachments are not imported.'
+                  )
+                : ui(
+                    'Events synchronize in both directions. Your hosted CRM appointments and their meeting notes appear in Google Calendar. Google changes update the linked appointment. No invitation emails are sent by this sync.'
+                  )}
             </p>
             {#if connection?.last_sync}<p class="help">
-                Last sync: {new Date(connection.last_sync).toLocaleString()}
+                {ui('Last sync:')}
+                {new Date(connection.last_sync).toLocaleString(locale())}
               </p>{/if}
             {#if item.service === 'calendar' && connection?.status === 'connected'}<p class="help">
-                Calendar: {connection.calendar}. Sync includes the previous 90 days and the next 12
-                months.
+                {ui('Calendar:')}
+                {connection.calendar}{ui(
+                  '. Sync includes the previous 90 days and the next 12 months.'
+                )}
               </p>{/if}
             {#if connection?.error}<p class="feedback failure" role="status">
-                {connection.error}
+                {ui(connection.error)}
               </p>{/if}
             {#if !connection?.configured}<p class="setup-note">
-                The CRM administrator needs to configure Google connections before you can connect.
+                {ui(
+                  'The CRM administrator needs to configure Google connections before you can connect.'
+                )}
               </p>{/if}
             <div class="integration-actions">
               <form method="POST" action="?/googleConnect">
                 <input type="hidden" name="service" value={item.service} /><button
                   class="v2-btn v2-btn-primary v2-btn-sm"
                   disabled={!connection?.configured}
-                  >{connection?.email ? 'Reconnect' : `Connect ${item.title}`}</button
+                  >{connection?.email ? ui('Reconnect') : `Connect ${item.title}`}</button
                 >
               </form>
               {#if connection?.status === 'connected'}<form
@@ -324,19 +357,19 @@
                   <input type="hidden" name="service" value={item.service} /><button
                     class="v2-btn v2-btn-sm"
                     name="operation"
-                    value="sync">Sync now</button
+                    value="sync">{ui('Sync now')}</button
                   >
                 </form>{/if}
               {#if connection?.email}<form method="POST" action="?/googleManage" use:enhance>
                   <input type="hidden" name="service" value={item.service} /><button
                     class="v2-btn v2-btn-sm"
                     name="operation"
-                    value="disconnect">Disconnect</button
+                    value="disconnect">{ui('Disconnect')}</button
                   >
                 </form>{/if}
               {#if item.service === 'calendar' && connection?.status === 'connected'}<button
                   class="v2-btn v2-btn-sm"
-                  onclick={loadCalendars}>Choose calendar</button
+                  onclick={loadCalendars}>{ui('Choose calendar')}</button
                 >{/if}
             </div>
             {#if item.service === 'calendar' && calendars.length}<form
@@ -349,15 +382,18 @@
                   name="operation"
                   value="calendar"
                 /><label
-                  >Calendar<select class="v2-input" name="calendar_id" bind:value={selectedCalendar}
+                  >{ui('Calendar')}<select
+                    class="v2-input"
+                    name="calendar_id"
+                    bind:value={selectedCalendar}
                     >{#each calendars as calendar}<option value={calendar.id}
-                        >{calendar.name}{calendar.writable ? '' : ' (read only)'}</option
+                        >{calendar.name}{calendar.writable ? '' : ui(' (read only)')}</option
                       >{/each}</select
                   ></label
-                ><button class="v2-btn v2-btn-sm">Use this calendar</button>
+                ><button class="v2-btn v2-btn-sm">{ui('Use this calendar')}</button>
               </form>{/if}
             {#if item.service === 'calendar' && calendarError}<p class="feedback failure">
-                {calendarError}
+                {ui(calendarError)}
               </p>{/if}
           </div>
         {/each}
