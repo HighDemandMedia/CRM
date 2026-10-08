@@ -38,7 +38,7 @@ The Gmail system sender is separate and its existing credentials remain unchange
    cannot receive changes from the CRM.
 
 The OAuth flow requests identity and email plus `gmail.readonly` for mailbox
-activity, and `calendar.events` / `calendar.calendarlist.readonly` for Calendar.
+activity and `gmail.send` for explicitly requested outgoing messages, and `calendar.events` / `calendar.calendarlist.readonly` for Calendar.
 It uses PKCE, a short-lived single-use state bound to the current profile, an
 HTTP-only browser state cookie, verified Google identity and encrypted offline
 tokens. Users authorize Gmail and Calendar separately.
@@ -54,17 +54,52 @@ expire and require reconnecting. See [Google's scope documentation](https://deve
   five minutes. Expired history is rebuilt from the last 90 days.
 - Records incoming and sent messages when the external address matches an active,
   visible CRM contact. No contacts are automatically created.
-- Stores date, subject, sender, recipients, direction and full text. The message
+- Stores date, subject, sender, To/CC recipients, direction and full text. The message
   body is encrypted at rest. HTML is converted to text; remote images, tracking
   pixels and file attachments are not imported. Multipart text stored by Gmail
   as a body attachment is fetched to preserve complete message text.
-- Activity appears on the contact, with an expandable message and link to Gmail.
-  Only the connected mailbox owner can read it, and CRM contact permissions are
-  checked again when the message is opened. The latest 100 matching messages are
-  shown per contact. Shared record Last Activity remains its property-change date.
+- Contact and Company records have an **Emails** tab. Conversations are newest
+  first, with search across subject, participants and message text, sent/received filters and 20 conversations per page.
+  Open a conversation to read its messages oldest first, also paginated. Message
+  text loads only when expanded; quoted history and recognizable signatures can
+  be expanded separately. Open in Gmail continues in the connected mailbox.
+- Company email history combines primary and explicitly linked contacts without
+  duplicating a message addressed to several contacts. The contact filter narrows
+  that history. Only contacts currently visible to the user are included.
+- **Activity** keeps the latest 100 unique matching messages alongside record
+  changes. Shared record Last Activity remains its property-change date.
+- Only the connected mailbox owner can read these views, including administrators.
+  Contact access is checked again when opening message text. Connected record views
+  have no connect or refresh controls. Connection management and manual synchronization
+  remain in Profile → Integrations.
+- Adding a contact, changing its email or changing visible contacts restarts the
+  bounded 90-day import on the next sync without clearing retained message history.
+  Large mailboxes may require several jobs before older messages appear.
 - Spam, trash and drafts are excluded; deletion detected in Gmail removes the
-  cached message. This integration does not send emails or mark them read.
+  cached message. Reading in the CRM does not mark messages read in Gmail.
 - Sent/received activity is not proof of delivery, opening or reading by a recipient.
+
+## Sending and internal comments
+
+- **New email**, **Reply** and **Forward** use the current profile's connected Gmail,
+  with the record's Edit permission enforced by the API. Plain-text messages support
+  To and CC, up to 25 recipients. Attachments are not forwarded or composed here.
+- Existing read-only Gmail grants continue importing mail. Reconnect once in
+  Profile → Integrations to grant `gmail.send` before sending from the CRM.
+- Replies preserve the original subject and Gmail thread headers. Newly synchronized
+  mail honors Reply-To; older cached mail falls back to the sender until reimported.
+  Forwarding creates a separate conversation and includes the quoted text in the draft.
+- A durable request ID prevents duplicate sends. An uncertain provider response
+  blocks automatic resending: check Gmail Sent before composing a new draft.
+  Successful sends are cached immediately for matching, visible CRM contacts.
+- **Internal comment** requires the record's Notes permission. It creates an internal
+  record note with the email subject as reference, visible in Notes and Activity to
+  teammates who can access that contact/company. It does not expose the mailbox or
+  automatically copy the email body. Comments remain after Gmail is disconnected.
+- Activity is the first/default tab and includes creation, actual field changes,
+  assignments/associations, notes, attachments, appointments, and private sent/received
+  email projections. Opening, downloading, and unchanged saves are excluded. Older
+  unaudited changes cannot be reconstructed.
 
 ## Calendar behavior
 

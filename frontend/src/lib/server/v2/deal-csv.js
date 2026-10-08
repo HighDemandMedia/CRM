@@ -1,3 +1,4 @@
+import { exportQueryURL, exportRows } from './export-scope.js';
 import { apiRequest } from '$lib/api-helpers.js';
 import { listColumns, columnValue } from '$lib/v2/list-columns.js';
 import { dealColumns } from '$lib/v2/deal-columns.js';
@@ -51,18 +52,9 @@ export async function exportDeals(event) {
     .filter((column) => column !== undefined);
   if (!columns.length) throw new Error('Choose at least one valid column.');
   const lines = [columns.map(([, label]) => csvCell(label)).join(',')];
-  const query = dealQuery(event.url);
-  query.set('limit', '100');
-  query.set('permission_action', 'export');
-  let offset = 0;
-  while (true) {
-    if (event.request?.signal.aborted) throw new Error('Export canceled.');
-    query.set('offset', String(offset));
-    const page = await listDeals({ cookies: event.cookies }, query);
-    for (const contact of page.results)
-      lines.push(columns.map(([key]) => csvCell(exportValue(contact, key, catalog))).join(','));
-    offset += page.results.length;
-    if (offset >= page.totals.count || !page.results.length) break;
+  const query = dealQuery(exportQueryURL(event.url));
+  for await (const contact of exportRows(event, query, listDeals)) {
+    lines.push(columns.map(([key]) => csvCell(exportValue(contact, key, catalog))).join(','));
   }
   return '\uFEFF' + lines.join('\r\n') + '\r\n';
 }

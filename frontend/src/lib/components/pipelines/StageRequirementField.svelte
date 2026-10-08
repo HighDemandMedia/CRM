@@ -139,7 +139,12 @@
               />{option.label}</label
             >{/each}
         </div>
-      {:else}<select id={`requirement-${field.key}`} class="v2-input" bind:value {required}
+      {:else}<select
+          id={`requirement-${field.key}`}
+          class="v2-input"
+          name={field.name}
+          bind:value
+          {required}
           ><option value="">{ui('Select…')}</option>{#each choices as option}<option
               value={String(option.value)}>{option.label}</option
             >{/each}</select
@@ -147,6 +152,7 @@
     {:else if field.field_type === 'checkbox'}<select
         id={`requirement-${field.key}`}
         class="v2-input"
+        name={field.name}
         bind:value
         {required}
         ><option value="">{ui('Select…')}</option><option value="true">{ui('Yes')}</option><option
@@ -156,6 +162,7 @@
     {:else if ['textarea', 'list'].includes(field.field_type)}<textarea
         id={`requirement-${field.key}`}
         class="v2-input"
+        name={field.name}
         bind:value
         {required}
         rows="3"
@@ -164,6 +171,10 @@
         id={`requirement-${field.key}`}
         class="v2-input"
         type={kind}
+        name={field.name}
+        maxlength={field.max_length}
+        min={field.min}
+        max={field.max}
         bind:value
         {required}
         step={field.field_type === 'integer' ? '1' : 'any'}

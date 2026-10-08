@@ -23,14 +23,17 @@ export const actions = {
             scope: String(form.get('scope') || 'own'),
             name: String(form.get('name') || '').trim(),
             description: String(form.get('description') || ''),
-            rules
+            rules,
+            settings_access: JSON.parse(String(form.get('settings_access') || '{}'))
           }
         },
         { cookies }
       );
       return { saved: true };
     } catch (err) {
-      return fail(400, { error: readableError(err, 'Could not save role.') });
+      return fail(err?.status === 403 ? 403 : 400, {
+        error: readableError(err, 'Could not save role.')
+      });
     }
   }
 };

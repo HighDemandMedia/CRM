@@ -19,6 +19,7 @@ describe('customer demo routes', () => {
       '/team',
       '/settings/roles',
       '/settings/custom-fields',
+      '/settings/creation-forms',
       '/settings/tags',
       '/settings/web-forms'
     ]) {

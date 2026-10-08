@@ -1,4 +1,7 @@
 <script>
+  import { TICKET_SORT_FIELDS } from '$lib/v2/ticket-sort.js';
+  import ListPagination from '$lib/v2/components/ListPagination.svelte';
+  import ExportDialog from '$lib/v2/components/ExportDialog.svelte';
   import { listViewPreference } from '$lib/v2/list-view-preference.svelte.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
@@ -14,10 +17,11 @@
   import { goto, invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { deserialize } from '$app/forms';
-  import { List, Columns3, Plus, Download } from '@lucide/svelte';
+  import { List, Columns3, Plus } from '@lucide/svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { listColumns, columnValue } from '$lib/v2/list-columns.js';
   import { columnSelection } from '$lib/v2/column-selection.svelte.js';
+  import { columnOrder } from '$lib/v2/column-order.js';
   import ColumnPicker from '$lib/v2/components/ColumnPicker.svelte';
   import AdvancedQueue from '$lib/components/tickets/AdvancedQueue.svelte';
   import {
@@ -69,8 +73,11 @@
   );
   const columns = $derived(selection.selected);
   const view = $derived(page.url.searchParams.get('view') ?? 'list');
-  const offset = $derived(Number(page.url.searchParams.get('offset') ?? 0));
-  const sort = $derived(page.url.searchParams.get('sort') || '');
+  const sort = $derived(
+    Object.hasOwn(TICKET_SORT_FIELDS, page.url.searchParams.get('sort') || '')
+      ? page.url.searchParams.get('sort')
+      : ''
+  );
   const asc = $derived(page.url.searchParams.get('direction') !== 'desc');
   const date = (value) =>
     value
@@ -86,15 +93,7 @@
     if (key === 'last_activity') return date(t[key]);
     return columnValue(t, key, catalog);
   }
-  const rows = $derived(
-    [...data.tickets].sort((a, b) =>
-      sort
-        ? String(value(a, sort)).localeCompare(String(value(b, sort)), undefined, {
-            numeric: true
-          }) * (asc ? 1 : -1)
-        : 0
-    )
-  );
+  const rows = $derived(data.tickets);
   const stages = $derived(statuses);
   onMount(() => {
     search = data.search;
@@ -166,47 +165,28 @@
       }
     };
   }
-  async function exportCSV() {
-    const response = await fetch(resolve('/tickets/export-check'));
-    if (!response.ok) {
-      error = 'Your permission set does not allow exporting tickets.';
-      return;
-    }
-    const safe = (v) => {
-      let s = String(v ?? '');
-      if (/^[=+@\-\t\r]/.test(s)) s = "'" + s;
-      return '"' + s.replaceAll('"', '""') + '"';
-    };
-    const text = [
-      columns.map((k) => fields.find(([id]) => id === k)?.[1]),
-      ...rows.map((t) => columns.map((k) => value(t, k)))
-    ]
-      .map((row) => row.map(safe).join(','))
-      .join('\r\n');
-    const url = URL.createObjectURL(
-      new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8;' })
-    );
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'tickets.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
 </script>
 
 {#if advanced}<button class="v2-btn" onclick={() => (advanced = false)}
     >{ui('Back to tickets')}</button
-  ><AdvancedQueue {data} />{:else}
-  <PageHeader title={ui('Tickets')}
+  ><AdvancedQueue {data} /><ListPagination
+    offset={data.offset}
+    pageSize={data.pageSize}
+    total={data.totals.count}
+    shown={rows.length}
+  />{:else}
+  <PageHeader compact title={ui('Tickets')}
     >{#snippet sub()}{data.totals.count}
       {data.totals.count === 1
         ? ui('ticket')
         : ui(
             'tickets'
-          )}{/snippet}{#snippet actions()}{#if can(page.data.permissions, 'tickets', 'export')}<button
-          class="v2-btn"
-          onclick={exportCSV}><Download size={14} />{ui('Export CSV')}</button
-        >{/if}{#if can(page.data.permissions, 'tickets', 'create')}<a
+          )}{/snippet}{#snippet actions()}{#if can(page.data.permissions, 'tickets', 'export')}<ExportDialog
+          endpoint={resolve('/tickets/export')}
+          {columns}
+          {rows}
+          filename="tickets.csv"
+        />{/if}{#if can(page.data.permissions, 'tickets', 'create')}<a
           class="v2-btn v2-btn-primary"
           href={resolve('/tickets/new')}><Plus size={14} />{ui('New ticket')}</a
         >{/if}{/snippet}</PageHeader
@@ -354,6 +334,7 @@
     {:else}<!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this overflow region to scroll the table.) -->
       <div
         class="table-scroll hdm-list"
+        use:columnOrder={{ keys: columns, onChange: selection.set }}
         role="region"
         aria-label={ui('Tickets; scroll horizontally to see all columns')}
         tabindex="0"
@@ -361,13 +342,24 @@
         <table>
           <thead
             ><tr
-              >{#each columns as key}<th
+              >{#each columns as key (key)}<th
                   scope="col"
+                  data-column={key}
                   data-field={key}
                   aria-sort={sort === key ? (asc ? 'ascending' : 'descending') : 'none'}
                   ><button
+                    type="button"
+                    class="reorder-column-heading"
+                    draggable="true"
+                    title={ui(
+                      Object.hasOwn(TICKET_SORT_FIELDS, key)
+                        ? 'Click to sort; drag to reorder. Alt + arrow keys also move the column.'
+                        : 'Drag to reorder. Alt + arrow keys also move the column.'
+                    )}
                     onclick={() => {
+                      if (!Object.hasOwn(TICKET_SORT_FIELDS, key)) return;
                       const url = new URL(page.url);
+                      url.searchParams.delete('offset');
                       url.searchParams.set('sort', key);
                       url.searchParams.set('direction', sort === key && asc ? 'desc' : 'asc');
                       void goto(resolve('/tickets') + url.search, { noScroll: true });
@@ -382,7 +374,7 @@
             ></thead
           ><tbody
             >{#each rows as ticket}<tr
-                >{#each columns as key}<td
+                >{#each columns as key (key)}<td
                     data-field={key}
                     title={String(value(ticket, key))}
                     class:overdue={key === 'due_at' &&
@@ -412,18 +404,12 @@
           >
         </table>
       </div>{/if}
-    {#if offset > 0 || offset + rows.length < data.totals.count}<div class="pages">
-        <button
-          class="v2-btn"
-          disabled={offset === 0}
-          onclick={() => filter('offset', String(Math.max(0, offset - 100)))}
-          >{ui('Previous')}</button
-        ><button
-          class="v2-btn"
-          disabled={offset + rows.length >= data.totals.count}
-          onclick={() => filter('offset', String(offset + rows.length))}>{ui('Next')}</button
-        >
-      </div>{/if}
+    <ListPagination
+      offset={data.offset}
+      pageSize={data.pageSize}
+      total={data.totals.count}
+      shown={rows.length}
+    />
   </div>
   {#if resolving}<dialog
       use:modal
@@ -447,12 +433,12 @@
 
 <style>
   .workspace {
-    padding: var(--crm-space-4) var(--crm-space-6);
+    padding: var(--crm-space-2) var(--crm-space-3) 0;
     min-height: 0;
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--crm-space-4);
+    gap: var(--crm-space-2);
   }
   .filters {
     display: flex;
@@ -609,9 +595,6 @@
     margin: 10px 0;
   }
   @media (max-width: 700px) {
-    .workspace {
-      padding: var(--crm-space-3);
-    }
     .search {
       flex-basis: 100%;
     }

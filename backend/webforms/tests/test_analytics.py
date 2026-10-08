@@ -133,8 +133,8 @@ class TestConversionRate:
 
 @pytest.mark.django_db
 class TestAuthorization:
-    def test_a_member_can_read_analytics(self, user_client, form):
-        assert user_client.get(analytics_url(form)).status_code == 200
+    def test_a_member_cannot_read_analytics(self, user_client, form):
+        assert user_client.get(analytics_url(form)).status_code == 403
 
     def test_another_org_gets_404(self, org_b_client, form):
         assert org_b_client.get(analytics_url(form)).status_code == 404

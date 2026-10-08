@@ -38,13 +38,12 @@ def email_field(form, org):
 
 @pytest.mark.django_db
 class TestRead:
-    def test_a_member_can_list(self, user_client, form):
+    def test_a_member_cannot_list(self, user_client, form):
         response = user_client.get(LIST_URL)
-        assert response.status_code == 200
-        assert len(response.data["results"]) == 1
+        assert response.status_code == 403
 
-    def test_a_member_can_read_the_detail(self, user_client, form):
-        assert user_client.get(detail_url(form)).status_code == 200
+    def test_a_member_cannot_read_the_detail(self, user_client, form):
+        assert user_client.get(detail_url(form)).status_code == 403
 
     def test_another_orgs_form_is_not_listed(self, org_b_client, form):
         response = org_b_client.get(LIST_URL)

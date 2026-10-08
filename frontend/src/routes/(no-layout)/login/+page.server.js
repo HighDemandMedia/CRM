@@ -136,11 +136,7 @@ async function handleOAuthCallback(code, returnedState, cookies) {
       }
     );
 
-    const { access_token, refresh_token } = response.data;
-
-    // Store JWT tokens in secure httpOnly cookies
-    cookies.set('jwt_access', access_token, getCookieOptions(60 * 60 * 24)); // 1 day
-    cookies.set('jwt_refresh', refresh_token, getCookieOptions(60 * 60 * 24 * 365)); // 1 year
+    savePasswordSession(cookies, response.data);
   } catch (error) {
     // Never log the raw error or the response body: the axios `config.data` for
     // this call is the authorization code plus the PKCE code_verifier, and a

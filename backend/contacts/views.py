@@ -17,10 +17,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.calendar_filters import filter_calendar
+from common.creation_forms import validate_creation
 from common.custom_fields import validate_payload as validate_custom_fields_payload
 from common.last_activity import with_last_activity
 from common.models import (
-    Activity,
     Attachments,
     Comment,
     CustomFieldDefinition,
@@ -32,6 +32,7 @@ from common.permissions import HasOrgContext, is_org_admin
 from common.pipeline_board import pipeline_board
 from common.pipeline_settings import stages_for
 from common.rbac import configured
+from common.record_history import history_for
 from common.serializer import (
     AttachmentsSerializer,
     CommentSerializer,
@@ -145,6 +146,13 @@ class ContactsListView(APIView, LimitOffsetPagination):
                     search_query |= Q(**{f"{field}__icontains": search})
                 search_query |= Q(
                     tags__name__icontains=search, tags__org=self.request.profile.org
+                )
+                search_query |= Q(
+                    assigned_to__user__name__icontains=search,
+                    assigned_to__org=self.request.profile.org,
+                )
+                search_query |= Q(created_by__name__icontains=search) | Q(
+                    created_by__email__icontains=search
                 )
                 search_query |= Q(
                     assigned_to__user__email__icontains=search,
@@ -362,6 +370,7 @@ class ContactsListView(APIView, LimitOffsetPagination):
                 {"error": True, "errors": contact_serializer.errors},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        validate_creation(request.profile.org, "Contact", request.data)
         cf_payload = params.get("custom_fields")
         if isinstance(cf_payload, str):
             try:
@@ -577,23 +586,24 @@ class ContactDetailView(APIView):
 
         contact_obj = contact_serializer.save(**save_kwargs)
         link_primary_account(contact_obj)
-        contact_obj.teams.clear()
         if data.get("teams"):
             teams_list = data.get("teams")
             team_ids = payload_id_list(teams_list, "teams")
             teams = Teams.objects.filter(id__in=team_ids, org=request.profile.org)
-            contact_obj.teams.add(*teams)
+            contact_obj.teams.set(teams)
+        else:
+            contact_obj.teams.clear()
 
-        contact_obj.assigned_to.clear()
         if data.get("assigned_to"):
             assinged_to_list = data.get("assigned_to")
             assigned_ids = payload_id_list(assinged_to_list, "assigned_to")
             profiles = Profile.objects.filter(
                 id__in=assigned_ids, org=request.profile.org
             )
-            contact_obj.assigned_to.add(*profiles)
+            contact_obj.assigned_to.set(profiles)
+        else:
+            contact_obj.assigned_to.clear()
 
-        contact_obj.tags.clear()
         if data.get("tags"):
             tags = data.get("tags")
             if isinstance(tags, str):
@@ -605,7 +615,9 @@ class ContactDetailView(APIView):
             tag_objs = Tags.objects.filter(
                 id__in=tag_ids, org=request.profile.org, is_active=True
             )
-            contact_obj.tags.add(*tag_objs)
+            contact_obj.tags.set(tag_objs)
+        else:
+            contact_obj.tags.clear()
 
         previous_assigned_to_users = list(
             contact_obj.assigned_to.all().values_list("id", flat=True)
@@ -670,35 +682,13 @@ class ContactDetailView(APIView):
         from common.views.google_integration_views import contact_mail_activity
 
         context["email_activity"] = contact_mail_activity(request.profile, contact_obj)
-        history = (
-            Activity.objects.filter(
-                org=contact_obj.org,
-                entity_type="Contact",
-                entity_id=contact_obj.id,
-                action__in=["UPDATE", "ASSIGN"],
-            )
-            .select_related("user__user")
-            .order_by("-created_at", "-id")
-        )
-        context["history"] = [
-            {
-                "id": str(entry.id),
-                "action": entry.action,
-                "description": entry.description,
-                "created_at": entry.created_at,
-                "actor": entry.metadata.get("actor")
-                or (entry.user.user.email if entry.user else "Unknown / System"),
-                "resource": entry.metadata.get("resource"),
-                "changes": entry.metadata.get("changes", {}),
-            }
-            for entry in history
-        ]
+        context["history"] = history_for(contact_obj)
 
         assigned_data = []
         for each in contact_obj.assigned_to.all():
             assigned_dict = {}
             assigned_dict["id"] = each.user.id
-            assigned_dict["name"] = each.user.email
+            assigned_dict["name"] = each.user.display_name
             assigned_data.append(assigned_dict)
 
         if is_org_admin(self.request.profile):
@@ -965,25 +955,26 @@ class ContactDetailView(APIView):
 
         # Handle M2M fields if present in request
         if "teams" in data:
-            contact_obj.teams.clear()
             teams_list = data.get("teams")
             if teams_list:
                 team_ids = payload_id_list(teams_list, "teams")
                 teams = Teams.objects.filter(id__in=team_ids, org=request.profile.org)
-                contact_obj.teams.add(*teams)
+                contact_obj.teams.set(teams)
+            else:
+                contact_obj.teams.clear()
 
         if "assigned_to" in data:
-            contact_obj.assigned_to.clear()
             assigned_to_list = data.get("assigned_to")
             if assigned_to_list:
                 assigned_ids = payload_id_list(assigned_to_list, "assigned_to")
                 profiles = Profile.objects.filter(
                     id__in=assigned_ids, org=request.profile.org
                 )
-                contact_obj.assigned_to.add(*profiles)
+                contact_obj.assigned_to.set(profiles)
+            else:
+                contact_obj.assigned_to.clear()
 
         if "tags" in data:
-            contact_obj.tags.clear()
             tags_list = data.get("tags")
             if tags_list:
                 if isinstance(tags_list, str):
@@ -995,7 +986,9 @@ class ContactDetailView(APIView):
                 tag_objs = Tags.objects.filter(
                     id__in=tag_ids, org=request.profile.org, is_active=True
                 )
-                contact_obj.tags.add(*tag_objs)
+                contact_obj.tags.set(tag_objs)
+            else:
+                contact_obj.tags.clear()
 
         return Response(
             {"error": False, "message": "Contact Updated Successfully"},

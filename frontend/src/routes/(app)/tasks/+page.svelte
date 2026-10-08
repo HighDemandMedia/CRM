@@ -1,4 +1,6 @@
 <script>
+  import ListPagination from '$lib/v2/components/ListPagination.svelte';
+  import ExportDialog from '$lib/v2/components/ExportDialog.svelte';
   import { listViewPreference } from '$lib/v2/list-view-preference.svelte.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale, count, relativeDays } = useI18n();
@@ -22,6 +24,7 @@
   import SectionTabs from '$lib/v2/components/SectionTabs.svelte';
   import { listColumns, columnValue } from '$lib/v2/list-columns.js';
   import { columnSelection } from '$lib/v2/column-selection.svelte.js';
+  import { columnOrder } from '$lib/v2/column-order.js';
   import ColumnPicker from '$lib/v2/components/ColumnPicker.svelte';
   import TaskFilters from '$lib/components/tasks/TaskFilters.svelte';
   import '$lib/v2/styles/list-view.css';
@@ -107,7 +110,7 @@
   };
 </script>
 
-<PageHeader title={ui('Tasks')}>
+<PageHeader compact title={ui('Tasks')}>
   {#snippet sub()}
     <span class="v2-num">{count(totals.open)}</span>
     {ui('open ·')}
@@ -115,6 +118,12 @@
     {ui('overdue')}
   {/snippet}
   {#snippet actions()}
+    {#if can(page.data.permissions, 'tasks', 'export')}<ExportDialog
+        endpoint={resolve('/tasks/export')}
+        {columns}
+        rows={tasks}
+        filename="tasks.csv"
+      />{/if}
     {#if can(page.data.permissions, 'tasks', 'create')}<a
         class="v2-btn v2-btn-primary"
         href={resolve('/tasks/new')}><Plus />{ui('New task')}</a
@@ -123,28 +132,29 @@
 </PageHeader>
 
 <SectionTabs set="tasks" />
-<div class="task-totals">
-  <span>{count(totals.due_this_week)} {ui('due this week')}</span><span
-    >{count(totals.no_due_date)} {ui('without due date')}</span
-  >
-</div>
-<TaskFilters url={page.url} people={data.people} />
-{#if !pipeline}<div class="list-column-tools">
-    <ColumnPicker
-      {fields}
-      selected={columns}
-      onToggle={(key) => selection.toggle(key)}
-      onShowAll={selection.showAll}
-      onReset={selection.reset}
-    />
-  </div>{/if}
+<TaskFilters url={page.url} people={data.people}>
+  {#snippet columnTools()}
+    {#if !pipeline}<ColumnPicker
+        {fields}
+        selected={columns}
+        onToggle={(key) => selection.toggle(key)}
+        onShowAll={selection.showAll}
+        onReset={selection.reset}
+      />{/if}
+  {/snippet}
+</TaskFilters>
 
 {#if form?.error}
   <p class="v2-pad v2-form-error" role="alert">{ui(form.error)}</p>
 {/if}
 
 {#if moveError}<p class="v2-pad v2-form-error" role="alert">{moveError}</p>{/if}
-<div class="v2-scroll" class:task-list={!pipeline} class:pipeline-scroll={pipeline}>
+<div
+  class="v2-scroll"
+  class:task-list={!pipeline}
+  class:list-scroll={!pipeline}
+  class:pipeline-scroll={pipeline}
+>
   {#if pipeline}
     <div class="hdm-board" aria-label={ui('Task pipeline')}>
       {#each statuses as status}
@@ -245,6 +255,7 @@
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this overflow region to scroll the table.) -->
     <div
       class="v2-table-wrap hdm-list"
+      use:columnOrder={{ keys: columns, onChange: selection.set }}
       role="region"
       aria-label={ui('Tasks; scroll horizontally to see all columns')}
       tabindex="0"
@@ -253,7 +264,14 @@
         <thead>
           <tr>
             <th style="width:38px"><span class="v2-sr-only">{ui('Done')}</span></th>
-            {#each columns as key (key)}<th scope="col">{fields.find(([id]) => id === key)?.[1]}</th
+            {#each columns as key (key)}<th scope="col" data-column={key}>
+                <button
+                  type="button"
+                  class="reorder-column-heading"
+                  draggable="true"
+                  title={ui('Drag to reorder. Alt + arrow keys also move the column.')}
+                  >{fields.find(([id]) => id === key)?.[1]}</button
+                ></th
               >{/each}
             <th>{ui('Actions')}</th>
           </tr>
@@ -333,6 +351,12 @@
       </table>
     </div>
   {/if}
+  <ListPagination
+    offset={data.offset}
+    pageSize={data.pageSize}
+    total={data.totals.count}
+    shown={tasks.length}
+  />
 </div>
 
 <style>
@@ -357,15 +381,8 @@
     outline-offset: -2px;
   }
 
-  .task-totals {
-    display: flex;
-    gap: var(--crm-space-5);
-    padding: var(--crm-space-3) var(--crm-space-6) 0;
-    color: var(--v2-slate);
-    font-size: var(--crm-text-xs);
-  }
   .task-list {
-    padding: 0 var(--crm-space-6) var(--crm-space-5);
+    min-height: 0;
   }
   :global(.task-list .hdm-list) {
     overflow: auto;

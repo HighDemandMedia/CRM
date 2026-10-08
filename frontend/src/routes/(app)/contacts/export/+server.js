@@ -1,3 +1,4 @@
+import { postExport } from '$lib/server/v2/export-scope.js';
 import { error } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
 import { exportContacts } from '$lib/server/v2/contact-csv.js';
@@ -20,3 +21,5 @@ export async function GET(event) {
     }
   });
 }
+
+export const POST = (event) => postExport(event, GET);

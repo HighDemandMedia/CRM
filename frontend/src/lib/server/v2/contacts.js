@@ -1,3 +1,4 @@
+import { recordActivity } from './record-activity.js';
 import { userName } from '$lib/utils/user-name.js';
 /**
  * Contacts: the fourth v2 module wired to the real API.
@@ -88,7 +89,8 @@ function toRow(contact) {
   const { account, other_accounts } = accountLink(contact);
   return {
     id: contact.id,
-    created_by: contact.created_by_email || userName(contact.created_by, ''),
+    created_by:
+      contact.created_by_name || userName(contact.created_by, '') || contact.created_by_email || '',
     first_name: contact.first_name ?? '',
     last_name: contact.last_name ?? '',
     name: contact.name ?? [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim(),
@@ -230,7 +232,7 @@ export async function getContact({ cookies }, id, withEditor = false) {
       id: note.id,
       body: note.comment,
       at: note.commented_on,
-      by: note.commented_by?.user_details?.email ?? null
+      by: userName(note.commented_by, '') || null
     })),
     attachments: (response.attachments ?? []).map((file) => ({
       id: file.id,
@@ -250,55 +252,7 @@ export async function getContact({ cookies }, id, withEditor = false) {
  * @param {any} response
  */
 function buildContactActivity(response) {
-  /** @type {Array<{id:string,type:'note'|'file'|'status'|'email',at:string,by:string|null,body:string,href?:string|null,emailId?:string}>} */
-  const events = [];
-
-  for (const mail of response.email_activity ?? []) {
-    events.push({
-      id: `email-${mail.id}`,
-      type: 'email',
-      at: mail.at,
-      by: mail.account,
-      body: `Email ${mail.direction}: ${mail.subject || '(No subject)'}`,
-      href: mail.href,
-      emailId: mail.id
-    });
-  }
-  for (const entry of response.history ?? []) {
-    if (
-      !['UPDATE', 'ASSIGN'].includes(entry.action) ||
-      !Object.keys(entry.changes ?? {}).length ||
-      ['Note', 'Attachment'].includes(entry.resource?.type)
-    )
-      continue;
-    const changes = Object.entries(entry.changes ?? {}).map(([field, change]) => {
-      const detail = /** @type {any} */ (change);
-      const show = (/** @type {any} */ value) => {
-        if (value === null || value === '' || (Array.isArray(value) && !value.length)) return '—';
-        if (Array.isArray(value)) return value.map((item) => item?.name || String(item)).join(', ');
-        return typeof value === 'object' ? JSON.stringify(value) : String(value);
-      };
-      return `${detail.label || field}: ${show(detail.before_display ?? detail.before)} → ${show(detail.after_display ?? detail.after)}`;
-    });
-    const file =
-      entry.resource?.type === 'Attachment' && entry.description === 'Attachment added'
-        ? (response.attachments ?? []).find(
-            (/** @type {any} */ file) => file.id === entry.resource.id
-          )
-        : null;
-    events.push({
-      id: `history-${entry.id}`,
-      type: file ? 'file' : entry.resource?.type === 'Note' ? 'note' : 'status',
-      at: entry.created_at,
-      by: entry.actor,
-      href: file ? attachmentHref(file.id) : null,
-      body: [entry.description || entry.action, ...changes].join('\n')
-    });
-  }
-  return events.sort(
-    (/** @type {any} */ a, /** @type {any} */ b) =>
-      new Date(b.at).getTime() - new Date(a.at).getTime()
-  );
+  return recordActivity(response, response.contact_obj);
 }
 
 /**
@@ -545,7 +499,17 @@ export async function updateContact({ cookies }, id, values) {
  * @param {Record<string, any>} values
  */
 export async function createContact({ cookies }, values) {
-  return await apiRequest('/contacts/', { method: 'POST', body: toBody(values) }, { cookies });
+  return await apiRequest(
+    '/contacts/',
+    {
+      method: 'POST',
+      body: {
+        ...toBody(values),
+        ...(values.custom_fields ? { custom_fields: values.custom_fields } : {})
+      }
+    },
+    { cookies }
+  );
 }
 
 /**

@@ -18,6 +18,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from common.google_integration import GoogleError, encrypt
+from common.google_mail import visible_mail_contacts
 from common.models import (
     GoogleCalendarEvent,
     GoogleCalendarMirror,
@@ -25,8 +26,7 @@ from common.models import (
     GoogleMailActivity,
     SalesAppointment,
 )
-from common.rbac import calendar_scoped, permitted, require, scoped
-from contacts.models import Contact
+from common.rbac import calendar_scoped, permitted, require
 
 
 class PlainHTML(HTMLParser):
@@ -99,14 +99,27 @@ def sync_gmail(conn, api):
     require(conn.profile, "contacts", "view")
     emails = {
         email.strip().lower()
-        for email in scoped(Contact.objects.all(), conn.profile)
-        .filter(is_active=True)
+        for email in visible_mail_contacts(conn.profile)
         .exclude(email__isnull=True)
         .values_list("email", flat=True)
         if email
     }
     # Only retain mail for contacts still visible to this mailbox owner.
     conn.mail_activity.exclude(contact_email__in=emails).delete()
+    contacts_fingerprint = hashlib.sha256(
+        json.dumps(sorted(emails)).encode()
+    ).hexdigest()
+    if conn.mail_contacts_fingerprint != contacts_fingerprint:
+        # Newly visible/created contacts need historical mail too. Restart the bounded
+        # 90-day scan without clearing cached messages; subsequent history catches changes.
+        conn.history_id = conn.initial_history_id = conn.mail_page_token = ""
+        conn.mail_contacts_fingerprint = contacts_fingerprint
+        GoogleConnection.objects.filter(pk=conn.pk, generation=conn.generation).update(
+            history_id="",
+            initial_history_id="",
+            mail_page_token="",
+            mail_contacts_fingerprint=contacts_fingerprint,
+        )
     baseline = api.get("gmail/v1/users/me/profile")["historyId"]
     ids, deleted = set(), set()
     cursor = conn.history_id
@@ -161,7 +174,7 @@ def sync_gmail(conn, api):
                 "gmail/v1/users/me/messages/" + quote(message_id, safe=""),
                 {
                     "format": "metadata",
-                    "metadataHeaders": ["From", "To", "Cc", "Subject"],
+                    "metadataHeaders": ["From", "To", "Cc", "Subject", "Reply-To"],
                 },
             )
         except GoogleError as exc:
@@ -186,12 +199,13 @@ def sync_gmail(conn, api):
             "",
         )
         recipients = [
-            email.lower()
-            for _, email in getaddresses([headers.get("to", ""), headers.get("cc", "")])
-            if email
+            email.lower() for _, email in getaddresses([headers.get("to", "")]) if email
+        ]
+        cc = [
+            email.lower() for _, email in getaddresses([headers.get("cc", "")]) if email
         ]
         sent = "SENT" in labels
-        matches = (set(recipients) if sent else {sender}) & emails
+        matches = (set(recipients + cc) if sent else {sender}) & emails
         if not matches:
             continue
         full = api.get(
@@ -219,6 +233,12 @@ def sync_gmail(conn, api):
                         "thread_id": message.get("threadId", message_id),
                         "sender": sender[:254],
                         "recipients": recipients,
+                        "cc": cc,
+                        "reply_to": [
+                            email.lower()
+                            for _, email in getaddresses([headers.get("reply-to", "")])
+                            if email
+                        ],
                         "subject": headers.get("subject", "")[:1024],
                         "direction": "sent" if sent else "received",
                         "occurred_at": occurred,

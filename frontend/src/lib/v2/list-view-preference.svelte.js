@@ -7,7 +7,7 @@ import {
   viewPreferences
 } from './list-preferences.js';
 
-/** Restore only on a bare list URL. Explicit links and filters always win. */
+/** Restore sorting on a bare module URL; view mode stays an explicit URL choice. */
 export function listViewPreference(getScope, getUrl) {
   let loadedKey = '';
   $effect(() => {

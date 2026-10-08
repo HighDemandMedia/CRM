@@ -1,3 +1,5 @@
+import { settingsAccess } from '$lib/v2/settings-access.js';
+import { savePasswordSession } from '$lib/server/password-session.js';
 import { apiRequest } from '$lib/api-helpers.js';
 import { fail, redirect } from '@sveltejs/kit';
 import {
@@ -10,15 +12,19 @@ import { readableError } from '$lib/server/v2/form-errors.js';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies, url }) {
-  const [settings, timezones] = await Promise.all([
+export async function load({ cookies, url, parent }) {
+  const [settings, timezones, shell] = await Promise.all([
     getOrgSettings({ cookies }),
-    listTimezones(cookies)
+    listTimezones(cookies),
+    parent()
   ]);
   return {
     ...settings,
+    can_edit: settingsAccess(shell.permissions, 'organization') === 'manage',
     timezones,
-    onboarding: settings.can_edit && url?.searchParams.get('onboarding') === '1'
+    onboarding:
+      shell.permissions?.is_admin === true &&
+      (settings.org.setup_step === 'organization' || url?.searchParams.get('onboarding') === '1')
   };
 }
 
@@ -31,6 +37,7 @@ export const actions = {
     for (const field of EDITABLE_FIELDS) {
       if (form.has(field)) body[field] = form.get(field)?.toString().trim() ?? '';
     }
+    if (form.get('onboarding') === '1') body.complete_setup = true;
     try {
       await updateOrgSettings({ cookies }, body);
     } catch (/** @type {any} */ err) {
@@ -74,27 +81,8 @@ export const actions = {
       return fail(err?.status === 403 ? 403 : 500, { scope: 'switch', message });
     }
 
-    const secure = process.env.NODE_ENV === 'production';
-    cookies.set('jwt_access', result.access_token, {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'lax',
-      secure,
-      maxAge: 60 * 60 * 24
-    });
-    cookies.set('jwt_refresh', result.refresh_token, {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'lax',
-      secure,
-      maxAge: 60 * 60 * 24 * 365
-    });
-    cookies.set('org', orgId, {
-      path: '/',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 365
-    });
+    savePasswordSession(cookies, { ...result, current_org: { id: orgId } });
 
-    throw redirect(303, '/settings/organization');
+    throw redirect(303, '/');
   }
 };

@@ -10,7 +10,6 @@
   import { resolve } from '$app/paths';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import RecordTabs from '$lib/v2/components/RecordTabs.svelte';
-  import TicketAssociates from './TicketAssociates.svelte';
   import TicketFields from './TicketFields.svelte';
   import Attachments from '$lib/v2/components/Attachments.svelte';
   import { dueDateLabel, statusLabel as defaultStatusLabel, priorityLabel } from './options.js';
@@ -81,7 +80,7 @@
       {#if !editing}<button class="v2-btn" onclick={edit}>{ui('Edit')}</button>{/if}
     </div>
     {#if editing}<form method="POST" action="?/properties" use:enhance={save}>
-        <TicketFields bind:values options={data.editOptions} showAssociates={false} />
+        <TicketFields bind:values options={data.editOptions} />
         <div class="actions">
           <button class="v2-btn v2-btn-primary" disabled={busy}>{ui('Save')}</button><button
             class="v2-btn"
@@ -156,8 +155,8 @@
     </RecordTabs>
   </main>
   <aside>
-    <h2>{ui('Associations')}</h2>
-    {#if editing}<TicketAssociates bind:values options={data.editOptions} />{:else}
+    {#if !editing}
+      <h2>{ui('Associations')}</h2>
       {#each ticket.contacts as contact}<a
           class="association"
           href={resolve(`/contacts/${contact.id}`)}

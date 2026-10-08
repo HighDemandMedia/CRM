@@ -1,3 +1,4 @@
+import { savePasswordSession } from '$lib/server/password-session.js';
 import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * Organization Selection Page - API Version
@@ -95,31 +96,7 @@ export const actions = {
         }
       );
 
-      const { access_token, refresh_token } = response.data;
-
-      // Update cookies with new tokens that have org context embedded
-      cookies.set('jwt_access', access_token, {
-        path: '/',
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 // 1 day
-      });
-
-      cookies.set('jwt_refresh', refresh_token, {
-        path: '/',
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 * 365 // 1 year
-      });
-
-      // Set org cookie for reference
-      cookies.set('org', orgId, {
-        path: '/',
-        sameSite: 'strict',
-        maxAge: 60 * 60 * 24 * 365
-      });
+      savePasswordSession(cookies, { ...response.data, current_org: { id: orgId } });
 
       // Redirect to app
       throw redirect(303, '/');

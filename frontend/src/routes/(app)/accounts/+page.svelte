@@ -1,4 +1,6 @@
 <script>
+  import ListPagination from '$lib/v2/components/ListPagination.svelte';
+  import ExportDialog from '$lib/v2/components/ExportDialog.svelte';
   import {
     browserStorage,
     preferenceKey,
@@ -152,7 +154,7 @@
     filterTimer = setTimeout(async () => {
       const url = new URL(page.url);
       url.search = '';
-      for (const key of ['view', 'sort', 'direction', 'inactive']) {
+      for (const key of ['view', 'sort', 'direction', 'inactive', 'page_size']) {
         const value = page.url.searchParams.get(key);
         if (value) url.searchParams.set(key, value);
       }
@@ -481,7 +483,7 @@
   }
 </script>
 
-<PageHeader title={ui('Companies')}>
+<PageHeader compact title={ui('Companies')}>
   {#snippet sub()}<span class="v2-num">{count(data.totals.count)}</span>
     {data.totals.count === 1 ? ui('company') : ui('companies')}{#if data.view === 'pipeline'}
       &nbsp;· <PipelineTotal
@@ -498,7 +500,7 @@
 </PageHeader>
 
 <form
-  class="contact-filters"
+  class="contact-filters object-toolbar"
   method="GET"
   action={resolve('/accounts')}
   oninput={filterInput}
@@ -508,7 +510,7 @@
   }}
 >
   <input type="hidden" name="view" value={data.view} />
-  {#each ['sort', 'direction', 'inactive'] as key}
+  {#each ['sort', 'direction', 'inactive', 'page_size'] as key}
     {#if page.url.searchParams.get(key)}<input
         type="hidden"
         name={key}
@@ -610,17 +612,12 @@
     </div>
   </details>
   {#if data.view === 'list'}
-    {#if can(page.data.permissions, 'companies', 'export')}<a
-        class="v2-btn"
-        data-sveltekit-reload
-        href={resolve('/accounts/export') +
-          '?' +
-          new URLSearchParams(
-            [...page.url.searchParams.entries()]
-              .filter(([key]) => key !== 'columns')
-              .concat([['columns', selected.join(',')]])
-          ).toString()}>{ui('Export CSV')}</a
-      >{/if}
+    {#if can(page.data.permissions, 'companies', 'export')}<ExportDialog
+        endpoint={resolve('/accounts/export')}
+        columns={selected}
+        rows={data.companies}
+        filename="companies.csv"
+      />{/if}
   {/if}
   <div class="view-actions">
     <nav class="view-toggle" aria-label={ui('Company views')}>
@@ -858,17 +855,12 @@
         </tbody>
       </table>
     </div>
-    <div class="pagination">
-      {#if data.offset > 0}<a
-          class="v2-btn"
-          href={link({ offset: String(Math.max(0, data.offset - data.pageSize)) })}
-          >{ui('Previous')}</a
-        >{/if}
-      {#if data.offset + data.pageSize < data.totals.count}<a
-          class="v2-btn"
-          href={link({ offset: String(data.offset + data.pageSize) })}>{ui('Next')}</a
-        >{/if}
-    </div>
+    <ListPagination
+      offset={data.offset}
+      pageSize={data.pageSize}
+      total={data.totals.count}
+      shown={data.companies.length}
+    />
   {/if}
 </div>
 
@@ -921,13 +913,6 @@
     }
   }
 
-  .contact-filters {
-    display: flex;
-    align-items: end;
-    flex-wrap: wrap;
-    gap: var(--crm-space-3);
-    padding: var(--crm-space-4) var(--crm-space-6);
-  }
   .contact-filters label {
     display: flex;
     flex-direction: column;
@@ -983,7 +968,6 @@
     overflow: auto;
     max-width: 100%;
     min-width: 0;
-    margin: 0 var(--crm-space-6) 18px;
     border: 1px solid var(--v2-line);
     border-radius: var(--crm-radius-md);
   }
@@ -1060,12 +1044,6 @@
     opacity: 0.45;
   }
 
-  .pagination {
-    display: flex;
-    align-items: center;
-    gap: var(--crm-space-2);
-    flex-wrap: wrap;
-  }
   .view-actions {
     display: flex;
     align-items: center;
@@ -1086,9 +1064,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .pagination {
-    padding: var(--crm-space-5) var(--crm-space-6);
   }
   .contact-board {
     display: flex;

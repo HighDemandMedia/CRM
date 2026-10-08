@@ -20,8 +20,8 @@ it with realistic-looking fictional data, contacts, accounts, leads, opportuniti
 products, invoices, estimates, recurring invoices, sales goals, teams and tags, using curated
 name/company/address pools and reserved demo domains (`example.com`, `.example`) so nothing it
 generates resembles a real person or business. The **first** organization it creates is always
-named **`MicroPyramid`**, specifically so local-dev workflows have a stable, known org name to
-sign in against with `devlogin --org MicroPyramid`. An **admin profile** is created for whichever
+named **`MicroPyramid`**, providing a stable name for repeated local seed runs.
+New users have no usable password unless one is explicitly supplied; existing users keep theirs. An **admin profile** is created for whichever
 `--email` you pass. Re-running the command with the same email reuses the existing org and user
 rather than creating duplicates. It's safe to run more than once.
 

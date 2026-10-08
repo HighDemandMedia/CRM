@@ -1,3 +1,4 @@
+import { getCreationSchema, createConfigured } from '$lib/server/v2/creation-forms.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { createTask, getTaskFormOptions } from '$lib/server/v2/tasks.js';
 import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
@@ -14,9 +15,8 @@ import { listDeals } from '$lib/server/v2/deals.js';
  * the page: a form that can still write a task with no parent is more use
  * than a 500.
  *
- * @type {import('./$types').PageServerLoad}
  */
-export async function load(event) {
+async function loadOptions(event) {
   const [options, tickets, deals] = await Promise.allSettled([
     getTaskFormOptions(event),
     listTickets(event, new URLSearchParams({ limit: '100' })),
@@ -31,6 +31,7 @@ export async function load(event) {
   return {
     owners: settled.owners,
     parents: {
+      contact: settled.contacts ?? [],
       account: settled.accounts ?? [],
       opportunity:
         deals.status === 'fulfilled'
@@ -76,10 +77,12 @@ function readParent(form) {
 export const actions = {
   create: async (event) => {
     const form = await event.request.formData();
+    if (form.has('_creation_values')) return createConfigured(event, form, createTask, '/tasks');
     const kind = form.get('parent_kind')?.toString() ?? '';
     const { parent, error: parentError } = readParent(form);
 
     const values = {
+      contacts: [...new Set(form.getAll('contacts').map(String).filter(Boolean))],
       title: form.get('title')?.toString().trim() ?? '',
       status: form.get('status')?.toString() || 'New',
       priority: form.get('priority')?.toString() ?? '',
@@ -116,3 +119,11 @@ export const actions = {
     redirect(303, '/tasks');
   }
 };
+
+export async function load(event) {
+  const [options, creationSchema] = await Promise.all([
+    loadOptions(event),
+    getCreationSchema(event, 'Task')
+  ]);
+  return { ...options, creationSchema };
+}

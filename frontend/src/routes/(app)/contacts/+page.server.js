@@ -1,3 +1,4 @@
+import { listPagination, checkListPage } from '$lib/server/v2/pagination.js';
 import { pipelineColumns } from '$lib/server/v2/pipeline-columns.js';
 import { configuredStages } from '$lib/v2/pipeline-config.js';
 import { fail } from '@sveltejs/kit';
@@ -40,11 +41,7 @@ export async function load({ cookies, url, locals, parent }) {
       if (key.endsWith('_offset')) params.set(key, value);
     }
   }
-  const pageSize = 25;
-  const offset = Math.max(
-    0,
-    Math.min(10000000, Number.parseInt(url.searchParams.get('offset') ?? '0') || 0)
-  );
+  const { pageSize, offset } = listPagination(url, view === 'list');
   params.set('limit', String(pageSize));
   params.set('offset', view === 'pipeline' ? '0' : String(offset));
   const [response, orgPeople, tagList, shell] = await Promise.all([
@@ -57,6 +54,7 @@ export async function load({ cookies, url, locals, parent }) {
   ]);
 
   const { results, totals, stages: defaultStages } = response;
+  checkListPage(url, { pageSize, offset }, totals.count);
   const stages = configuredStages(shell.pipelineConfig, 'Contact', defaultStages);
   const board =
     view === 'pipeline'

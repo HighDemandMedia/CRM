@@ -17,8 +17,10 @@ from rest_framework.exceptions import ValidationError
 
 from common.models import GoogleConnection
 
+GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send"
+
 SCOPES = {
-    "gmail": ["https://www.googleapis.com/auth/gmail.readonly"],
+    "gmail": ["https://www.googleapis.com/auth/gmail.readonly", GMAIL_SEND_SCOPE],
     "calendar": [
         "https://www.googleapis.com/auth/calendar.events",
         "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
@@ -277,6 +279,9 @@ def connection_status(profile):
             "last_sync": row.last_sync if row else None,
             "error": row.error if row else "",
             "syncing": bool(row and row.sync_started_at),
+            "can_send": bool(
+                row and row.status == "connected" and GMAIL_SEND_SCOPE in row.scopes
+            ),
             "calendar": row.calendar_name if row and service == "calendar" else None,
         }
     return result

@@ -497,8 +497,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--password",
             type=str,
-            default="testpass123",
-            help="Password for new users (default: testpass123)",
+            default=None,
+            help="Optional password for new demo users; omitted means password login is disabled",
         )
         parser.add_argument(
             "--clear",
@@ -687,12 +687,9 @@ class Command(BaseCommand):
             )
 
     def create_org(self, currency, country, index=0):
-        """Get or create an organization. The first org is always 'MicroPyramid' so
-        local-dev workflows have a known name to log into via `manage.py devlogin`.
+        """Reuse the first demo organization by its stable name, 'MicroPyramid'.
 
-        Uses get_or_create on name so repeated seed runs reuse the same org rather
-        than piling up duplicates. Duplicate names break `devlogin --org NAME`
-        because it can't disambiguate.
+        Repeated seed runs share an organization instead of creating duplicates.
         """
         name = "MicroPyramid" if index == 0 else self._demo_company()
         org, created = Org.objects.get_or_create(

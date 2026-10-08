@@ -1,4 +1,5 @@
 <script>
+  import '$lib/v2/styles/module-layout.css';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
 
@@ -125,7 +126,7 @@
         ><Download size={15} />{ui('Export report')}</a
       >{/if}{/snippet}
 </PageHeader>
-<div class="reports" aria-busy={busy}>
+<div class="reports crm-module-body" aria-busy={busy}>
   {#if data.reportError}
     <div class="report-error" role="alert">
       <strong>{ui('Could not open this report')}</strong>
@@ -218,17 +219,17 @@
       <h2>{report.label}<span>{periodLabel}</span></h2>
       {#if busy}<span role="status">{ui('Updating…')}</span>{/if}
     </div>
-    <div class="metrics">
-      <section class="metric">
+    <div class="metrics crm-stat-grid">
+      <section class="metric crm-stat crm-panel">
         <span>{ui('Records in period')}</span><strong>{number(report.summary.count)}</strong><small
           >{report.date_label}</small
         >
       </section>
-      <section class="metric">
+      <section class="metric crm-stat crm-panel">
         <span>{ui('Previous period')}</span><strong>{number(report.summary.previous_count)}</strong
         ><small>{shortDate(report.previous_start)} – {shortDate(report.previous_end)}</small>
       </section>
-      <section class="metric">
+      <section class="metric crm-stat crm-panel">
         <span>{ui('Change in records')}</span><strong
           >{report.summary.change_percent === null
             ? '—'
@@ -240,7 +241,7 @@
         >
       </section>
       {#if report.object === 'deals'}
-        <section class="metric">
+        <section class="metric crm-stat crm-panel">
           <span>{ui('Deal value in period')}</span>
           <div class="amounts">
             {#each report.summary.amounts as item}<strong
@@ -258,7 +259,7 @@
           >{/each}
       </div>{/if}
     <div class="charts">
-      <section class="chart-panel">
+      <section class="chart-panel crm-panel">
         <div class="panel-heading">
           <div>
             <h3>{ui('Records over time')}</h3>
@@ -362,7 +363,7 @@
             </table>
           </div>{/if}
       </section>
-      <section class="chart-panel breakdown">
+      <section class="chart-panel breakdown crm-panel">
         <div class="panel-heading">
           <h3>{ui('Breakdown')}</h3>
           <select
@@ -388,7 +389,7 @@
         </div>
       </section>
     </div>
-    <section class="records-panel">
+    <section class="records-panel crm-panel">
       <div class="panel-heading">
         <h3>{ui('Included records')} <span>{number(report.summary.count)}</span></h3>
         <span>{report.date_label}</span>
@@ -480,24 +481,17 @@
 
 <style>
   .reports {
-    padding: 0 28px var(--crm-space-8);
     min-height: 0;
     overflow: auto;
     flex: 1;
-    color: var(--v2-text);
+    color: var(--crm-text);
   }
   .filters,
   .secondary-filters {
     display: flex;
-    gap: 14px;
+    gap: var(--crm-space-3);
     align-items: end;
     flex-wrap: wrap;
-  }
-  .filters {
-    background: var(--v2-surface, var(--crm-surface));
-    padding: 18px;
-    border: 1px solid var(--v2-line);
-    border-radius: var(--crm-radius-lg);
   }
   .filters label {
     flex: 1;
@@ -505,9 +499,9 @@
   }
   label {
     display: grid;
-    gap: 7px;
+    gap: var(--crm-space-1);
     font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
+    color: var(--crm-text);
   }
   .v2-input {
     width: 100%;
@@ -530,10 +524,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 26px 0 15px;
+    margin: var(--crm-space-6) 0 var(--crm-space-4);
   }
   .period-heading h2 {
-    font-size: var(--crm-text-lg);
+    font-size: var(--crm-text-sm);
     font-weight: 650;
     margin: 0;
     display: flex;
@@ -545,34 +539,6 @@
   .period-heading > span {
     font-size: var(--crm-text-sm);
     font-weight: 400;
-    color: var(--v2-slate);
-  }
-  .metrics {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-    gap: 14px;
-  }
-  .metric {
-    padding: var(--crm-space-5);
-    background: var(--v2-surface, var(--crm-surface));
-    border: 1px solid var(--v2-line);
-    border-radius: var(--crm-radius-lg);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .metric > span {
-    font-size: var(--crm-text-sm);
-    color: var(--v2-slate);
-  }
-  .metric strong {
-    font-size: var(--crm-text-2xl);
-    line-height: 1.2;
-    letter-spacing: -0.7px;
-    font-weight: 650;
-  }
-  .metric small {
-    font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .amounts {
@@ -589,7 +555,7 @@
   }
   .won-value {
     display: flex;
-    gap: 14px;
+    gap: var(--crm-space-3);
     flex-wrap: wrap;
     margin-top: 14px;
     font-size: var(--crm-text-sm);
@@ -600,15 +566,8 @@
   .charts {
     display: grid;
     grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
-    gap: 18px;
+    gap: var(--crm-space-4);
     margin: var(--crm-space-5) 0;
-  }
-  .chart-panel,
-  .records-panel {
-    background: var(--v2-surface, var(--crm-surface));
-    border: 1px solid var(--v2-line);
-    border-radius: var(--crm-radius-lg);
-    min-width: 0;
   }
   .chart-panel {
     padding: var(--crm-space-5);
@@ -806,7 +765,7 @@
     font-size: var(--crm-text-xs);
   }
   .empty-chart strong {
-    color: var(--v2-text);
+    color: var(--crm-text);
     font-size: var(--crm-text-sm);
   }
   .breakdown-list {
@@ -856,6 +815,18 @@
     padding: 18px var(--crm-space-5);
     margin: 0;
   }
+  tbody tr:nth-child(even) {
+    background: var(--crm-canvas);
+  }
+  tbody tr:hover {
+    background: var(--crm-surface-selected);
+  }
+  .metric {
+    overflow-wrap: anywhere;
+  }
+  .panel-heading {
+    flex-wrap: wrap;
+  }
   .records-scroll {
     overflow: auto;
   }
@@ -867,13 +838,14 @@
   }
   th {
     color: var(--v2-slate);
-    font-weight: 500;
+    font-weight: 650;
     white-space: nowrap;
-    background: var(--v2-bg, var(--crm-canvas));
+    background: var(--crm-surface-secondary);
+    font-size: var(--crm-text-xs);
   }
   th,
   td {
-    padding: 13px 18px;
+    padding: var(--crm-space-3) var(--crm-space-4);
     border-top: 1px solid var(--v2-line);
   }
   td {
@@ -885,11 +857,11 @@
   }
   .record-link {
     font-weight: 550;
-    text-decoration: underline;
-    text-decoration-color: var(--v2-line);
+    text-decoration: none;
     text-underline-offset: 4px;
   }
   .record-link:hover {
+    text-decoration: underline;
     color: var(--crm-text-muted);
   }
   .pagination {
@@ -966,9 +938,7 @@
     .charts {
       grid-template-columns: 1fr;
     }
-    .reports {
-      padding: 0 18px var(--crm-space-6);
-    }
+
     .filters label {
       min-width: 150px;
     }
@@ -977,12 +947,8 @@
     }
   }
   @media (max-width: 600px) {
-    .reports {
-      padding: 0 var(--crm-space-3) var(--crm-space-5);
-    }
     .filters {
-      padding: var(--crm-space-3);
-      gap: 10px;
+      gap: var(--crm-space-3);
     }
     .filters label {
       min-width: 125px;

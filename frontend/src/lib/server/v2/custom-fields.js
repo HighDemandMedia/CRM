@@ -46,6 +46,7 @@ export async function getCustomFields({ cookies }) {
 /** The fields the serializer accepts on create. `org` is set from the JWT
  *  server-side and `records_missing_value` is computed, so neither appears. */
 const CREATE_FIELDS = [
+  'add_to_creation_form',
   'target_model',
   'key',
   'label',
@@ -63,7 +64,7 @@ const CREATE_FIELDS = [
  *  changing `field_type` reinterprets values written under the old one. The
  *  backend refuses all three with a 400; not offering them is better than
  *  teaching it through a failed save. */
-const FROZEN_AFTER_CREATE = ['key', 'target_model', 'field_type'];
+const FROZEN_AFTER_CREATE = ['add_to_creation_form', 'key', 'target_model', 'field_type'];
 const UPDATE_FIELDS = CREATE_FIELDS.filter((f) => !FROZEN_AFTER_CREATE.includes(f));
 
 /** "Very High" to "very-high". Only ever applied to a NEW dropdown option: an

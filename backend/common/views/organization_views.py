@@ -388,6 +388,7 @@ class ProfileView(APIView):
             )
         user_obj = ProfileSerializer(profile).data
         user_obj["ui_language"] = request.user.ui_language
+        user_obj["setup_step"] = profile.setup_step
         # The page shows which teams the current user is on. Teams is a real
         # Profile.user_teams m2m, but it is not on the shared ProfileSerializer
         # (nested into many records). Adding it here keeps the extra query and
@@ -427,6 +428,7 @@ class ProfileView(APIView):
             )
         },
     )
+    @transaction.atomic
     def patch(self, request, format=None):
         profile = request.profile
         if profile is None:
@@ -434,6 +436,8 @@ class ProfileView(APIView):
                 {"error": "Organization context required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        profile = Profile.objects.select_for_update().get(pk=profile.pk)
 
         # Validate through a serializer that names ONLY phone, language and name. A bad
         # phone is now a clean 400 (the old code wrote request.data straight to
@@ -443,6 +447,18 @@ class ProfileView(APIView):
         update = ProfileSelfUpdateSerializer(data=request.data, partial=True)
         update.is_valid(raise_exception=True)
         data = update.validated_data
+        completing = data.get("complete_setup", False)
+        if completing:
+            # Require an explicit confirmation of these preferences, even when unchanged.
+            errors = {
+                field: "Confirm this field before continuing."
+                for field in ("name", "ui_language", "timezone")
+                if field not in data
+            }
+            if not data.get("name", "").strip():
+                errors["name"] = "Enter your full name."
+            if errors:
+                raise serializers.ValidationError(errors)
 
         changed = [
             field
@@ -459,6 +475,16 @@ class ProfileView(APIView):
         ]
         for field in changed:
             setattr(profile, field, data[field])
+        if completing and profile.setup_step in (
+            Profile.SetupStep.PROFILE,
+            Profile.SetupStep.PROFILE_ORGANIZATION,
+        ):
+            profile.setup_step = (
+                Profile.SetupStep.ORGANIZATION
+                if profile.setup_step == Profile.SetupStep.PROFILE_ORGANIZATION
+                else Profile.SetupStep.COMPLETE
+            )
+            changed.append("setup_step")
         if changed:
             profile.save(update_fields=changed)
 
@@ -475,6 +501,7 @@ class ProfileView(APIView):
         return Response(
             {
                 "message": "Profile updated successfully",
+                "setup_step": profile.setup_step,
                 "user_obj": ProfileSerializer(profile).data,
             },
             status=status.HTTP_200_OK,

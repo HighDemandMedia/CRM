@@ -59,7 +59,7 @@ export const actions = {
       return fail(400, { error: readableError(err, 'Could not accept this invitation.') });
     }
     cookies.delete('crm_invitation', { path: '/' });
-    if (accepted.needs_organization_setup) {
+    if (accepted.org_id) {
       try {
         const session = await apiRequest(
           '/auth/switch-org/',
@@ -72,10 +72,11 @@ export const actions = {
         savePasswordSession(cookies, { ...session, current_org: { id: accepted.org_id } });
       } catch {
         return fail(503, {
-          error: 'Invitation accepted. Sign in and open Organization settings to finish setup.'
+          error:
+            'Invitation accepted. Sign in and select the invited organization to finish your profile.'
         });
       }
-      redirect(303, '/settings/organization?onboarding=1');
+      redirect(303, '/profile');
     }
     redirect(303, '/org');
   }

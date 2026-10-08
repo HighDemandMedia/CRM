@@ -1,12 +1,15 @@
+from django.db import transaction
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.models import Profile
 from common.org_time import selectable_timezones
-from common.permissions import is_org_admin
+from common.permissions import HasOrgContext
 from common.serializer import OrgSettingsSerializer
+from common.settings_access import HasSettingsAccess, can_access_settings
 
 
 class OrgSettingsView(APIView):
@@ -14,10 +17,11 @@ class OrgSettingsView(APIView):
     API endpoint for org settings (currency, country, locale).
 
     GET: Returns current org settings
-    PATCH: Updates org settings (admin only)
+    PATCH: Updates org settings (requires Organization management)
     """
 
-    permission_classes = (IsAuthenticated,)
+    settings_section = "organization"
+    permission_classes = (IsAuthenticated, HasOrgContext, HasSettingsAccess)
 
     def get(self, request):
         """Get current organization settings."""
@@ -29,28 +33,55 @@ class OrgSettingsView(APIView):
         org = request.profile.org
         serializer = OrgSettingsSerializer(org, context={"request": request})
         return Response(
-            {**serializer.data, "is_super_admin": request.profile.is_super_admin}
+            {
+                **serializer.data,
+                "is_super_admin": request.profile.is_super_admin,
+                "setup_step": request.profile.setup_step,
+            }
         )
 
+    @transaction.atomic
     def patch(self, request):
-        """Update organization settings (admin only)."""
+        """Update organization settings (requires Organization management)."""
         if not request.profile:
             return Response(
                 {"error": "Organization context required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if not is_org_admin(request.profile) and not request.user.is_superuser:
+        if not can_access_settings(request.profile, "organization", manage=True):
             return Response(
-                {"error": "Only admins can update organization settings"},
+                {"error": "Organization management permission required"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        completing = serializers.BooleanField().run_validation(
+            request.data.get("complete_setup", False)
+        )
+        if completing and request.profile.setup_step in (
+            Profile.SetupStep.PROFILE,
+            Profile.SetupStep.PROFILE_ORGANIZATION,
+        ):
+            raise serializers.ValidationError({"error": "Complete your profile first."})
         org = request.profile.org
         serializer = OrgSettingsSerializer(
             org, data=request.data, partial=True, context={"request": request}
         )
         if serializer.is_valid():
+            if completing:
+                missing = {
+                    field: "Confirm this field before continuing."
+                    for field in ("name", "default_currency", "timezone")
+                    if not serializer.validated_data.get(field)
+                }
+                if missing:
+                    raise serializers.ValidationError(missing)
             serializer.save()
+            if (
+                completing
+                and request.profile.setup_step == Profile.SetupStep.ORGANIZATION
+            ):
+                request.profile.setup_step = Profile.SetupStep.COMPLETE
+                request.profile.save(update_fields=["setup_step"])
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

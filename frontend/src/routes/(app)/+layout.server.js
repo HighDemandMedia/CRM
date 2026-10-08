@@ -1,3 +1,6 @@
+import { canOpenSettingsPath } from '$lib/v2/settings-access.js';
+import { error, redirect } from '@sveltejs/kit';
+import { setupDestination } from '$lib/server/onboarding.js';
 import { normalizeLocale } from '$lib/i18n/messages.js';
 import { apiRequest } from '$lib/api-helpers.js';
 import { listTickets, OPEN_STATUSES } from '$lib/server/v2/tickets.js';
@@ -61,6 +64,12 @@ export async function load(event) {
   };
 
   const context = await apiRequest('/org/ui-context/', {}, { cookies: event.cookies });
+  const destination = setupDestination(context.setup_step);
+  // Reading pathname makes this gate run again on module navigation, including client-side links.
+  const pathname = event.url?.pathname;
+  if (destination && pathname !== destination) redirect(303, destination);
+  if (!canOpenSettingsPath(context.permissions, pathname))
+    error(403, 'You do not have permission to access these settings.');
   const uiLocale = normalizeLocale(context.ui_language);
   if (event.cookies.get('crm_language') !== uiLocale) {
     event.cookies.set('crm_language', uiLocale, {
@@ -73,6 +82,8 @@ export async function load(event) {
   }
   shell.org.terminology = context.terminology;
   shell.isSuperAdmin = !!context.is_super_admin;
+  // The database may have changed since the access token was issued.
+  shell.role = context.permissions?.is_admin === true ? 'ADMIN' : 'USER';
   const countKeys = Object.keys(LIVE_COUNTS);
   const counts = Promise.allSettled(
     countKeys.map((key) => LIVE_COUNTS[/** @type {keyof typeof LIVE_COUNTS} */ (key)](event))
@@ -90,6 +101,7 @@ export async function load(event) {
     counts,
     permissions: context.permissions,
     propertyLayout: context.property_layout,
+    ticketSettings: context.ticket_settings,
     pipelineConfig: context.pipelines
   };
 }

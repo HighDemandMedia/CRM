@@ -52,11 +52,11 @@ from cases.models import Case
 from cases.serializer import CaseSerializer
 from cases.workflow import TERMINAL_STATUSES
 from common.calendar_filters import filter_calendar
+from common.creation_forms import validate_creation
 from common.custom_fields import validate_payload as validate_custom_fields_payload
 from common.last_activity import with_last_activity
 from common.lookups import get_scoped_or_404
 from common.models import (
-    Activity,
     Attachments,
     Comment,
     CustomFieldDefinition,
@@ -69,6 +69,7 @@ from common.permissions import HasOrgContext, is_org_admin
 from common.pipeline_board import pipeline_board
 from common.pipeline_settings import stages_for
 from common.rbac import configured
+from common.record_history import history_for
 from common.serializer import (
     AttachmentsSerializer,
     CommentSerializer,
@@ -566,6 +567,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
         )
         # Save Account
         if serializer.is_valid():
+            validate_creation(request.profile.org, "Account", request.data)
             cf_payload = data.get("custom_fields")
             if isinstance(cf_payload, str):
                 try:
@@ -715,17 +717,16 @@ class AccountDetailView(APIView):
                 account_object.assigned_to.all().values_list("id", flat=True)
             )
 
-            account_object.contacts.clear()
             if data.get("contacts"):
                 contacts_list = data.get("contacts")
                 contact_ids = payload_id_list(contacts_list, "contacts")
                 contacts = Contact.objects.filter(
                     id__in=contact_ids, org=request.profile.org
                 )
-                if contacts:
-                    account_object.contacts.add(*contacts)
+                account_object.contacts.set(contacts)
+            else:
+                account_object.contacts.clear()
 
-            account_object.tags.clear()
             if data.get("tags"):
                 tags = data.get("tags")
                 if isinstance(tags, str):
@@ -737,25 +738,27 @@ class AccountDetailView(APIView):
                 tag_objs = Tags.objects.filter(
                     id__in=tag_ids, org=request.profile.org, is_active=True
                 )
-                account_object.tags.add(*tag_objs)
+                account_object.tags.set(tag_objs)
+            else:
+                account_object.tags.clear()
 
-            account_object.teams.clear()
             if data.get("teams"):
                 teams_list = data.get("teams")
                 team_ids = payload_id_list(teams_list, "teams")
                 teams = Teams.objects.filter(id__in=team_ids, org=request.profile.org)
-                if teams:
-                    account_object.teams.add(*teams)
+                account_object.teams.set(teams)
+            else:
+                account_object.teams.clear()
 
-            account_object.assigned_to.clear()
             if data.get("assigned_to"):
                 assigned_to_list = data.get("assigned_to")
                 assigned_ids = payload_id_list(assigned_to_list, "assigned_to")
                 profiles = Profile.objects.filter(
                     id__in=assigned_ids, org=request.profile.org, is_active=True
                 )
-                if profiles:
-                    account_object.assigned_to.add(*profiles)
+                account_object.assigned_to.set(profiles)
+            else:
+                account_object.assigned_to.clear()
 
             if self.request.FILES.get("account_attachment"):
                 create_attachment(
@@ -830,6 +833,14 @@ class AccountDetailView(APIView):
         self.assert_account_access(self.account)
         context = {}
         context["account_obj"] = AccountSerializer(self.account).data
+        from common.google_mail import record_mail_activity
+        from common.rbac import scope_for
+
+        context["email_activity"] = (
+            record_mail_activity(request.profile, "company", self.account.pk)
+            if scope_for(request.profile, "contacts", "view") != "none"
+            else []
+        )
 
         comment_permission = (
             self.request.profile.user_id == self.account.created_by_id
@@ -868,20 +879,8 @@ class AccountDetailView(APIView):
             object_id=self.account.id,
             org=self.request.profile.org,
         ).order_by("-id")
-        context["history"] = [
-            {
-                "id": str(entry.pk),
-                "created_at": entry.created_at,
-                "actor": entry.metadata.get("actor"),
-                "description": entry.description,
-            }
-            for entry in Activity.objects.filter(
-                org=self.request.profile.org,
-                entity_type="Account",
-                entity_id=self.account.id,
-                action__in=["UPDATE", "ASSIGN"],
-            ).order_by("-created_at", "-id")
-        ]
+        context["history"] = history_for(self.account)
+
         context.update(
             {
                 "attachments": AttachmentsSerializer(attachments, many=True).data,
@@ -1041,21 +1040,21 @@ class AccountDetailView(APIView):
 
             # Handle M2M fields if present in request
             if "contacts" in data:
-                account_object.contacts.clear()
                 contacts_list = data.get("contacts")
                 if contacts_list:
                     contact_ids = payload_id_list(contacts_list, "contacts")
                     contacts = Contact.objects.filter(
                         id__in=contact_ids, org=request.profile.org
                     )
-                    account_object.contacts.add(*contacts)
+                    account_object.contacts.set(contacts)
+                else:
+                    account_object.contacts.clear()
 
             if "tag_ids" in data:
                 account_object.tags.set(
                     Tags.objects.filter(org=request.profile.org, pk__in=data["tag_ids"])
                 )
             elif "tags" in data:
-                account_object.tags.clear()
                 tags = data.get("tags")
                 if tags:
                     if isinstance(tags, str):
@@ -1067,27 +1066,31 @@ class AccountDetailView(APIView):
                     tag_objs = Tags.objects.filter(
                         id__in=tag_ids, org=request.profile.org, is_active=True
                     )
-                    account_object.tags.add(*tag_objs)
+                    account_object.tags.set(tag_objs)
+                else:
+                    account_object.tags.clear()
 
             if "teams" in data:
-                account_object.teams.clear()
                 teams_list = data.get("teams")
                 if teams_list:
                     team_ids = payload_id_list(teams_list, "teams")
                     teams = Teams.objects.filter(
                         id__in=team_ids, org=request.profile.org
                     )
-                    account_object.teams.add(*teams)
+                    account_object.teams.set(teams)
+                else:
+                    account_object.teams.clear()
 
             if "assigned_to" in data:
-                account_object.assigned_to.clear()
                 assigned_to_list = data.get("assigned_to")
                 if assigned_to_list:
                     assigned_ids = payload_id_list(assigned_to_list, "assigned_to")
                     profiles = Profile.objects.filter(
                         id__in=assigned_ids, org=request.profile.org, is_active=True
                     )
-                    account_object.assigned_to.add(*profiles)
+                    account_object.assigned_to.set(profiles)
+                else:
+                    account_object.assigned_to.clear()
 
             return Response(
                 {"error": False, "message": "Account Updated Successfully"},

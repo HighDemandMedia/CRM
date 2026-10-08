@@ -1,4 +1,5 @@
 <script>
+  import '$lib/v2/styles/access-list.css';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, relativeDays } = useI18n();
 
@@ -112,7 +113,7 @@
     <a href={resolve('/settings/roles')}>{ui('Roles & permissions')}<ArrowUpRight size={14} /></a>
   </nav>
   <div class="v2-scroll">
-    <div class="team-content">
+    <div class="team-content access-list">
       {#if form?.invited}<p class="notice" role="status">
           {ui('Invitation sent to')}
           {form.invited}.
@@ -405,76 +406,12 @@
   .team-content {
     padding: var(--crm-space-5) var(--crm-space-6) var(--crm-space-8);
   }
-  .toolbar {
-    display: flex;
-    gap: var(--crm-space-2);
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: var(--crm-space-4);
-  }
-  .search {
-    display: flex;
-    align-items: center;
-    gap: var(--crm-space-2);
-    padding: 9px var(--crm-space-3);
-    background: var(--v2-card);
-    border: 1px solid var(--v2-line);
-    border-radius: var(--crm-radius-md);
-    color: var(--v2-slate);
-    width: 280px;
-    max-width: 100%;
-    min-height: 38px;
-  }
-  .search input {
-    background: none;
-    border: 0;
-    outline: none;
-    width: 100%;
-    min-width: 0;
-    color: var(--v2-ink);
-    font-size: var(--crm-text-xs);
-  }
-  .search:focus-within {
-    outline: 2px solid var(--v2-slate);
-    outline-offset: 2px;
-  }
   .filter {
     width: auto;
     min-width: 110px;
     max-width: 200px;
     height: 38px;
     font-size: var(--crm-text-xs);
-  }
-  .table-wrap {
-    overflow-x: auto;
-    border: 1px solid var(--v2-line);
-    border-radius: var(--crm-radius-lg);
-    background: var(--v2-card);
-  }
-  .access-table {
-    border-collapse: collapse;
-    width: 100%;
-    font-size: var(--crm-text-sm);
-    text-align: left;
-  }
-  .access-table th {
-    font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
-    font-weight: 500;
-    background: var(--v2-hover);
-    padding: var(--crm-space-3) var(--crm-space-4);
-    white-space: nowrap;
-  }
-  .access-table td {
-    padding: var(--crm-space-4);
-    border-top: 1px solid var(--v2-line-soft);
-    vertical-align: middle;
-  }
-  .access-table tr:hover td {
-    background: var(--v2-hover);
-  }
-  .access-table strong {
-    font-weight: 550;
   }
   .person {
     display: flex;
@@ -501,17 +438,6 @@
     font-size: var(--crm-text-xs);
     font-weight: 400;
     color: var(--v2-slate);
-  }
-  .role-badge {
-    display: inline-flex;
-    gap: 5px;
-    align-items: center;
-    padding: var(--crm-space-1) var(--crm-space-2);
-    border-radius: var(--crm-radius-sm);
-    background: var(--v2-hover);
-    color: var(--v2-slate);
-    font-size: var(--crm-text-xs);
-    white-space: nowrap;
   }
   .role-badge.admin {
     background: var(--crm-surface-secondary);
@@ -557,50 +483,6 @@
     color: var(--v2-slate);
     font-size: var(--crm-text-xs);
   }
-  .protected {
-    font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
-  }
-  .row-actions {
-    text-align: right;
-    width: 72px;
-    white-space: nowrap;
-  }
-  .team-name {
-    display: flex;
-    align-items: center;
-    gap: var(--crm-space-3);
-    min-width: 200px;
-  }
-  .team-icon {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: var(--crm-radius-md);
-    background: var(--v2-hover);
-    color: var(--v2-slate);
-    flex-shrink: 0;
-  }
-  .name-link {
-    border: 0;
-    background: none;
-    padding: 0;
-    font-weight: 550;
-    color: var(--v2-ink);
-    text-align: left;
-    cursor: pointer;
-  }
-  .name-link:hover {
-    text-decoration: underline;
-  }
-  .team-name p {
-    font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
-    margin: var(--crm-space-1) 0 0;
-    max-width: 360px;
-    overflow-wrap: anywhere;
-  }
   .member-total {
     display: block;
     font-size: var(--crm-text-xs);
@@ -617,22 +499,6 @@
   }
   .invitation-actions form {
     margin: 0;
-  }
-  .empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 36px var(--crm-space-4);
-    color: var(--v2-slate);
-    text-align: center;
-  }
-  .empty strong {
-    color: var(--v2-ink);
-    font-size: var(--crm-text-sm);
-  }
-  .empty span {
-    font-size: var(--crm-text-xs);
   }
   .notice,
   .error {

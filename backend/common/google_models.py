@@ -22,6 +22,7 @@ class GoogleConnection(models.Model):
     history_id = models.CharField(max_length=64, blank=True)
     initial_history_id = models.CharField(max_length=64, blank=True)
     mail_page_token = models.TextField(blank=True)
+    mail_contacts_fingerprint = models.CharField(max_length=64, blank=True)
     last_sync = models.DateTimeField(null=True, blank=True)
     error = models.CharField(max_length=255, blank=True)
     status = models.CharField(max_length=20, default="disconnected")
@@ -85,6 +86,8 @@ class GoogleMailActivity(models.Model):
     subject = models.CharField(max_length=1024, blank=True)
     sender = models.EmailField()
     recipients = models.JSONField(default=list)
+    cc = models.JSONField(default=list)
+    reply_to = models.JSONField(default=list, blank=True)
     encrypted_body = models.TextField(blank=True)
     direction = models.CharField(max_length=8)
     occurred_at = models.DateTimeField()
@@ -122,5 +125,24 @@ class GoogleCalendarMirror(models.Model):
             models.UniqueConstraint(
                 fields=["connection", "appointment"],
                 name="google_mirror_appointment_unique",
+            )
+        ]
+
+
+class GoogleMailSendOperation(models.Model):
+    """Durable duplicate prevention, including ambiguous provider timeouts."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    connection = models.ForeignKey(GoogleConnection, on_delete=models.CASCADE)
+    request_id = models.UUIDField()
+    payload_digest = models.CharField(max_length=64)
+    status = models.CharField(max_length=16, default="sending")
+    message_id = models.CharField(max_length=128, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["connection", "request_id"], name="google_send_request_unique"
             )
         ]

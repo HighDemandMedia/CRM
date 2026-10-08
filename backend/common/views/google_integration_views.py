@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.google_integration import (
+    GMAIL_SEND_SCOPE,
     SCOPES,
     GoogleAPI,
     GoogleError,
@@ -19,10 +20,10 @@ from common.google_integration import (
     connection_status,
     decrypt,
 )
+from common.google_mail import visible_mail_contacts
 from common.models import GoogleCalendarEvent, GoogleConnection, GoogleMailActivity
 from common.permissions import HasOrgContext
-from common.rbac import require, scope_for, scoped
-from contacts.models import Contact
+from common.rbac import require, scope_for
 
 
 def own_connection(request, service):
@@ -300,10 +301,11 @@ class GoogleMailBodyView(APIView):
             connection__profile=request.profile,
         )
         # Access is checked again if record ownership changed after synchronization.
-        if not scoped(
-            Contact.objects.filter(email__iexact=row.contact_email, is_active=True),
-            request.profile,
-        ).exists():
+        if (
+            not visible_mail_contacts(request.profile)
+            .filter(email__iexact=row.contact_email)
+            .exists()
+        ):
             from rest_framework.exceptions import NotFound
 
             raise NotFound()
@@ -318,6 +320,12 @@ class GoogleMailBodyView(APIView):
                 "subject": row.subject,
                 "sender": row.sender,
                 "recipients": row.recipients,
+                "cc": row.cc,
+                "reply_to": row.reply_to,
+                "account": row.connection.email,
+                "can_send": row.connection.status == "connected"
+                and GMAIL_SEND_SCOPE in row.connection.scopes,
+                "direction": row.direction,
                 "body": body,
                 "at": row.occurred_at,
             },
@@ -326,32 +334,8 @@ class GoogleMailBodyView(APIView):
 
 
 def contact_mail_activity(profile, contact):
-    if not contact.email:
+    from common.google_mail import record_mail_activity
+
+    if not contact.email or not contact.is_active:
         return []
-    # Never share personal mailbox content via org-admin privileges.
-    rows = (
-        GoogleMailActivity.objects.filter(
-            org=profile.org,
-            connection__profile=profile,
-            contact_email=contact.email.strip().lower(),
-        )
-        .select_related("connection")
-        .order_by("-occurred_at")[:100]
-    )
-    return [
-        {
-            "id": str(row.pk),
-            "subject": row.subject,
-            "sender": row.sender,
-            "recipients": row.recipients,
-            "direction": row.direction,
-            "at": row.occurred_at,
-            "account": row.connection.email,
-            "href": "https://mail.google.com/mail/u/?"
-            + "authuser="
-            + quote(row.connection.email, safe="")
-            + "#all/"
-            + quote(row.thread_id, safe=""),
-        }
-        for row in rows
-    ]
+    return record_mail_activity(profile, "contact", contact.pk)

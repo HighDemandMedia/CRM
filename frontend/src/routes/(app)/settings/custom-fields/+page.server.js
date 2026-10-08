@@ -1,3 +1,4 @@
+import { settingsAccess } from '$lib/v2/settings-access.js';
 import { apiRequest } from '$lib/api-helpers.js';
 import { error, fail } from '@sveltejs/kit';
 import {
@@ -10,9 +11,17 @@ import {
 import { readableError } from '$lib/server/v2/form-errors.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies, url }) {
+export async function load({ cookies, url, parent }) {
   try {
-    return await getPropertyCatalog({ cookies }, url.searchParams.get('object') || 'Contact');
+    const [data, shell] = await Promise.all([
+      getPropertyCatalog({ cookies }, url.searchParams.get('object') || 'Contact'),
+      parent()
+    ]);
+    return {
+      ...data,
+      can_edit_creation_form: settingsAccess(shell.permissions, 'creation_forms') === 'manage',
+      can_edit: settingsAccess(shell.permissions, 'properties') === 'manage'
+    };
   } catch (err) {
     if (err?.status === 403) error(403, 'Only an administrator can manage properties.');
     throw err;
@@ -44,6 +53,7 @@ function readValues(form) {
     label: form.get('label')?.toString().trim() ?? '',
     field_type: form.get('field_type')?.toString() ?? '',
     is_required: false,
+    add_to_creation_form: form.get('add_to_creation_form') === 'on',
     is_filterable: form.get('is_filterable') === 'true',
     display_order: form.get('display_order')?.toString() ?? '0',
     options: readOptions(form)

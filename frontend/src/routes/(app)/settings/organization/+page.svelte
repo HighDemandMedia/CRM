@@ -56,7 +56,7 @@
   let dirty = $derived(Object.entries(draft).some(([key, value]) => value !== (org[key] || '')));
   const save = ({ formData }) => {
     for (const [key, value] of Object.entries(draft))
-      if (value === (org[key] || '')) formData.delete(key);
+      if (!data.onboarding && value === (org[key] || '')) formData.delete(key);
     busy = true;
     return async ({ update }) => {
       try {

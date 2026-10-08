@@ -14,8 +14,7 @@ list/detail views use alongside `IsAuthenticated`. It denies with a `403` and th
 minted without picking an org yet. See [First sign-in](../getting-started/first-sign-in.md#choosing-an-organization))
 or belongs to a profile that's no longer active in that org. That response body is the confirmation:
 if you're getting `403` with that message rather than an empty `200`, this is it, and the fix is to
-obtain a token with the right org bound (via `/api/auth/switch-org/`, or `devlogin --org` in
-development).
+choose an active organization through the normal organization selector (`/api/auth/switch-org/`).
 
 **Through Django admin** (`/admin/`), the failure looks different and is easy to miss: `/admin/` is
 listed in `RequireOrgContext.EXEMPT_PATHS` (`backend/common/middleware/rls_context.py`), which

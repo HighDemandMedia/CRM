@@ -1,4 +1,5 @@
 <script>
+  import '$lib/v2/styles/module-layout.css';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
 
@@ -136,12 +137,22 @@
 {/snippet}
 
 <EventDetails bind:this={details} onChanged={() => refresh++} />
-<PageHeader title={ui('Calendar')} />
+<PageHeader title={ui('Calendar')}>
+  {#snippet sub()}{ui('Appointments and connected calendar events.')}{/snippet}
+  {#snippet actions()}
+    <CreateAppointment
+      hosts={data.hosts}
+      defaultHost={data.defaultHost}
+      {selected}
+      onCreated={() => refresh++}
+    />
+  {/snippet}
+</PageHeader>
 {#if googleError}<p class="v2-error" role="status">
     {ui('Google Calendar:')}
     {googleError} <a href="/profile?google=settings">{ui('Manage connection')}</a>
   </p>{/if}
-<div class="calendar-toolbar">
+<div class="calendar-toolbar crm-module-toolbar">
   <button class="v2-btn" onclick={() => (selected = new Date())}>{ui('Today')}</button>
   <button
     class="v2-btn"
@@ -159,18 +170,12 @@
       class="company-key"><Building2 size={13} />{ui('Companies')}</span
     >
   </div>
-  <CreateAppointment
-    hosts={data.hosts}
-    defaultHost={data.defaultHost}
-    {selected}
-    onCreated={() => refresh++}
-  />
-  <div class="views" aria-label={ui('Calendar view')}>
+  <div class="views crm-view-switch" aria-label={ui('Calendar view')}>
     {#each ['day', 'week', 'month'] as mode}<button
         class="v2-btn"
-        class:active={view === mode}
+        class:v2-btn-primary={view === mode}
         aria-pressed={view === mode}
-        onclick={() => (view = mode)}>{mode[0].toUpperCase() + mode.slice(1)}</button
+        onclick={() => (view = mode)}>{ui(mode[0].toUpperCase() + mode.slice(1))}</button
       >{/each}
   </div>
 </div>
@@ -179,7 +184,7 @@
   </div>
 {:else if busy}<div class="calendar-message" role="status">{ui('Loading appointments…')}</div>{/if}
 <div
-  class="calendar-scroll"
+  class="calendar-scroll crm-panel"
   bind:this={scroller}
   aria-busy={busy}
   onscroll={() => details?.close()}
@@ -284,7 +289,7 @@
     position: sticky;
     top: 0;
     z-index: 3;
-    background: var(--v2-bg, white);
+    background: var(--crm-surface-secondary);
     min-height: 50px;
     margin: 0;
     padding: var(--crm-space-2);
@@ -306,7 +311,7 @@
     position: sticky;
     left: 0;
     z-index: 2;
-    background: var(--v2-bg, white);
+    background: var(--crm-surface-secondary);
     height: 1440px;
   }
   .hour-label {
@@ -349,29 +354,19 @@
     gap: 1px;
   }
 
-  .calendar-toolbar {
-    display: flex;
-    align-items: center;
-    gap: var(--crm-space-2);
-    padding: 14px var(--crm-space-6);
-    flex-wrap: wrap;
-    border-bottom: 1px solid var(--v2-line);
-  }
   h2 {
-    font-size: var(--crm-text-lg);
-    margin: 0 var(--crm-space-3);
+    font-size: var(--crm-text-sm);
+    margin: 0 var(--crm-space-2);
     font-weight: 600;
+  }
+  .calendar-toolbar {
+    align-items: center;
   }
   .views {
     margin-left: auto;
-    display: flex;
-    gap: var(--crm-space-1);
-  }
-  .views .active {
-    background: var(--crm-surface-selected);
-    color: var(--crm-text);
   }
   .calendar-scroll {
+    margin: var(--crm-space-2) var(--crm-space-6) var(--crm-space-6);
     flex: 1;
     min-height: 0;
     overflow: auto;
@@ -392,7 +387,7 @@
     min-height: 160px;
   }
   .outside {
-    background: var(--v2-line-soft);
+    background: var(--crm-canvas);
   }
   header {
     display: flex;
@@ -412,7 +407,7 @@
     cursor: pointer;
   }
   header button.today {
-    background: var(--crm-primary);
+    background: var(--crm-action-bg);
     color: var(--crm-primary-text);
   }
   .appointments {
@@ -516,5 +511,27 @@
 
   .calendar-message {
     padding: 10px var(--crm-space-6);
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-sm);
+  }
+  .appointment:focus-visible,
+  header button:focus-visible {
+    outline: 2px solid var(--crm-focus);
+    outline-offset: 2px;
+  }
+  @media (max-width: 700px) {
+    .calendar-scroll {
+      margin: var(--crm-space-2) var(--crm-space-3) var(--crm-space-4);
+    }
+    .event-legend {
+      order: 3;
+      flex-basis: 100%;
+    }
+    .views {
+      margin-left: 0;
+    }
+    h2 {
+      flex: 1;
+    }
   }
 </style>

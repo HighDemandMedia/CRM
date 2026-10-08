@@ -1,13 +1,8 @@
+import { listPagination, checkListPage } from '$lib/server/v2/pagination.js';
 import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 import { fail } from '@sveltejs/kit';
-import {
-  listTasks,
-  setTaskDone,
-  updateTask,
-  TASK_STATUSES,
-  FILTER_FIELDS
-} from '$lib/server/v2/tasks.js';
-import { readFilters, buildFilterQuery } from '$lib/server/v2/filter-params.js';
+import { listTasks, setTaskDone, updateTask } from '$lib/server/v2/tasks.js';
+import { taskQuery } from '$lib/server/v2/queue-query.js';
 import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 
 /**
@@ -24,26 +19,22 @@ export async function load(event) {
   const { url, locals } = event;
   const showAll = url.searchParams.get('all') !== '0';
 
-  const filters = readFilters(url, 'tasks');
-  const params = buildFilterQuery(FILTER_FIELDS, filters);
-  const search = url.searchParams.get('q');
-  if (search) params.set('search', search);
+  const params = taskQuery(url);
+  const { pageSize, offset } = listPagination(url);
+  params.set('limit', String(pageSize));
+  params.set('offset', String(offset));
 
   const [{ results, totals, owners }, orgPeople] = await Promise.all([
     listTasks(event, params),
     getOrgPeopleAndTeams(event.cookies)
   ]);
 
-  // `all=1` and an explicit `?status=` both mean the viewer asked for something
-  // other than the to-do list, so the open-only strip stands down for either.
-  // Without this, `status=Completed` fetches the completed tasks and then
-  // drops all of them, and the page reads as "you have none".
-  const explicitStatus = Boolean(filters.status);
+  checkListPage(url, { pageSize, offset }, totals.count);
 
   return {
-    // Filtered here rather than with `?status=` alone, because the totals the
-    // header reads have to cover both; "3 of 11 open" needs the 11.
-    tasks: showAll || explicitStatus ? results : results.filter((task) => !task.is_done),
+    pageSize,
+    offset,
+    tasks: results,
     totals,
     owners,
     showAll,

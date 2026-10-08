@@ -43,7 +43,7 @@
 </script>
 
 <svelte:head>
-  <title>{ui('Create organisation · High Demand Media CRM')}</title>
+  <title>{ui('Create organization · High Demand Media CRM')}</title>
 </svelte:head>
 
 <div class="v2-root v2-auth">
@@ -61,7 +61,7 @@
 
     <div class="v2-auth-card">
       <div class="v2-auth-head">
-        <h1>{ui('Create organisation')}</h1>
+        <h1>{ui('Create organization')}</h1>
         <p>{ui('Set up a new workspace for your team.')}</p>
       </div>
 
@@ -98,7 +98,7 @@
           </p>
           <a href={resolve('/org')}>{ui('Open organizations')}</a>{/if}
         <div class="v2-field">
-          <label for="org_name">{ui('Organisation name')}</label>
+          <label for="org_name">{ui('Organization name')}</label>
           <input
             type="text"
             id="org_name"
@@ -177,7 +177,7 @@
           <div class="v2-auth-note v2-auth-note-bad" style="margin-bottom:14px">
             <AlertCircle />
             <div>
-              <b>{ui("Couldn't create organisation")}</b>
+              <b>{ui("Couldn't create organization")}</b>
               <div style="font-weight:400;margin-top:2px">
                 {form.error.name || 'Please try again.'}
               </div>
@@ -189,7 +189,7 @@
           <div class="v2-auth-note v2-auth-note-ok" style="margin-bottom:14px">
             <Check />
             <div>
-              <b>{ui('Organisation created')}</b>
+              <b>{ui('Organization created')}</b>
               <div style="font-weight:400;margin-top:2px">
                 {ui('Taking you to your workspaces…')}
               </div>
@@ -209,7 +209,7 @@
             <Check size={15} />
             <span>{ui('Created')}</span>
           {:else}
-            <span>{ui('Create organisation')}</span>
+            <span>{ui('Create organization')}</span>
           {/if}
         </button>
       </form>
@@ -218,7 +218,7 @@
     <div class="v2-auth-foot">
       <a href={resolve('/org')} style="display:inline-flex;align-items:center;gap:5px">
         <ArrowLeft size={13} />
-        {ui('Back to organisations')}
+        {ui('Back to organizations')}
       </a>
     </div>
   </div>

@@ -1,3 +1,4 @@
+import { settingsAccess } from '$lib/v2/settings-access.js';
 import { fail, redirect } from '@sveltejs/kit';
 import {
   getWebForms,
@@ -9,8 +10,9 @@ import {
 import { readableError } from '$lib/server/v2/form-errors.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies }) {
-  return getWebForms({ cookies });
+export async function load({ cookies, parent }) {
+  const [data, shell] = await Promise.all([getWebForms({ cookies }), parent()]);
+  return { ...data, canManage: settingsAccess(shell.permissions, 'forms') === 'manage' };
 }
 
 /**

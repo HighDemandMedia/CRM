@@ -52,12 +52,21 @@ describe('durable list preferences', () => {
     });
     expect(columnWidths(['invalid'])).toEqual({});
   });
-  it('remembers layout and sorting without persisting searches or pagination', () => {
+  it('remembers sorting without persisting view mode, searches or pagination', () => {
     expect(
       viewPreferences(
         new URLSearchParams('view=pipeline&sort=name&direction=desc&search=private&offset=50')
       )
-    ).toEqual({ view: 'pipeline', sort: 'name', direction: 'desc' });
+    ).toEqual({ sort: 'name', direction: 'desc' });
     expect(viewPreferences(new URLSearchParams('view=unknown&direction=wrong'))).toEqual({});
+  });
+  it('does not restore pipeline mode saved by an older version', () => {
+    const stored = JSON.stringify({ view: 'pipeline', sort: 'name', direction: 'asc' });
+    const saved = readPreference({ getItem: () => stored }, 'key', {});
+    expect(viewPreferences(new URLSearchParams(saved))).toEqual({
+      sort: 'name',
+      direction: 'asc'
+    });
+    expect(viewPreferences(new URLSearchParams({ view: 'pipeline' }))).toEqual({});
   });
 });

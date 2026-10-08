@@ -1,3 +1,5 @@
+import { settingsSections } from '$lib/v2/settings-access.js';
+
 // Product guidance for the customized HDM CRM. No customer records or tenant articles.
 export const articles = [
   {
@@ -66,7 +68,7 @@ export const articles = [
       },
       {
         title: 'Switch organizations',
-        text: 'Open your profile menu at the bottom of the navigation bar. Use the organization selector in that menu to switch workspaces. Records, roles and settings belong to the selected organization.'
+        text: 'Open your profile menu at the bottom of the navigation bar. The organization selector appears when more than one workspace is available. Use it to switch workspaces. Records, roles and settings belong to the selected organization.'
       },
       {
         title: 'Available modules',
@@ -85,7 +87,7 @@ export const articles = [
         steps: [
           'Open Contacts and choose New contact. The form opens beside your current view.',
           'Enter the name. Add phone, email, source, language, owner, address and preferred communication channel when available.',
-          'Select tags or create one in the tag picker, then save. Pipeline rules may require additional information for the selected stage.'
+          'Select existing tags, or create a tag if you are an administrator, then save. Pipeline rules may require additional information for the selected stage.'
         ]
       },
       {
@@ -94,7 +96,7 @@ export const articles = [
       },
       {
         title: 'Notes, files and activity',
-        text: 'Use Notes for comments and Attachments for files. To remove an attachment, use its delete button and confirm the file name shown. Deletion is permanent and requires Delete attachments permission for that object. Activity records property changes with the time and user. Simply opening the contact is not recorded as an activity. Last Activity reflects the latest recorded property change, with creation as the fallback.'
+        text: 'Activity is the first tab, followed by Notes and Emails. Use Notes for comments and Attachments for files (up to 25 MB each). To remove an attachment, use its delete button and confirm the file name shown. Deletion is permanent and requires Delete attachments permission for that object. Activity records creation, actual property changes, assignments, associations, notes, files, appointments and your own synchronized emails. Opening records, downloading files and saving unchanged values do not add entries. Older changes that were never recorded cannot be reconstructed. Last Activity reflects the latest recorded property change, with creation as the fallback.'
       },
       {
         title: 'Associate records',
@@ -147,7 +149,7 @@ export const articles = [
       },
       {
         title: 'Notes and attachments',
-        text: 'Add notes from the Notes section and upload files through Attachments. Keep company information here and use the linked contact for information about a specific person.'
+        text: 'Activity opens first and includes recorded changes, notes, attachments, appointments and your own matching emails. Notes and Emails have separate tabs. Company email history combines visible primary and linked contacts without repeating the same message. Keep company notes here and use a contact for information about a specific person.'
       },
       {
         title: 'Past due deals',
@@ -193,10 +195,14 @@ export const articles = [
         title: 'Adjust the list',
         steps: [
           'Switch to the list icon in the module toolbar.',
-          'Use Edit columns to add or remove visible columns.',
+          'Use Edit columns to select system and custom properties. Notes and Record ID start hidden and can be selected manually.',
           'Drag a column header to reorder it; use its right edge to resize.',
           'Click a header to sort. Use the search field and filters to narrow the list.'
         ]
+      },
+      {
+        title: 'Saved preferences',
+        text: 'Columns and their order are saved per user, organization and object in this browser. Contacts, Companies and Deals also save column widths. Sort order is restored when opening a module without explicit URL options. Returning through navigation always opens the list; pipeline mode stays only in the current URL. Search, filters and pagination are not saved. Closing and reopening a normal tab preserves saved preferences; another browser or clearing site data does not.'
       },
       {
         title: 'Move pipeline cards',
@@ -331,12 +337,16 @@ export const articles = [
   {
     slug: 'properties-pipelines-tags',
     category: 'Configuration',
-    title: 'Configure properties, pipelines and tags',
+    title: 'Configure properties, creation forms, pipelines and tags',
     summary: 'Object-specific fields, stable internal names and stage requirements.',
     sections: [
       {
         title: 'Properties',
         text: 'In Profile & Preferences → Properties, select an object to see its fields, types, internal names and usage count. Create a custom property for that object and choose its field type. Drag properties to change their order in record profiles. System field definitions stay protected.'
+      },
+      {
+        title: 'Creation forms',
+        text: 'Open CRM configuration → Creation forms, choose an object, add or remove existing properties, reorder fields and mark those required when creating a record. Save applies to new forms opened by everyone in this organization. The identifying name stays required. Managers need explicit Creation forms permission to manage these settings. When creating a custom property, Add to creation form is off by default; enable it to include the property immediately. These rules do not change existing records or published web forms.'
       },
       {
         title: 'Names and requirements',
@@ -352,7 +362,7 @@ export const articles = [
       },
       {
         title: 'Tags',
-        text: 'Select several tags by searching in a record’s tag field, remove selected tags when needed, or create one with a color. In Tags settings, search, filter, edit name/color, inspect usage, merge or archive. Archiving removes a tag from pickers while preserving existing assignments; restore makes it available again. Merging tags has no automatic undo.'
+        text: 'Select several tags by searching in a record’s tag field, remove selected tags when needed, or, as an administrator, create one with a color. Administrators and Managers granted Tags management use Tags settings to search, filter, edit name/color, inspect usage, merge or archive. Archiving removes a tag from pickers while preserving existing assignments; restore makes it available again. Merging tags has no automatic undo.'
       }
     ]
   },
@@ -368,7 +378,7 @@ export const articles = [
       },
       {
         title: 'Accept an invitation',
-        text: 'New users open the emailed invitation and enter their name, password and password confirmation. Their email and organization are already defined. Existing users sign in with their current account to accept. Invitations expire after seven days; ask an administrator to resend an expired or cancelled invitation.'
+        text: 'New users open the emailed invitation and enter their name, password and password confirmation. Their email and organization are already defined. Existing users sign in with that email to accept. Both complete Profile setup (name, CRM language and timezone) before opening modules. The initial organization administrator also completes Organization information. Closing the browser does not skip pending setup. Invitations expire after seven days; ask an administrator to resend an expired or cancelled invitation.'
       },
       {
         title: 'Access levels',
@@ -380,7 +390,7 @@ export const articles = [
       },
       {
         title: 'Super Admin and Admin',
-        text: 'The organization creator is its protected Super Admin. Admin is a separate assignable role. Only the Super Admin can invite or change administrators. The creator cannot be demoted, deactivated or removed through these controls.'
+        text: 'The organization owner is its protected Super Admin. For a new customer organization, the initial invited administrator becomes its owner on acceptance. Admin is a separate assignable role. The Super Admin and CRM owner can appoint or manage administrators. An ordinary Admin manages non-admin team members. The Super Admin cannot be demoted, deactivated or removed through these controls. Only the CRM owner can create new organizations; organization admins cannot create customer accounts.'
       },
       {
         title: 'Remove a member',
@@ -396,11 +406,11 @@ export const articles = [
     sections: [
       {
         title: 'Profile',
-        text: 'Open the profile menu → Profile & Preferences. Edit your name, phone, language and timezone. The sign-in email is shown as read-only. Profile photo upload is not offered.'
+        text: 'Open the profile menu → Profile & Preferences. Edit your name, phone, communication language and timezone. Choose English or Español under Regional preferences → CRM language for your own interface; communication language is a separate field. The sign-in email is shown as read-only. Profile photo upload is not offered.'
       },
       {
         title: 'Organization settings',
-        text: 'Organization holds the organization name, currency, timezone and working-hour settings. These are separate from personal preferences. Change the active organization from its selector in the bottom profile menu.'
+        text: 'Organization holds company details, currency and timezone. Members cannot open Organization settings. Managers need explicit Read only or Manage access; administrators can manage them. These are separate from personal preferences. Change the active organization from its selector in the bottom profile menu.'
       },
       {
         title: 'Notifications',
@@ -408,7 +418,7 @@ export const articles = [
       },
       {
         title: 'Gmail and Google Calendar',
-        text: 'Profile → Integrations shows separate Gmail and Google Calendar cards. Setup required means the connection is not active. Saving an email access preference or using Google to sign in does not connect Gmail or synchronize calendars.'
+        text: 'Profile → Integrations shows separate Gmail and Google Calendar cards. Connect each service using your own Google account and accept its permissions. Setup required means the CRM owner must configure the Google integration; Reconnect required means authorization needs to be renewed. Manage connections and Sync now here, rather than inside record email tabs. Saving an email access preference or using Google to sign in does not connect Gmail or synchronize calendars.'
       }
     ]
   },
@@ -429,6 +439,144 @@ export const articles = [
       {
         title: 'Check first',
         text: 'Deletion is not the same as clearing a stage or archiving a tag. Review the preview before confirming. Use contact merge for duplicate people rather than deleting a contact whose history you want to preserve.'
+      }
+    ]
+  },
+  {
+    slug: 'settings-access',
+    category: 'Configuration',
+    title: 'Who can use each setting?',
+    summary: 'Personal preferences and explicitly delegated Manager settings.',
+    sections: [
+      {
+        title: 'Choose access in Users & Teams',
+        steps: [
+          'As an administrator, open Profile & Preferences → Users & Teams and choose the user.',
+          'Assign Member, Manager or a custom permission set for their work with records. Configure those sets in Roles & Permissions.',
+          'Personal, Team and Organization scopes control which records actions apply to. Even Organization scope does not grant Settings administration.',
+          'Only the organization Super Admin or CRM owner can appoint or manage other administrators. For a Manager, open Roles & Permissions → Manager → Settings access and grant each section as No access, Read only or Manage. Grants apply to all users assigned to that Manager set; they start with no access.'
+        ]
+      },
+      ...settingsSections.map((section) => ({
+        title: section.label + (section.beta ? ' (Beta)' : ''),
+        text:
+          section.member === 'personal'
+            ? 'Every user manages their own preferences. Administrators do not gain control of another user’s personal Google connection.'
+            : !['team', 'roles'].includes(section.key)
+              ? 'Members and custom roles have no access. Managers need an explicit permission for this section. Admins and Super Admins can manage it in the selected organization.'
+              : 'Admin and Super Admin access is required. This destination is hidden from non-admin users; directly opening its URL does not grant permission.'
+      })),
+      {
+        title: 'Web forms and private data',
+        text: 'Web forms read access covers the form list and configuration. Submission history, installation tests, publishing and edits require Manage access. Record access does not grant access to another user’s Gmail. Comments deliberately added as internal record notes are shared with teammates who can view that record.'
+      }
+    ]
+  },
+  {
+    slug: 'accounts-and-invitations',
+    category: 'Getting started',
+    title: 'Create an account and invite a team',
+    summary: 'Invitation-only customer workspaces and first-time setup.',
+    sections: [
+      {
+        title: 'CRM owner: create a customer account',
+        steps: [
+          'Open /org in the CRM while signed in as the CRM owner, then choose Create new organization. Each organization is a separate customer workspace.',
+          'Enter the customer administrator’s email, organization name and timezone. Leave the email blank only when creating your own workspace.',
+          'Create the organization. The CRM attempts to send an invitation; if delivery fails, open Users & Teams in that organization and resend it.',
+          'The customer opens the invitation, creates a password if needed, completes their profile and then confirms organization information, currency and timezone. They become that organization’s Super Admin.'
+        ]
+      },
+      {
+        title: 'Administrator: invite teammates',
+        steps: [
+          'Open Profile & Preferences → Users & Teams → Invite user.',
+          'Enter the teammate’s email and choose the appropriate permission set. Only the Super Admin or CRM owner can appoint another Admin.',
+          'The recipient accepts with the invited email and completes their profile before using the CRM. Existing users keep their password and other memberships.',
+          'Invitations expire after seven days. Resend expired invitations or cancel invitations that should no longer be used.'
+        ]
+      },
+      {
+        title: 'Account boundaries',
+        text: 'Public registration is closed. An invitation grants access only to its organization and assigned role. Customer administrators cannot create new customer organizations or access other customers. The CRM owner manages customer accounts separately from organization administration.'
+      }
+    ]
+  },
+  {
+    slug: 'gmail-records',
+    category: 'Communications',
+    title: 'Read, send and discuss Gmail on records',
+    summary: 'Email history, replies, forwarding and internal team comments.',
+    sections: [
+      {
+        title: 'Connect and find email',
+        steps: [
+          'Open Profile → Integrations → Connect Gmail and authorize your own Google account. If sending needs authorization, reconnect there.',
+          'Open a contact or company → Emails. The contact email must match a message participant. Company history includes visible primary and linked contacts.',
+          'Search using any words from the subject, participants or message text. Use Filters for Sent or Received; company records also offer a contact filter.',
+          'Conversations appear newest first. Expand a conversation to read messages in chronological order, and load more when available.'
+        ]
+      },
+      {
+        title: 'Send, reply or forward',
+        steps: [
+          'Choose New email, or open a message and choose Reply or Forward.',
+          'Review To, CC, subject and message. Your connected Gmail is the sender. Reply keeps the original subject; Forward starts a separate conversation.',
+          'Choose Send only when the draft is ready. If the result is uncertain, check Gmail Sent before composing another message to avoid duplicates.'
+        ]
+      },
+      {
+        title: 'Permissions and internal comments',
+        text: 'Sending requires Edit on the contact or company and Google permission to send. Internal comment requires Manage notes and creates a shared record note referencing the email subject. Teammates with record access can see that comment in Notes and Activity, but do not gain access to your mailbox. Do not put private email content in a team comment unless you intend to share it.'
+      },
+      {
+        title: 'What sync includes',
+        text: 'The initial import covers the last 90 days, followed by background sync about every five minutes. Large imports can take several jobs. Full message text is available, including expandable quoted history; remote images and attachments are not imported. Drafts, spam and trash are excluded. The CRM does not create contacts from Gmail, mark messages read in Gmail or track recipient opens. Compose and forward support plain text and To/CC, with up to 25 recipients; attachments are not supported here.'
+      },
+      {
+        title: 'Privacy and troubleshooting',
+        text: 'Only you can read your connected mailbox through the CRM, even if another user is an administrator. Current record access is checked again when opening a message. Connections belong to your user profile in the selected organization. Manage connection status and Sync now in Profile → Integrations. Automated CRM notifications use the separate system sender and do not require every user to connect Gmail.'
+      }
+    ]
+  },
+  {
+    slug: 'google-calendar',
+    category: 'Scheduling',
+    title: 'Connect and synchronize Google Calendar',
+    summary: 'Hosted appointments, meeting notes and two-way updates.',
+    sections: [
+      {
+        title: 'Connect your calendar',
+        steps: [
+          'Open Profile → Integrations → Connect Google Calendar and authorize your own account.',
+          'Choose the calendar. The primary calendar is selected by default. Use a writable calendar to send CRM appointments to Google.',
+          'Create appointments from Calendar or Schedule event on a record. The host must be the user with the connected calendar.',
+          'Allow about five minutes for background sync or use Sync now in Profile → Integrations. Check the connection status if an appointment does not appear.'
+        ]
+      },
+      {
+        title: 'What synchronizes',
+        text: 'Google events appear in your CRM calendar. Hosted CRM appointments synchronize title, start/end times and meeting notes in both directions; meeting notes become the Google event description. General contact notes are not exported. The sync window covers the previous 90 days and next 365 days. Google-only events are private to their connected user; shared host availability shows busy times without exposing private details.'
+      },
+      {
+        title: 'Limits and conflicts',
+        text: 'Calendar permissions still control CRM changes. This sync does not send invitation emails or add Google invitees. Edit all-day events in Google. If both sides changed, the CRM reports a conflict instead of overwriting them; align the Google event with the desired CRM details and sync again. Disconnecting removes the CRM connection and cached Google data, not appointments or Google events. Switching calendars can leave previously exported events in the old calendar.'
+      }
+    ]
+  },
+  {
+    slug: 'sign-in-and-files',
+    category: 'Getting started',
+    title: 'Sign-in sessions and attachment limits',
+    summary: 'Reopening the CRM, signing out and uploading files safely.',
+    sections: [
+      {
+        title: 'Closing and reopening the CRM',
+        text: 'Closing a normal browser tab does not sign you out. The session can renew for up to 14 days after its last successful renewal; active use can extend it again. There is no separate inactivity timeout. Expired or revoked access requires sign-in. Private browsing or clearing cookies may remove your session earlier. Use Sign out on shared computers.'
+      },
+      {
+        title: 'Upload and delete record attachments',
+        text: 'Record attachments allow up to 25 MB per file. Upload attachments and Delete attachments are separate permissions, limited by record access. Use the trash icon and review the confirmation before deleting; deletion is permanent. This limit applies to CRM record uploads, not Gmail forwarding or support uploads. It does not define an organization storage quota.'
       }
     ]
   }

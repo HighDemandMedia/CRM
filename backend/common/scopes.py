@@ -74,6 +74,7 @@ API_RESOURCES = frozenset(
         "cases",
         "contacts",
         "custom-fields",
+        "creation-forms",
         "dashboard",
         "documents",
         "invoices",

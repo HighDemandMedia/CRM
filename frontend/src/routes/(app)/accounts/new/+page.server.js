@@ -1,10 +1,10 @@
+import { getCreationSchema, createConfigured } from '$lib/server/v2/creation-forms.js';
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { EDITABLE_FIELDS, createAccount, getAccountFormOptions } from '$lib/server/v2/accounts.js';
 import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 
-/** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies }) {
+async function loadOptions({ cookies }) {
   return await getAccountFormOptions({ cookies });
 }
 
@@ -13,6 +13,8 @@ export const actions = {
   createTag: createContactTag,
   create: async ({ cookies, request }) => {
     const form = await request.formData();
+    if (form.has('_creation_values'))
+      return createConfigured({ cookies }, form, createAccount, '/accounts');
 
     /** @type {Record<string, any>} */
     const values = {};
@@ -44,3 +46,11 @@ export const actions = {
     redirect(303, created?.id ? `/accounts/${created.id}` : '/accounts');
   }
 };
+
+export async function load(event) {
+  const [options, creationSchema] = await Promise.all([
+    loadOptions(event),
+    getCreationSchema(event, 'Account')
+  ]);
+  return { ...options, creationSchema };
+}

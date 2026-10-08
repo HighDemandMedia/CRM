@@ -248,6 +248,9 @@ class PasswordRegisterView(APIView):
                     if invitation and invitation.role != "ADMIN"
                     else None,
                     is_active=True,
+                    setup_step=Profile.SetupStep.PROFILE_ORGANIZATION
+                    if invitation.grants_ownership
+                    else Profile.SetupStep.PROFILE,
                 )
                 accept_ownership(invitation, user)
                 if invitation:

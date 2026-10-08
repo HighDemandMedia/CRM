@@ -1,3 +1,4 @@
+import { settingsAccess } from '$lib/v2/settings-access.js';
 import { error, fail, redirect } from '@sveltejs/kit';
 import {
   getWebForm,
@@ -33,16 +34,22 @@ export async function load(event) {
     throw err;
   }
 
-  const [submissions, analytics] = await Promise.all([
+  const [submissions, analytics, shell] = await Promise.all([
     getSubmissions(event, id).catch(() => ({
       submissions: [],
       count: 0,
       activityError: 'Submission history could not be loaded. Administrator access is required.'
     })),
-    getAnalytics(event, id).catch(() => null)
+    getAnalytics(event, id).catch(() => null),
+    event.parent()
   ]);
 
-  return { ...detail, ...submissions, analytics };
+  return {
+    ...detail,
+    ...submissions,
+    analytics,
+    canManage: settingsAccess(shell.permissions, 'forms') === 'manage'
+  };
 }
 
 /**

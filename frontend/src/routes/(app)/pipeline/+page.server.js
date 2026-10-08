@@ -1,3 +1,4 @@
+import { listPagination, checkListPage } from '$lib/server/v2/pagination.js';
 import { pipelineColumns } from '$lib/server/v2/pipeline-columns.js';
 import { configuredStages } from '$lib/v2/pipeline-config.js';
 import { fail } from '@sveltejs/kit';
@@ -11,8 +12,7 @@ export async function load({ cookies, url, parent }) {
   const view = ['pipeline', 'board'].includes(url.searchParams.get('view') ?? '')
     ? 'pipeline'
     : 'list';
-  const query = dealQuery(url),
-    pageSize = 25;
+  const query = dealQuery(url);
   if (view === 'pipeline') {
     query.set('include_pipeline_totals', 'true');
     query.set('board', 'true');
@@ -21,7 +21,7 @@ export async function load({ cookies, url, parent }) {
       if (key.endsWith('_offset')) query.set(key, value);
     }
   }
-  const offset = Math.max(0, parseInt(url.searchParams.get('offset') ?? '0') || 0);
+  const { pageSize, offset } = listPagination(url, view === 'list');
   query.set('limit', String(pageSize));
   query.set('offset', String(view === 'list' ? offset : 0));
   const [response, people, shell] = await Promise.all([
@@ -29,6 +29,7 @@ export async function load({ cookies, url, parent }) {
     getOrgPeopleAndTeams(cookies),
     parent()
   ]);
+  checkListPage(url, { pageSize, offset }, response.totals.count);
   const stages = configuredStages(
     shell.pipelineConfig,
     'Opportunity',

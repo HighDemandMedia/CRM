@@ -1,39 +1,4 @@
-/**
- * Tags: the wiring behind `/settings/tags`.
- *
- * Server-only. Reads `GET /tags/?include_archived=true`, which returns every
- * tag in the org (active and archived. The page shows the "Off" ones so an
- * admin can see what's been retired), each carrying a `usage` block, one key
- * per model a tag can be applied to, and a `totals` summary
- * `{ count, active, unused }` for the stat cards. Both are computed server-side
- * (the usage counts are org-scoped subqueries, not a client tally over rows).
- *
- * The page sums whatever keys `usage` carries rather than naming them, because
- * that block used to cover four of the seven taggable models and a tag in real
- * use on contacts or tasks reported as unused.
- *
- * "New tag" is wired: `createTag` below posts the name and the page's action
- * calls it. Turning a tag off and back on are wired too, through `archiveTag`
- * and `restoreTag`. The duplicate-merge banner is wired as of 2026-08-07
- * through `mergeTags` and `POST /tags/<id>/merge/`, which did not exist when
- * the banner was built.
- *
- * CREATE IS ADMIN-ONLY, LIST IS NOT
- * `/settings` is deliberately member-readable (see the comment in
- * `$lib/v2/components/Sidebar.svelte`), and `TagsListView.get` has no role
- * check, so every member reads the full tag list. `TagsListView.post`
- * (`backend/common/views/tags_views.py:143-149`) does gate: it 403s anyone
- * whose `profile.role` is not `ADMIN`. `can_edit` below mirrors that split so
- * the page can hide "New tag" for a member instead of letting them submit a
- * form the backend was always going to refuse. It is a display hint only,
- * decoded from the JWT and never verified; the backend re-derives the role
- * from the same token and is the check that actually matters. `viewerRole` is
- * imported from `organization.js`, where it is exported for exactly this
- * reuse, rather than redefined here: a role check is exactly the kind of
- * thing that should not exist in one more private copy per module.
- * `goals.js` and `products.js` still carry their own pre-existing private
- * copies of the same decode; not touched here, worth consolidating later.
- */
+/** Active tag lookups remain available to record forms; Settings catalogs require access. */
 import { apiRequest } from '$lib/api-helpers.js';
 import { viewerRole } from './organization.js';
 
@@ -41,8 +6,12 @@ import { viewerRole } from './organization.js';
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
  * @returns {Promise<{ tags: any[], totals: any, can_edit: boolean }>}
  */
-export async function getTags({ cookies }) {
-  const resp = await apiRequest('/tags/?include_archived=true', {}, { cookies });
+export async function getTags({ cookies }, { includeArchived = false } = {}) {
+  const resp = await apiRequest(
+    includeArchived ? '/tags/?include_archived=true' : '/tags/',
+    {},
+    { cookies }
+  );
   return {
     tags: resp.tags ?? [],
     totals: resp.totals ?? { count: 0, active: 0, unused: 0 },

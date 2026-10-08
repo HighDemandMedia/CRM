@@ -423,12 +423,13 @@ class TestOrgSettingsView:
 
     # ── Reads: what the settings page shows, and what it must never show ──────
 
-    def test_get_org_settings_member_can_read(self, user_client, org_a, user_profile):
-        """A non-admin member can READ org settings (the page is read-only for
-        them). Editing is gated; reading the company profile is not."""
+    def test_get_org_settings_member_cannot_read(
+        self, user_client, org_a, user_profile
+    ):
+        """Ordinary members cannot access organization configuration."""
         response = user_client.get(self.url)
-        assert response.status_code == status.HTTP_200_OK
-        assert "company_name" in response.data
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "company_name" not in response.data
 
     def test_get_org_settings_never_exposes_api_key(self, admin_client, org_a):
         """The org API key authenticates as the org's first admin. It must never

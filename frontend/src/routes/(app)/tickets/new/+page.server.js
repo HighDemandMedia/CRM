@@ -1,10 +1,10 @@
+import { getCreationSchema, createConfigured } from '$lib/server/v2/creation-forms.js';
 import { readTicketForm } from '$lib/server/v2/ticket-form.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { createTicket, getTicketFormOptions } from '$lib/server/v2/tickets.js';
 import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 
-/** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies, url }) {
+async function loadOptions({ cookies, url }) {
   return await getTicketFormOptions(
     { cookies },
     url.searchParams.get('account'),
@@ -16,6 +16,8 @@ export async function load({ cookies, url }) {
 export const actions = {
   create: async ({ cookies, request }) => {
     const form = await request.formData();
+    if (form.has('_creation_values'))
+      return createConfigured({ cookies }, form, createTicket, '/tickets');
 
     const { values, error } = readTicketForm(form);
     if (error) return fail(400, { values, error, fieldErrors: {} });
@@ -38,3 +40,11 @@ export const actions = {
     redirect(303, created?.id ? `/tickets/${created.id}` : '/tickets');
   }
 };
+
+export async function load(event) {
+  const [options, creationSchema] = await Promise.all([
+    loadOptions(event),
+    getCreationSchema(event, 'Case')
+  ]);
+  return { ...options, creationSchema };
+}

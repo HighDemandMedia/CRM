@@ -27,12 +27,5 @@ for attempt in {1..60}; do
   sleep 1
 done
 if [[ "$crm_ready" != 1 ]]; then print 'The CRM interface did not start.'; exit 1; fi
-# The opt-in exists only for this command; no web login bypass is enabled.
-crm_login_url="$("${crm_compose[@]}" exec -T -e CRM_LOCAL_LOGIN=1 backend python manage.py local_login_link --email "${1:-admin@example.com}")"
-if [[ "$crm_login_url" != http://localhost:5173/login/verify\?token=* ]]; then
-  print 'The local sign-in URL did not match this CRM instance.'
-  exit 1
-fi
-open "$crm_login_url"
-unset crm_login_url
-print 'CRM opened in your browser. Select your organization if asked.'
+open 'http://localhost:5173/login'
+print 'CRM opened in your browser. Sign in with your account.'

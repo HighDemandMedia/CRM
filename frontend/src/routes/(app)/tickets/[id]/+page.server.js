@@ -8,7 +8,6 @@ import {
   replyToTicket,
   updateTicket
 } from '$lib/server/v2/tickets.js';
-import { getOrgSettings } from '$lib/server/v2/organization.js';
 import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 import { openDescendants, subtreeTruncated, cascadedCount, closeResultMessage } from './close.js';
 
@@ -26,7 +25,7 @@ import { openDescendants, subtreeTruncated, cascadedCount, closeResultMessage } 
  *
  * @type {import('./$types').PageServerLoad}
  */
-export async function load({ cookies, params }) {
+export async function load({ cookies, params, parent }) {
   const [data, editOptions] = await Promise.all([
     getTicket({ cookies }, params.id),
     getTicketForEdit({ cookies }, params.id)
@@ -39,7 +38,7 @@ export async function load({ cookies, params }) {
 
   const [tree, settings] = await Promise.all([
     getTicketTree({ cookies }, params.id).catch(() => null),
-    getOrgSettings({ cookies }).catch(() => null)
+    parent().catch(() => null)
   ]);
 
   return {
@@ -48,11 +47,8 @@ export async function load({ cookies, params }) {
     close: {
       descendants: openDescendants(tree?.root, params.id),
       truncated: subtreeTruncated(tree?.root, params.id),
-      // `getOrgSettings` returns `{ org, can_edit }`, so the setting is one
-      // level in. The checkbox's starting position, and the only place this
-      // org setting reaches a web user. False when the org has not set it or
-      // the fetch failed: a cascade nobody asked for must not start ticked.
-      cascade_default: settings?.org?.auto_close_children_on_parent_close === true
+      // Runtime behavior is available without granting access to organization settings.
+      cascade_default: settings?.ticketSettings?.auto_close_children_on_parent_close === true
     }
   };
 }

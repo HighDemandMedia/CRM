@@ -1,3 +1,4 @@
+import { settingsAccess } from '$lib/v2/settings-access.js';
 import { fail } from '@sveltejs/kit';
 import {
   getTags,
@@ -10,8 +11,12 @@ import {
 import { readableError } from '$lib/server/v2/form-errors.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies }) {
-  return getTags({ cookies });
+export async function load({ cookies, parent }) {
+  const [data, shell] = await Promise.all([
+    getTags({ cookies }, { includeArchived: true }),
+    parent()
+  ]);
+  return { ...data, can_edit: settingsAccess(shell.permissions, 'tags') === 'manage' };
 }
 
 /** @type {import('./$types').Actions} */

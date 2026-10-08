@@ -3,6 +3,13 @@
   const { exactTime, ui } = useI18n();
 
   import EmailActivity from '$lib/components/EmailActivity.svelte';
+  import RecordEmails from '$lib/components/RecordEmails.svelte';
+  let recordTab = $state('activity'),
+    selectedThread = $state('');
+  function showConversation(thread) {
+    selectedThread = thread;
+    recordTab = 'emails';
+  }
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
   import { configuredLabel } from '$lib/v2/pipeline-config.js';
   import { page } from '$app/state';
@@ -117,7 +124,13 @@
     {/if}
   </section>
   <main class="contact-center hdm-panel">
-    <RecordTabs>
+    <RecordTabs bind:active={recordTab}>
+      {#snippet emails()}{#key contact.id}<RecordEmails
+            kind="contact"
+            recipient={contact.email || ''}
+            id={contact.id}
+            initialThread={selectedThread}
+          />{/key}{/snippet}
       {#snippet notes()}
         <section class="profile-section" aria-label={ui('Contact notes')}>
           {#if contact.description}<div class="history-entry history-body">
@@ -167,11 +180,19 @@
           <div class="activity-feed">
             {#each data.activity as event (event.id)}
               <article class="history-entry">
-                <div class="history-body">{event.body}</div>
-                {#if event.emailId}<EmailActivity id={event.emailId} href={event.href} />{/if}
-                <div class="entry-meta">
-                  {event.by || ui('Not recorded')} · {exactTime(event.at)}
-                </div>
+                {#if event.emailId}<EmailActivity
+                    kind="contact"
+                    recordId={contact.id}
+                    id={event.emailId}
+                    href={event.href}
+                    mail={event.email}
+                    onConversation={showConversation}
+                  />
+                {:else}<div class="history-body">{event.body}</div>
+                  <div class="entry-meta">
+                    {event.by || ui('Not recorded')} · {exactTime(event.at)}
+                  </div>
+                {/if}
               </article>
             {:else}<p class="v2-sub">{ui('No activity.')}</p>{/each}
           </div>

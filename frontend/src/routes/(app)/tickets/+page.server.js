@@ -1,16 +1,14 @@
-import { configuredStages } from '$lib/v2/pipeline-config.js';
+import { listPagination, checkListPage } from '$lib/server/v2/pagination.js';
 import { updateTicket } from '$lib/server/v2/tickets.js';
 import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 import { fail } from '@sveltejs/kit';
 import {
   listTickets,
-  OPEN_STATUSES,
-  FILTER_FIELDS,
   bulkUpdateTickets,
   bulkDeleteTickets,
   summarizeBulk
 } from '$lib/server/v2/tickets.js';
-import { readFilters, buildFilterQuery } from '$lib/server/v2/filter-params.js';
+import { ticketQuery } from '$lib/server/v2/queue-query.js';
 import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 import { getTags } from '$lib/server/v2/tags.js';
 import { parseBulkForm } from '$lib/server/v2/bulk-form.js';
@@ -30,32 +28,12 @@ import { parseBulkForm } from '$lib/server/v2/bulk-form.js';
  * @type {import('./$types').PageServerLoad}
  */
 export async function load({ cookies, url, locals, parent }) {
-  const params = buildFilterQuery(FILTER_FIELDS, readFilters(url, 'tickets'));
-
-  params.set('limit', '100');
-  for (const key of ['assigned_to', 'priority', 'category', 'overdue', 'offset']) {
-    const value = url.searchParams.get(key);
-    if (value) params.set(key, value);
-  }
-  const search = url.searchParams.get('search');
-  if (search) params.set('search', search);
-  const limit = url.searchParams.get('limit');
-  if (limit) params.set('limit', limit);
-
+  const params = ticketQuery(url, (await parent()).pipelineConfig);
+  const { pageSize, offset } = listPagination(url);
+  params.set('limit', String(pageSize));
+  params.set('offset', String(offset));
   const status = url.searchParams.get('status') ?? '';
   const showAll = url.searchParams.get('all') !== '0';
-  if (status) {
-    params.set('status', status);
-  } else if (!showAll) {
-    for (const stage of configuredStages(
-      (await parent()).pipelineConfig,
-      'Case',
-      OPEN_STATUSES.map((value) => ({ value }))
-    )) {
-      if (!['Resolved', 'Closed', 'Rejected', 'Duplicate'].includes(stage.value))
-        params.append('status', stage.value);
-    }
-  }
 
   const [{ results, totals }, orgPeople, tagList] = await Promise.all([
     listTickets({ cookies }, params),
@@ -68,7 +46,10 @@ export async function load({ cookies, url, locals, parent }) {
     getTags({ cookies }).catch(() => ({ tags: [] }))
   ]);
 
+  checkListPage(url, { pageSize, offset }, totals.count);
   return {
+    pageSize,
+    offset,
     tickets: results,
     totals,
     showAll,

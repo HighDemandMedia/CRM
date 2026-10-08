@@ -1,3 +1,4 @@
+import { recordActivity } from './record-activity.js';
 import { userName } from '$lib/utils/user-name.js';
 /**
  * Accounts: the third v2 module wired to the real API.
@@ -339,16 +340,11 @@ export async function getAccount({ cookies }, id) {
       due_date: invoice.due_date ?? null,
       past_due: isPastDue(invoice)
     })),
-    eventHistory: (response.history ?? []).map((entry) => ({
-      id: entry.id,
-      at: entry.created_at,
-      by: entry.actor,
-      body: entry.description
-    })),
+    eventHistory: recordActivity(response, response.account_obj),
     activity: (response.comments ?? []).map((/** @type {any} */ comment) => ({
       id: comment.id,
       at: comment.commented_on,
-      by: comment.commented_by_user?.email || comment.commented_by?.user_details?.email || null,
+      by: userName(comment.commented_by_user || comment.commented_by, '') || null,
       body: comment.comment
     }))
   };
@@ -564,7 +560,17 @@ export async function updateAccount({ cookies }, id, values) {
  * @param {Record<string, any>} values
  */
 export async function createAccount({ cookies }, values) {
-  return await apiRequest('/accounts/', { method: 'POST', body: toBody(values) }, { cookies });
+  return await apiRequest(
+    '/accounts/',
+    {
+      method: 'POST',
+      body: {
+        ...toBody(values),
+        ...(values.custom_fields ? { custom_fields: values.custom_fields } : {})
+      }
+    },
+    { cookies }
+  );
 }
 
 /**

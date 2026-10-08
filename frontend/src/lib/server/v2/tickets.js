@@ -55,7 +55,11 @@ function toRow(row) {
     account: accountLink(row.account),
     contacts: (row.contacts ?? []).map((/** @type {any} */ contact) => ({
       id: contact.id,
-      name: [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim()
+      name:
+        [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim() ||
+        contact.email ||
+        '',
+      email: contact.email ?? ''
     })),
     assignee: assignees.length ? profileName(assignees[0]) : null,
     assignee_count: assignees.length,
@@ -170,7 +174,7 @@ function toConversation(response) {
       id: `n-${note.id}`,
       kind: 'note',
       direction: 'note',
-      author: note.commented_by?.user_details?.email || 'Support',
+      author: userName(note.commented_by, 'Support'),
       at: note.commented_on,
       body: note.comment ?? ''
     });
@@ -256,7 +260,7 @@ export async function getTicket({ cookies }, id) {
       label: row.action_display || row.action,
       at: row.created_at,
       changes: row.metadata ?? {},
-      by: row.user?.user_details?.email ?? null
+      by: userName(row.user, '') || null
     })),
     // The API's own answer about whether this person may reply, rather than a
     // guess from their role. It used to disagree with the endpoint.
@@ -306,7 +310,11 @@ async function listChoices(cookies) {
 
   const contacts = (response.contacts_list ?? []).map((/** @type {any} */ contact) => ({
     id: contact.id,
-    name: [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim()
+    name:
+      [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim() ||
+      contact.email ||
+      '',
+    email: contact.email ?? ''
   }));
   contacts.sort((/** @type {any} */ a, /** @type {any} */ b) => a.name.localeCompare(b.name));
 
@@ -491,7 +499,17 @@ export async function closeTicketWithChildren({ cookies }, id, { cascade, resolu
  * @param {Record<string, any>} values
  */
 export async function createTicket({ cookies }, values) {
-  return await apiRequest('/cases/', { method: 'POST', body: toBody(values) }, { cookies });
+  return await apiRequest(
+    '/cases/',
+    {
+      method: 'POST',
+      body: {
+        ...toBody(values),
+        ...(values.custom_fields ? { custom_fields: values.custom_fields } : {})
+      }
+    },
+    { cookies }
+  );
 }
 
 /**

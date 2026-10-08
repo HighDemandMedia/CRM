@@ -25,6 +25,9 @@ class ContactSerializer(
 
     last_activity_at = serializers.DateTimeField(read_only=True)
     tag_details = TagsSerializer(source="tags", many=True, read_only=True)
+    created_by_name = serializers.CharField(
+        source="created_by.display_name", read_only=True, default=None
+    )
     created_by_email = serializers.CharField(
         source="created_by.email", read_only=True, default=None
     )
@@ -127,6 +130,7 @@ class ContactSerializer(
             "created_by",
             "created_at",
             "created_by_email",
+            "created_by_name",
             "stage_entered_at",
             "last_activity_at",
             "updated_at",

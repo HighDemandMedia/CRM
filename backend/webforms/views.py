@@ -1,20 +1,8 @@
-"""Authenticated management API for web forms.
+"""Organization web-form management: explicit read/manage Settings permissions.
 
-Routes (all under /api/webforms/):
-    GET    /                  list the org's forms
-    POST   /                  create (admin only)
-    GET    /<id>/             retrieve
-    PUT    /<id>/             update, including the whole field list (admin)
-    DELETE /<id>/             delete (admin only)
-    POST   /<id>/publish/     start accepting submissions (admin only)
-    POST   /<id>/unpublish/   stop accepting submissions (admin only)
-    GET    /<id>/submissions/ paginated submissions, accepted and rejected
-    GET    /<id>/analytics/   views, submissions and conversion over 30 days
-
-Read is open to every member of the org; write is admin only. Creating a form
-mints something that writes leads into the org from an anonymous endpoint, so
-the two halves are not the same risk. This is the split
-`common/views/settings_views.py` already uses for API settings.
+The anonymous submission and embed endpoints are in public_views.py. Reading
+configuration requires Web forms access; edits, publishing and submission history
+require Manage. Admins have full access and Managers may receive explicit grants.
 """
 
 import datetime
@@ -29,7 +17,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.lookups import get_scoped_or_404
-from common.permissions import HasOrgContext, is_org_admin
+from common.permissions import HasOrgContext
+from common.settings_access import HasSettingsAccess, can_access_settings
 from webforms.constants import REQUIRED_LEAD_FIELD
 from webforms.models import WebForm, WebFormDailyStat, WebFormSubmission
 from webforms.serializers import (
@@ -43,13 +32,14 @@ ANALYTICS_WINDOW_DAYS = 30
 
 def _admin_required():
     return Response(
-        {"error": True, "errors": "Admin access required"},
+        {"error": True, "errors": "Web forms management permission required"},
         status=status.HTTP_403_FORBIDDEN,
     )
 
 
 class WebFormBaseView(APIView):
-    permission_classes = (IsAuthenticated, HasOrgContext)
+    settings_section = "forms"
+    permission_classes = (IsAuthenticated, HasOrgContext, HasSettingsAccess)
 
     def get_form(self, request, pk):
         """The form, scoped to the caller's org.
@@ -117,7 +107,7 @@ class WebFormListCreateView(WebFormBaseView):
         responses=WebFormDetailSerializer,
     )
     def post(self, request):
-        if not is_org_admin(request.profile):
+        if not can_access_settings(request.profile, "forms", manage=True):
             return _admin_required()
         serializer = WebFormDetailSerializer(
             data=request.data, context=self.serializer_context(request)
@@ -142,7 +132,7 @@ class WebFormDetailView(WebFormBaseView):
     )
     def put(self, request, pk):
         form = self.get_form(request, pk)
-        if not is_org_admin(request.profile):
+        if not can_access_settings(request.profile, "forms", manage=True):
             return _admin_required()
         serializer = WebFormDetailSerializer(
             form,
@@ -157,7 +147,7 @@ class WebFormDetailView(WebFormBaseView):
     @extend_schema(tags=["Web forms"])
     def delete(self, request, pk):
         form = self.get_form(request, pk)
-        if not is_org_admin(request.profile):
+        if not can_access_settings(request.profile, "forms", manage=True):
             return _admin_required()
         form.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -174,7 +164,7 @@ class WebFormPublishView(WebFormBaseView):
     @extend_schema(tags=["Web forms"])
     def post(self, request, pk):
         form = self.get_form(request, pk)
-        if not is_org_admin(request.profile):
+        if not can_access_settings(request.profile, "forms", manage=True):
             return _admin_required()
 
         if form.is_published:
@@ -221,7 +211,7 @@ class WebFormUnpublishView(WebFormBaseView):
     @extend_schema(tags=["Web forms"])
     def post(self, request, pk):
         form = self.get_form(request, pk)
-        if not is_org_admin(request.profile):
+        if not can_access_settings(request.profile, "forms", manage=True):
             return _admin_required()
 
         if not form.is_published:
@@ -239,7 +229,7 @@ class WebFormSubmissionListView(WebFormBaseView):
     @extend_schema(tags=["Web forms"], responses=WebFormSubmissionSerializer(many=True))
     def get(self, request, pk):
         form = self.get_form(request, pk)
-        if not is_org_admin(request.profile):
+        if not can_access_settings(request.profile, "forms", manage=True):
             return _admin_required()
         queryset = (
             WebFormSubmission.objects.filter(form=form, org=request.profile.org)

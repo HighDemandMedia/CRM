@@ -37,6 +37,7 @@
     untrack(() => String(form?.values?.reminder_days ?? data.form.reminder_days ?? ''))
   );
   let values = $derived(form?.values ?? data.form);
+  let contacts = $state(untrack(() => [...(form?.values?.contacts ?? data.form.contacts ?? [])]));
   let kind = $state(untrack(() => form?.values?.parent_kind ?? data.form.parent_kind ?? ''));
   let selected = $state(untrack(() => form?.values?.parent_id ?? data.form.parent_id ?? ''));
   let currentId = $derived(form?.values?.parent_id ?? data.form.parent_id ?? '');
@@ -99,7 +100,7 @@
 
     <TaskReminder bind:value={reminder} />
 
-    <TaskParent parents={data.parents} bind:kind bind:selected />
+    <TaskParent parents={data.parents} bind:kind bind:selected bind:contacts />
 
     <TaskAssignees people={data.owners} bind:selected={assignees} />
 

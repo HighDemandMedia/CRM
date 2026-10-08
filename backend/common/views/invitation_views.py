@@ -226,6 +226,9 @@ class AcceptInvitationView(APIView):
                     "is_active": True,
                     "removed_at": None,
                     "date_of_joining": timezone.localdate(),
+                    "setup_step": Profile.SetupStep.PROFILE_ORGANIZATION
+                    if row.grants_ownership
+                    else Profile.SetupStep.PROFILE,
                 },
             )
             accept_ownership(row, request.user)

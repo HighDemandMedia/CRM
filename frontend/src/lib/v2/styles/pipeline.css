@@ -16,9 +16,9 @@
   min-height: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: var(--crm-space-3) var(--crm-space-6) 18px;
+  padding: 0 var(--crm-space-3) var(--crm-space-2);
   scroll-snap-type: x proximity;
-  scroll-padding-inline: var(--crm-space-6);
+  scroll-padding-inline: var(--crm-space-3);
   scrollbar-width: thin;
   scrollbar-color: var(--crm-control-border) transparent;
 }
@@ -55,8 +55,8 @@
   justify-content: space-between;
   gap: var(--crm-space-2);
   flex: none;
-  min-height: 58px;
-  padding: 14px;
+  min-height: var(--crm-target-size);
+  padding: var(--crm-space-2) var(--crm-space-3);
   margin: 0;
   border-bottom: 1px solid var(--crm-border);
 }
@@ -258,7 +258,7 @@
 }
 @media (max-width: 700px) {
   .hdm-board.hdm-board.hdm-board {
-    padding: var(--crm-space-2) var(--crm-space-3) 14px;
+    padding: 0 var(--crm-space-3) var(--crm-space-2);
     gap: 10px;
     scroll-padding-inline: var(--crm-space-3);
   }
@@ -275,7 +275,7 @@
 }
 
 .workspace .hdm-board.hdm-board.hdm-board {
-  padding: 0 0 14px;
+  padding: 0 0 var(--crm-space-2);
   scroll-padding-inline: 0;
 }
 

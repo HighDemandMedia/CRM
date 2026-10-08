@@ -1,0 +1,74 @@
+/* Common workspace surfaces, using the same tokens as object lists. */
+.crm-module-body {
+  padding: var(--crm-space-4) var(--crm-space-6) var(--crm-space-6);
+  min-width: 0;
+}
+.crm-module-toolbar {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: var(--crm-space-3);
+  padding: var(--crm-space-4) var(--crm-space-6);
+  flex: none;
+}
+.crm-module-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--crm-space-1);
+  min-width: 0;
+  font-size: var(--crm-text-xs);
+  color: var(--crm-text);
+}
+.crm-module-actions,
+.crm-view-switch {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--crm-space-2);
+}
+.crm-module-actions {
+  margin-left: auto;
+}
+.crm-panel {
+  min-width: 0;
+  background: var(--crm-surface);
+  border: 1px solid var(--crm-border);
+  border-radius: var(--crm-radius-lg);
+}
+.crm-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--crm-space-4);
+}
+.crm-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--crm-space-2);
+  padding: var(--crm-space-5);
+  min-width: 0;
+}
+.crm-stat > span,
+.crm-stat small {
+  color: var(--crm-text-muted);
+  font-size: var(--crm-text-xs);
+}
+.crm-stat strong {
+  font-size: var(--crm-text-2xl);
+  line-height: 1.2;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  color: var(--crm-text);
+}
+@media (max-width: 700px) {
+  .crm-module-body,
+  .crm-module-toolbar {
+    padding-inline: var(--crm-space-3);
+  }
+  .crm-stat {
+    padding: var(--crm-space-4);
+  }
+  .crm-module-actions {
+    margin-left: 0;
+  }
+}

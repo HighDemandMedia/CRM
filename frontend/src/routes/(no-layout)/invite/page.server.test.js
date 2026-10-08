@@ -85,7 +85,7 @@ describe('invitation onboarding', () => {
       });
       await expect(actions.default(input)).rejects.toMatchObject({
         status: 303,
-        location: needsSetup ? '/settings/organization?onboarding=1' : '/'
+        location: '/profile'
       });
       expect(axios.post).toHaveBeenCalledWith(
         expect.stringContaining('/auth/password/register/'),
@@ -102,17 +102,20 @@ describe('invitation onboarding', () => {
   );
 });
 
-it('switches existing invitees to the invited organization before setup', async () => {
-  const input = event();
-  vi.mocked(apiRequest)
-    .mockResolvedValueOnce({ org_id: 'customer-org', needs_organization_setup: true })
-    .mockResolvedValueOnce({ access_token: 'new-access', refresh_token: 'new-refresh' });
-  await expect(inviteActions.accept(input)).rejects.toMatchObject({
-    status: 303,
-    location: '/settings/organization?onboarding=1'
-  });
-  expect(input.cookies.set).toHaveBeenCalledWith('org', 'customer-org', expect.anything());
-});
+it.each([false, true])(
+  'switches existing invitees to the invited organization before setup (%s)',
+  async (needsSetup) => {
+    const input = event();
+    vi.mocked(apiRequest)
+      .mockResolvedValueOnce({ org_id: 'customer-org', needs_organization_setup: needsSetup })
+      .mockResolvedValueOnce({ access_token: 'new-access', refresh_token: 'new-refresh' });
+    await expect(inviteActions.accept(input)).rejects.toMatchObject({
+      status: 303,
+      location: '/profile'
+    });
+    expect(input.cookies.set).toHaveBeenCalledWith('org', 'customer-org', expect.anything());
+  }
+);
 
 it('does not call registration without an invitation cookie', async () => {
   const input = event('');

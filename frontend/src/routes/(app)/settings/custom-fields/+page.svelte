@@ -435,6 +435,9 @@
             >
           </fieldset>
         {/if}
+        {#if editing.new && data.can_edit_creation_form}<label class="choice">
+            <input type="checkbox" name="add_to_creation_form" />{ui('Add to creation form')}
+          </label>{/if}
         {#if error}<p class="panel-error" role="alert">{ui(error)}</p>{/if}
       </div>
       <div class="panel-footer">

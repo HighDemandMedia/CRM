@@ -15,6 +15,7 @@ from rest_framework.views import APIView
 
 from accounts.models import Account
 from accounts.serializer import AccountSerializer
+from common.creation_forms import validate_creation
 from common.custom_fields import validate_payload as validate_custom_fields_payload
 from common.models import (
     Attachments,
@@ -139,6 +140,8 @@ class TaskListView(APIView, LimitOffsetPagination):
                         queryset = queryset.filter(
                             custom_fields__contains={cf_key: raw_value}
                         )
+        if params.get("exclude_completed") == "true" and not params.get("status"):
+            queryset = queryset.exclude(status="Completed")
         context = {}
         queryset = queryset.distinct()
 
@@ -265,6 +268,7 @@ class TaskListView(APIView, LimitOffsetPagination):
         params = request.data
         serializer = TaskCreateSerializer(data=params, request_obj=request)
         if serializer.is_valid():
+            validate_creation(request.profile.org, "Task", request.data)
             cf_payload = params.get("custom_fields")
             if isinstance(cf_payload, str):
                 try:

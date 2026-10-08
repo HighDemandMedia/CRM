@@ -34,7 +34,12 @@
     { id: 'integrations', label: 'Integrations', icon: Link2 }
   ];
   $effect(() => {
-    if (form?.scope === 'email' || form?.scope === 'google' || data.googleResult)
+    if (
+      form?.scope === 'email' ||
+      form?.scope === 'google' ||
+      data.googleResult ||
+      data.integrationTab
+    )
       activeTab = 'integrations';
   });
   function navigateTabs(event, index) {
@@ -87,7 +92,7 @@
       language: p.language,
       timezone: p.timezone
     })) {
-      if (formData.get(key) === previous) formData.delete(key);
+      if (!data.onboarding && formData.get(key) === previous) formData.delete(key);
     }
     saving = true;
     return async (/** @type {any} */ { result, update }) => {
@@ -98,50 +103,58 @@
 </script>
 
 <div class="profile-shell">
-  <PageHeader title={ui('Profile')}>
-    {#snippet sub()}{ui('Your details, preferences and connected accounts')}{/snippet}
+  <PageHeader title={data.onboarding ? ui('Complete your profile') : ui('Profile')}>
+    {#snippet sub()}{data.onboarding
+        ? ui('Confirm your name, language and time zone before you start.')
+        : ui('Your details, preferences and connected accounts')}{/snippet}
   </PageHeader>
 
-  <div class="profile-tabs" role="tablist" aria-label={ui('Profile sections')}>
-    {#each tabs as tab, index}
-      <button
-        id={`profile-tab-${tab.id}`}
-        role="tab"
-        type="button"
-        aria-selected={activeTab === tab.id}
-        aria-controls={`profile-panel-${tab.id}`}
-        tabindex={activeTab === tab.id ? 0 : -1}
-        class:active={activeTab === tab.id}
-        onclick={() => (activeTab = tab.id)}
-        onkeydown={(event) => navigateTabs(event, index)}
-      >
-        <tab.icon size={16} /><span>{ui(tab.label)}</span>
-      </button>
-    {/each}
-  </div>
+  {#if !data.onboarding}<div
+      class="profile-tabs"
+      role="tablist"
+      aria-label={ui('Profile sections')}
+    >
+      {#each tabs as tab, index}
+        <button
+          id={`profile-tab-${tab.id}`}
+          role="tab"
+          type="button"
+          aria-selected={activeTab === tab.id}
+          aria-controls={`profile-panel-${tab.id}`}
+          tabindex={activeTab === tab.id ? 0 : -1}
+          class:active={activeTab === tab.id}
+          onclick={() => (activeTab = tab.id)}
+          onkeydown={(event) => navigateTabs(event, index)}
+        >
+          <tab.icon size={16} /><span>{ui(tab.label)}</span>
+        </button>
+      {/each}
+    </div>{/if}
   <div class="v2-scroll">
     <div class="profile-layout">
       <div
         id="profile-panel-info"
         role="tabpanel"
-        aria-labelledby="profile-tab-info"
+        aria-labelledby={data.onboarding ? 'personal-information-title' : 'profile-tab-info'}
         hidden={activeTab !== 'info'}
         tabindex="0"
         class="profile-panel personal"
       >
         <div class="section-heading">
           <div>
-            <h2>{ui('Personal information')}</h2>
+            <h2 id="personal-information-title">{ui('Personal information')}</h2>
             <p class="section-description">{ui('Manage your details and personal preferences.')}</p>
           </div>
         </div>
         <form class="details-form" method="POST" action="?/edit" use:enhance={onEdit}>
+          {#if data.onboarding}<input type="hidden" name="complete_setup" value="1" />{/if}
           <fieldset disabled={saving}>
             <div class="settings-group">
               <label
                 >{ui('Full name')}<input
                   class="v2-input"
                   name="name"
+                  required={data.onboarding}
                   bind:value={editName}
                   maxlength="255"
                   autocomplete="name"
@@ -206,198 +219,214 @@
               {ui('Profile saved.')}
             </p>{/if}
           <div class="form-actions detail-actions">
-            <button class="v2-btn v2-btn-primary" disabled={saving || !dirty}
-              >{saving ? ui('Saving…') : ui('Save changes')}</button
+            <button class="v2-btn v2-btn-primary" disabled={saving || (!dirty && !data.onboarding)}
+              >{saving
+                ? ui('Saving…')
+                : data.onboarding
+                  ? p.setup_step === 'profile_organization'
+                    ? ui('Continue to organization')
+                    : ui('Save and open CRM')
+                  : ui('Save changes')}</button
             >
-            {#if dirty}<button class="v2-btn" type="button" disabled={saving} onclick={resetDetails}
-                >{ui('Cancel')}</button
+            {#if dirty && !data.onboarding}<button
+                class="v2-btn"
+                type="button"
+                disabled={saving}
+                onclick={resetDetails}>{ui('Cancel')}</button
               >{/if}
           </div>
         </form>
-        <form class="details-form" method="POST" action="?/password" use:enhance>
-          <fieldset>
-            <h3>{data.hasPassword ? ui('Change password') : ui('Set your password')}</h3>
-            {#if data.hasPassword}<label
-                >{ui('Current password')}<input
+        {#if !data.onboarding}<form
+            class="details-form"
+            method="POST"
+            action="?/password"
+            use:enhance
+          >
+            <fieldset>
+              <h3>{data.hasPassword ? ui('Change password') : ui('Set your password')}</h3>
+              {#if data.hasPassword}<label
+                  >{ui('Current password')}<input
+                    class="v2-input"
+                    type="password"
+                    name="current_password"
+                    required
+                    autocomplete="current-password"
+                    maxlength="128"
+                  /></label
+                >{/if}
+              <label
+                >{ui('New password')}<input
                   class="v2-input"
                   type="password"
-                  name="current_password"
+                  name="password"
                   required
-                  autocomplete="current-password"
+                  minlength="10"
                   maxlength="128"
+                  autocomplete="new-password"
                 /></label
-              >{/if}
-            <label
-              >{ui('New password')}<input
-                class="v2-input"
-                type="password"
-                name="password"
-                required
-                minlength="10"
-                maxlength="128"
-                autocomplete="new-password"
-              /></label
-            >
-            <label
-              >{ui('Confirm password')}<input
-                class="v2-input"
-                type="password"
-                name="confirm_password"
-                required
-                minlength="10"
-                maxlength="128"
-                autocomplete="new-password"
-              /></label
-            >
-          </fieldset>
-          {#if form?.scope === 'password'}<p
+              >
+              <label
+                >{ui('Confirm password')}<input
+                  class="v2-input"
+                  type="password"
+                  name="confirm_password"
+                  required
+                  minlength="10"
+                  maxlength="128"
+                  autocomplete="new-password"
+                /></label
+              >
+            </fieldset>
+            {#if form?.scope === 'password'}<p
+                class="feedback"
+                class:failure={form.message}
+                role="status"
+              >
+                {ui(form.message || 'Password saved.')}
+              </p>{/if}
+            <div class="form-actions">
+              <button class="v2-btn v2-btn-primary">{ui('Save password')}</button>
+            </div>
+          </form>{/if}
+      </div>
+      {#if !data.onboarding}<div
+          id="profile-panel-integrations"
+          role="tabpanel"
+          aria-labelledby="profile-tab-integrations"
+          hidden={activeTab !== 'integrations'}
+          tabindex="0"
+          class="profile-panel"
+        >
+          <div class="section-heading">
+            <h2 id="integration-title"><Link2 size={17} />{ui('Connected accounts')}</h2>
+            <span class="subtle-badge">{ui('Per user')}</span>
+          </div>
+          <p class="section-description">{ui('Manage your email and calendar connections.')}</p>
+          {#if data.googleResult}<p class="feedback" role="status">
+              {data.googleResult === 'settings'
+                ? ui('Manage your Google connections below.')
+                : data.googleResult === 'connected'
+                  ? ui('Google connected. The first synchronization is running.')
+                  : data.googleResult === 'cancelled'
+                    ? ui('Connection cancelled or expired. Try connecting again.')
+                    : ui(
+                        'Could not connect Google. Check the configuration and required permissions, then try again.'
+                      )}
+            </p>{/if}
+          {#if form?.scope === 'google'}<p
               class="feedback"
               class:failure={form.message}
               role="status"
             >
-              {ui(form.message || 'Password saved.')}
+              {ui(form.message || form.googleMessage)}
             </p>{/if}
-          <div class="form-actions">
-            <button class="v2-btn v2-btn-primary">{ui('Save password')}</button>
-          </div>
-        </form>
-      </div>
-      <div
-        id="profile-panel-integrations"
-        role="tabpanel"
-        aria-labelledby="profile-tab-integrations"
-        hidden={activeTab !== 'integrations'}
-        tabindex="0"
-        class="profile-panel"
-      >
-        <div class="section-heading">
-          <h2 id="integration-title"><Link2 size={17} />{ui('Connected accounts')}</h2>
-          <span class="subtle-badge">{ui('Per user')}</span>
-        </div>
-        <p class="section-description">{ui('Manage your email and calendar connections.')}</p>
-        {#if data.googleResult}<p class="feedback" role="status">
-            {data.googleResult === 'settings'
-              ? ui('Manage your Google connections below.')
-              : data.googleResult === 'connected'
-                ? ui('Google connected. The first synchronization is running.')
-                : data.googleResult === 'cancelled'
-                  ? ui('Connection cancelled or expired. Try connecting again.')
-                  : ui(
-                      'Could not connect Google. Check the configuration and required permissions, then try again.'
-                    )}
-          </p>{/if}
-        {#if form?.scope === 'google'}<p
-            class="feedback"
-            class:failure={form.message}
-            role="status"
-          >
-            {ui(form.message || form.googleMessage)}
-          </p>{/if}
-        {#each [{ key: 'gmail', service: 'gmail', title: 'Gmail' }, { key: 'google_calendar', service: 'calendar', title: 'Google Calendar' }] as item}
-          {@const connection = p.integrations?.[item.key]}
-          <div class="integration">
-            <div class="integration-heading">
-              <div class="service-icon">
-                {#if item.service === 'gmail'}<Mail size={21} />{:else}<CalendarDays
-                    size={21}
-                  />{/if}
-              </div>
-              <div>
-                <h3>{item.title}</h3>
-                <p>{connection?.email || 'No account connected'}</p>
-              </div>
-              <span class="status-badge"
-                >{connection?.status === 'connected'
-                  ? ui('Connected')
-                  : connection?.status === 'reconnect'
-                    ? ui('Reconnect required')
-                    : ui('Not connected')}</span
-              >
-            </div>
-            <p class="help">
-              {item.service === 'gmail'
-                ? ui(
-                    'Sent and received emails are matched to your contacts by email address. Only you can see your connected mailbox activity, including the message text. Initial import covers the last 90 days; attachments are not imported.'
-                  )
-                : ui(
-                    'Events synchronize in both directions. Your hosted CRM appointments and their meeting notes appear in Google Calendar. Google changes update the linked appointment. No invitation emails are sent by this sync.'
-                  )}
-            </p>
-            {#if connection?.last_sync}<p class="help">
-                {ui('Last sync:')}
-                {new Date(connection.last_sync).toLocaleString(locale())}
-              </p>{/if}
-            {#if item.service === 'calendar' && connection?.status === 'connected'}<p class="help">
-                {ui('Calendar:')}
-                {connection.calendar}{ui(
-                  '. Sync includes the previous 90 days and the next 12 months.'
-                )}
-              </p>{/if}
-            {#if connection?.error}<p class="feedback failure" role="status">
-                {ui(connection.error)}
-              </p>{/if}
-            {#if !connection?.configured}<p class="setup-note">
-                {ui(
-                  'The CRM administrator needs to configure Google connections before you can connect.'
-                )}
-              </p>{/if}
-            <div class="integration-actions">
-              <form method="POST" action="?/googleConnect">
-                <input type="hidden" name="service" value={item.service} /><button
-                  class="v2-btn v2-btn-primary v2-btn-sm"
-                  disabled={!connection?.configured}
-                  >{connection?.email ? ui('Reconnect') : `Connect ${item.title}`}</button
+          {#each [{ key: 'gmail', service: 'gmail', title: 'Gmail' }, { key: 'google_calendar', service: 'calendar', title: 'Google Calendar' }] as item}
+            {@const connection = p.integrations?.[item.key]}
+            <div class="integration">
+              <div class="integration-heading">
+                <div class="service-icon">
+                  {#if item.service === 'gmail'}<Mail size={21} />{:else}<CalendarDays
+                      size={21}
+                    />{/if}
+                </div>
+                <div>
+                  <h3>{item.title}</h3>
+                  <p>{connection?.email || 'No account connected'}</p>
+                </div>
+                <span class="status-badge"
+                  >{connection?.status === 'connected'
+                    ? ui('Connected')
+                    : connection?.status === 'reconnect'
+                      ? ui('Reconnect required')
+                      : ui('Not connected')}</span
                 >
-              </form>
-              {#if connection?.status === 'connected'}<form
+              </div>
+              <p class="help">
+                {item.service === 'gmail'
+                  ? ui(
+                      'Sent and received emails are matched to your contacts by email address. Only you can see your connected mailbox activity, including the message text. Initial import covers the last 90 days; attachments are not imported.'
+                    )
+                  : ui(
+                      'Events synchronize in both directions. Your hosted CRM appointments and their meeting notes appear in Google Calendar. Google changes update the linked appointment. No invitation emails are sent by this sync.'
+                    )}
+              </p>
+              {#if connection?.last_sync}<p class="help">
+                  {ui('Last sync:')}
+                  {new Date(connection.last_sync).toLocaleString(locale())}
+                </p>{/if}
+              {#if item.service === 'calendar' && connection?.status === 'connected'}<p
+                  class="help"
+                >
+                  {ui('Calendar:')}
+                  {connection.calendar}{ui(
+                    '. Sync includes the previous 90 days and the next 12 months.'
+                  )}
+                </p>{/if}
+              {#if connection?.error}<p class="feedback failure" role="status">
+                  {ui(connection.error)}
+                </p>{/if}
+              {#if !connection?.configured}<p class="setup-note">
+                  {ui(
+                    'The CRM administrator needs to configure Google connections before you can connect.'
+                  )}
+                </p>{/if}
+              <div class="integration-actions">
+                <form method="POST" action="?/googleConnect">
+                  <input type="hidden" name="service" value={item.service} /><button
+                    class="v2-btn v2-btn-primary v2-btn-sm"
+                    disabled={!connection?.configured}
+                    >{connection?.email ? ui('Reconnect') : `Connect ${item.title}`}</button
+                  >
+                </form>
+                {#if connection?.status === 'connected'}<form
+                    method="POST"
+                    action="?/googleManage"
+                    use:enhance
+                  >
+                    <input type="hidden" name="service" value={item.service} /><button
+                      class="v2-btn v2-btn-sm"
+                      name="operation"
+                      value="sync">{ui('Sync now')}</button
+                    >
+                  </form>{/if}
+                {#if connection?.email}<form method="POST" action="?/googleManage" use:enhance>
+                    <input type="hidden" name="service" value={item.service} /><button
+                      class="v2-btn v2-btn-sm"
+                      name="operation"
+                      value="disconnect">{ui('Disconnect')}</button
+                    >
+                  </form>{/if}
+                {#if item.service === 'calendar' && connection?.status === 'connected'}<button
+                    class="v2-btn v2-btn-sm"
+                    onclick={loadCalendars}>{ui('Choose calendar')}</button
+                  >{/if}
+              </div>
+              {#if item.service === 'calendar' && calendars.length}<form
                   method="POST"
                   action="?/googleManage"
                   use:enhance
                 >
-                  <input type="hidden" name="service" value={item.service} /><button
-                    class="v2-btn v2-btn-sm"
+                  <input type="hidden" name="service" value="calendar" /><input
+                    type="hidden"
                     name="operation"
-                    value="sync">{ui('Sync now')}</button
-                  >
+                    value="calendar"
+                  /><label
+                    >{ui('Calendar')}<select
+                      class="v2-input"
+                      name="calendar_id"
+                      bind:value={selectedCalendar}
+                      >{#each calendars as calendar}<option value={calendar.id}
+                          >{calendar.name}{calendar.writable ? '' : ui(' (read only)')}</option
+                        >{/each}</select
+                    ></label
+                  ><button class="v2-btn v2-btn-sm">{ui('Use this calendar')}</button>
                 </form>{/if}
-              {#if connection?.email}<form method="POST" action="?/googleManage" use:enhance>
-                  <input type="hidden" name="service" value={item.service} /><button
-                    class="v2-btn v2-btn-sm"
-                    name="operation"
-                    value="disconnect">{ui('Disconnect')}</button
-                  >
-                </form>{/if}
-              {#if item.service === 'calendar' && connection?.status === 'connected'}<button
-                  class="v2-btn v2-btn-sm"
-                  onclick={loadCalendars}>{ui('Choose calendar')}</button
-                >{/if}
+              {#if item.service === 'calendar' && calendarError}<p class="feedback failure">
+                  {ui(calendarError)}
+                </p>{/if}
             </div>
-            {#if item.service === 'calendar' && calendars.length}<form
-                method="POST"
-                action="?/googleManage"
-                use:enhance
-              >
-                <input type="hidden" name="service" value="calendar" /><input
-                  type="hidden"
-                  name="operation"
-                  value="calendar"
-                /><label
-                  >{ui('Calendar')}<select
-                    class="v2-input"
-                    name="calendar_id"
-                    bind:value={selectedCalendar}
-                    >{#each calendars as calendar}<option value={calendar.id}
-                        >{calendar.name}{calendar.writable ? '' : ui(' (read only)')}</option
-                      >{/each}</select
-                  ></label
-                ><button class="v2-btn v2-btn-sm">{ui('Use this calendar')}</button>
-              </form>{/if}
-            {#if item.service === 'calendar' && calendarError}<p class="feedback failure">
-                {ui(calendarError)}
-              </p>{/if}
-          </div>
-        {/each}
-      </div>
+          {/each}
+        </div>{/if}
     </div>
   </div>
 </div>

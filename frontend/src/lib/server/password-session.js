@@ -1,6 +1,7 @@
 import { env } from '$env/dynamic/private';
 
-export function savePasswordSession(cookies, data) {
+// Match the API's one-hour access and fourteen-day rotating refresh lifetimes.
+export function saveSessionTokens(cookies, data) {
   const options = {
     path: '/',
     httpOnly: true,
@@ -8,9 +9,15 @@ export function savePasswordSession(cookies, data) {
     secure: env.NODE_ENV === 'production'
   };
   cookies.set('jwt_access', data.access_token, { ...options, maxAge: 3600 });
-  cookies.set('jwt_refresh', data.refresh_token, { ...options, maxAge: 14 * 86400 });
-  cookies.delete('org', { path: '/' });
+  if (data.refresh_token)
+    cookies.set('jwt_refresh', data.refresh_token, { ...options, maxAge: 14 * 86400 });
   if (data.current_org) cookies.set('org', data.current_org.id, { ...options, maxAge: 14 * 86400 });
+}
+
+/** A new sign-in/organization selection must not retain a previous membership. */
+export function savePasswordSession(cookies, data) {
+  cookies.delete('org', { path: '/' });
+  saveSessionTokens(cookies, data);
 }
 
 export function passwordError(error, fallback) {

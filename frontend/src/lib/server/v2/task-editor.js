@@ -19,6 +19,21 @@ export async function getTaskEditor(event, task) {
     task,
     owners: settled.owners,
     parents: {
+      contact: [
+        ...new Map(
+          [
+            ...(task.contacts ?? []).map((contact) => ({
+              id: contact.id,
+              name:
+                [contact.first_name, contact.last_name].filter(Boolean).join(' ') ||
+                contact.email ||
+                '',
+              email: contact.email ?? ''
+            })),
+            ...(settled.contacts ?? [])
+          ].map((contact) => [contact.id, contact])
+        ).values()
+      ],
       account: settled.accounts ?? [],
       opportunity:
         deals.status === 'fulfilled'
@@ -30,6 +45,7 @@ export async function getTaskEditor(event, task) {
           : []
     },
     form: {
+      contacts: (task.contacts ?? []).map((contact) => contact.id),
       title: task.title,
       status: task.status,
       priority: task.priority,
@@ -63,6 +79,11 @@ export async function saveTaskEditor(event) {
       .map((v) => v.toString())
       .filter(Boolean)
   };
+
+  // An absent picker must not clear existing contact associations.
+  if (form.has('contacts_present')) {
+    values.contacts = [...new Set(form.getAll('contacts').map(String).filter(Boolean))];
+  }
 
   /*
    * The parent is only sent when it actually moved.

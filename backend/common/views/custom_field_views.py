@@ -16,10 +16,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.creation_forms import add_property
 from common.models import CustomFieldDefinition, Org
-from common.permissions import HasOrgContext, is_org_admin
+from common.permissions import HasOrgContext
 from common.property_catalog import TARGETS, properties_for
 from common.serializer import CustomFieldDefinitionSerializer
+from common.settings_access import can_access_settings, require_settings
 
 # Each custom-field target_model → the (app_label, model) whose rows store the
 # values in a `custom_fields` JSONField. Mirrors custom_fields.SUPPORTED_TARGETS;
@@ -39,7 +41,7 @@ _TARGET_MODELS = {
 
 def _admin_required():
     return Response(
-        {"error": True, "errors": "Admin access required"},
+        {"error": True, "errors": "Settings management permission required"},
         status=status.HTTP_403_FORBIDDEN,
     )
 
@@ -121,8 +123,7 @@ class CustomFieldDefinitionListCreateView(APIView):
             qs = qs.filter(is_active=True)
 
         if request.query_params.get("catalog") == "true":
-            if not is_org_admin(request.profile):
-                return _admin_required()
+            require_settings(request.profile, "properties")
             if target_model not in TARGETS:
                 return Response({"errors": "Choose a supported object."}, status=400)
             rows = CustomFieldDefinitionSerializer(qs, many=True).data
@@ -136,8 +137,10 @@ class CustomFieldDefinitionListCreateView(APIView):
         # page needs those numbers; a record page that only wants labels and
         # types to render a form does not, and making it pay for the stat cards
         # puts N+1 full scans on every lead view. `include_counts=false` opts
-        # out. The default is unchanged, so existing callers are unaffected.
-        if request.query_params.get("include_counts") == "false":
+        # out. Ordinary members receive only runtime definitions, never org-wide counts.
+        if request.query_params.get(
+            "include_counts"
+        ) == "false" or not can_access_settings(request.profile, "properties"):
             return Response({"definitions": rows, "totals": None})
 
         # records_missing_value + totals are computed over the org's FULL
@@ -161,8 +164,9 @@ class CustomFieldDefinitionListCreateView(APIView):
         request=CustomFieldDefinitionSerializer,
         responses={201: CustomFieldDefinitionSerializer},
     )
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
-        if not is_org_admin(request.profile):
+        if not can_access_settings(request.profile, "properties", manage=True):
             return _admin_required()
         org = request.profile.org
         serializer = CustomFieldDefinitionSerializer(
@@ -173,7 +177,20 @@ class CustomFieldDefinitionListCreateView(APIView):
                 {"error": True, "errors": serializer.errors},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        serializer.save(org=org)
+        include = request.data.get("add_to_creation_form", False)
+        if type(include) is not bool:
+            return Response(
+                {"errors": "Choose whether to add the property to the creation form."},
+                status=400,
+            )
+        if include:
+            require_settings(request.profile, "creation_forms", manage=True)
+            org = Org.objects.select_for_update().get(pk=org.pk)
+        definition = serializer.save(org=org)
+        if include:
+            add_property(
+                org, definition.target_model, "custom_fields." + definition.key
+            )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -203,7 +220,7 @@ class CustomFieldDefinitionDetailView(APIView):
         responses={200: CustomFieldDefinitionSerializer},
     )
     def put(self, request, pk, *args, **kwargs):
-        if not is_org_admin(request.profile):
+        if not can_access_settings(request.profile, "properties", manage=True):
             return _admin_required()
         obj = self._get_object(pk, request.profile.org)
         if not obj:
@@ -238,7 +255,7 @@ class CustomFieldDefinitionDetailView(APIView):
         },
     )
     def delete(self, request, pk, *args, **kwargs):
-        if not is_org_admin(request.profile):
+        if not can_access_settings(request.profile, "properties", manage=True):
             return _admin_required()
         if request.query_params.get("permanent") == "true":
             return self._delete_permanently(request, pk)

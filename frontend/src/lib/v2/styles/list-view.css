@@ -16,7 +16,7 @@
   scrollbar-color: var(--crm-control-border) transparent;
 }
 .list-scroll .hdm-list {
-  margin: 10px var(--crm-space-6) 0;
+  margin: 0 var(--crm-space-3);
 }
 .hdm-list.hdm-list table {
   border-collapse: separate;
@@ -176,16 +176,8 @@
 .list-scroll > .pagination {
   flex: none;
   justify-content: flex-end;
-  padding: var(--crm-space-3) var(--crm-space-6);
-}
-.list-scroll > .pagination:empty {
-  padding: 0;
-  height: 18px;
 }
 @media (max-width: 700px) {
-  .list-scroll .hdm-list {
-    margin: var(--crm-space-2) var(--crm-space-3) 0;
-  }
   .hdm-list.hdm-list td {
     padding-top: 10px;
     padding-bottom: 10px;
@@ -215,5 +207,55 @@
   }
   .hdm-list.hdm-list .list-row-actions a {
     min-height: 2.75rem;
+  }
+}
+
+.hdm-list .reorder-column-heading {
+  width: 100%;
+  text-align: inherit;
+  cursor: grab;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.hdm-list .reorder-column-heading:focus-visible {
+  outline: 2px solid var(--crm-focus);
+  outline-offset: 3px;
+}
+.hdm-list th[data-column-source] {
+  opacity: 0.55;
+}
+.hdm-list th[data-column-insert='before'] {
+  box-shadow: inset 3px 0 var(--crm-focus);
+}
+.hdm-list th[data-column-insert='after'] {
+  box-shadow: inset -3px 0 var(--crm-focus);
+}
+
+/* Keep object filters compact while preserving full-size, wrapping controls. */
+.object-toolbar {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: var(--crm-space-2);
+  padding: var(--crm-space-2) var(--crm-space-3);
+  flex: none;
+  min-width: 0;
+}
+.object-toolbar > label {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.object-toolbar > label:has(select) {
+  max-width: 12rem;
+}
+
+@media (max-width: 600px) {
+  .object-toolbar > label {
+    flex: 1 1 calc(50% - var(--crm-space-2));
+  }
+  .object-toolbar > label:has(select) {
+    max-width: none;
   }
 }

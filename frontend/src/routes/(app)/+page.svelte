@@ -1,4 +1,5 @@
 <script>
+  import '$lib/v2/styles/module-layout.css';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale, money } = useI18n();
 
@@ -28,7 +29,7 @@
 
 <PageHeader title={ui('Today')}>
   {#snippet sub()}{ui('Your day at a glance ·')}
-    {new Date(`${day.date}T12:00:00`).toLocaleDateString('en-US', {
+    {new Date(`${day.date}T12:00:00`).toLocaleDateString(locale(), {
       weekday: 'long',
       month: 'long',
       day: 'numeric'
@@ -49,23 +50,23 @@
 </PageHeader>
 <EventDetails bind:this={details} onChanged={() => void invalidateAll()} />
 {#if form?.error}<p class="error" role="alert">{ui(form.error)}</p>{/if}
-<div class="today-scroll">
-  <div class="day-counts">
-    <div>
-      <CalendarDays size={18} /><strong>{day.counts.events}</strong><span>{ui('Events today')}</span
+<div class="today-scroll crm-module-body">
+  <div class="day-counts crm-stat-grid">
+    <div class="crm-stat crm-panel">
+      <span><CalendarDays size={16} />{ui('Events today')}</span><strong>{day.counts.events}</strong
       >
     </div>
-    <div>
-      <CheckCheck size={18} /><strong>{day.counts.tasks_today}</strong><span
-        >{ui('Tasks due today')}</span
+    <div class="crm-stat crm-panel">
+      <span><CheckCheck size={16} />{ui('Tasks due today')}</span><strong
+        >{day.counts.tasks_today}</strong
       >
     </div>
-    <div class:late={day.counts.overdue > 0}>
-      <Clock3 size={18} /><strong>{day.counts.overdue}</strong><span>{ui('Overdue')}</span>
+    <div class="crm-stat crm-panel" class:late={day.counts.overdue > 0}>
+      <span><Clock3 size={16} />{ui('Overdue')}</span><strong>{day.counts.overdue}</strong>
     </div>
   </div>
   <div class="day-layout">
-    <section class="panel agenda">
+    <section class="panel agenda crm-panel">
       <header>
         <h2>{ui("Today's agenda")} <span>{day.counts.events}</span></h2>
         <a href={resolve('/calendar')}>{ui('View calendar')} <ArrowUpRight size={13} /></a>
@@ -92,7 +93,7 @@
         >{/if}
     </section>
     <div class="work">
-      {#if day.reminders?.length}<section class="panel">
+      {#if day.reminders?.length}<section class="panel crm-panel">
           <header>
             <h2>{ui('Task reminders')} <span>{day.counts.reminders}</span></h2>
             <a href={resolve('/tasks')}>{ui('View all')} <ArrowUpRight size={13} /></a>
@@ -103,7 +104,7 @@
               ><span class="due">{ui('Due')} {date(task.due)}</span></a
             >{/each}
         </section>{/if}
-      <section class="panel">
+      <section class="panel crm-panel">
         <header>
           <h2>{ui('Tasks')} <span>{day.counts.tasks}</span></h2>
           <a href={resolve('/tasks')}>{ui('View all')} <ArrowUpRight size={13} /></a>
@@ -137,7 +138,7 @@
             >
           </div>{:else}<p class="empty-copy">{ui('No tasks due today or overdue.')}</p>{/each}
       </section>
-      <section class="panel">
+      <section class="panel crm-panel">
         <header>
           <h2>{ui('Deals to follow up')} <span>{day.counts.deals}</span></h2>
           <a href={resolve('/pipeline')}>{ui('View all')} <ArrowUpRight size={13} /></a>
@@ -154,7 +155,7 @@
             {ui('No open deals due to close today or overdue.')}
           </p>{/each}
       </section>
-      <section class="panel">
+      <section class="panel crm-panel">
         <header>
           <h2>{ui('Tickets')} <span>{day.counts.tickets}</span></h2>
           <a href={resolve('/tickets')}>{ui('View all')} <ArrowUpRight size={13} /></a>
@@ -178,45 +179,41 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
-    padding: 10px var(--crm-space-6) var(--crm-space-6);
   }
   .day-counts {
-    display: flex;
-    gap: var(--crm-space-3);
-    margin-bottom: 18px;
-    flex-wrap: wrap;
-  }
-  .day-counts > div {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--v2-card);
-    padding: 14px 18px;
-    border-radius: var(--crm-radius-md);
-    color: var(--v2-slate);
-  }
-  .day-counts strong {
-    font-size: var(--crm-text-xl);
-    color: var(--v2-ink);
+    margin-bottom: var(--crm-space-5);
   }
   .day-counts span {
-    font-size: var(--crm-text-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--crm-space-2);
+  }
+  .day-counts .late strong {
+    color: var(--crm-danger);
+  }
+  header {
+    flex-wrap: wrap;
+  }
+  .event:hover {
+    background: var(--crm-surface-selected);
+  }
+  .event:focus-visible,
+  .complete:focus-visible {
+    outline: 2px solid var(--crm-focus);
+    outline-offset: 2px;
   }
   .day-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-    gap: 18px;
+    gap: var(--crm-space-4);
     align-items: start;
   }
   .panel {
-    background: var(--v2-card);
-    border-radius: var(--crm-radius-lg);
-    padding: 18px;
-    min-width: 0;
+    padding: var(--crm-space-5);
   }
   .work {
     display: grid;
-    gap: 14px;
+    gap: var(--crm-space-4);
   }
   header {
     display: flex;
@@ -272,7 +269,8 @@
     font-size: var(--crm-text-xs);
     min-width: 72px;
   }
-  strong {
+  .event strong,
+  .record strong {
     font-size: var(--crm-text-sm);
     font-weight: 600;
     overflow-wrap: anywhere;
@@ -359,9 +357,6 @@
   @media (max-width: 1050px) {
     .day-layout {
       grid-template-columns: 1fr;
-    }
-    .today-scroll {
-      padding: 10px var(--crm-space-3) var(--crm-space-5);
     }
   }
 </style>

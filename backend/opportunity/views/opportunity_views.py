@@ -15,6 +15,7 @@ from rest_framework.views import APIView
 
 from accounts.models import Account
 from accounts.serializer import AccountSerializer, TagsSerializer
+from common.creation_forms import validate_creation
 from common.custom_fields import validate_payload as validate_custom_fields_payload
 from common.models import (
     Attachments,
@@ -360,6 +361,7 @@ class OpportunityListView(APIView, LimitOffsetPagination):
         params = request.data
         serializer = OpportunityCreateSerializer(data=params, request_obj=request)
         if serializer.is_valid():
+            validate_creation(request.profile.org, "Opportunity", request.data)
             cf_payload = params.get("custom_fields")
             if isinstance(cf_payload, str):
                 try:

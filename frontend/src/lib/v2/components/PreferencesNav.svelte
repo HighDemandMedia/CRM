@@ -7,6 +7,7 @@
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import Pill from './Pill.svelte';
+  import { settingsGroups } from '$lib/v2/settings-access.js';
   import {
     Bell,
     CircleUser,
@@ -21,36 +22,24 @@
     ArrowLeft
   } from '@lucide/svelte';
 
-  const allGroups = [
-    {
-      label: 'Personal',
-      items: [
-        { label: 'Profile', href: '/profile', icon: CircleUser },
-        { label: 'Notifications', href: '/notifications', icon: Bell }
-      ]
-    },
-    {
-      label: 'Organization & access',
-      items: [
-        { label: 'Organization', href: '/settings/organization', icon: Building2 },
-        { label: 'Users & Teams', href: '/team', icon: Users },
-        { label: 'Roles & Permissions', href: '/settings/roles', icon: ShieldCheck }
-      ]
-    },
-    {
-      label: 'CRM configuration',
-      items: [
-        { label: 'Properties', href: '/settings/custom-fields', icon: ListFilter },
-        { label: 'Pipelines', href: '/settings/pipelines', icon: Columns3 },
-        { label: 'Tags', href: '/settings/tags', icon: Tag }
-      ]
-    },
-    {
-      label: 'Channels & integrations',
-      items: [{ label: 'Web forms', href: '/settings/web-forms', icon: FileText, beta: true }]
-    }
-  ];
-  const groups = allGroups;
+  const icons = {
+    profile: CircleUser,
+    notifications: Bell,
+    organization: Building2,
+    team: Users,
+    roles: ShieldCheck,
+    properties: ListFilter,
+    creation_forms: FileText,
+    pipelines: Columns3,
+    tags: Tag,
+    forms: FileText
+  };
+  let groups = $derived(
+    settingsGroups(page.data.permissions).map((group) => ({
+      ...group,
+      items: group.items.map((item) => ({ ...item, icon: icons[item.key] }))
+    }))
+  );
   const active = (href) => page.url.pathname === href || page.url.pathname.startsWith(`${href}/`);
   let selected = $derived(
     groups.flatMap((group) => group.items).find((item) => active(item.href))?.href || ''
@@ -65,17 +54,18 @@
     >
   </div>
   <nav aria-label={ui('Profile and preferences')}>
-    {#each groups as group}
+    {#each groups as group (group.label)}
       <details
         open={['Personal', 'Organization & access', 'CRM configuration'].includes(group.label) ||
           group.items.some((item) => active(item.href))}
       >
         <summary>{ui(group.label)}<ChevronDown size={12} /></summary>
-        {#each group.items as item}
+        {#each group.items as item (item.key)}
           <a
             href={resolve(asInternalPath(item.href))}
             aria-current={active(item.href) ? 'page' : undefined}
             ><item.icon size={16} /><span class="preference-label">{ui(item.label)}</span>
+            {#if item.access === 'read'}<Pill>{ui('Read only')}</Pill>{/if}
             {#if item.beta}<Pill>Beta</Pill>{/if}
           </a>
         {/each}
@@ -90,9 +80,11 @@
       onchange={(event) => goto(resolve(asInternalPath(event.currentTarget.value)))}
     >
       {#if !selected}<option value="" disabled>{ui('Choose a section')}</option>{/if}
-      {#each groups as group}<optgroup label={ui(group.label)}
-          >{#each group.items as item}<option value={item.href}
-              >{ui(item.label)}{item.beta ? ' · Beta' : ''}</option
+      {#each groups as group (group.label)}<optgroup label={ui(group.label)}
+          >{#each group.items as item (item.key)}<option value={item.href}
+              >{ui(item.label)}{item.access === 'read' ? ` · ${ui('Read only')}` : ''}{item.beta
+                ? ' · Beta'
+                : ''}</option
             >{/each}</optgroup
         >{/each}
     </select>

@@ -1,3 +1,4 @@
+import { setupDestination } from '$lib/server/onboarding.js';
 import { savePasswordSession } from '$lib/server/password-session.js';
 import { listTimezones } from '$lib/server/v2/organization.js';
 import { fail, redirect } from '@sveltejs/kit';
@@ -14,8 +15,10 @@ export async function load({ cookies, url }) {
   ]);
   return {
     ...profile,
+    onboarding: ['profile', 'profile_organization'].includes(profile.profile.setup_step),
     timezones,
     googleResult: url.searchParams.get('google'),
+    integrationTab: url.searchParams.get('tab') === 'integrations',
     hasPassword: password.has_password && !password.can_reset_password
   };
 }
@@ -124,14 +127,17 @@ export const actions = {
   // Only forward editable personal fields; account access is managed separately.
   edit: async ({ cookies, request }) => {
     const form = await request.formData();
-    /** @type {Record<string, string>} */
+    /** @type {Record<string, string | boolean>} */
     const body = {};
     for (const field of ['name', 'phone', 'language', 'timezone', 'ui_language']) {
       if (form.has(field)) body[field] = form.get(field)?.toString().trim() ?? '';
     }
 
+    const completing = form.get('complete_setup') === '1';
+    if (completing) body.complete_setup = true;
+    let result;
     try {
-      await apiRequest('/profile/', { method: 'PATCH', body }, { cookies });
+      result = await apiRequest('/profile/', { method: 'PATCH', body }, { cookies });
     } catch (/** @type {any} */ err) {
       return fail(err?.status === 400 ? 400 : 500, {
         values: body,
@@ -139,6 +145,7 @@ export const actions = {
       });
     }
 
+    if (completing) redirect(303, setupDestination(result.setup_step) || '/');
     return { saved: true };
   }
 };

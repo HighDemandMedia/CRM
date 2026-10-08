@@ -1,3 +1,4 @@
+import { listPagination, checkListPage } from '$lib/server/v2/pagination.js';
 import { pipelineColumns } from '$lib/server/v2/pipeline-columns.js';
 import { configuredStages } from '$lib/v2/pipeline-config.js';
 import { companyStages as defaultCompanyStages } from '$lib/v2/company-stages.js';
@@ -17,11 +18,11 @@ export async function load({ cookies, url, parent }) {
       if (key.endsWith('_offset')) query.set(key, value);
     }
   }
-  const pageSize = 25,
-    offset = Math.max(0, parseInt(url.searchParams.get('offset') ?? '0') || 0);
+  const { pageSize, offset } = listPagination(url, view === 'list');
   query.set('limit', String(pageSize));
   query.set('offset', String(view === 'list' ? offset : 0));
   const [response, shell] = await Promise.all([listAccounts({ cookies }, query), parent()]);
+  checkListPage(url, { pageSize, offset }, response.totals.count);
   const companyStages = configuredStages(shell.pipelineConfig, 'Account', defaultCompanyStages);
   const board =
     view === 'pipeline'

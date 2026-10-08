@@ -1,10 +1,8 @@
 # Management commands
 
-Every command below is BottleCRM's own. The entire `common/management/commands/` package holds
-exactly these five files. Run `uv run python manage.py help` from `backend/` and everything
-outside the `[common]` section comes from Django itself or an installed third-party package
-(`django`, `auth`, `contenttypes`, `sessions`, `staticfiles`, `django_ses`, `drf_spectacular`,
-`rest_framework`, `token_blacklist`), none of it is project-specific, so it isn't repeated here.
+The commands below are project-specific. To see the current full command list, run
+`uv run python manage.py help` from `backend/`. Django and installed packages also provide
+commands; they are not repeated here.
 Run any command from `backend/` with `uv run python manage.py <command>` (or, against the Docker
 stack, `docker compose exec backend python manage.py <command>`).
 
@@ -39,8 +37,7 @@ Generates a large, randomized dataset, accounts, contacts, leads, opportunities,
 invoices and more, for one or more organizations, entirely from curated fictional name/company
 pools and reserved demo domains (`example.com`/`.example`) so nothing it creates resembles a real
 person or business. The first organization created (`--orgs` index 0) is always named
-`MicroPyramid`, specifically so local-dev workflows have a stable org name to sign in against with
-`devlogin --org MicroPyramid` (see below). For the default, single-org run, re-running the command
+`MicroPyramid`, providing a stable name for repeated local seed runs. For the default, single-org run, re-running the command
 with the same `--email` reuses that existing user, org, and profile rather than creating duplicates;
 `create_org` does an `Org.objects.get_or_create(name="MicroPyramid", ...)`. That reuse guarantee
 is specific to index 0: any organization beyond the first (`--orgs 2` or higher) gets a name drawn
@@ -75,53 +72,25 @@ uv run python manage.py seed_data --email you@example.com --clear --no-input
 | `--currency` | `USD` | Default org currency; restricted to `CURRENCY_CODES` choices. |
 | `--country` | `US` | Default org country code; also selects the Faker locale used for generated names/addresses (falls back to `en_US` for an unmapped code). |
 | `--seed` | none | Random seed, for a reproducible run. |
-| `--password` | `testpass123` | Password set on newly created users. |
+| `--password` | none | Optional password for newly created demo users. Omitted means an unusable password, so password login is disabled. Existing users keep their passwords. |
 | `--clear` | off (flag) | Deletes existing CRM data before seeding, **not** users, orgs, or profiles. Prompts for confirmation unless `--no-input` is also given. This is a separate, broader operation from a vertical pack's own sample-data clearing (see [Demo data and packs](../getting-started/demo-data.md#clearing-sample-data)) and isn't scoped to pack-created records specifically. |
 | `--no-input` | off (flag) | Skips the `--clear` confirmation prompt. |
 
 See [Demo data and packs](../getting-started/demo-data.md) for the narrative walkthrough, including
 what a full seeded org looks like and how vertical packs layer on top of it.
 
-## devlogin
-
-Mints a JWT access/refresh pair for an existing user directly from the command line, no OAuth
-provider, no outbound email, no browser round-trip. **Refuses to run unless `settings.DEBUG` is
-`True`**, raising a `CommandError` as the very first thing `handle()` does. That means it prints an
-error and exits non-zero in any environment where `DEBUG=False`, not that it silently does nothing.
-
-```bash
-uv run python manage.py devlogin <email> --org <name-or-uuid>
-uv run python manage.py devlogin <email> --create
-```
-
-| Argument | What it does |
-| --- | --- |
-| `email` (positional, required) | The user to mint a token for. |
-| `--org` | Optional org name or UUID. **Resolves id first, then name**: it tries `Org.objects.get(id=org_arg)` first, and only falls back to matching on `Org.name` if that lookup fails (not found, or `org_arg` isn't a valid UUID at all). More than one org sharing that name is refused outright rather than guessed at, pass an id instead. The target user must already have an **active** `Profile` in the resolved org. This command does not create one, and raises a `CommandError` naming the missing user/org pair if none exists. |
-| `--create` | Creates the user (with a random, discarded password) if no user with that email exists yet. This only creates the `User` row. It has no effect on the `Profile` requirement above; a freshly created user still needs a `Profile` in the target org before `--org` will succeed for them. |
-
-On success it prints an access token and a refresh token, the org's UUID if `--org` was given (a
-token minted this way already carries the `org_id` claim, so no follow-up org-switch call is
-needed), and a `localStorage.setItem(...)` snippet for a browser console. That snippet alone does
-**not** sign you into the SvelteKit app itself; see
-[Using the tokens in the browser](../getting-started/first-sign-in.md#using-the-tokens-in-the-browser)
-for the cookies `hooks.server.js` actually checks. See
-[First sign-in: Local development](../getting-started/first-sign-in.md#local-development-devlogin)
-for the full walkthrough, including what happens with no `--org` at all.
-
 ## create_default_admin
 
-Creates a Django superuser, but only if none already exists; `User.objects.filter(is_superuser=
-True).exists()` short-circuits the whole command to a no-op if one is found, so it's safe to run on
-every startup. It takes no arguments at all (no `add_arguments` override). It reads `ADMIN_EMAIL`
-and `ADMIN_PASSWORD` directly with `os.environ.get`, independently of `crm/settings.py` (`ADMIN_EMAIL`
-happens to share a name and a default with the copy `settings.py` also reads; `ADMIN_PASSWORD` is
-read nowhere else). **If `ADMIN_PASSWORD` is unset or empty, the command falls back to the literal
-password `admin`** and prints a warning. It does not refuse to create the account. This command
-runs automatically on every Docker container start (`docker/backend/entrypoint.sh`, immediately
-after `migrate`), so in the Docker quick start it never needs to be invoked directly, and an unset
-`ADMIN_PASSWORD` in a real deployment means the bootstrap superuser's password really is `admin`
-until it's changed by hand.
+Creates a Django superuser only if none exists and both `ADMIN_EMAIL` and `ADMIN_PASSWORD`
+are explicitly configured. Missing credentials skip bootstrap without creating an account,
+so a development container can still start. Invalid email or a password rejected by the
+configured Django password validators fails the command. No shared fallback password exists.
+
+The development Docker entrypoint invokes this after migrations. The checked-in `.env.docker`
+leaves `ADMIN_PASSWORD` blank; configure bootstrap credentials privately in `.env.docker.local`
+only if you need a Django superuser. Existing superusers and passwords are never modified.
+For a CRM owner with an organization, use the interactive `provision_crm_account` workflow in
+[Private account provisioning](../self-hosting/account-provisioning.md) instead.
 
 ```bash
 uv run python manage.py create_default_admin

@@ -11,6 +11,9 @@ cd backend
 uv run python manage.py seed_data --email admin@example.com
 ```
 
+New demo users have no usable password by default. Existing accounts keep their passwords.
+Use your normal account to sign in; seed data does not create a browser session.
+
 ## Full Options
 
 ```bash
@@ -27,7 +30,6 @@ uv run python manage.py seed_data \
     --teams 3 \                     # Teams per org (default: 2)
     --tags 10 \                     # Tags per org (default: 5)
     --seed 42 \                     # Random seed for reproducibility
-    --password mypassword \         # Password for new users (default: testpass123)
     --clear \                       # Clear existing CRM data before seeding
     --no-input                      # Skip confirmation prompts
 ```

@@ -43,6 +43,7 @@ from cases.serializer import (
 from cases.solution_serializers import SolutionSerializer
 from cases.tasks import send_email_to_assigned_user
 from cases.workflow import TERMINAL_STATUSES
+from common.creation_forms import validate_creation
 from common.custom_fields import validate_payload as validate_custom_fields_payload
 from common.models import (
     Activity,
@@ -77,16 +78,23 @@ from contacts.serializer import ContactSerializer
 OPEN_STATUSES = ("New", "Assigned", "Pending")
 
 _ALLOWED_CASE_ORDERINGS = frozenset(
-    {
-        "-created_at",
-        "created_at",
-        "-priority",
-        "priority",
-        "-id",
+    prefix + field
+    for field in (
         "id",
-        "-name",
+        "created_at",
+        "priority",
         "name",
-    }
+        "status",
+        "category",
+        "source",
+        "due_at",
+        "last_activity_at",
+        "ticket_number",
+        "description",
+        "waiting_reason",
+        "resolution_note",
+    )
+    for prefix in ("", "-")
 )
 
 
@@ -342,6 +350,7 @@ class CaseListView(APIView, LimitOffsetPagination):
         params = request.data
         serializer = CaseCreateSerializer(data=params, request_obj=request)
         if serializer.is_valid():
+            validate_creation(request.profile.org, "Case", request.data)
             cf_payload = params.get("custom_fields")
             if isinstance(cf_payload, str):
                 try:

@@ -39,7 +39,7 @@ def test_configuration_is_scoped_and_internal_names_fixed(admin_client, org_a, o
 
 @pytest.mark.django_db
 def test_admin_only_and_stale_save(admin_client, user_client):
-    assert user_client.get(URL).status_code == 200
+    assert user_client.get(URL).status_code == 403
     assert user_client.put(URL, {}, format="json").status_code == 403
     assert (
         admin_client.put(

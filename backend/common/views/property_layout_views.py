@@ -5,9 +5,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.models import CustomFieldDefinition, Org
-from common.permissions import HasOrgContext, is_org_admin
+from common.permissions import HasOrgContext
 from common.property_catalog import FIELDS
 from common.property_layout import layout, revision
+from common.settings_access import can_access_settings
 
 
 class PropertyLayoutView(APIView):
@@ -19,8 +20,10 @@ class PropertyLayoutView(APIView):
 
     @transaction.atomic
     def put(self, request):
-        if not is_org_admin(request.profile):
-            return Response({"errors": "Admin access required."}, status=403)
+        if not can_access_settings(request.profile, "properties", manage=True):
+            return Response(
+                {"errors": "Settings management permission required."}, status=403
+            )
         org = Org.objects.select_for_update().get(pk=request.profile.org_id)
         target, keys = request.data.get("target_model"), request.data.get("order")
         if target not in FIELDS:

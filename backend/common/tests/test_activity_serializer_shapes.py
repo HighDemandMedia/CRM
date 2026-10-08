@@ -88,3 +88,15 @@ class TestTheCaseActivityEndpointServesTheTimelineShape:
         row = response.data["activities"][0]
         assert row["metadata"] == {"visibility_changed": True, "after": False}
         assert row["created_at"] is not None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("name", ["Dayron Test", "", "   "])
+def test_activity_and_comment_authors_use_saved_name_or_email(admin_profile, name):
+    from common.serializer import ActivityUserSerializer, CommentUserSerializer
+
+    admin_profile.user.name = name
+    admin_profile.user.save()
+    expected = name.strip() or admin_profile.user.email
+    assert ActivityUserSerializer(admin_profile).data["name"] == expected
+    assert CommentUserSerializer(admin_profile).data["user_details"]["name"] == expected

@@ -58,13 +58,6 @@ export const actions = {
     }
     savePasswordSession(cookies, data);
     cookies.delete('crm_invitation', { path: '/' });
-    redirect(
-      303,
-      data.needs_organization_setup
-        ? '/settings/organization?onboarding=1'
-        : data.current_org
-          ? '/'
-          : '/org'
-    );
+    redirect(303, data.current_org ? '/profile' : '/org');
   }
 };

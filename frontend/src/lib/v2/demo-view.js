@@ -17,6 +17,7 @@ export const DEMO_SETTINGS = [
   '/team',
   '/settings/roles',
   '/settings/custom-fields',
+  '/settings/creation-forms',
   '/settings/pipelines',
   '/settings/tags',
   '/settings/web-forms'

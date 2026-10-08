@@ -12,6 +12,7 @@ from common.views.auth_views import (
     OrgAwareTokenRefreshView,
     OrgSwitchView,
 )
+from common.views.creation_form_views import CreationFormSchemaView, CreationFormView
 from common.views.crm_report_views import CRMReportView
 from common.views.custom_field_views import (
     CustomFieldDefinitionDetailView,
@@ -26,6 +27,7 @@ from common.views.google_integration_views import (
     GoogleEventsView,
     GoogleMailBodyView,
 )
+from common.views.google_mail_views import RecordMailActionView, RecordMailView
 from common.views.help_views import HelpRequestView
 from common.views.invitation_views import (
     AcceptInvitationView,
@@ -97,6 +99,14 @@ urlpatterns = [
     path("integrations/google/events/", GoogleEventsView.as_view()),
     path("integrations/google/events/<uuid:pk>/", GoogleEventsView.as_view()),
     path("integrations/google/mail/<uuid:pk>/", GoogleMailBodyView.as_view()),
+    path(
+        "integrations/google/records/<str:kind>/<uuid:pk>/mail/",
+        RecordMailView.as_view(),
+    ),
+    path(
+        "integrations/google/records/<str:kind>/<uuid:pk>/mail/actions/",
+        RecordMailActionView.as_view(),
+    ),
     path("org/ui-context/", UIContextView.as_view()),
     path("auth/password/login/", PasswordLoginView.as_view()),
     path("auth/password/register/", PasswordRegisterView.as_view()),
@@ -104,6 +114,8 @@ urlpatterns = [
     path("auth/password/change/", PasswordChangeView.as_view()),
     path("help/requests/", HelpRequestView.as_view(), name="help_requests"),
     path("reports/crm/", CRMReportView.as_view(), name="crm_reports"),
+    path("creation-forms/", CreationFormView.as_view()),
+    path("creation-forms/<str:target>/", CreationFormSchemaView.as_view()),
     path("property-layout/", PropertyLayoutView.as_view()),
     path("pipeline-settings/", PipelineSettingsView.as_view()),
     path("members/<uuid:pk>/remove/", MemberRemovalView.as_view()),

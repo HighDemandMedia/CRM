@@ -6,6 +6,14 @@
   import { configuredLabel } from '$lib/v2/pipeline-config.js';
 
   import RecordTabs from '$lib/v2/components/RecordTabs.svelte';
+  import EmailActivity from '$lib/components/EmailActivity.svelte';
+  import RecordEmails from '$lib/components/RecordEmails.svelte';
+  let recordTab = $state('activity'),
+    selectedThread = $state('');
+  function showConversation(thread) {
+    selectedThread = thread;
+    recordTab = 'emails';
+  }
   import NotesEditor from '$lib/components/deals/DealNotes.svelte';
   import CreateAppointment from '$lib/v2/components/CreateAppointment.svelte';
   let scheduled = $state(false);
@@ -172,14 +180,28 @@
         </ContactAssociations>
       </section>
       <section class="v2-card company-journal" aria-label={ui('Company notes and activity')}>
-        <RecordTabs>
+        <RecordTabs bind:active={recordTab}>
+          {#snippet emails()}{#key account.id}<RecordEmails
+                kind="company"
+                id={account.id}
+                {contacts}
+                initialThread={selectedThread}
+              />{/key}{/snippet}
           {#snippet notes()}{#key account.id}<NotesEditor
                 notes={data.activity ?? []}
               />{/key}{/snippet}
           {#snippet activity()}<div class="company-history">
               {#each data.eventHistory ?? [] as entry (entry.id)}<div class="history-entry">
-                  <div>{entry.body}</div>
-                  <p class="v2-sub">{entry.by} · {exactTime(entry.at)}</p>
+                  {#if entry.emailId}<EmailActivity
+                      kind="company"
+                      recordId={account.id}
+                      id={entry.emailId}
+                      href={entry.href}
+                      mail={entry.email}
+                      onConversation={showConversation}
+                    />
+                  {:else}<div class="history-body">{entry.body}</div>
+                    <p class="v2-sub">{entry.by} · {exactTime(entry.at)}</p>{/if}
                 </div>{:else}<p class="v2-sub">{ui('No activity yet.')}</p>{/each}
             </div>{/snippet}
         </RecordTabs>
@@ -269,6 +291,9 @@
     padding: 10px 0;
     border-bottom: 1px solid var(--v2-line-soft);
     overflow-wrap: anywhere;
+  }
+  .history-body {
+    white-space: pre-wrap;
   }
   .deal-totals {
     display: flex;

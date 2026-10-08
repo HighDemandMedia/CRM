@@ -251,9 +251,7 @@ valid UUID; `403` if the caller has no active profile in the requested org.
 
 ## Local development
 
-For local development against a running backend with `DEBUG=True`, the fastest way to obtain a
-token pair is the `devlogin` management command rather than any of the endpoints above. It needs
-no OAuth provider and no outbound email. It refuses to run at all unless `DEBUG` is `True`. See
-[First sign-in: Local development](../getting-started/first-sign-in.md) for its exact invocation,
-flags, and org-resolution behavior; this page's endpoints are what `devlogin` is a shortcut around,
-and the tokens it prints work identically against every endpoint described above.
+Use the same authenticated endpoints as the hosted CRM. Development-only commands for minting
+sessions have been removed. The local launcher opens the regular login page, and recovery emails
+can be inspected in Mailpit when the local mail override is enabled. See
+[First sign-in](../getting-started/first-sign-in.md).

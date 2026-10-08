@@ -8,7 +8,14 @@ beforeEach(() => {
     path.startsWith('/cases/')
       ? {
           accounts_list: [{ id: 'company-a', name: 'Company A' }],
-          contacts_list: [{ id: 'contact-a', first_name: 'Contact', last_name: 'A' }]
+          contacts_list: [
+            {
+              id: 'contact-a',
+              first_name: 'Contact',
+              last_name: 'A',
+              email: 'contact@example.test'
+            }
+          ]
         }
       : { opportunities: [] }
   );
@@ -20,6 +27,7 @@ it('preselects the visible contact or company from the originating profile', asy
     'contact-a'
   );
   expect(contact.defaults.contacts).toEqual(['contact-a']);
+  expect(contact.contacts[0]).toMatchObject({ name: 'Contact A', email: 'contact@example.test' });
   expect(contact.defaults.account).toBe('');
   const company = await getTicketFormOptions({ cookies: /** @type {any} */ ({}) }, 'company-a');
   expect(company.defaults.account).toBe('company-a');

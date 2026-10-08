@@ -26,7 +26,7 @@ The variables `.env.docker` actually defines are:
 | Variable | Purpose |
 |---|---|
 | `SECRET_KEY` | Django secret key. The shipped value is an insecure dev placeholder. |
-| `DEBUG` | `True` in the dev compose file. This is also what allows `devlogin` to run (see [First sign-in](first-sign-in.md)). |
+| `DEBUG` | `True` for development diagnostics. Never enable it in a public deployment. |
 | `ENV_TYPE` | `dev`. |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1,backend`. |
 | `DOMAIN_NAME` | `http://localhost:8000`. |
@@ -95,18 +95,11 @@ docker compose exec backend python manage.py migrate
 
 ## Sign in
 
-With `DEBUG=True` (the default in `.env.docker`), the fastest way in is `devlogin`, a
-management command that mints a JWT pair directly, without going through Google OAuth or email.
-Full details, including how it resolves `--org` and what it requires of the target user, are in
-[First sign-in](first-sign-in.md). For the org and user you just seeded:
-
-```bash
-docker compose exec backend python manage.py devlogin you@example.com --org MicroPyramid
-```
-
-This prints an access token, a refresh token, and the `MicroPyramid` org's UUID, already bound
-into the token. See [First sign-in](first-sign-in.md) for how to use them from the frontend at
-`http://localhost:5173`.
+Open `http://localhost:5173/login` and sign in with your account's email and password.
+There is no development authentication shortcut or shared demo password. Existing accounts keep
+their credentials; newly seeded users have no usable password unless explicitly configured.
+See [First sign-in](first-sign-in.md) for invitations, initial owner provisioning, and local
+email recovery.
 
 ## What you got
 
@@ -118,18 +111,16 @@ After `docker compose up --build` and one `seed_data` run, you have:
 - A Celery worker and a Celery beat scheduler, both connected to the `redis` service, running the
   periodic and background tasks registered in `backend/crm/celery.py`.
 - A SvelteKit frontend on `http://localhost:5173`, built against `PUBLIC_DJANGO_API_URL=http://localhost:8000`.
-- A Django admin superuser, created automatically by `create_default_admin` on first boot, using
-  `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env.docker` (`admin@localhost` / `admin` unless you
-  override them). This account can sign in to Django's own `/admin/` site; it does not have a CRM
-  organization profile, so it can't sign in to the CRM app itself unless you also give it a
-  profile via `seed_data` or the org-creation flow.
+- Optional Django superuser bootstrap: `create_default_admin` creates one only when both
+  `ADMIN_EMAIL` and a valid `ADMIN_PASSWORD` are explicitly configured. The checked-in password
+  is blank. The command does not create a CRM organization; use interactive owner provisioning
+  for a fresh CRM installation.
 - If you ran `seed_data`, an org named `MicroPyramid` with an admin profile for the email you
   passed, plus a large set of demo records.
 
 ## Next steps
 
-- [First sign-in](first-sign-in.md). The three ways to get a session, including the exact
-  `devlogin` invocation and what Google OAuth and magic links need.
+- [First sign-in](first-sign-in.md): normal login, invitations, and recovery.
 - [Demo data and packs](demo-data.md), what `seed_data` creates in detail, and how vertical packs
   layer industry-specific pipelines and sample records on top of it.
 - If Docker isn't the right fit, [Manual setup](manual-setup.md) covers running the backend,

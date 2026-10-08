@@ -13,7 +13,7 @@ import { API_ORIGIN } from '$lib/server/api-origin.js';
 
 import axios from 'axios';
 import { redirect } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
+import { savePasswordSession } from '$lib/server/password-session.js';
 
 /** @type {import('@sveltejs/kit').ServerLoad} */
 export async function load({ url, cookies }) {
@@ -34,24 +34,7 @@ export async function load({ url, cookies }) {
       }
     );
 
-    const { access_token, refresh_token } = response.data;
-
-    // Store JWT tokens in secure httpOnly cookies (same as Google OAuth flow)
-    const secure = env.NODE_ENV === 'production';
-    cookies.set('jwt_access', access_token, {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'lax',
-      secure,
-      maxAge: 60 * 60 * 24 // 1 day
-    });
-    cookies.set('jwt_refresh', refresh_token, {
-      path: '/',
-      httpOnly: true,
-      sameSite: 'lax',
-      secure,
-      maxAge: 60 * 60 * 24 * 365 // 1 year
-    });
+    savePasswordSession(cookies, response.data);
   } catch (error) {
     const errorMessage = error.response?.data?.error || 'Verification failed';
     return { error: errorMessage };

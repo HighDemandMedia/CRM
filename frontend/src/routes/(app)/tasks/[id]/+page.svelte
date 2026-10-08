@@ -52,7 +52,11 @@
       ? new Date(value).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' })
       : '—';
   function edit() {
-    draft = { ...data.editor.form, assigned_to: [...task.assigned_ids] };
+    draft = {
+      ...data.editor.form,
+      contacts: [...data.editor.form.contacts],
+      assigned_to: [...task.assigned_ids]
+    };
     editing = true;
   }
   function save() {
@@ -208,6 +212,7 @@
             parents={data.editor.parents}
             bind:kind={draft.parent_kind}
             bind:selected={draft.parent_id}
+            bind:contacts={draft.contacts}
           />
         </fieldset>
       </form>
@@ -247,17 +252,18 @@
                 task.related.kind
               ] || task.related.kind}</small
             ><strong>{task.related.name}</strong></a
-          >{:else}<p class="muted">{ui('No association.')}</p>{/if}
+          >{/if}
+        {#each data.contacts as contact (contact.id)}<a
+            class="associated"
+            href={resolve(`/contacts/${contact.id}`)}
+            ><small>{ui('Contact')}</small><strong>{contact.name}</strong>{#if contact.email}<small
+                >{contact.email}</small
+              >{/if}</a
+          >{/each}
+        {#if !task.related && !data.contacts.length}<p class="muted">
+            {ui('No association.')}
+          </p>{/if}
       </section>
-      {#if data.contacts.length}<section class="associations">
-          <h2>{ui('Contacts')}</h2>
-          {#each data.contacts as contact}<a
-              class="associated"
-              href={resolve(`/contacts/${contact.id}`)}
-              ><strong>{contact.name}</strong>{#if contact.email}<small>{contact.email}</small
-                >{/if}</a
-            >{/each}
-        </section>{/if}
     {/if}
 
     {#if data.canDelete}<form class="delete" method="POST" action="?/delete" use:enhance>

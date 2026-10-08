@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.models import Org
-from common.permissions import HasOrgContext, is_org_admin
+from common.permissions import HasOrgContext
 from common.pipeline_settings import (
     OBJECTS,
     rule_properties,
@@ -19,6 +19,7 @@ from common.pipeline_settings import (
     validate_configuration,
 )
 from common.property_catalog import TARGETS, target_model
+from common.settings_access import HasSettingsAccess, can_access_settings
 
 
 def revision(org):
@@ -47,7 +48,8 @@ def pipeline_data(org, target, include_rules):
 
 
 class PipelineSettingsView(APIView):
-    permission_classes = (IsAuthenticated, HasOrgContext)
+    settings_section = "pipelines"
+    permission_classes = (IsAuthenticated, HasOrgContext, HasSettingsAccess)
 
     def get(self, request):
         org = request.profile.org
@@ -61,14 +63,18 @@ class PipelineSettingsView(APIView):
                     for t in OBJECTS
                 },
                 "revision": revision(org),
-                "can_edit": is_org_admin(request.profile),
+                "can_edit": can_access_settings(
+                    request.profile, "pipelines", manage=True
+                ),
             }
         )
 
     @transaction.atomic
     def put(self, request):
-        if not is_org_admin(request.profile):
-            return Response({"errors": "Admin access required."}, status=403)
+        if not can_access_settings(request.profile, "pipelines", manage=True):
+            return Response(
+                {"errors": "Settings management permission required."}, status=403
+            )
         org = Org.objects.select_for_update().get(pk=request.profile.org_id)
         target = request.data.get("target_model")
         if target not in OBJECTS:

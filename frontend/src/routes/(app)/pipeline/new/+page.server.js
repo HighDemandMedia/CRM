@@ -1,10 +1,10 @@
+import { getCreationSchema, createConfigured } from '$lib/server/v2/creation-forms.js';
 import { fieldErrors, stageRequirements, readableError } from '$lib/server/v2/form-errors.js';
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { EDITABLE_FIELDS, createDeal, getDealFormOptions } from '$lib/server/v2/deals.js';
 
-/** @type {import('./$types').PageServerLoad} */
-export async function load(event) {
+async function loadOptions(event) {
   // The currency hint under the amount comes from the shell (`data.org.currency`
   // via `(app)/+layout.server.js`). It is the currency this deal will be created
   // in: the form has no currency field, so the serializer stamps the org default
@@ -17,6 +17,7 @@ export const actions = {
   createTag: createContactTag,
   async create(event) {
     const form = await event.request.formData();
+    if (form.has('_creation_values')) return createConfigured(event, form, createDeal, '/pipeline');
 
     /** @type {Record<string, any>} */
     const values = {};
@@ -50,3 +51,11 @@ export const actions = {
     redirect(303, created?.id ? `/pipeline/${created.id}` : '/pipeline');
   }
 };
+
+export async function load(event) {
+  const [options, creationSchema] = await Promise.all([
+    loadOptions(event),
+    getCreationSchema(event, 'Opportunity')
+  ]);
+  return { ...options, creationSchema };
+}

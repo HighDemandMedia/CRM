@@ -1,3 +1,4 @@
+import { getCreationSchema, createConfigured } from '$lib/server/v2/creation-forms.js';
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { EDITABLE_FIELDS, createContact, getContactFormOptions } from '$lib/server/v2/contacts.js';
@@ -9,9 +10,8 @@ import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/fo
  * accounts is dropped rather than trusted. The picker is built from the API's
  * own list, and the serializer checks the org again on save.
  *
- * @type {import('./$types').PageServerLoad}
  */
-export async function load({ cookies, url }) {
+async function loadOptions({ cookies, url }) {
   return await getContactFormOptions({ cookies }, url.searchParams.get('account'));
 }
 
@@ -20,6 +20,8 @@ export const actions = {
   createTag: createContactTag,
   create: async ({ cookies, request }) => {
     const form = await request.formData();
+    if (form.has('_creation_values'))
+      return createConfigured({ cookies }, form, createContact, '/contacts');
 
     /** @type {Record<string, any>} */
     const values = {};
@@ -50,3 +52,11 @@ export const actions = {
     redirect(303, created?.id ? `/contacts/${created.id}` : '/contacts');
   }
 };
+
+export async function load(event) {
+  const [options, creationSchema] = await Promise.all([
+    loadOptions(event),
+    getCreationSchema(event, 'Contact')
+  ]);
+  return { ...options, creationSchema };
+}

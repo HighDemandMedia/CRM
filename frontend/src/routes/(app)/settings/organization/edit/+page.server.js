@@ -1,3 +1,4 @@
+import { settingsAccess } from '$lib/v2/settings-access.js';
 import { fail, redirect } from '@sveltejs/kit';
 import {
   getOrgSettings,
@@ -18,9 +19,9 @@ import { readableError } from '$lib/server/v2/form-errors.js';
  *
  * @type {import('./$types').PageServerLoad}
  */
-export async function load({ cookies }) {
-  const { org, can_edit } = await getOrgSettings({ cookies });
-  if (!can_edit) return { forbidden: true };
+export async function load({ cookies, parent }) {
+  const [{ org }, shell] = await Promise.all([getOrgSettings({ cookies }), parent()]);
+  if (settingsAccess(shell.permissions, 'organization') !== 'manage') return { forbidden: true };
   // Fetched rather than built from `Intl`, so the option list uses the same
   // zone vocabulary the org's stored value came from. See `listTimezones`.
   const timezones = await listTimezones(cookies).catch(() => [{ name: 'UTC', label: 'UTC' }]);

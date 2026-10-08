@@ -472,8 +472,10 @@ class TestCustomFieldAnalytics:
         row = self._row(admin_client.get(self.URL), "severity")
         assert row["records_missing_value"] == 1  # not 4
 
-    def test_non_admin_sees_analytics(self, user_client, org_a):
-        # Reads are open to members (shared config), analytics included.
+    def test_non_admin_gets_runtime_definitions_without_analytics(
+        self, user_client, org_a
+    ):
+        # Record forms need definitions, but Settings analytics require explicit access.
         CustomFieldDefinition.objects.create(
             org=org_a,
             target_model="Case",
@@ -483,5 +485,5 @@ class TestCustomFieldAnalytics:
         )
         resp = user_client.get(self.URL)
         assert resp.status_code == 200
-        assert "totals" in resp.json()
-        assert resp.json()["definitions"][0]["records_missing_value"] == 0
+        assert resp.json()["totals"] is None
+        assert "records_missing_value" not in resp.json()["definitions"][0]

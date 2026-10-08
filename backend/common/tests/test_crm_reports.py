@@ -152,6 +152,11 @@ class TestCRMReports:
     ):
         row = Contact.objects.create(org=org_a, first_name="Changed")
         stamp(Contact, row, datetime(2026, 8, 1, tzinfo=dt_timezone.utc))
+        # The creation audit must share the historical record's creation date.
+        creation = Activity.objects.get(
+            org=org_a, entity_type="Contact", entity_id=row.pk, action="CREATE"
+        )
+        stamp(Activity, creation, datetime(2026, 8, 1, tzinfo=dt_timezone.utc))
         update = Activity.objects.create(
             org=org_a,
             user=admin_profile,

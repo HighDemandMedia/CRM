@@ -22,7 +22,7 @@
   } from './options.js';
   import TaskAssignees from '$lib/components/tasks/TaskAssignees.svelte';
   import TicketAssociates from './TicketAssociates.svelte';
-  let { values = $bindable(), options, showAssociates = true } = $props();
+  let { values = $bindable(), options } = $props();
   let due = $state(localDateInput(values.due_at).slice(0, 10));
 </script>
 
@@ -54,6 +54,7 @@
       (ids) => (values.assigned_to = ids[0] ?? '')
     }
   />
+  <TicketAssociates bind:values {options} />
   <label
     >{ui('Status')}<select class="v2-input" name="status" bind:value={values.status}
       >{#each statuses as [value, label]}<option {value}>{label}</option>{/each}</select
@@ -103,16 +104,6 @@
       >{#each sources as value}<option>{value}</option>{/each}</select
     ></label
   >
-</RecordSection>
-<RecordSection title={ui('Associated records')}>
-  {#if showAssociates}<TicketAssociates bind:values {options} />{:else}
-    <input type="hidden" name="account" value={values.account ?? ''} />
-    {#each values.contacts ?? [] as contact}<input
-        type="hidden"
-        name="contacts"
-        value={contact}
-      />{/each}
-  {/if}
 </RecordSection>
 
 <style>

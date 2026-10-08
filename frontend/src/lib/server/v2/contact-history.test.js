@@ -21,7 +21,7 @@ it('keeps legacy attachment downloads after their first audited edit', async () 
   });
   const data = await getContact(event, 'contact');
   expect(data.attachments.some((row) => row.id === 'file' && row.href)).toBe(true);
-  expect(data.activity).toEqual([]);
+  expect(data.activity.some((row) => row.body.includes('Attachment updated'))).toBe(true);
 });
 
 it('shows an audited note once and keeps the original creator', async () => {
@@ -46,5 +46,35 @@ it('shows an audited note once and keeps the original creator', async () => {
   });
   const data = await getContact(event, 'contact');
   expect(data.notes).toHaveLength(1);
-  expect(data.activity).toEqual([]);
+  expect(data.activity.filter((row) => row.body.includes('Note added'))).toHaveLength(1);
+  expect(data.activity.some((row) => row.body === 'Record created')).toBe(true);
 });
+
+it.each([
+  ['Claudia Correa', 'Claudia Correa'],
+  ['', 'person@example.com']
+])(
+  'displays the saved user name before email in creator and note labels (%s)',
+  async (name, label) => {
+    apiRequest.mockResolvedValue({
+      contact_obj: {
+        id: 'contact',
+        created_by_name: name,
+        created_by_email: 'person@example.com',
+        created_at: '2026-10-07T10:00:00Z'
+      },
+      comments: [
+        {
+          id: 'note',
+          comment: 'Follow-up',
+          commented_by: { user_details: { name, email: 'person@example.com' } },
+          commented_on: '2026-10-07T11:00:00Z'
+        }
+      ]
+    });
+    const data = await getContact(event, 'contact');
+    expect(data.contact.created_by).toBe(label);
+    expect(data.notes[0].by).toBe(label);
+    expect(data.activity.find((row) => row.id === 'record-created').by).toBe(label);
+  }
+);

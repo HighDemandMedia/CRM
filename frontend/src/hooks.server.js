@@ -1,3 +1,4 @@
+import { savePasswordSession, saveSessionTokens } from '$lib/server/password-session.js';
 import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * SvelteKit Server Hooks with JWT Authentication
@@ -183,52 +184,34 @@ export const handle = async function handle({ event, resolve }) {
   // Reassigned if we rotate below, so later calls hand on the live token rather
   // than the one we just spent.
   let refreshToken = event.cookies.get('jwt_refresh');
-  const orgId = event.cookies.get('org');
+  let orgId = event.cookies.get('org');
 
   /** @type {JWTPayload | null} */
   let jwtPayload = null;
 
-  // Try to authenticate user (LOCAL JWT DECODE - no API call!)
-  if (accessToken) {
-    jwtPayload = verifyTokenLocally(accessToken);
+  if (accessToken) jwtPayload = verifyTokenLocally(accessToken);
 
-    // If access token expired, try to refresh
-    if (!jwtPayload && refreshToken) {
-      const refreshed = await refreshAccessToken(refreshToken);
-      if (refreshed) {
-        // Update cookie with new access token
-        event.cookies.set('jwt_access', refreshed.access, {
-          path: '/',
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 60 * 60 * 24 // 1 day
-        });
-        // Persist the rotated refresh token. The one we just spent is
-        // blacklisted server-side, so keeping it would 401 the next refresh
-        // and bounce the user to /login an hour later.
-        if (refreshed.refresh) {
-          event.cookies.set('jwt_refresh', refreshed.refresh, {
-            path: '/',
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 60 * 24 * 365 // 1 year
-          });
-          refreshToken = refreshed.refresh;
-        }
+  // Browsers remove expired cookies. Refresh must work both with an expired
+  // access token still present and with no access cookie at all after reopening.
+  if (!jwtPayload && refreshToken) {
+    const refreshed = await refreshAccessToken(refreshToken);
+    if (refreshed) {
+      jwtPayload = verifyTokenLocally(refreshed.access);
+      if (jwtPayload) {
         accessToken = refreshed.access;
-        jwtPayload = verifyTokenLocally(refreshed.access);
-      } else {
-        // Refresh failed, clear cookies
-        event.cookies.delete('jwt_access', { path: '/' });
-        event.cookies.delete('jwt_refresh', { path: '/' });
-        event.cookies.delete('org', { path: '/' });
+        refreshToken = refreshed.refresh || refreshToken;
+        // Restore an expired organization cookie only from API-issued claims.
+        orgId = orgId || jwtPayload.org_id;
+        saveSessionTokens(event.cookies, {
+          access_token: refreshed.access,
+          refresh_token: refreshed.refresh,
+          current_org: orgId && UUID_RE.test(orgId) ? { id: orgId } : undefined
+        });
       }
     }
   }
 
-  if (!jwtPayload && accessToken) {
+  if (!jwtPayload && (accessToken || refreshToken)) {
     event.cookies.delete('jwt_access', { path: '/' });
     event.cookies.delete('jwt_refresh', { path: '/' });
     event.cookies.delete('org', { path: '/' });
@@ -278,21 +261,7 @@ export const handle = async function handle({ event, resolve }) {
         const switchResult = await switchOrg(token, orgId, refreshToken);
 
         if (switchResult) {
-          // Update cookies with new tokens that have org context
-          event.cookies.set('jwt_access', switchResult.access_token, {
-            path: '/',
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 60 * 24 // 1 day
-          });
-          event.cookies.set('jwt_refresh', switchResult.refresh_token, {
-            path: '/',
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 60 * 24 * 365 // 1 year
-          });
+          savePasswordSession(event.cookies, switchResult);
 
           // Extract org info from switch result (no additional API call!)
           event.locals.org = switchResult.current_org;

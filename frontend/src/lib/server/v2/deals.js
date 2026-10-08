@@ -270,7 +270,7 @@ export async function getDeal({ cookies }, id) {
       id: note.id,
       body: note.comment,
       at: note.commented_on,
-      by: note.commented_by_user?.email || note.commented_by?.user_details?.email || null
+      by: userName(note.commented_by_user || note.commented_by, '') || null
     })),
     activity: buildActivity(response),
     lineItems: (raw.line_items ?? []).map((/** @type {any} */ item) => ({
@@ -608,7 +608,17 @@ export async function moveDeal({ cookies }, id, { columnId, aboveId, belowId }) 
  * @param {Record<string, any>} values
  */
 export async function createDeal({ cookies }, values) {
-  return await apiRequest('/opportunities/', { method: 'POST', body: toBody(values) }, { cookies });
+  return await apiRequest(
+    '/opportunities/',
+    {
+      method: 'POST',
+      body: {
+        ...toBody(values),
+        ...(values.custom_fields ? { custom_fields: values.custom_fields } : {})
+      }
+    },
+    { cookies }
+  );
 }
 
 /**

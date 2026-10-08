@@ -22,6 +22,7 @@ from common.rbac import (
     scope_for,
     validate_rules,
 )
+from common.settings_access import settings_access, validate_settings_access
 
 
 class RoleInput(serializers.Serializer):
@@ -33,6 +34,10 @@ class RoleInput(serializers.Serializer):
         max_length=255, required=False, allow_blank=True
     )
     rules = serializers.JSONField()
+    settings_access = serializers.JSONField(required=False)
+
+    def validate_settings_access(self, value):
+        return validate_settings_access(value)
 
     def validate_rules(self, value):
         return validate_rules(value)
@@ -60,6 +65,13 @@ class RoleInput(serializers.Serializer):
             raise serializers.ValidationError(
                 "All enabled permissions must use the selected scope."
             )
+        grants = attrs.get("settings_access", {})
+        if attrs["name"] != "Manager" and any(v != "none" for v in grants.values()):
+            raise serializers.ValidationError(
+                {
+                    "settings_access": "Only the Manager permission set can receive Settings access."
+                }
+            )
         attrs["scope"] = scope
         return attrs
 
@@ -77,6 +89,7 @@ def role_data(role):
         "name": role.name,
         "scope": role.scope,
         "description": role.description,
+        "settings_access": role.settings_access,
         "rules": expanded_rules(
             role.rules, role.scope, role.name in ("Member", "Manager")
         ),
@@ -269,6 +282,7 @@ def permissions_payload(profile):
     return {
         "rules": rules,
         "is_admin": profile.role == "ADMIN",
+        "settings_access": settings_access(profile),
         "calendar_host_ids": list(calendar_hosts(profile).values_list("pk", flat=True)),
     }
 

@@ -37,13 +37,14 @@ export function columnWidths(value) {
   );
 }
 
-const VIEW_KEYS = ['view', 'sort', 'direction'];
+// View mode belongs to the current URL, not durable preferences. Filtering on
+// both read and write also ignores pipeline choices saved by older versions.
+const VIEW_KEYS = ['sort', 'direction'];
 export function viewPreferences(params) {
   return Object.fromEntries(
     VIEW_KEYS.flatMap((key) => {
       const value = params.get(key);
       if (!value || value.length > 150) return [];
-      if (key === 'view' && !['list', 'pipeline'].includes(value)) return [];
       if (key === 'direction' && !['asc', 'desc'].includes(value)) return [];
       return [[key, value]];
     })

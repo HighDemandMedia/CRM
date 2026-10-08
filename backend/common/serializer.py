@@ -240,7 +240,11 @@ class CommentUserSerializer(serializers.ModelSerializer):
 
     def get_user_details(self, obj):
         if obj.user:
-            return {"email": obj.user.email, "profile_pic": obj.user.profile_pic}
+            return {
+                "name": obj.user.display_name,
+                "email": obj.user.email,
+                "profile_pic": obj.user.profile_pic,
+            }
         return None
 
 
@@ -786,6 +790,7 @@ class ProfileSelfUpdateSerializer(serializers.Serializer):
         choices=["send", "read_send"], required=False, allow_blank=True
     )
 
+    complete_setup = serializers.BooleanField(required=False, default=False)
     ui_language = serializers.ChoiceField(choices=["en", "es"], required=False)
     name = serializers.CharField(required=False, allow_blank=True, max_length=255)
     language = serializers.ChoiceField(
@@ -1254,8 +1259,8 @@ class ActivityUserSerializer(serializers.Serializer):
 
     @extend_schema_field(str)
     def get_name(self, obj):
-        """Get display name from email"""
-        return obj.user.email.split("@")[0]
+        """Prefer the saved profile name; email identifies users without one."""
+        return obj.user.display_name
 
 
 class DashboardActivitySerializer(serializers.ModelSerializer):

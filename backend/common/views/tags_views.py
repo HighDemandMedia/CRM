@@ -14,8 +14,9 @@ from cases.models import Case, Solution
 from common import swagger_params
 from common.lookups import get_scoped_or_404
 from common.models import APISettings, Tags
-from common.permissions import HasOrgContext, is_org_admin
+from common.permissions import HasOrgContext
 from common.serializer import TagsSerializer
+from common.settings_access import can_access_settings, require_settings
 from contacts.models import Contact
 from leads.models import Lead
 from opportunity.models import Opportunity
@@ -106,11 +107,18 @@ class TagsListView(APIView, LimitOffsetPagination):
     def get_queryset(self):
         """Get tags queryset (with usage annotations) and optional filtering."""
         params = self.request.query_params
-        queryset = _annotated_tags(self.request.profile.org)
+        can_read = can_access_settings(self.request.profile, "tags")
+        queryset = (
+            _annotated_tags(self.request.profile.org)
+            if can_read
+            else Tags.objects.filter(org=self.request.profile.org)
+        )
 
         # By default, only show active tags
-        # Admin can see archived tags with ?include_archived=true
+        # Reading the archived catalog requires Settings access.
         include_archived = params.get("include_archived", "").lower() == "true"
+        if include_archived:
+            require_settings(self.request.profile, "tags")
         if not include_archived:
             queryset = queryset.filter(is_active=True)
 
@@ -139,6 +147,8 @@ class TagsListView(APIView, LimitOffsetPagination):
         """List tags for the org, each with per-model usage counts, plus totals."""
         tags_qs = list(self.get_queryset())
         rows = TagsSerializer(tags_qs, many=True).data
+        if not can_access_settings(request.profile, "tags"):
+            return Response({"tags_count": len(rows), "tags": rows})
         # Attach usage from the annotations (serializer order matches the qs).
         for row, obj in zip(rows, tags_qs):
             row["usage"] = {key: getattr(obj, f"_u_{key}") for key, _ in _TAGGABLE}
@@ -167,11 +177,11 @@ class TagsListView(APIView, LimitOffsetPagination):
         },
     )
     def post(self, request, *args, **kwargs):
-        """Create a new tag (admin only)."""
-        # Admin only for create
-        if not is_org_admin(request.profile) and not request.user.is_superuser:
+        """Create a new tag (requires Tags management)."""
+        # Explicit Settings grant, independent of record-edit permissions.
+        if not can_access_settings(request.profile, "tags", manage=True):
             return Response(
-                {"error": True, "errors": "Only admins can create tags"},
+                {"error": True, "errors": "Tags management permission required"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -285,11 +295,10 @@ class TagsDetailView(APIView):
         },
     )
     def put(self, request, pk, *args, **kwargs):
-        """Update a tag (admin only)."""
-        # Admin only
-        if not is_org_admin(request.profile) and not request.user.is_superuser:
+        """Update a tag (requires Tags management)."""
+        if not can_access_settings(request.profile, "tags", manage=True):
             return Response(
-                {"error": True, "errors": "Only admins can update tags"},
+                {"error": True, "errors": "Tags management permission required"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -367,11 +376,10 @@ class TagsDetailView(APIView):
         },
     )
     def delete(self, request, pk, **kwargs):
-        """Archive a tag - soft delete (admin only)."""
-        # Admin only
-        if not is_org_admin(request.profile) and not request.user.is_superuser:
+        """Archive a tag - soft delete (requires Tags management)."""
+        if not can_access_settings(request.profile, "tags", manage=True):
             return Response(
-                {"error": True, "errors": "Only admins can archive tags"},
+                {"error": True, "errors": "Tags management permission required"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -415,11 +423,10 @@ class TagsRestoreView(APIView):
         },
     )
     def post(self, request, pk, **kwargs):
-        """Restore an archived tag (admin only)."""
-        # Admin only
-        if not is_org_admin(request.profile) and not request.user.is_superuser:
+        """Restore an archived tag (requires Tags management)."""
+        if not can_access_settings(request.profile, "tags", manage=True):
             return Response(
-                {"error": True, "errors": "Only admins can restore tags"},
+                {"error": True, "errors": "Tags management permission required"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -483,10 +490,10 @@ class TagsMergeView(APIView):
         },
     )
     def post(self, request, pk, **kwargs):
-        """Merge the tag at `pk` into the tag named by `into` (admin only)."""
-        if not is_org_admin(request.profile) and not request.user.is_superuser:
+        """Merge the tag at `pk` into the tag named by `into` (requires Tags management)."""
+        if not can_access_settings(request.profile, "tags", manage=True):
             return Response(
-                {"error": True, "errors": "Only admins can merge tags"},
+                {"error": True, "errors": "Tags management permission required"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 

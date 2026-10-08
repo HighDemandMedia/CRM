@@ -1,4 +1,5 @@
 <script>
+  import '$lib/v2/styles/module-layout.css';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, count } = useI18n();
 
@@ -72,9 +73,9 @@
 
 <SectionTabs set="tasks" />
 
-<div class="v2-scroll">
+<div class="v2-scroll crm-module-body">
   <!-- Wide screens: the month grid. -->
-  <div class="v2-cal-grid-wrap">
+  <div class="v2-cal-grid-wrap crm-panel">
     <div class="v2-cal-head">
       {#each data.weekdays as label (label)}
         <span class="v2-label">{label}</span>
@@ -175,8 +176,9 @@
   .v2-cal-head {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
-    padding: 14px var(--crm-space-4) 6px;
+    gap: 0;
+    padding: var(--crm-space-3);
+    background: var(--crm-surface-secondary);
     flex: none;
   }
   .v2-cal-head .v2-label {
@@ -184,13 +186,13 @@
   }
 
   .v2-cal-grid-wrap {
-    padding: 0 var(--crm-space-4) var(--crm-space-2);
+    overflow: hidden;
   }
   .v2-cal-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     grid-auto-rows: minmax(96px, auto);
-    gap: 6px;
+    gap: 0;
   }
   .v2-cal-cell {
     display: flex;
@@ -198,15 +200,16 @@
     gap: var(--crm-space-1);
     padding: 6px;
     background: var(--v2-card);
-    border: 1px solid var(--v2-line);
-    border-radius: var(--crm-radius-md);
+    border: 0;
+    border-top: 1px solid var(--crm-border);
+    border-right: 1px solid var(--crm-border);
+    border-radius: 0;
     min-width: 0;
   }
   /* Days spilling in from the neighbouring months recede, so the current month
      reads as one block. */
   .v2-cal-out {
-    background: none;
-    border-color: transparent;
+    background: var(--crm-canvas);
   }
   .v2-cal-out .v2-cal-daynum {
     color: var(--v2-slate);
@@ -216,7 +219,7 @@
     background: color-mix(in srgb, var(--v2-slate) 5%, var(--v2-card));
   }
   .v2-cal-today {
-    border-color: var(--crm-link);
+    box-shadow: inset 0 0 0 1px var(--crm-primary);
   }
   .v2-cal-daynum {
     font-size: var(--crm-text-xs);
@@ -235,7 +238,7 @@
     height: 19px;
     padding: 0 5px;
     border-radius: var(--crm-radius-md);
-    background: var(--v2-ember);
+    background: var(--crm-action-bg);
     color: var(--crm-primary-text);
     font-size: var(--crm-text-xs);
   }

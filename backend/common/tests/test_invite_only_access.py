@@ -75,6 +75,7 @@ def test_owner_creates_customer_and_customer_invites_team(admin_client, admin_us
     user = User.objects.get(email=row.email)
     profile = Profile.objects.get(user=user, org=row.org)
     assert profile.is_super_admin and not user.is_superuser
+    assert profile.setup_step == Profile.SetupStep.PROFILE_ORGANIZATION
     customer = APIClient()
     customer.credentials(HTTP_AUTHORIZATION="Bearer " + accepted.data["access_token"])
     assert (
@@ -168,6 +169,10 @@ def test_existing_customer_acceptance_hands_off_ownership_and_requests_setup(
     assert response.status_code == 200, response.data
     assert response.data["needs_organization_setup"]
     assert Org.objects.get(pk=invitation.org_id).owner_id == regular_user.pk
+    assert (
+        Profile.objects.get(org=invitation.org, user=regular_user).setup_step
+        == Profile.SetupStep.PROFILE_ORGANIZATION
+    )
 
 
 def test_team_cannot_forge_owner_grant(admin_client, org_a):

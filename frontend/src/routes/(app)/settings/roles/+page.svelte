@@ -1,15 +1,41 @@
 <script>
+  import '$lib/v2/styles/access-list.css';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
   import { enhance } from '$app/forms';
+  import { settingsSections } from '$lib/v2/settings-access.js';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import { Plus, ShieldCheck, Pencil, Copy, ChevronLeft } from '@lucide/svelte';
+  import { Plus, ShieldCheck, Pencil, Copy, ChevronLeft, Search } from '@lucide/svelte';
   let { data, form } = $props();
   let editing = $state(null),
     busy = $state(false),
     error = $state('');
   let expandedModules = $state({});
+  let search = $state('');
+  const systemRoles = [
+    {
+      id: 'super-admin',
+      name: 'Super Admin',
+      description:
+        'Organization owner. Full access and control over other administrators; the CRM owner can also manage them.',
+      protection: 'Protected role'
+    },
+    {
+      id: 'admin',
+      name: 'Admin',
+      description:
+        'Full organization access. Manages users, teams, permission sets and CRM configuration.',
+      protection: 'System role'
+    }
+  ];
+  const visibleRoles = $derived(
+    [...systemRoles, ...(data.roles || [])].filter((role) =>
+      `${role.name} ${ui(role.description || '')}`
+        .toLocaleLowerCase()
+        .includes(search.trim().toLocaleLowerCase())
+    )
+  );
   const scopes = [
     ['own', 'Personal'],
     ['team', 'Team'],
@@ -42,6 +68,7 @@
       ])
     );
     editing = structuredClone(base);
+    editing.settings_access = { ...base.settings_access };
     editing.enabled = Object.fromEntries(
       data.catalog.map((module) => [
         module.key,
@@ -81,6 +108,10 @@
     );
   }
   function hint(module, action) {
+    if (['contacts', 'companies'].includes(module) && action === 'edit')
+      return 'Change properties and send, reply to or forward email from your connected Gmail. Google send permission is also required.';
+    if (['contacts', 'companies'].includes(module) && action === 'notes')
+      return 'Manage notes and add internal email comments visible to teammates with record access. Mailbox contents stay private.';
     if (module === 'reports')
       return action === 'view'
         ? 'Reports include only records this user can view, within the selected access level.'
@@ -103,7 +134,7 @@
       >{/if}{/snippet}
 </PageHeader>
 <div class="v2-scroll">
-  <div class="roles-content">
+  <div class="roles-content" class:access-list={!editing}>
     {#if data.forbidden}<p>{ui('Only organization admins can manage roles and permissions.')}</p>
     {:else if editing}
       <form
@@ -132,6 +163,11 @@
           type="hidden"
           name="rules"
           value={JSON.stringify(rulesForSave())}
+        />
+        <input
+          type="hidden"
+          name="settings_access"
+          value={JSON.stringify(editing.name === 'Manager' ? editing.settings_access : {})}
         />
         <button class="back" type="button" disabled={busy} onclick={() => (editing = null)}
           ><ChevronLeft size={15} />{ui('Permission sets')}</button
@@ -169,7 +205,8 @@
                   name="scope"
                   class="v2-input"
                   bind:value={editing.scope}
-                  >{#each scopes as [value, label]}<option {value}>{label}</option>{/each}</select
+                  >{#each scopes as [value, label] (value)}<option {value}>{label}</option
+                    >{/each}</select
                 ></label
               >{/if}
             <p>
@@ -182,17 +219,44 @@
                   : ui('Records and events across this organization.')}
             </p>
           </div>
+          {#if editing.name === 'Manager'}
+            <details class="permission-group settings-delegation" open>
+              <summary>{ui('Settings access')}</summary>
+              <p class="hint">
+                {ui(
+                  'No Settings access by default. Grant each section explicitly. Users, teams and permissions remain administrator-only.'
+                )}
+              </p>
+              <div class="permission-options">
+                {#each settingsSections.filter((section) => !['profile', 'notifications', 'team', 'roles'].includes(section.key)) as section (section.key)}
+                  <label
+                    >{ui(section.label)}
+                    <select
+                      class="v2-input"
+                      value={editing.settings_access[section.key] || 'none'}
+                      onchange={(event) =>
+                        (editing.settings_access[section.key] = event.currentTarget.value)}
+                    >
+                      <option value="none">{ui('No access')}</option>
+                      <option value="read">{ui('Read only')}</option>
+                      <option value="manage">{ui('Manage')}</option>
+                    </select>
+                  </label>
+                {/each}
+              </div>
+            </details>
+          {/if}
           <div class="permission-groups">
             {#each data.catalog as module (module.key)}
               <details class="permission-group" bind:open={expandedModules[module.key]}>
                 <summary
-                  ><span>{module.label}</span><small
+                  ><span>{ui(module.label)}</span><small
                     >{Object.values(editing.enabled[module.key]).filter(Boolean).length}
                     {ui('enabled')}</small
                   ></summary
                 >
                 <div class="permission-options">
-                  {#each module.actions as action}
+                  {#each module.actions as action (action.key)}
                     <label
                       class="permission-option"
                       class:muted={action.key !== 'view' && !editing.enabled[module.key].view}
@@ -231,57 +295,94 @@
         </div>
       </form>
     {:else}
-      <div class="role">
-        <div>
-          <h2><ShieldCheck size={17} />{ui('Super Admin')}</h2>
-          <p>
-            {ui(
-              'Organization creator. Full access and exclusive control over other administrators.'
-            )}
-          </p>
-        </div>
-        <span class="protected">{ui('Creator only')}</span>
+      <div class="toolbar">
+        <label class="search"
+          ><Search size={16} /><input
+            type="search"
+            aria-label={ui('Search permission sets')}
+            placeholder={ui('Search permission sets')}
+            bind:value={search}
+          /></label
+        >
       </div>
-      <div class="role">
-        <div>
-          <h2><ShieldCheck size={17} />{ui('Admin')}</h2>
-          <p>
-            {ui(
-              'Full organization access. Manages users, teams, permission sets and CRM configuration.'
-            )}
-          </p>
-        </div>
-        <span class="protected">{ui('System role')}</span>
-      </div>
-      {#each data.roles as role}<div class="role">
-          <div>
-            <h2>
-              {role.name}<span class="scope-badge"
-                >{scopes.find(([key]) => key === role.scope)?.[1]}</span
+      <div class="table-wrap">
+        <table class="access-table roles-table">
+          <caption class="sr-only">{ui('Permission sets')}</caption>
+          <thead
+            ><tr>
+              <th scope="col">{ui('Permission set')}</th>
+              <th scope="col">{ui('Access level')}</th>
+              <th scope="col">{ui('Users')}</th>
+              <th scope="col"><span class="sr-only">{ui('Actions')}</span></th>
+            </tr></thead
+          >
+          <tbody>
+            {#each visibleRoles as role (role.id)}
+              <tr>
+                <td
+                  ><div class="team-name">
+                    <span class="team-icon"><ShieldCheck size={19} /></span>
+                    <div>
+                      {#if role.protection}<strong>{ui(role.name)}</strong>
+                      {:else}<button class="name-link" onclick={() => edit(role)}
+                          >{role.name}</button
+                        >{/if}
+                      <p>
+                        {ui(
+                          role.description ||
+                            (['Member', 'Manager'].includes(role.name)
+                              ? 'Default permission set'
+                              : 'Custom permission set')
+                        )}
+                      </p>
+                    </div>
+                  </div></td
+                >
+                <td
+                  ><span class="role-badge"
+                    >{ui(
+                      role.protection
+                        ? 'Organization'
+                        : scopes.find(([key]) => key === role.scope)?.[1] || 'Personal'
+                    )}</span
+                  ></td
+                >
+                <td
+                  >{#if role.protection}<span aria-label={ui('Not available')}>—</span
+                    >{:else}{role.member_count}{/if}</td
+                >
+                <td class="row-actions">
+                  {#if role.protection}<span class="protected">{ui(role.protection)}</span>
+                  {:else}<div class="actions">
+                      <button
+                        class="v2-btn v2-btn-sm"
+                        onclick={() =>
+                          edit({ ...role, id: null, name: `${role.name} copy`, member_count: 0 })}
+                        aria-label={`${ui('Duplicate')} ${role.name}`}
+                        ><Copy size={13} />{ui('Duplicate')}</button
+                      >
+                      <button
+                        class="v2-btn v2-btn-sm"
+                        onclick={() => edit(role)}
+                        aria-label={`${ui('Edit permissions for')} ${role.name}`}
+                        ><Pencil size={13} />{ui('Edit permissions')}</button
+                      >
+                    </div>{/if}
+                </td>
+              </tr>
+            {:else}
+              <tr
+                ><td colspan="4"
+                  ><div class="empty">
+                    <ShieldCheck size={26} /><strong>{ui('No matching permission sets')}</strong
+                    ><span>{ui('Try another search.')}</span>
+                  </div></td
+                ></tr
               >
-            </h2>
-            <p>
-              {role.description ||
-                (['Member', 'Manager'].includes(role.name)
-                  ? 'Default permission set'
-                  : 'Custom permission set')} · {role.member_count}
-              {role.member_count === 1 ? ui('user') : ui('users')}
-            </p>
-          </div>
-          <div class="actions">
-            <button
-              class="v2-btn v2-btn-sm"
-              onclick={() =>
-                edit({ ...role, id: null, name: `${role.name} copy`, member_count: 0 })}
-              aria-label={`Duplicate ${role.name}`}><Copy size={13} />{ui('Duplicate')}</button
-            ><button
-              class="v2-btn v2-btn-sm"
-              onclick={() => edit(role)}
-              aria-label={`Edit permissions for ${role.name}`}
-              ><Pencil size={13} />{ui('Edit permissions')}</button
-            >
-          </div>
-        </div>{/each}
+            {/each}
+          </tbody>
+        </table>
+      </div>
       {#if form?.saved}<p class="success" role="status">{ui('Permission set saved.')}</p>{/if}
     {/if}
   </div>
@@ -289,41 +390,28 @@
 
 <style>
   .roles-content {
-    padding: var(--crm-space-6) 28px;
-    max-width: 1150px;
+    padding: var(--crm-space-5) var(--crm-space-6) var(--crm-space-8);
     container-type: inline-size;
   }
-  .role {
-    display: flex;
-    gap: var(--crm-space-5);
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--crm-space-6) 0;
-    border-bottom: 1px solid var(--v2-line-soft);
+  .roles-content:not(.access-list) {
+    max-width: 1150px;
   }
-  h2 {
-    font-size: var(--crm-text-sm);
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: var(--crm-space-2);
+  .roles-table {
+    min-width: 620px;
   }
-  .role p,
+  .roles-table td:first-child {
+    width: 46%;
+  }
+  .actions {
+    justify-content: flex-end;
+  }
+  .actions button {
+    white-space: nowrap;
+  }
   .hint {
     color: var(--v2-slate);
     font-size: var(--crm-text-xs);
     line-height: 1.6;
-  }
-  .protected,
-  .scope-badge {
-    font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
-  }
-  .scope-badge {
-    border: 1px solid var(--v2-line);
-    border-radius: var(--crm-radius-sm);
-    padding: 3px 6px;
-    font-weight: 400;
   }
   .identity {
     display: grid;
@@ -392,6 +480,10 @@
     background: var(--v2-surface, var(--crm-surface));
     margin-bottom: var(--crm-space-3);
   }
+  .settings-delegation > .hint {
+    margin: 0;
+    padding: 0 var(--crm-space-5) var(--crm-space-4);
+  }
   .permission-group summary {
     cursor: pointer;
     padding: 17px var(--crm-space-5);
@@ -459,6 +551,11 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
+  @media (max-width: 900px) {
+    .access-list .search {
+      width: 100%;
+    }
+  }
   @media (max-width: 650px) {
     .identity,
     .permission-options {
@@ -467,25 +564,11 @@
     .roles-content {
       padding: var(--crm-space-4);
     }
-    .role,
     .scope-panel {
       flex-wrap: wrap;
     }
   }
   @container (max-width: 36rem) {
-    .role {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    .role h2 {
-      flex-wrap: wrap;
-    }
-    .scope-badge {
-      white-space: nowrap;
-    }
-    .actions {
-      flex-wrap: wrap;
-    }
     .identity,
     .permission-options {
       grid-template-columns: 1fr;

@@ -25,8 +25,9 @@ from django.urls import get_resolver
 
 MALFORMED = "not-a-uuid"
 
+# `target` is a validated object type (Contact, Account, etc.), not a record id.
 # Path params that are legitimately not UUIDs. Anything else must be `<uid:>`.
-NON_UUID_PARAMS = {"token", "pack_id", "service", "module", "kind"}
+NON_UUID_PARAMS = {"token", "pack_id", "service", "module", "kind", "target"}
 
 
 def _routes():

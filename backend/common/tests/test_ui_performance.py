@@ -24,11 +24,22 @@ def test_ui_context_matches_individual_endpoints(request, client_name):
     assert (
         data["property_layout"] == client.get("/api/property-layout/").json()["objects"]
     )
-    assert (
-        data["pipelines"]
-        == client.get("/api/pipeline-settings/?include_rules=false").json()["pipelines"]
-    )
-    assert data["terminology"] == client.get("/api/org/settings/").json()["terminology"]
+    if client_name == "admin_client":
+        assert (
+            data["pipelines"]
+            == client.get("/api/pipeline-settings/?include_rules=false").json()[
+                "pipelines"
+            ]
+        )
+        assert (
+            data["terminology"]
+            == client.get("/api/org/settings/").json()["terminology"]
+        )
+    else:
+        assert client.get("/api/pipeline-settings/").status_code == 403
+        assert client.get("/api/org/settings/").status_code == 403
+        assert data["pipelines"]
+        assert "terminology" in data
     assert response["Cache-Control"] == "private, no-store"
 
 

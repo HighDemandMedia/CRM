@@ -1,4 +1,5 @@
 <script>
+  import ConfiguredCreationFields from '$lib/components/creation/ConfiguredCreationFields.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -37,6 +38,7 @@
   let assignees = $state(untrack(() => [...(form?.values?.assigned_to ?? [])]));
   let reminder = $state(untrack(() => String(form?.values?.reminder_days ?? '')));
   let values = $derived(form?.values ?? {});
+  let contacts = $state(untrack(() => [...(form?.values?.contacts ?? [])]));
   let kind = $state(untrack(() => form?.values?.parent_kind ?? ''));
   let selected = $state(untrack(() => form?.values?.[form?.values?.parent_kind] ?? ''));
 </script>
@@ -64,55 +66,56 @@
       </p>
     {/if}
 
-    <RecordSection title={ui('Task details')}>
-      <label class="v2-field">
-        <span class="v2-label">{ui('Title *')}</span>
-        <input
-          class="v2-input"
-          name="title"
-          required
-          maxlength="200"
-          value={values.title ?? ''}
-          placeholder={ui('Task title')}
-        />
-      </label>
-      <TaskParent parents={data.parents} bind:kind bind:selected />
-    </RecordSection>
-    <RecordSection title={ui('Assignment & schedule')}>
-      <TaskAssignees people={data.owners} bind:selected={assignees} />
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <label class="v2-field" style="flex:1;min-width:150px">
-          <span class="v2-label">{ui('Priority')}</span>
-          <select class="v2-input" name="priority" value={values.priority ?? 'Medium'}
-            ><option value="">{ui('None')}</option>
-            <option value="Low">{ui('Low')}</option>
-            <option value="Medium">{ui('Medium')}</option>
-            <option value="High">{ui('High')}</option>
-          </select>
+    {#if data.creationSchema}<ConfiguredCreationFields target="Task" {data} result={form} />{:else}
+      <RecordSection title={ui('Task details')}>
+        <label class="v2-field">
+          <span class="v2-label">{ui('Title *')}</span>
+          <input
+            class="v2-input"
+            name="title"
+            required
+            maxlength="200"
+            value={values.title ?? ''}
+            placeholder={ui('Task title')}
+          />
         </label>
-        <label class="v2-field" style="flex:1;min-width:150px">
-          <span class="v2-label">{ui('Status')}</span>
-          <select class="v2-input" name="status" value={values.status ?? 'New'}>
-            {#each statusOptions as option}<option value={option.value}>{option.label}</option
-              >{/each}
-          </select>
+        <TaskParent parents={data.parents} bind:kind bind:selected bind:contacts />
+      </RecordSection>
+      <RecordSection title={ui('Assignment & schedule')}>
+        <TaskAssignees people={data.owners} bind:selected={assignees} />
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <label class="v2-field" style="flex:1;min-width:150px">
+            <span class="v2-label">{ui('Priority')}</span>
+            <select class="v2-input" name="priority" value={values.priority ?? 'Medium'}
+              ><option value="">{ui('None')}</option>
+              <option value="Low">{ui('Low')}</option>
+              <option value="Medium">{ui('Medium')}</option>
+              <option value="High">{ui('High')}</option>
+            </select>
+          </label>
+          <label class="v2-field" style="flex:1;min-width:150px">
+            <span class="v2-label">{ui('Status')}</span>
+            <select class="v2-input" name="status" value={values.status ?? 'New'}>
+              {#each statusOptions as option}<option value={option.value}>{option.label}</option
+                >{/each}
+            </select>
+          </label>
+          <label class="v2-field" style="flex:1;min-width:150px">
+            <span class="v2-label">{ui('Due')}</span>
+            <input class="v2-input" type="date" name="due_date" value={values.due_date ?? ''} />
+          </label>
+        </div>
+        <TaskReminder bind:value={reminder} />
+      </RecordSection>
+      <RecordSection title={ui('Additional details')} collapsible>
+        <label class="v2-field">
+          <span class="v2-label">{ui('Description')}</span>
+          <textarea class="v2-input" name="description" rows="4" placeholder={ui('Add details…')}
+            >{values.description ?? ''}</textarea
+          >
         </label>
-        <label class="v2-field" style="flex:1;min-width:150px">
-          <span class="v2-label">{ui('Due')}</span>
-          <input class="v2-input" type="date" name="due_date" value={values.due_date ?? ''} />
-        </label>
-      </div>
-      <TaskReminder bind:value={reminder} />
-    </RecordSection>
-    <RecordSection title={ui('Additional details')} collapsible>
-      <label class="v2-field">
-        <span class="v2-label">{ui('Description')}</span>
-        <textarea class="v2-input" name="description" rows="4" placeholder={ui('Add details…')}
-          >{values.description ?? ''}</textarea
-        >
-      </label>
-    </RecordSection>
-
+      </RecordSection>
+    {/if}
     <div style="display:flex;gap:9px;margin-top:6px">
       <button class="v2-btn v2-btn-primary" type="submit">{ui('Create task')}</button>
       <a class="v2-btn" href={resolve('/tasks')}>{ui('Cancel')}</a>

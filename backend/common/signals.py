@@ -62,18 +62,6 @@ def create_activity(instance, action, entity_type):
     )
 
 
-# Account signals
-@receiver(post_save, sender="accounts.Account")
-def account_post_save(sender, instance, created, **kwargs):
-    action = "CREATE" if created else "UPDATE"
-    create_activity(instance, action, "Account")
-
-
-@receiver(post_delete, sender="accounts.Account")
-def account_post_delete(sender, instance, **kwargs):
-    create_activity(instance, "DELETE", "Account")
-
-
 # Opportunity signals
 @receiver(post_save, sender="opportunity.Opportunity")
 def opportunity_post_save(sender, instance, created, **kwargs):

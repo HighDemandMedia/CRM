@@ -68,6 +68,10 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.name = self.email.split("@", 1)[0][:255]
         super().save(*args, **kwargs)
 
+    @property
+    def display_name(self):
+        return (self.name or "").strip() or self.email
+
     def __str__(self):
         return self.email
 
@@ -105,6 +109,7 @@ def generate_unique_key():
 
 class Org(BaseModel):
     property_order = models.JSONField(default=dict, blank=True)
+    creation_forms = models.JSONField(default=dict, blank=True)
     pipeline_settings = models.JSONField(default=dict, blank=True)
     owner = models.ForeignKey(
         "User",
@@ -277,6 +282,7 @@ class CRMRole(BaseModel):
     name = models.CharField(max_length=80)
     description = models.CharField(max_length=255, blank=True, default="")
     rules = models.JSONField(default=dict)
+    settings_access = models.JSONField(default=dict, blank=True)
 
     class Meta:
         db_table = "crm_role"
@@ -286,6 +292,19 @@ class CRMRole(BaseModel):
 
 
 class Profile(BaseModel):
+    class SetupStep(models.TextChoices):
+        COMPLETE = "complete", "Complete"
+        PROFILE = "profile", "Profile"
+        PROFILE_ORGANIZATION = "profile_organization", "Profile and organization"
+        ORGANIZATION = "organization", "Organization"
+
+    # Only invitation acceptance starts onboarding; existing memberships stay complete.
+    setup_step = models.CharField(
+        max_length=24,
+        choices=SetupStep.choices,
+        default=SetupStep.COMPLETE,
+        editable=False,
+    )
     is_platform_access = models.BooleanField(default=False, editable=False)
     is_demo = models.BooleanField(default=False, editable=False)
     removed_at = models.DateTimeField(null=True, blank=True, editable=False)
@@ -1351,6 +1370,7 @@ from common.google_models import (  # noqa: E402, F401
     GoogleCalendarMirror,
     GoogleConnection,
     GoogleMailActivity,
+    GoogleMailSendOperation,
 )
 
 

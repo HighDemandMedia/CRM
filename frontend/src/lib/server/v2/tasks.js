@@ -201,7 +201,8 @@ export async function getTaskFormOptions({ cookies }) {
     })),
     contacts: (response.contacts_list ?? []).map((/** @type {any} */ row) => ({
       id: row.id,
-      name: [row.first_name, row.last_name].filter(Boolean).join(' ') || row.primary_email || ''
+      name: [row.first_name, row.last_name].filter(Boolean).join(' ') || row.email || '',
+      email: row.email ?? ''
     }))
   };
 }
@@ -239,8 +240,8 @@ export async function getTask({ cookies }, id) {
     task,
     contacts: (response.task_obj?.contacts ?? []).map((/** @type {any} */ row) => ({
       id: row.id,
-      name: [row.first_name, row.last_name].filter(Boolean).join(' ') || row.primary_email || '',
-      email: row.primary_email ?? ''
+      name: [row.first_name, row.last_name].filter(Boolean).join(' ') || row.email || '',
+      email: row.email ?? ''
     })),
     activity: buildTaskActivity(response),
     // Who this task could be handed to. The API narrows it to admins for a
@@ -346,7 +347,8 @@ export const EDITABLE_FIELDS = [
   'opportunity',
   'case',
   'lead',
-  'assigned_to'
+  'assigned_to',
+  'contacts'
 ];
 
 /**
@@ -398,7 +400,17 @@ export async function updateTask({ cookies }, id, values) {
  * @param {Record<string, any>} values
  */
 export async function createTask({ cookies }, values) {
-  return await apiRequest('/tasks/', { method: 'POST', body: toBody(values) }, { cookies });
+  return await apiRequest(
+    '/tasks/',
+    {
+      method: 'POST',
+      body: {
+        ...toBody(values),
+        ...(values.custom_fields ? { custom_fields: values.custom_fields } : {})
+      }
+    },
+    { cookies }
+  );
 }
 
 /**

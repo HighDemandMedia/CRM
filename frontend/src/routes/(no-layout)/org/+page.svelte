@@ -16,7 +16,7 @@
 </script>
 
 <svelte:head>
-  <title>{ui('Choose organisation · High Demand Media CRM')}</title>
+  <title>{ui('Choose organization · High Demand Media CRM')}</title>
 </svelte:head>
 
 <div class="v2-root v2-auth">
@@ -34,7 +34,7 @@
 
     <div class="v2-auth-card">
       <div class="v2-auth-head">
-        <h1>{ui('Choose an organisation')}</h1>
+        <h1>{ui('Choose an organization')}</h1>
         <p>
           {orgs.length
             ? ui("Pick the workspace you'd like to open.")
@@ -86,18 +86,18 @@
         {#if data.canCreateOrganization}
           <a href={resolve('/org/new')} class="v2-auth-add">
             <Plus />
-            {ui('Create new organisation')}
+            {ui('Create new organization')}
           </a>
         {/if}
       {:else}
         <div class="v2-state" style="padding:22px 0 8px">
           <div class="v2-state-icon"><Building2 size={22} /></div>
-          <h3>{ui('No organisations yet')}</h3>
+          <h3>{ui('No organizations yet')}</h3>
           {#if data.canCreateOrganization}
             <p>{ui('Create your first workspace to start using High Demand Media CRM.')}</p>
             <a href={resolve('/org/new')} class="v2-btn v2-btn-primary">
               <Plus size={15} />
-              {ui('Create organisation')}
+              {ui('Create organization')}
             </a>
           {:else}<p>
               {ui('Open the invitation sent to your email, or contact your administrator.')}

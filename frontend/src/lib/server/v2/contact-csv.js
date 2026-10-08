@@ -1,3 +1,4 @@
+import { exportQueryURL, exportRows } from './export-scope.js';
 import { apiRequest } from '$lib/api-helpers.js';
 import { listColumns, columnValue } from '$lib/v2/list-columns.js';
 import { contactColumns } from '$lib/v2/contact-columns.js';
@@ -44,18 +45,9 @@ export async function exportContacts(event) {
     .filter((column) => column !== undefined);
   if (!columns.length) throw new Error('Choose at least one valid column.');
   const lines = [columns.map(([, label]) => csvCell(label)).join(',')];
-  const query = contactQuery(event.url);
-  query.set('limit', '100');
-  query.set('permission_action', 'export');
-  let offset = 0;
-  while (true) {
-    if (event.request?.signal.aborted) throw new Error('Export canceled.');
-    query.set('offset', String(offset));
-    const page = await listContacts({ cookies: event.cookies }, query);
-    for (const contact of page.results)
-      lines.push(columns.map(([key]) => csvCell(exportValue(contact, key, catalog))).join(','));
-    offset += page.results.length;
-    if (offset >= page.totals.count || !page.results.length) break;
+  const query = contactQuery(exportQueryURL(event.url));
+  for await (const contact of exportRows(event, query, listContacts)) {
+    lines.push(columns.map(([key]) => csvCell(exportValue(contact, key, catalog))).join(','));
   }
   return '\uFEFF' + lines.join('\r\n') + '\r\n';
 }

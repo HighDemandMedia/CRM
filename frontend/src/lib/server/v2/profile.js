@@ -50,6 +50,7 @@ export async function getProfile({ cookies }) {
   return {
     profile: {
       id: u.id,
+      setup_step: u.setup_step || 'complete',
       user_details: {
         first_name: name.first_name,
         last_name: name.last_name,
