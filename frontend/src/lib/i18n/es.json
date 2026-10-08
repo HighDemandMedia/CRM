@@ -1395,5 +1395,6 @@
   "Contact owner": "Responsable del contacto",
   "Last Activity": "Última actividad",
   "Associated {kind}": "{kind} asociados",
-  "Add association: {kind}": "Añadir asociación: {kind}"
+  "Add association: {kind}": "Añadir asociación: {kind}",
+  "Visit our website": "Visita nuestra web"
 }

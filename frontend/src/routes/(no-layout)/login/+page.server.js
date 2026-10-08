@@ -1,3 +1,4 @@
+import { normalizeLocale } from '$lib/i18n/messages.js';
 import { API_ORIGIN } from '$lib/server/api-origin.js';
 import { savePasswordSession, passwordError } from '$lib/server/password-session.js';
 /**
@@ -43,6 +44,17 @@ function getCookieOptions(maxAge) {
 
 /** @type {import('@sveltejs/kit').ServerLoad} */
 export async function load({ url, cookies }) {
+  const language = url.searchParams.get('lang');
+  if (language === 'en' || language === 'es') {
+    cookies.set('crm_language', language, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: url.protocol === 'https:',
+      maxAge: 31536000
+    });
+  }
+  const uiLocale = normalizeLocale(cookies.get('crm_language'));
   const code = url.searchParams.get('code');
   const returnedState = url.searchParams.get('state');
   const error = url.searchParams.get('error');
@@ -70,9 +82,9 @@ export async function load({ url, cookies }) {
 
   // Generate OAuth parameters and return login URL
   return {
+    uiLocale,
     ...(await generateOAuthUrl(cookies)),
-    recovery: url.searchParams.get('recover') === '1',
-    signin: url.searchParams.get('signin') === '1'
+    recovery: url.searchParams.get('recover') === '1'
   };
 }
 

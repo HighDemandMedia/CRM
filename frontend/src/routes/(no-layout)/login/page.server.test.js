@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('axios', () => ({ default: { post: vi.fn() } }));
 vi.mock('$env/dynamic/private', () => ({ env: { NODE_ENV: 'production' } }));
 import axios from 'axios';
-import { actions } from './+page.server.js';
+import { actions, load } from './+page.server.js';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -56,5 +56,54 @@ describe('password sign-in action', () => {
       'access',
       expect.objectContaining({ httpOnly: true, secure: true })
     );
+  });
+});
+
+describe('sign-in language', () => {
+  function languageEvent(query, initial = {}) {
+    const values = new Map(Object.entries(initial));
+    return /** @type {any} */ ({
+      url: new URL(`https://crm.example.test/login${query}`),
+      cookies: {
+        get: (name) => values.get(name),
+        set: vi.fn((name, value) => values.set(name, value))
+      }
+    });
+  }
+  it('keeps the selected language when moving to sign-in', async () => {
+    const event = languageEvent('?lang=es');
+    expect(await load(event)).toMatchObject({ uiLocale: 'es', recovery: false });
+    expect(event.cookies.set).toHaveBeenCalledWith(
+      'crm_language',
+      'es',
+      expect.objectContaining({
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax'
+      })
+    );
+    event.url = new URL('https://crm.example.test/login?signin=1');
+    expect(await load(event)).toMatchObject({ uiLocale: 'es', recovery: false });
+  });
+  it('ignores unsupported language input without replacing an existing preference', async () => {
+    const event = languageEvent('?lang=fr', { crm_language: 'es' });
+    expect(await load(event)).toMatchObject({ uiLocale: 'es' });
+    expect(event.cookies.set).not.toHaveBeenCalled();
+  });
+  it('keeps recovery available from the direct sign-in page', async () => {
+    const event = languageEvent('?recover=1&lang=es');
+    expect(await load(event)).toMatchObject({ uiLocale: 'es', recovery: true });
+  });
+  it('continues an accepted invitation for an authenticated user', async () => {
+    const event = languageEvent('?lang=en', {
+      jwt_access: 'existing-session',
+      crm_invitation: 'pending-invitation'
+    });
+    await expect(load(event)).rejects.toMatchObject({ status: 307, location: '/invite' });
+  });
+  it('preserves the authenticated-user redirect', async () => {
+    const event = languageEvent('?lang=en', { jwt_access: 'existing-session' });
+    await expect(load(event)).rejects.toMatchObject({ status: 307, location: '/org' });
   });
 });
