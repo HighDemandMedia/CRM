@@ -503,7 +503,7 @@
       />{/if}
   {/each}
   <label
-    >{ui('Search')}<input
+    ><span class="v2-sr-only">{ui('Search')}</span><input
       class="v2-input"
       type="search"
       name="search"
@@ -512,7 +512,7 @@
     /></label
   >
   <label
-    >{ui('Contact Owner')}<select
+    ><span class="v2-sr-only">{ui('Contact Owner')}</span><select
       class="v2-input"
       name="assigned_to"
       value={filterValues.assigned_to ?? ''}
@@ -522,14 +522,22 @@
     </select></label
   >
   <label
-    >{ui('Stage')}<select class="v2-input" name="stage" value={filterValues.stage ?? ''}>
+    ><span class="v2-sr-only">{ui('Stage')}</span><select
+      class="v2-input"
+      name="stage"
+      value={filterValues.stage ?? ''}
+    >
       <option value="">{ui('All stages')}</option>
       {#each data.stages as stage}<option value={stage.value}>{stage.label}</option>{/each}
       {#if data.view === 'list'}<option value="UNASSIGNED">{ui('No stage')}</option>{/if}
     </select></label
   >
   <label
-    >{ui('Tags')}<select class="v2-input" name="tags" value={filterValues.tags ?? ''}>
+    ><span class="v2-sr-only">{ui('Tags')}</span><select
+      class="v2-input"
+      name="tags"
+      value={filterValues.tags ?? ''}
+    >
       <option value="">{ui('All tags')}</option>
       {#each data.tags as tag}<option value={tag.id}>{tag.name}</option>{/each}
     </select></label

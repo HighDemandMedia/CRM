@@ -518,7 +518,7 @@
       />{/if}
   {/each}
   <label
-    >{ui('Search')}<input
+    ><span class="v2-sr-only">{ui('Search')}</span><input
       class="v2-input"
       type="search"
       name="search"
@@ -527,7 +527,11 @@
     /></label
   >
   <label
-    >{ui('Stage')}<select class="v2-input" name="stage" value={filterValues.stage ?? ''}>
+    ><span class="v2-sr-only">{ui('Stage')}</span><select
+      class="v2-input"
+      name="stage"
+      value={filterValues.stage ?? ''}
+    >
       <option value="">{ui('All stages')}</option>
       {#each data.stages as stage}<option value={stage.value}>{stage.label}</option>{/each}
     </select></label

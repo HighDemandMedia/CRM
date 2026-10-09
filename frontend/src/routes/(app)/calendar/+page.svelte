@@ -140,7 +140,6 @@
 
 <EventDetails bind:this={details} onChanged={() => refresh++} />
 <PageHeader title={ui('Calendar')}>
-  {#snippet sub()}{ui('Appointments and connected calendar events.')}{/snippet}
   {#snippet actions()}
     <CreateAppointment
       hosts={data.hosts}

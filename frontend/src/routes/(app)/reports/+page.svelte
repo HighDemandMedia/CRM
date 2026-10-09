@@ -8,7 +8,7 @@
   import { base, resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import { Download, ChevronLeft, ChevronRight, ChartNoAxesCombined, Info } from '@lucide/svelte';
+  import { Download, ChevronLeft, ChevronRight, ChartNoAxesCombined } from '@lucide/svelte';
 
   /** @type {{data:any}} */
   let { data } = $props();
@@ -121,7 +121,6 @@
 </script>
 
 <PageHeader title={ui('Reports')}>
-  {#snippet sub()}{ui('Explore performance over a period of time.')}{/snippet}
   {#snippet actions()}{#if report?.can_export}<a class="v2-btn" href={exportUrl} download
         ><Download size={15} />{ui('Export report')}</a
       >{/if}{/snippet}
@@ -175,7 +174,7 @@
         /></label
       >
       <label
-        >{ui('Quick range')}<select
+        ><span class="v2-sr-only">{ui('Quick range')}</span><select
           class="v2-input"
           value=""
           onchange={(e) => preset(e.currentTarget.value)}
@@ -190,7 +189,8 @@
     </div>
     <div class="secondary-filters">
       <label
-        >{report.object === 'events' ? ui('Host') : ui('Owner')}<select
+        ><span class="v2-sr-only">{report.object === 'events' ? ui('Host') : ui('Owner')}</span
+        ><select
           class="v2-input"
           value={report.owner}
           onchange={(e) => update({ owner: e.currentTarget.value })}
@@ -202,7 +202,8 @@
         ></label
       >
       <label
-        >{report.object === 'events' ? ui('Status') : ui('Stage')}<select
+        ><span class="v2-sr-only">{report.object === 'events' ? ui('Status') : ui('Stage')}</span
+        ><select
           class="v2-input"
           value={report.stage}
           onchange={(e) => update({ stage: e.currentTarget.value })}
@@ -213,7 +214,6 @@
             >{/each}</select
         ></label
       >
-      <p class="timezone">{report.timezone}</p>
     </div>
     <div class="period-heading">
       <h2>{report.label}<span>{periodLabel}</span></h2>
@@ -438,44 +438,6 @@
           >
         </div>{/if}
     </section>
-    <details class="definitions">
-      <summary><Info size={15} />{ui('How this report is calculated')}</summary>
-      <div>
-        <p>
-          {ui('Dates include the entire first and last day in')}
-          {report.timezone}{ui(
-            '. The previous period has the same number of days. Reports include only records you can access.'
-          )}
-        </p>
-        <p>
-          {ui(
-            'Stages, owners and amounts reflect current values of existing records. This is not a snapshot of their values at the end of the period. Deleted records and merged duplicates are excluded.'
-          )}
-        </p>
-        {#if report.object === 'deals'}<p>
-            {ui(
-              'Expected close date is a planned date. “Currently won” means deals that are won now and match the selected date filter; it is not cash collected or a history of wins during that period.'
-            )}
-          </p>{/if}{#if report.date_field === 'last_activity_at'}<p>
-            {ui(
-              'Last activity counts each record once, using its latest recorded property change (or creation date). Opening a record does not count as activity.'
-            )}
-          </p>{/if}{#if report.date_field.includes('stage')}<p>
-            {ui(
-              'Last stage change is the latest transition only. It does not count every stage transition.'
-            )}
-          </p>{/if}{#if report.object === 'events'}<p>
-            {ui(
-              'Events are counted once, regardless of attendee count. Cancelled events remain included unless you filter by Scheduled. Scheduled means not cancelled; it does not confirm attendance.'
-            )}
-          </p>{/if}
-        <p>
-          {ui(
-            'Export report downloads these totals, the complete breakdown and time series. It requires export permission covering this report.'
-          )}
-        </p>
-      </div>
-    </details>
   {/if}
 </div>
 
@@ -514,11 +476,6 @@
   }
   .secondary-filters label {
     min-width: 175px;
-  }
-  .timezone {
-    margin: 0 0 10px auto;
-    font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
   }
   .period-heading {
     display: flex;
@@ -891,26 +848,6 @@
     position: sticky;
     top: 0;
   }
-  .definitions {
-    font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
-    margin-top: var(--crm-space-5);
-    line-height: 1.6;
-  }
-  .definitions summary {
-    display: flex;
-    align-items: center;
-    gap: var(--crm-space-2);
-    cursor: pointer;
-    width: fit-content;
-  }
-  .definitions > div {
-    max-width: 850px;
-    padding: var(--crm-space-2) 0;
-  }
-  .definitions p {
-    margin: var(--crm-space-2) 0;
-  }
   .report-error {
     padding: var(--crm-space-6);
     border: 1px solid var(--v2-line);
@@ -929,8 +866,7 @@
     opacity: 0.6;
   }
   button:focus-visible,
-  a:focus-visible,
-  summary:focus-visible {
+  a:focus-visible {
     outline: 2px solid var(--crm-focus);
     outline-offset: 3px;
   }
@@ -962,10 +898,6 @@
     .secondary-filters label {
       flex: 1;
       min-width: 120px;
-    }
-    .timezone {
-      width: 100%;
-      margin-top: var(--crm-space-1);
     }
     .chart-panel {
       padding: 15px;

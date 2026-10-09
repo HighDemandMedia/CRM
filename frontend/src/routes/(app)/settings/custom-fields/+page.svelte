@@ -150,7 +150,6 @@
 </script>
 
 <PageHeader title={ui('Properties')}>
-  {#snippet sub()}{ui('Manage the fields used by each CRM object.')}{/snippet}
   {#snippet actions()}
     {#if data.can_edit}<button class="v2-btn v2-btn-primary" onclick={() => openEditor()}
         ><Plus size={16} /> {ui('Create property')}</button
