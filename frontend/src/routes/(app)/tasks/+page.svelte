@@ -21,7 +21,7 @@
    */
   import { page } from '$app/state';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import SectionTabs from '$lib/v2/components/SectionTabs.svelte';
+  import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { listColumns, columnValue } from '$lib/v2/list-columns.js';
   import { columnSelection } from '$lib/v2/column-selection.svelte.js';
   import { columnOrder } from '$lib/v2/column-order.js';
@@ -83,15 +83,16 @@
       const result = deserialize(await response.text());
       if (result.type !== 'success' && showStageRequirements(result, 'Task', id, { status }))
         return;
-      if (result.type !== 'success')
-        throw new Error(
+      if (result.type !== 'success') {
+        moveError =
           result.type === 'failure'
-            ? String(result.data?.error || 'Could not move the task.')
-            : 'Could not move the task. Please try again.'
-        );
+            ? String(result.data?.error || 'Could not move the task. Please try again.')
+            : 'Could not move the task. Please try again.';
+        return;
+      }
       await invalidateAll();
-    } catch (error) {
-      moveError = error.message;
+    } catch {
+      moveError = 'Could not move the task. Please try again.';
     } finally {
       moving = false;
     }
@@ -131,232 +132,240 @@
   {/snippet}
 </PageHeader>
 
-<SectionTabs set="tasks" />
-<TaskFilters url={page.url} people={data.people}>
-  {#snippet columnTools()}
-    {#if !pipeline}<ColumnPicker
-        {fields}
-        selected={columns}
-        onToggle={(key) => selection.toggle(key)}
-        onShowAll={selection.showAll}
-        onReset={selection.reset}
-      />{/if}
-  {/snippet}
-</TaskFilters>
+<div class="object-workspace">
+  <TaskFilters url={page.url} people={data.people}>
+    {#snippet columnTools()}
+      {#if !pipeline}<ColumnPicker
+          {fields}
+          selected={columns}
+          onToggle={(key) => selection.toggle(key)}
+          onShowAll={selection.showAll}
+          onReset={selection.reset}
+        />{/if}
+    {/snippet}
+  </TaskFilters>
 
-{#if form?.error}
-  <p class="v2-pad v2-form-error" role="alert">{ui(form.error)}</p>
-{/if}
+  {#if form?.error}
+    <ErrorNotice message={ui(form.error)} />
+  {/if}
 
-{#if moveError}<p class="v2-pad v2-form-error" role="alert">{moveError}</p>{/if}
-<div
-  class="v2-scroll"
-  class:task-list={!pipeline}
-  class:list-scroll={!pipeline}
-  class:pipeline-scroll={pipeline}
->
-  {#if pipeline}
-    <div class="hdm-board" aria-label={ui('Task pipeline')}>
-      {#each statuses as status}
-        <section
-          class="pipeline-column"
-          aria-label={`${status} tasks`}
-          class:drop-target={target === status}
-          data-tone={status === 'Completed'
-            ? 'success'
-            : status === 'In Progress'
-              ? 'waiting'
-              : 'open'}
-          ondragover={(event) => {
-            if (dragged && !moving) {
+  {#if moveError}<ErrorNotice message={ui(moveError)} />{/if}
+  <div
+    class="v2-scroll"
+    class:task-list={!pipeline}
+    class:list-scroll={!pipeline}
+    class:pipeline-scroll={pipeline}
+  >
+    {#if pipeline}
+      <div class="hdm-board" aria-label={ui('Task pipeline')}>
+        {#each statuses as status}
+          <section
+            class="pipeline-column"
+            aria-label={`${status} tasks`}
+            class:drop-target={target === status}
+            data-tone={status === 'Completed'
+              ? 'success'
+              : status === 'In Progress'
+                ? 'waiting'
+                : 'open'}
+            ondragover={(event) => {
+              if (dragged && !moving) {
+                event.preventDefault();
+                target = status;
+              }
+            }}
+            ondragleave={(event) => {
+              if (!event.currentTarget.contains(/** @type {Node|null} */ (event.relatedTarget)))
+                target = '';
+            }}
+            ondrop={(event) => {
               event.preventDefault();
-              target = status;
-            }
-          }}
-          ondragleave={(event) => {
-            if (!event.currentTarget.contains(/** @type {Node|null} */ (event.relatedTarget)))
-              target = '';
-          }}
-          ondrop={(event) => {
-            event.preventDefault();
-            if (dragged) void move(dragged, status);
-          }}
-        >
-          <header class="pipeline-header">
-            <h2>{statusName(status)}</h2>
-            <span>{tasks.filter((task) => task.status === status).length}</span>
-          </header>
-          <div class="pipeline-cards">
-            {#each tasks.filter((task) => task.status === status) as task (task.id)}
-              <article
-                class="pipeline-card"
-                draggable={!moving && can(page.data.permissions, 'tasks', 'stage')}
-                ondragstart={(event) => {
-                  dragged = task.id;
-                  event.dataTransfer?.setData('text/plain', task.id);
-                }}
-                ondragend={() => {
-                  dragged = '';
-                  target = '';
-                }}
-              >
-                <a class="pipeline-name" href={resolve(`/tasks/${task.id}`)}
-                  >{task.title || `Task · ${task.id.slice(0, 8)}`}</a
-                >
-                <dl>
-                  <div>
-                    <dt>{ui('Owner')}</dt>
-                    <dd>{task.assigned_names.join(', ') || '—'}</dd>
-                  </div>
-                  <div>
-                    <dt>{ui('Priority')}</dt>
-                    <dd>{task.priority}</dd>
-                  </div>
-                  <div>
-                    <dt>{ui('Due')}</dt>
-                    <dd>{task.due_date ? relativeDays(task.due_date) : '—'}</dd>
-                  </div>
-                </dl>
-                {#if task.related}<a class="task-parent" href={resolve(task.related.href)}
-                    >{task.related.name}</a
-                  >{/if}
-                <select
-                  class="task-stage"
-                  aria-label={`Stage for ${task.title}`}
-                  value={task.status}
-                  disabled={moving}
-                  onchange={(event) => move(task.id, event.currentTarget.value)}
-                  >{#each statuses as choice}<option value={choice}>{statusName(choice)}</option
-                    >{/each}</select
-                >
-              </article>
-            {:else}<p class="pipeline-empty">{ui('No tasks')}</p>{/each}
-          </div>
-        </section>
-      {/each}
-    </div>
-  {:else if tasks.length === 0}
-    <EmptyState
-      title={data.showAll ? ui('No tasks yet') : ui('Nothing on your list')}
-      body={data.showAll ? 'Create a task to get started.' : 'No open tasks match this view.'}
-    >
-      {#snippet icon()}<CircleCheck size={21} />{/snippet}
-      {#snippet actions()}
-        {#if can(page.data.permissions, 'tasks', 'create')}<a
-            class="v2-btn v2-btn-primary"
-            href={resolve('/tasks/new')}>{ui('New task')}</a
-          >{/if}
-        {#if !data.showAll}
-          <a class="v2-btn" href={resolve('/tasks?all=1')}>{ui('Show completed')}</a>
-        {/if}
-      {/snippet}
-    </EmptyState>
-  {:else}
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this overflow region to scroll the table.) -->
-    <div
-      class="v2-table-wrap hdm-list"
-      use:columnOrder={{ keys: columns, onChange: selection.set }}
-      role="region"
-      aria-label={ui('Tasks; scroll horizontally to see all columns')}
-      tabindex="0"
-    >
-      <table class="v2-table">
-        <thead>
-          <tr>
-            <th style="width:38px"><span class="v2-sr-only">{ui('Done')}</span></th>
-            {#each columns as key (key)}<th scope="col" data-column={key}>
-                <button
-                  type="button"
-                  class="reorder-column-heading"
-                  draggable="true"
-                  title={ui('Drag to reorder. Alt + arrow keys also move the column.')}
-                  >{fields.find(([id]) => id === key)?.[1]}</button
-                ></th
-              >{/each}
-            <th>{ui('Actions')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each tasks as t (t.id)}
-            {@const late = overdueDays(t)}
-            <tr>
-              <!-- Not the identifier, so it must not take the title slot, but it
-                   is the one control on this row, so it stays on the title line
-                   at the left rather than dropping into the meta run. -->
-              <td data-m="lead">
-                <form
-                  method="POST"
-                  action="?/toggle"
-                  use:enhance={() => {
-                    saving[t.id] = true;
-                    return async ({ update }) => {
-                      await update({ reset: false });
-                      saving[t.id] = false;
-                    };
+              if (dragged) void move(dragged, status);
+            }}
+          >
+            <header class="pipeline-header">
+              <h2>{statusName(status)}</h2>
+              <span>{tasks.filter((task) => task.status === status).length}</span>
+            </header>
+            <div class="pipeline-cards">
+              {#each tasks.filter((task) => task.status === status) as task (task.id)}
+                <article
+                  class="pipeline-card"
+                  draggable={!moving && can(page.data.permissions, 'tasks', 'stage')}
+                  ondragstart={(event) => {
+                    dragged = task.id;
+                    event.dataTransfer?.setData('text/plain', task.id);
+                  }}
+                  ondragend={() => {
+                    dragged = '';
+                    target = '';
                   }}
                 >
-                  <input type="hidden" name="id" value={t.id} />
-                  <input type="hidden" name="done" value={t.is_done ? 'false' : 'true'} />
-                  <button
-                    type="submit"
-                    class="v2-tick"
-                    disabled={saving[t.id]}
-                    aria-label={t.is_done ? `Reopen ${t.title}` : `Mark ${t.title} done`}
+                  <a class="pipeline-name" href={resolve(`/tasks/${task.id}`)}
+                    >{task.title || `Task · ${task.id.slice(0, 8)}`}</a
                   >
-                    {#if t.is_done}
-                      <CircleCheck size={17} style="color:var(--v2-moss)" />
-                    {:else}
-                      <Circle size={17} />
-                    {/if}
-                  </button>
-                </form>
-              </td>
-              {#each columns as key (key)}
-                <td data-field={key}>
-                  {#if key === 'title'}
-                    <a
-                      href={resolve(`/tasks/${t.id}`)}
-                      class="v2-table-primary"
-                      style={t.is_done ? 'text-decoration:line-through' : ''}
-                      >{t.title || `Task · ${t.id.slice(0, 8)}`}</a
-                    >
-                  {:else if key === 'priority'}
-                    <Pill tone={TASK_PRIORITY_TONE[t.priority]}>{t.priority}</Pill>
-                  {:else if key === 'status'}
-                    <Pill tone={TASK_STATUS_TONE[t.status]}>{statusName(t.status)}</Pill>
-                  {:else if key === 'due_date'}
-                    <span class:overdue={late > 0}
-                      >{!t.due_date ? '—' : late ? `${late}d late` : relativeDays(t.due_date)}</span
-                    >
-                  {:else if ['account', 'opportunity', 'case'].includes(key) && t.related && t[key]?.id === t.related.id}
-                    <a href={resolve(t.related.href)}>{t.related.name}</a>
-                  {:else if key === 'last_activity_at' || key === 'created_at'}
-                    <span title={t[key] ? new Date(t[key]).toLocaleString(locale()) : undefined}
-                      >{t[key] ? relativeDays(t[key]) : '—'}</span
-                    >
-                  {:else}
-                    {columnValue(t, key, catalog)}
-                  {/if}
-                </td>
-              {/each}
-              <td class="list-row-actions"
-                >{#if can(page.data.permissions, 'tasks', 'edit')}<a
-                    aria-label={`Edit ${t.title}`}
-                    href={resolve(`/tasks/${t.id}/edit`)}>{ui('Edit')}</a
-                  >{/if}</td
-              >
+                  <dl>
+                    <div>
+                      <dt>{ui('Owner')}</dt>
+                      <dd>{task.assigned_names.join(', ') || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>{ui('Priority')}</dt>
+                      <dd>{task.priority}</dd>
+                    </div>
+                    <div>
+                      <dt>{ui('Due')}</dt>
+                      <dd>{task.due_date ? relativeDays(task.due_date) : '—'}</dd>
+                    </div>
+                  </dl>
+                  {#if task.related}<a class="task-parent" href={resolve(task.related.href)}
+                      >{task.related.name}</a
+                    >{/if}
+                  <select
+                    class="task-stage"
+                    aria-label={`Stage for ${task.title}`}
+                    value={task.status}
+                    disabled={moving}
+                    onchange={(event) => move(task.id, event.currentTarget.value)}
+                    >{#each statuses as choice}<option value={choice}>{statusName(choice)}</option
+                      >{/each}</select
+                  >
+                </article>
+              {:else}<p class="pipeline-empty">{ui('No tasks')}</p>{/each}
+            </div>
+          </section>
+        {/each}
+      </div>
+    {:else if tasks.length === 0}
+      <EmptyState
+        title={data.showAll ? ui('No tasks yet') : ui('Nothing on your list')}
+        body={data.showAll ? 'Create a task to get started.' : 'No open tasks match this view.'}
+      >
+        {#snippet icon()}<CircleCheck size={21} />{/snippet}
+        {#snippet actions()}
+          {#if can(page.data.permissions, 'tasks', 'create')}<a
+              class="v2-btn v2-btn-primary"
+              href={resolve('/tasks/new')}>{ui('New task')}</a
+            >{/if}
+          {#if !data.showAll}
+            <a class="v2-btn" href={resolve('/tasks?all=1')}>{ui('Show completed')}</a>
+          {/if}
+        {/snippet}
+      </EmptyState>
+    {:else}
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this overflow region to scroll the table.) -->
+      <div
+        class="object-table hdm-list"
+        use:columnOrder={{ keys: columns, onChange: selection.set }}
+        role="region"
+        aria-label={ui('Tasks; scroll horizontally to see all columns')}
+        tabindex="0"
+      >
+        <table>
+          <thead>
+            <tr>
+              <th style="width:38px"><span class="v2-sr-only">{ui('Done')}</span></th>
+              {#each columns as key (key)}<th scope="col" data-column={key} data-field={key}>
+                  <button
+                    type="button"
+                    class="reorder-column-heading"
+                    draggable="true"
+                    title={ui('Drag to reorder. Alt + arrow keys also move the column.')}
+                    >{fields.find(([id]) => id === key)?.[1]}</button
+                  ></th
+                >{/each}
+              <th>{ui('Actions')}</th>
             </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  {/if}
-  <ListPagination
-    offset={data.offset}
-    pageSize={data.pageSize}
-    total={data.totals.count}
-    shown={tasks.length}
-  />
+          </thead>
+          <tbody>
+            {#each tasks as t (t.id)}
+              {@const late = overdueDays(t)}
+              <tr>
+                <!-- Not the identifier, so it must not take the title slot, but it
+                   is the one control on this row, so it stays on the title line
+                   at the left rather than dropping into the meta run. -->
+                <td data-m="lead">
+                  <form
+                    method="POST"
+                    action="?/toggle"
+                    use:enhance={() => {
+                      saving[t.id] = true;
+                      return async ({ update }) => {
+                        try {
+                          await update({ reset: false });
+                        } finally {
+                          saving[t.id] = false;
+                        }
+                      };
+                    }}
+                  >
+                    <input type="hidden" name="id" value={t.id} />
+                    <input type="hidden" name="done" value={t.is_done ? 'false' : 'true'} />
+                    <button
+                      type="submit"
+                      class="v2-tick"
+                      disabled={saving[t.id]}
+                      aria-label={t.is_done ? `Reopen ${t.title}` : `Mark ${t.title} done`}
+                    >
+                      {#if t.is_done}
+                        <CircleCheck size={17} style="color:var(--v2-moss)" />
+                      {:else}
+                        <Circle size={17} />
+                      {/if}
+                    </button>
+                  </form>
+                </td>
+                {#each columns as key (key)}
+                  <td data-field={key}>
+                    {#if key === 'title'}
+                      <a
+                        href={resolve(`/tasks/${t.id}`)}
+                        class="v2-table-primary"
+                        style={t.is_done ? 'text-decoration:line-through' : ''}
+                        >{t.title || `Task · ${t.id.slice(0, 8)}`}</a
+                      >
+                    {:else if key === 'priority'}
+                      <Pill tone={TASK_PRIORITY_TONE[t.priority]}>{t.priority}</Pill>
+                    {:else if key === 'status'}
+                      <Pill tone={TASK_STATUS_TONE[t.status]}>{statusName(t.status)}</Pill>
+                    {:else if key === 'due_date'}
+                      <span class:overdue={late > 0}
+                        >{!t.due_date
+                          ? '—'
+                          : late
+                            ? `${late}d late`
+                            : relativeDays(t.due_date)}</span
+                      >
+                    {:else if ['account', 'opportunity', 'case'].includes(key) && t.related && t[key]?.id === t.related.id}
+                      <a href={resolve(t.related.href)}>{t.related.name}</a>
+                    {:else if key === 'last_activity_at' || key === 'created_at'}
+                      <span title={t[key] ? new Date(t[key]).toLocaleString(locale()) : undefined}
+                        >{t[key] ? relativeDays(t[key]) : '—'}</span
+                      >
+                    {:else}
+                      {columnValue(t, key, catalog)}
+                    {/if}
+                  </td>
+                {/each}
+                <td class="list-row-actions"
+                  >{#if can(page.data.permissions, 'tasks', 'edit')}<a
+                      aria-label={`Edit ${t.title}`}
+                      href={resolve(`/tasks/${t.id}/edit`)}>{ui('Edit')}</a
+                    >{/if}</td
+                >
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    {/if}
+    <ListPagination
+      offset={data.offset}
+      pageSize={data.pageSize}
+      total={data.totals.count}
+      shown={tasks.length}
+    />
+  </div>
 </div>
 
 <style>
@@ -386,13 +395,6 @@
   }
   :global(.task-list .hdm-list) {
     overflow: auto;
-  }
-  :global(.task-list .v2-table) {
-    min-width: 850px;
-  }
-  :global(.task-list .v2-table td[data-field='title']) {
-    min-width: 14rem;
-    overflow-wrap: anywhere;
   }
   :global(.v2-root a.v2-btn-primary) {
     color: var(--crm-primary-text);

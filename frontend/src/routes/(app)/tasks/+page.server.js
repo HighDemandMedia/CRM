@@ -83,7 +83,7 @@ export const actions = {
         error:
           err?.status === 403
             ? 'That task is not yours to change.'
-            : (err?.body?.errors ?? 'That did not save. Try again.')
+            : readableError(err, 'That did not save. Try again.')
       });
     }
     return { done };

@@ -1,3 +1,4 @@
+import { googleErrorMessage } from '$lib/utils/google-feedback.js';
 import { redirect } from '@sveltejs/kit';
 import { timingSafeEqual } from 'node:crypto';
 import { apiRequest } from '$lib/api-helpers.js';
@@ -17,8 +18,15 @@ export async function GET({ cookies, url }) {
       { method: 'POST', body: { state: received, code: url.searchParams.get('code') } },
       { cookies }
     );
-  } catch {
-    redirect(303, '/profile?google=failed');
+  } catch (err) {
+    const message = googleErrorMessage(err);
+    const reason =
+      message.includes('permissions') || message.includes('offline access')
+        ? 'permissions'
+        : message.includes('expired')
+          ? 'expired'
+          : 'failed';
+    redirect(303, `/profile?google=${reason}`);
   }
   redirect(303, '/profile?google=connected');
 }

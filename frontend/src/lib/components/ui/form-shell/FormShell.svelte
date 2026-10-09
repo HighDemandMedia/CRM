@@ -1,4 +1,5 @@
 <script>
+  import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { enhance } from '$app/forms';
   import { cn } from '$lib/utils.js';
 
@@ -37,9 +38,11 @@
   <div
     class="fixed inset-x-0 bottom-0 z-20 border-t border-[color:var(--border-faint)] bg-[color:var(--bg)]/95 backdrop-blur-[1px]"
   >
-    <div class="mx-auto flex max-w-[680px] items-center justify-between gap-3 px-7 py-3 md:px-8">
+    <div
+      class="mx-auto flex max-w-[680px] flex-wrap items-center justify-between gap-3 px-7 py-3 md:px-8"
+    >
       {#if errorMessage}
-        <p class="truncate text-[12px] text-[color:var(--red)]">{errorMessage}</p>
+        <ErrorNotice message={errorMessage} />
       {:else}
         <span></span>
       {/if}

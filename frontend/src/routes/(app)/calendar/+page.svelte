@@ -1,4 +1,6 @@
 <script>
+  import ErrorNotice from '$lib/components/ErrorNotice.svelte';
+  import { googleErrorMessage } from '$lib/utils/google-feedback.js';
   import '$lib/v2/styles/module-layout.css';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
@@ -148,10 +150,10 @@
     />
   {/snippet}
 </PageHeader>
-{#if googleError}<p class="v2-error" role="status">
-    {ui('Google Calendar:')}
-    {googleError} <a href="/profile?google=settings">{ui('Manage connection')}</a>
-  </p>{/if}
+{#if googleError}<div class="v2-pad">
+    <ErrorNotice message={ui(googleErrorMessage(googleError))} />
+    <a class="v2-btn v2-btn-sm" href="/profile?google=settings">{ui('Manage connection')}</a>
+  </div>{/if}
 <div class="calendar-toolbar crm-module-toolbar">
   <button class="v2-btn" onclick={() => (selected = new Date())}>{ui('Today')}</button>
   <button

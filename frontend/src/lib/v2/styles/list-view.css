@@ -1,3 +1,45 @@
+/* Shared compact workspace for task and ticket queues. */
+.object-workspace {
+  padding: var(--crm-space-2) var(--crm-space-3) 0;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--crm-space-2);
+}
+.object-filters {
+  display: flex;
+  align-items: center;
+  gap: var(--crm-space-2);
+  flex-wrap: wrap;
+}
+.object-views {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--crm-space-1);
+  margin-left: auto;
+}
+.object-table {
+  overflow: auto;
+  flex: 1;
+}
+.object-table table {
+  min-width: 100%;
+  width: max-content;
+}
+.object-table th,
+.object-table td {
+  white-space: nowrap;
+}
+.object-workspace > .v2-scroll {
+  padding: 0;
+}
+.object-workspace .list-scroll .hdm-list {
+  margin: 0;
+}
+
 /* Common list treatment; fixed column widths and existing table interactions remain intact. */
 .v2-scroll.list-scroll {
   display: flex;
@@ -65,13 +107,13 @@
 .hdm-list.hdm-list tbody tr:focus-within {
   background: var(--crm-surface-selected);
 }
-.hdm-list.hdm-list td[data-field='name'] a {
+.hdm-list.hdm-list td:is([data-field='name'], [data-field='title']) a {
   color: var(--crm-text);
   font-size: var(--crm-text-sm);
   font-weight: 650;
   text-decoration: none;
 }
-.hdm-list.hdm-list td[data-field='name'] a:hover {
+.hdm-list.hdm-list td:is([data-field='name'], [data-field='title']) a:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
 }

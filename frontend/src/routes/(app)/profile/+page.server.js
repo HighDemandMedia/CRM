@@ -1,3 +1,4 @@
+import { googleErrorMessage } from '$lib/utils/google-feedback.js';
 import { setupDestination } from '$lib/server/onboarding.js';
 import { savePasswordSession } from '$lib/server/password-session.js';
 import { listTimezones } from '$lib/server/v2/organization.js';
@@ -40,7 +41,7 @@ export const actions = {
     } catch (err) {
       return fail(400, {
         scope: 'google',
-        message: readableError(err, 'Could not connect Google.')
+        message: googleErrorMessage(err)
       });
     }
     cookies.set('google_connection_state', result.state, {
@@ -71,12 +72,12 @@ export const actions = {
         googleMessage:
           form.get('operation') === 'disconnect'
             ? 'Disconnected. Cached Google data has been removed from the CRM.'
-            : 'Synchronization queued. Updates usually appear within five minutes.'
+            : 'Synchronization requested. Check the connection status and last sync time for progress.'
       };
     } catch (err) {
       return fail(400, {
         scope: 'google',
-        message: readableError(err, 'Could not update the connection.')
+        message: googleErrorMessage(err)
       });
     }
   },

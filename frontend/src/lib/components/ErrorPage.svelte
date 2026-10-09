@@ -1,126 +1,88 @@
 <script>
   import { useI18n } from '$lib/i18n/context.js';
-  const { ui } = useI18n();
-
-  import { resolve } from '$app/paths';
-  import { asInternalPath } from '$lib/utils/paths.js';
-  import { goto } from '$app/navigation';
   import { Button } from '$lib/components/ui/button/index.js';
-  import {
-    ArrowLeft,
-    Home,
-    Compass,
-    Building2,
-    Users,
-    FileText,
-    Ticket,
-    BarChart3
-  } from '@lucide/svelte';
-
-  /**
-   * @typedef {Object} Props
-   * @property {number} [status]   HTTP status code
-   * @property {string} [message]  Error message from the server (optional)
-   * @property {boolean} [showQuickLinks]  Show the "Try one of these" panel (default true for 404)
-   */
-
-  /** @type {Props} */
-  let { status = 404, message = '', showQuickLinks } = $props();
-
-  let isNotFound = $derived(status === 404);
-  let showLinks = $derived(showQuickLinks ?? isNotFound);
-
-  let title = $derived.by(() => {
-    if (isNotFound) return 'Page not found';
-    if (status === 403) return "You don't have access to this page";
-    if (status === 401) return 'Please sign in to continue';
-    if (status >= 500) return 'Something went wrong';
-    return 'Unable to open this page';
-  });
-
-  let description = $derived.by(() => {
-    if (message) return message;
-    if (isNotFound) return "The page you're looking for doesn't exist or may have been moved.";
-    if (status === 403) return 'Your account does not have permission to view this resource.';
-    if (status === 401) return 'Your session may have expired. Sign in again to continue.';
-    if (status >= 500)
-      return "An unexpected error occurred on our end. We've been notified. Please try again in a moment.";
-    return 'Please check the URL or try going back to where you came from.';
-  });
-
-  const quickLinks = [
-    { href: '/', label: 'Dashboard', icon: BarChart3 },
-    { href: '/accounts', label: 'Companies', icon: Building2 },
-    { href: '/contacts', label: 'Contacts', icon: Users },
-    { href: '/tickets', label: 'Tickets', icon: Ticket },
-    { href: '/tasks', label: 'Tasks', icon: FileText }
-  ];
-
-  function goBack() {
-    if (typeof history !== 'undefined' && history.length > 1) history.back();
-    else goto(resolve('/'));
-  }
+  import { TriangleAlert, Lock, FileQuestion, RefreshCw, ArrowLeft } from '@lucide/svelte';
+  import { pageError } from '$lib/utils/page-error.js';
+  const { ui } = useI18n();
+  /** @type {{ status?: number }} */
+  let { status = 500 } = $props();
+  const error = $derived(pageError(status));
+  const Icon = $derived(
+    error.code === 404 ? FileQuestion : error.code === 403 || error.signIn ? Lock : TriangleAlert
+  );
 </script>
 
-<div class="flex min-h-[80vh] w-full items-center justify-center px-6 py-16">
-  <div class="w-full max-w-xl text-center">
-    <!-- Stylized status code -->
-    <div class="relative mb-6 flex items-center justify-center">
-      <div
-        class="bg-primary/10 absolute inset-0 mx-auto h-32 w-32 rounded-full blur-3xl"
-        aria-hidden="true"
-      ></div>
-      <div class="relative">
-        <span
-          class="block text-[7rem] leading-none font-bold tracking-tighter text-[var(--crm-link)] md:text-[9rem]"
-          style="font-feature-settings: 'tnum';"
-        >
-          {status}
-        </span>
-      </div>
-    </div>
-
-    <!-- Headline + supporting copy -->
-    <h1 class="text-foreground mb-3 text-2xl font-semibold tracking-tight md:text-3xl">
-      {title}
-    </h1>
-    <p class="text-muted-foreground mx-auto mb-8 max-w-md text-base leading-relaxed">
-      {description}
-    </p>
-
-    <!-- Primary actions -->
-    <div class="flex flex-col items-center justify-center gap-3 sm:flex-row">
-      <Button onclick={() => goto(resolve('/'))} class="gap-2">
-        <Home class="h-4 w-4" />
-        {ui('Go to dashboard')}
-      </Button>
-      <Button variant="outline" onclick={goBack} class="gap-2">
-        <ArrowLeft class="h-4 w-4" />
-        {ui('Go back')}
+<section class="crm-error-page" aria-labelledby="page-error-title">
+  <div class="error-card">
+    <div class="error-icon" aria-hidden="true"><Icon size={28} /></div>
+    <p class="error-code">{ui('Error')} {error.code}</p>
+    <h1 id="page-error-title">{ui(error.title)}</h1>
+    <p class="description">{ui(error.description)}</p>
+    <div class="actions">
+      {#if error.signIn}
+        <Button href="/login">{ui('Sign in')}</Button>
+      {:else if error.retry}
+        <Button onclick={() => location.reload()}><RefreshCw size={16} />{ui('Try again')}</Button>
+      {/if}
+      <Button variant={error.retry || error.signIn ? 'outline' : 'default'} href="/">
+        <ArrowLeft size={16} />{ui('Back to Today')}
       </Button>
     </div>
-
-    <!-- Quick links (404 only by default) -->
-    {#if showLinks}
-      <div class="mt-12">
-        <div class="mb-4 flex items-center justify-center gap-2">
-          <Compass class="text-muted-foreground h-4 w-4" />
-          <span class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-            {ui('Try one of these')}
-          </span>
-        </div>
-        <div class="flex flex-wrap items-center justify-center gap-2">
-          {#each quickLinks as link (link.href)}
-            <a
-              href={resolve(asInternalPath(link.href))}
-              class="border-border/60 bg-background hover:border-primary/40 hover:bg-accent hover:text-foreground text-muted-foreground inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
-            >
-              <link.icon class="h-3.5 w-3.5" />
-              {link.label}
-            </a>
-          {/each}
-        </div>
-      </div>
-    {/if}
   </div>
-</div>
+</section>
+
+<style>
+  .crm-error-page {
+    display: grid;
+    place-items: center;
+    flex: 1;
+    min-height: 60vh;
+    padding: var(--crm-space-6);
+    overflow: auto;
+  }
+  .error-card {
+    width: 100%;
+    max-width: 32rem;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border: 1px solid var(--crm-border);
+    border-radius: var(--crm-radius-lg);
+    background: var(--crm-surface);
+    box-shadow: var(--crm-shadow-sm);
+    text-align: center;
+  }
+  .error-icon {
+    display: grid;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin: 0 auto var(--crm-space-4);
+    border-radius: var(--crm-radius-md);
+    background: var(--crm-danger-bg);
+    color: var(--crm-danger);
+  }
+  .error-code {
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-xs);
+    margin: 0 0 var(--crm-space-2);
+  }
+  h1 {
+    color: var(--crm-text);
+    font-size: var(--crm-text-xl);
+    line-height: 1.3;
+    font-weight: 650;
+    margin: 0 0 var(--crm-space-3);
+  }
+  .description {
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-sm);
+    line-height: 1.6;
+    margin: 0;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--crm-space-3);
+    margin-top: var(--crm-space-6);
+  }
+</style>

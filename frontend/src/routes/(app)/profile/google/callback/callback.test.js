@@ -39,3 +39,21 @@ it('handles provider failure without exposing tokens or codes', async () => {
     location: '/profile?google=failed'
   });
 });
+it('shows a permissions recovery message without exposing the callback payload', async () => {
+  vi.mocked(apiRequest).mockRejectedValue({
+    body: ['The required Google permissions were not granted. Connect again.']
+  });
+  await expect(GET(event('valid-state'))).rejects.toMatchObject({
+    status: 303,
+    location: '/profile?google=permissions'
+  });
+});
+it('shows an expired authorization message', async () => {
+  vi.mocked(apiRequest).mockRejectedValue({
+    body: ['The Google authorization expired. Connect again.']
+  });
+  await expect(GET(event('valid-state'))).rejects.toMatchObject({
+    status: 303,
+    location: '/profile?google=expired'
+  });
+});

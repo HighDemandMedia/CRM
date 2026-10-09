@@ -1,9 +1,8 @@
 <script>
-  import '$lib/v2/styles/module-layout.css';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
-  import { List, Columns3 } from '@lucide/svelte';
+  import { List, Columns3, CalendarDays } from '@lucide/svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { onDestroy } from 'svelte';
@@ -30,7 +29,7 @@
   }
 </script>
 
-<div class="task-toolbar object-toolbar">
+<div class="task-toolbar object-filters">
   <form
     class="task-filters"
     method="GET"
@@ -47,7 +46,7 @@
     <input type="hidden" name="page_size" value={url.searchParams.get('page_size') ?? '25'} />
     <input type="hidden" name="view" value={url.searchParams.get('view') ?? 'list'} />
     <label class="crm-module-field search-field"
-      >{ui('Search')}<input
+      ><span class="v2-sr-only">{ui('Search')}</span><input
         type="search"
         class="v2-input search"
         name="q"
@@ -57,7 +56,7 @@
       /></label
     >
     <label class="crm-module-field"
-      >{ui('Owner')}
+      ><span class="v2-sr-only">{ui('Owner')}</span>
       <select
         class="v2-input"
         name="assigned_to"
@@ -69,7 +68,7 @@
       ></label
     >
     <label class="crm-module-field"
-      >{ui('Status')}
+      ><span class="v2-sr-only">{ui('Status')}</span>
       <select
         class="v2-input"
         name="status"
@@ -81,7 +80,7 @@
       ></label
     >
     <label class="crm-module-field"
-      >{ui('Priority')}
+      ><span class="v2-sr-only">{ui('Priority')}</span>
       <select
         class="v2-input"
         name="priority"
@@ -121,8 +120,8 @@
       />{ui('Show completed')}</label
     >
   </form>
-  <div class="crm-module-actions">
-    <nav class="views crm-view-switch" aria-label={ui('Task view')}>
+  <div class="object-views">
+    <nav class="views" aria-label={ui('Task view')}>
       <a
         class="v2-btn v2-btn-icon"
         class:v2-btn-primary={url.searchParams.get('view') !== 'pipeline'}
@@ -141,6 +140,12 @@
         ><Columns3 size={17} /></a
       >
     </nav>
+    <a
+      class="v2-btn v2-btn-icon"
+      href={resolve('/tasks/calendar')}
+      aria-label={ui('Task calendar')}
+      title={ui('Calendar')}><CalendarDays size={17} /></a
+    >
     {#if columnTools}{@render columnTools()}{/if}
   </div>
 </div>
@@ -148,23 +153,29 @@
 <style>
   .task-filters {
     display: flex;
-    align-items: end;
+    align-items: center;
     flex-wrap: wrap;
     gap: var(--crm-space-2);
     min-width: 0;
   }
   .crm-module-field {
-    flex: 1 1 8rem;
+    display: block;
+    min-width: 0;
+    flex: 0 1 10rem;
+  }
+  .views {
+    display: flex;
+    gap: var(--crm-space-1);
   }
   .search-field {
-    flex-basis: 12rem;
+    flex: 1 1 12rem;
   }
   .v2-input {
     width: 100%;
     min-width: 0;
   }
   .task-toolbar {
-    align-items: end;
+    align-items: center;
   }
   .completed {
     font-size: var(--crm-text-xs);
@@ -203,7 +214,7 @@
       flex: 0 1 10rem;
     }
     .search-field {
-      flex-basis: 12rem;
+      flex: 1 1 12rem;
     }
   }
   @media (max-width: 700px) {

@@ -14,5 +14,5 @@
 </svelte:head>
 
 <main class="bg-background min-h-screen">
-  <ErrorPage status={$page.status} message={$page.error?.message ?? ''} />
+  <ErrorPage status={$page.status} />
 </main>

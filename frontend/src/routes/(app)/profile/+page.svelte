@@ -1,4 +1,6 @@
 <script>
+  import ErrorNotice from '$lib/components/ErrorNotice.svelte';
+  import { googleErrorMessage, googleCallbackMessage } from '$lib/utils/google-feedback.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
 
@@ -15,16 +17,40 @@
   let calendars = $state(/** @type {any[]} */ ([])),
     selectedCalendar = $state('primary'),
     calendarError = $state('');
+  let loadingCalendars = $state(false);
+  let googlePending = $state(false);
+  let googleActionError = $state('');
+  const onGoogleManage = () => {
+    googlePending = true;
+    googleActionError = '';
+    return async ({ result, update }) => {
+      try {
+        if (result.type === 'error') {
+          googleActionError = googleErrorMessage(result.error);
+          return;
+        }
+        await update({ reset: false });
+      } catch {
+        googleActionError = googleErrorMessage(null);
+      } finally {
+        googlePending = false;
+      }
+    };
+  };
   async function loadCalendars() {
     calendarError = '';
+    loadingCalendars = true;
     try {
       const response = await fetch('/profile/google/calendars');
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) throw new Error(googleErrorMessage(result.error));
+      if (!Array.isArray(result.calendars)) throw new Error('Invalid calendar response');
       calendars = result.calendars;
       selectedCalendar = result.selected;
     } catch (err) {
-      calendarError = err instanceof Error ? err.message : 'Could not load calendars.';
+      calendarError = googleErrorMessage(err);
+    } finally {
+      loadingCalendars = false;
     }
   }
   let name = $derived(`${p.user_details.first_name} ${p.user_details.last_name}`.trim());
@@ -302,24 +328,20 @@
             <span class="subtle-badge">{ui('Per user')}</span>
           </div>
           <p class="section-description">{ui('Manage your email and calendar connections.')}</p>
-          {#if data.googleResult}<p class="feedback" role="status">
-              {data.googleResult === 'settings'
-                ? ui('Manage your Google connections below.')
-                : data.googleResult === 'connected'
-                  ? ui('Google connected. The first synchronization is running.')
-                  : data.googleResult === 'cancelled'
-                    ? ui('Connection cancelled or expired. Try connecting again.')
-                    : ui(
-                        'Could not connect Google. Check the configuration and required permissions, then try again.'
-                      )}
-            </p>{/if}
-          {#if form?.scope === 'google'}<p
-              class="feedback"
-              class:failure={form.message}
-              role="status"
-            >
-              {ui(form.message || form.googleMessage)}
-            </p>{/if}
+          {#if googleCallbackMessage(data.googleResult)}
+            <ErrorNotice message={ui(googleCallbackMessage(data.googleResult))} />
+          {:else if data.googleResult === 'connected'}
+            <p class="feedback" role="status">
+              {ui(
+                'Google connected. Check the connection status below for synchronization progress.'
+              )}
+            </p>
+          {/if}
+          {#if googleActionError}<ErrorNotice message={ui(googleActionError)} />{/if}
+          {#if form?.scope === 'google'}
+            {#if form.message}<ErrorNotice message={ui(form.message)} />
+            {:else}<p class="feedback" role="status">{ui(form.googleMessage)}</p>{/if}
+          {/if}
           {#each [{ key: 'gmail', service: 'gmail', title: 'Gmail' }, { key: 'google_calendar', service: 'calendar', title: 'Google Calendar' }] as item}
             {@const connection = p.integrations?.[item.key]}
             <div class="integration">
@@ -331,14 +353,16 @@
                 </div>
                 <div>
                   <h3>{item.title}</h3>
-                  <p>{connection?.email || 'No account connected'}</p>
+                  <p>{connection?.email || ui('No account connected')}</p>
                 </div>
                 <span class="status-badge"
-                  >{connection?.status === 'connected'
-                    ? ui('Connected')
-                    : connection?.status === 'reconnect'
-                      ? ui('Reconnect required')
-                      : ui('Not connected')}</span
+                  >{!connection?.configured
+                    ? ui('Setup required')
+                    : connection?.status === 'connected'
+                      ? ui('Connected')
+                      : connection?.status === 'reconnect'
+                        ? ui('Reconnect required')
+                        : ui('Not connected')}</span
                 >
               </div>
               <p class="help">
@@ -362,9 +386,9 @@
                     '. Sync includes the previous 90 days and the next 12 months.'
                   )}
                 </p>{/if}
-              {#if connection?.error}<p class="feedback failure" role="status">
-                  {ui(connection.error)}
-                </p>{/if}
+              {#if connection?.error}<ErrorNotice
+                  message={ui(googleErrorMessage(connection.error))}
+                />{/if}
               {#if !connection?.configured}<p class="setup-note">
                   {ui(
                     'The CRM administrator needs to configure Google connections before you can connect.'
@@ -374,37 +398,45 @@
                 <form method="POST" action="?/googleConnect">
                   <input type="hidden" name="service" value={item.service} /><button
                     class="v2-btn v2-btn-primary v2-btn-sm"
-                    disabled={!connection?.configured}
-                    >{connection?.email ? ui('Reconnect') : `Connect ${item.title}`}</button
+                    disabled={!connection?.configured || googlePending}
+                    >{connection?.email ? ui('Reconnect') : ui(`Connect ${item.title}`)}</button
                   >
                 </form>
                 {#if connection?.status === 'connected'}<form
                     method="POST"
                     action="?/googleManage"
-                    use:enhance
+                    use:enhance={onGoogleManage}
                   >
                     <input type="hidden" name="service" value={item.service} /><button
                       class="v2-btn v2-btn-sm"
+                      disabled={googlePending}
                       name="operation"
                       value="sync">{ui('Sync now')}</button
                     >
                   </form>{/if}
-                {#if connection?.email}<form method="POST" action="?/googleManage" use:enhance>
+                {#if connection?.email}<form
+                    method="POST"
+                    action="?/googleManage"
+                    use:enhance={onGoogleManage}
+                  >
                     <input type="hidden" name="service" value={item.service} /><button
                       class="v2-btn v2-btn-sm"
+                      disabled={googlePending}
                       name="operation"
                       value="disconnect">{ui('Disconnect')}</button
                     >
                   </form>{/if}
                 {#if item.service === 'calendar' && connection?.status === 'connected'}<button
                     class="v2-btn v2-btn-sm"
-                    onclick={loadCalendars}>{ui('Choose calendar')}</button
+                    disabled={loadingCalendars || googlePending}
+                    onclick={loadCalendars}
+                    >{ui(loadingCalendars ? 'Loading…' : 'Choose calendar')}</button
                   >{/if}
               </div>
               {#if item.service === 'calendar' && calendars.length}<form
                   method="POST"
                   action="?/googleManage"
-                  use:enhance
+                  use:enhance={onGoogleManage}
                 >
                   <input type="hidden" name="service" value="calendar" /><input
                     type="hidden"
@@ -419,11 +451,13 @@
                           >{calendar.name}{calendar.writable ? '' : ui(' (read only)')}</option
                         >{/each}</select
                     ></label
-                  ><button class="v2-btn v2-btn-sm">{ui('Use this calendar')}</button>
+                  ><button class="v2-btn v2-btn-sm" disabled={googlePending}
+                    >{ui('Use this calendar')}</button
+                  >
                 </form>{/if}
-              {#if item.service === 'calendar' && calendarError}<p class="feedback failure">
-                  {ui(calendarError)}
-                </p>{/if}
+              {#if item.service === 'calendar' && calendarError}<ErrorNotice
+                  message={ui(calendarError)}
+                />{/if}
             </div>
           {/each}
         </div>{/if}
@@ -432,6 +466,9 @@
 </div>
 
 <style>
+  .profile-panel :global(.crm-error-notice) {
+    margin-block: var(--crm-space-3);
+  }
   .profile-shell {
     display: flex;
     flex-direction: column;

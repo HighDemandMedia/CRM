@@ -1,4 +1,5 @@
 <script>
+  import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { TICKET_SORT_FIELDS } from '$lib/v2/ticket-sort.js';
   import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import ExportDialog from '$lib/v2/components/ExportDialog.svelte';
@@ -191,8 +192,8 @@
           href={resolve('/tickets/new')}><Plus size={14} />{ui('New ticket')}</a
         >{/if}{/snippet}</PageHeader
   >
-  <div class="workspace">
-    <div class="filters">
+  <div class="object-workspace">
+    <div class="object-filters">
       <input
         class="v2-input search"
         aria-label={ui('Search tickets')}
@@ -246,7 +247,7 @@
           onchange={(e) => filter('overdue', e.currentTarget.checked ? 'true' : '')}
         />{ui('Overdue')}</label
       >
-      <div class="views">
+      <div class="object-views">
         <button
           class="v2-btn"
           aria-label={ui('List view')}
@@ -266,7 +267,7 @@
           />{/if}
       </div>
     </div>
-    {#if error}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
+    {#if error}<ErrorNotice message={ui(error)} />{/if}
     {#if view === 'pipeline'}<div class="pipeline hdm-board" aria-label={ui('Tickets by status')}>
         {#each stages as [status, label]}<section
             class="pipeline-column"
@@ -333,7 +334,7 @@
       </div>
     {:else}<!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this overflow region to scroll the table.) -->
       <div
-        class="table-scroll hdm-list"
+        class="object-table hdm-list"
         use:columnOrder={{ keys: columns, onChange: selection.set }}
         role="region"
         aria-label={ui('Tickets; scroll horizontally to see all columns')}
@@ -420,7 +421,7 @@
       <label
         >{ui('Resolution note')}<textarea class="v2-input" rows="4" bind:value={resolution}
         ></textarea></label
-      >{#if error}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
+      >{#if error}<ErrorNotice message={ui(error)} />{/if}
       <div class="pages">
         <button class="v2-btn" onclick={() => (resolving = null)}>{ui('Cancel')}</button><button
           class="v2-btn v2-btn-primary"
@@ -432,43 +433,18 @@
 {/if}
 
 <style>
-  .workspace {
-    padding: var(--crm-space-2) var(--crm-space-3) 0;
-    min-height: 0;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: var(--crm-space-2);
-  }
-  .filters {
-    display: flex;
-    align-items: center;
-    gap: var(--crm-space-2);
-    flex-wrap: wrap;
-  }
-  .filters select {
+  .object-filters select {
     max-width: 180px;
   }
   .search {
     min-width: 180px;
     flex: 1;
   }
-  .views {
-    display: flex;
-    gap: var(--crm-space-1);
-    margin-left: auto;
-  }
   .overdue-filter {
     font-size: var(--crm-text-xs);
     display: flex;
     gap: 5px;
     align-items: center;
-  }
-  .table-scroll {
-    overflow: auto;
-    flex: 1;
-    border-radius: var(--crm-radius-md);
-    background: var(--v2-bg);
   }
   table {
     border-collapse: collapse;
