@@ -1,4 +1,5 @@
 <script>
+  import LegalLinks from '$lib/components/LegalLinks.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
 
@@ -209,6 +210,7 @@
     {#if !isRecovery}<p class="access-help">
         {ui('New here? Open the invitation sent to your email.')}
       </p>{/if}
+    <LegalLinks />
     <p class="v2-sr-only" role="status">
       {busy
         ? ui('Signing in. Please wait.')

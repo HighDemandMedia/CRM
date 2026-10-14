@@ -266,10 +266,11 @@ class TestAttachmentDeleteIsScoped:
 
 @pytest.mark.django_db
 class TestAccountLinkStaysInsideTheOrg:
-    def test_foreign_account_is_rejected(self, admin_client, account_b):
+    def test_foreign_account_is_rejected(self, admin_client, account_b, admin_profile):
         response = admin_client.post(
             CASES_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "Cross-org attempt",
                 "status": "New",
                 "priority": "Normal",
@@ -281,10 +282,11 @@ class TestAccountLinkStaysInsideTheOrg:
         assert "account" in response.json()["errors"]
         assert not Case.objects.filter(name="Cross-org attempt").exists()
 
-    def test_own_account_is_accepted(self, admin_client, account_a):
+    def test_own_account_is_accepted(self, admin_client, account_a, admin_profile):
         response = admin_client.post(
             CASES_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "Same-org link",
                 "status": "New",
                 "priority": "Normal",

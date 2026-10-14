@@ -30,6 +30,7 @@ from django.utils import timezone
 from cases.models import Case, ReopenPolicy, Solution, TimeEntry
 from cases.workflow import resolve_sla_targets
 from common.models import Activity, Comment
+from common.signals import deleting_organization
 
 REOPEN_TRIGGER_STATUS = "Closed"
 REOPEN_DEFAULTS = {
@@ -411,8 +412,10 @@ def _maybe_schedule_csat(case, old_status):
 
 
 @receiver(post_delete, sender=Case)
-def case_post_delete_emit_activity(sender, instance, **kwargs):
+def case_post_delete_emit_activity(sender, instance, origin=None, **kwargs):
     """Hard-delete path. Soft-delete (is_active=False) is covered by post_save."""
+    if deleting_organization(origin):
+        return
     _create_activity(instance, "DELETE", {"hard_deleted": True})
 
 

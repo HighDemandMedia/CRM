@@ -56,10 +56,11 @@ class TestCaseListView:
         assert str(case_a.id) in ids
 
     @patch("cases.views.send_email_to_assigned_user")
-    def test_create_case(self, mock_email, admin_client):
+    def test_create_case(self, mock_email, admin_client, admin_profile):
         response = admin_client.post(
             CASES_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "New support ticket",
                 "status": "New",
                 "priority": "Normal",
@@ -98,11 +99,12 @@ class TestCaseListView:
         assert str(case_a.id) not in case_ids
 
     @patch("cases.views.send_email_to_assigned_user")
-    def test_create_case_invalid(self, mock_email, admin_client):
+    def test_create_case_invalid(self, mock_email, admin_client, admin_profile):
         """POST without the required 'name' field should return 400."""
         response = admin_client.post(
             CASES_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "status": "New",
                 "priority": "Normal",
             },
@@ -152,12 +154,13 @@ class TestCaseListView:
 
     @patch("cases.views.send_email_to_assigned_user")
     def test_create_case_duplicate_name_returns_400(
-        self, mock_email, admin_client, case_a
+        self, mock_email, admin_client, case_a, admin_profile
     ):
         """Creating a case with a duplicate name in the same org should fail."""
         response = admin_client.post(
             CASES_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "Bug in login page",
                 "status": "New",
                 "priority": "Normal",
@@ -953,7 +956,7 @@ class TestCaseCreateCoverage:
 
     @patch("cases.views.send_email_to_assigned_user")
     def test_create_case_with_contacts_as_json_string(
-        self, mock_email, admin_client, admin_user, org_a
+        self, mock_email, admin_client, admin_user, org_a, admin_profile
     ):
         """Create case with contacts as JSON string (covers line 173)."""
         contact = Contact.objects.create(
@@ -965,6 +968,7 @@ class TestCaseCreateCoverage:
         response = admin_client.post(
             CASES_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "JSON Contact Case",
                 "status": "New",
                 "priority": "Normal",
@@ -978,7 +982,7 @@ class TestCaseCreateCoverage:
 
     @patch("cases.views.send_email_to_assigned_user")
     def test_create_case_with_teams_as_json_string(
-        self, mock_email, admin_client, admin_user, org_a
+        self, mock_email, admin_client, admin_user, org_a, admin_profile
     ):
         """Create case with teams as JSON string (covers line 188)."""
         team = Teams.objects.create(
@@ -987,6 +991,7 @@ class TestCaseCreateCoverage:
         response = admin_client.post(
             CASES_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "JSON Team Case",
                 "status": "New",
                 "priority": "Normal",
@@ -1019,13 +1024,14 @@ class TestCaseCreateCoverage:
 
     @patch("cases.views.send_email_to_assigned_user")
     def test_create_case_with_tags_as_json_string(
-        self, mock_email, admin_client, admin_user, org_a
+        self, mock_email, admin_client, admin_user, org_a, admin_profile
     ):
         """Create case with tags as JSON string (covers line 216)."""
         tag = Tags.objects.create(name="jsoncasetag", slug="jsoncasetag", org=org_a)
         response = admin_client.post(
             CASES_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "JSON Tag Case",
                 "status": "New",
                 "priority": "Normal",
@@ -1039,7 +1045,7 @@ class TestCaseCreateCoverage:
 
     @patch("cases.views.send_email_to_assigned_user")
     def test_create_case_with_attachment(
-        self, mock_email, admin_client, admin_user, org_a
+        self, mock_email, admin_client, admin_user, org_a, admin_profile
     ):
         """Create case with file attachment (covers lines 227-234)."""
         upload_file = SimpleUploadedFile(
@@ -1048,6 +1054,7 @@ class TestCaseCreateCoverage:
         response = admin_client.post(
             CASES_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "Attach Create Case",
                 "status": "New",
                 "priority": "Normal",

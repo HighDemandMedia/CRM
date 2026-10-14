@@ -337,7 +337,11 @@ def check_request(request):
             else "attachments"
         )
     require(profile, module, action)
-    if action == "create" and not request.data.get("assigned_to"):
+    if (
+        action == "create"
+        and module not in {"tasks", "tickets"}
+        and not request.data.get("assigned_to")
+    ):
         # Default a new record to the creating member instead of leaving it invisible.
         request._full_data = request.data.copy()
         if hasattr(request._full_data, "setlist"):

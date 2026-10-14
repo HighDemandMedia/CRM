@@ -42,6 +42,7 @@ from common.validators import (
     uuid_list_param,
     uuid_param,
 )
+from common.work_item_creation import prepare_creation
 from contacts.models import Contact
 from contacts.serializer import ContactSerializer
 from tasks import swagger_params
@@ -265,6 +266,7 @@ class TaskListView(APIView, LimitOffsetPagination):
         },
     )
     def post(self, request, *args, **kwargs):
+        request._full_data = prepare_creation(request)
         params = request.data
         serializer = TaskCreateSerializer(data=params, request_obj=request)
         if serializer.is_valid():

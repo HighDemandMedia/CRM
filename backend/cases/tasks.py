@@ -12,6 +12,7 @@ from cases.models import Case, CsatSurvey
 from cases.notifications import case_link
 from common.links import frontend_url
 from common.models import Profile
+from common.organization_lifecycle import organization_job
 from common.tasks import set_rls_context
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ CSAT_SCALE_HIGH_LABEL = "Great"
 
 
 @shared_task
+@organization_job
 def send_email_to_assigned_user(recipients, case_id, org_id):
     """Send Mail To Users When they are assigned to a case"""
     set_rls_context(org_id)
@@ -93,6 +95,7 @@ def _select_primary_contact(case: Case):
 
 
 @shared_task
+@organization_job
 def send_csat_survey(case_id, org_id):
     """Send a CSAT survey for a freshly-closed case.
 
@@ -186,6 +189,7 @@ def send_csat_survey(case_id, org_id):
 
 
 @shared_task
+@organization_job
 def notify_portal_contacts(case_id, org_id, kind, actor_contact_id=None):
     """Tell the customer that something happened on their case.
 

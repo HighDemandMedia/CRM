@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+from common.organization_lifecycle import lifecycle_payload
 from common.permissions import HasOrgContext
 from common.pipeline_settings import OBJECTS
 from common.property_layout import layout
@@ -24,6 +25,7 @@ class UIContextView(APIView):
         return Response(
             {
                 "ui_language": request.user.ui_language,
+                "lifecycle": lifecycle_payload(org, request.user),
                 "setup_step": profile.setup_step,
                 "terminology": org.terminology,
                 "ticket_settings": {

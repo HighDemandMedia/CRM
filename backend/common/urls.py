@@ -42,6 +42,7 @@ from common.views.notification_views import (
     NotificationReadView,
 )
 from common.views.org_settings_views import OrgSettingsView, TimezoneListView
+from common.views.organization_lifecycle_views import OrganizationLifecycleView
 from common.views.organization_views import (
     OrgProfileCreateView,
     OrgUpdateView,
@@ -92,6 +93,7 @@ app_name = "api_common"
 
 
 urlpatterns = [
+    path("org/lifecycle/", OrganizationLifecycleView.as_view()),
     path("integrations/google/connect/<str:service>/", GoogleConnectView.as_view()),
     path("integrations/google/callback/", GoogleCallbackView.as_view()),
     path("integrations/google/", GoogleConnectionView.as_view()),

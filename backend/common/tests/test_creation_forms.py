@@ -38,7 +38,7 @@ def row(key, required=False):
 
 @pytest.mark.parametrize("target,endpoint,key", OBJECTS)
 def test_catalog_defaults_and_manual_creation(
-    admin_client, org_a, target, endpoint, key
+    admin_client, admin_profile, org_a, target, endpoint, key
 ):
     config = admin_client.get(URL, {"target_model": target})
     assert config.status_code == 200, config.data
@@ -59,16 +59,26 @@ def test_catalog_defaults_and_manual_creation(
         save(
             admin_client,
             target,
-            [row(identity, True), row("custom_fields.reference", True)],
+            [row(identity, True), row("custom_fields.reference", True)]
+            + ([row("assigned_to", True)] if target in {"Task", "Case"} else []),
         ).status_code
         == 200
     )
+    assignment = (
+        {"assigned_to": [str(admin_profile.pk)]} if target in {"Task", "Case"} else {}
+    )
     response = admin_client.post(
-        f"/api/{endpoint}/", {key: "Creation form regression"}, format="json"
+        f"/api/{endpoint}/",
+        {key: "Creation form regression", **assignment},
+        format="json",
     )
     assert response.status_code == 400, response.data
     assert "custom_fields.reference" in response.data
-    payload = {key: "Creation form regression", "custom_fields": {"reference": "A-123"}}
+    payload = {
+        key: "Creation form regression",
+        "custom_fields": {"reference": "A-123"},
+        **assignment,
+    }
     if target == "Task":
         payload.update(status="New", priority="Medium")
     response = admin_client.post(f"/api/{endpoint}/", payload, format="json")
@@ -234,7 +244,9 @@ def test_required_values_keep_zero_and_false(org_a):
 
 
 @pytest.mark.parametrize("target,endpoint,key", OBJECTS)
-def test_default_form_with_optional_blanks(admin_client, org_a, target, endpoint, key):
+def test_default_form_with_optional_blanks(
+    admin_client, admin_profile, org_a, target, endpoint, key
+):
     fields = configuration(org_a, target)["selected"]
     payload = {}
     defaults = {
@@ -255,7 +267,7 @@ def test_default_form_with_optional_blanks(admin_client, org_a, target, endpoint
             continue
         value = defaults.get(name, [] if f["multiple"] or name == "pages" else None)
         if name == "assigned_to":
-            value = []
+            value = [str(admin_profile.pk)] if target in {"Task", "Case"} else []
         if target == "Task" and name in {"description", "priority"} and value is None:
             value = ""
         if name in {"waiting_reason", "resolution_note"}:

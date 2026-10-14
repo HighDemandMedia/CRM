@@ -3,11 +3,13 @@ from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 
 from common.models import User
+from common.organization_lifecycle import organization_job
 from common.tasks import set_rls_context
 from tasks.models import Task
 
 
 @shared_task
+@organization_job
 def send_email(
     task_id, recipients, org_id, domain="demo.django-crm.io", protocol="http"
 ):

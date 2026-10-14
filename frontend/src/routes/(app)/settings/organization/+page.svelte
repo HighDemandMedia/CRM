@@ -4,6 +4,7 @@
 
   import { untrack } from 'svelte';
   import { enhance } from '$app/forms';
+  import OrganizationLifecycle from '$lib/v2/components/OrganizationLifecycle.svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { countryOptions } from '$lib/constants/countries.js';
   import { CURRENCY_CODES } from '$lib/constants/filters.js';
@@ -158,12 +159,13 @@
               >{ui('Cancel')}</button
             >
           </div>{/if}
-        {#if form?.message}<p class="error" role="alert">
+        {#if form?.message && form?.scope !== 'lifecycle'}<p class="error" role="alert">
             {ui(form.message)}
           </p>{:else if form?.saved}<p class="success" role="status">
             {ui('Organization details saved.')}
           </p>{/if}
       </form>
+      <OrganizationLifecycle {org} {form} />
       <dl class="metadata">
         <div>
           <dt>{ui('Organization ID')}</dt>

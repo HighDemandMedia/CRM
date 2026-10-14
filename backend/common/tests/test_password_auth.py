@@ -202,6 +202,7 @@ def test_invitation_preview_requires_token_and_does_not_accept(onboarding_invita
         "email": row.email,
         "organization": row.org.name,
         "existing_account": False,
+        "legal": {"version": "", "organization_authority_required": False},
     }
     assert result["Cache-Control"] == "no-store"
     row.refresh_from_db()

@@ -4,11 +4,13 @@ from django.template.loader import render_to_string
 
 from common.links import frontend_url
 from common.models import Profile
+from common.organization_lifecycle import organization_job
 from common.tasks import set_rls_context
 from contacts.models import Contact
 
 
 @shared_task
+@organization_job
 def send_email_to_assigned_user(recipients, contact_id, org_id):
     """Send Mail To Users When they are assigned to a contact"""
     set_rls_context(org_id)

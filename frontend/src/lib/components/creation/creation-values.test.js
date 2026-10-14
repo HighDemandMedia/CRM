@@ -81,3 +81,46 @@ describe('configured creation values', () => {
     });
   });
 });
+
+describe('work item creation', () => {
+  const fields = [field('associations', { multiple: true, required: true })];
+  it.each(['Task', 'Case'])(
+    'keeps company and contacts in one %s field across validation errors',
+    (target) => {
+      const previous = { account: 'company', contacts: ['one', 'two'] };
+      const values = initialCreationValues(target, fields, {}, previous);
+      expect(values.associations).toEqual([
+        { type: 'account', id: 'company' },
+        { type: 'contacts', id: 'one' },
+        { type: 'contacts', id: 'two' }
+      ]);
+      expect(creationPayload(target, fields, values)).toEqual({ ...previous, custom_fields: {} });
+      expect(missingCreationFields(fields, values)).toEqual([]);
+    }
+  );
+  it('accepts a company, contacts or both and detects an empty required association', () => {
+    for (const defaults of [
+      { account: 'a' },
+      { contacts: ['c'] },
+      { account: 'a', contacts: ['c'] }
+    ]) {
+      const values = initialCreationValues('Task', fields, { defaults });
+      expect(missingCreationFields(fields, values)).toEqual([]);
+    }
+    expect(missingCreationFields(fields, initialCreationValues('Task', fields, {}))).toEqual(
+      fields
+    );
+    expect(creationPayload('Task', fields, { associations: [] })).toEqual({
+      contacts: [],
+      custom_fields: {}
+    });
+  });
+  it.each(['Task', 'Case'])('uses the server-provided member assignment for %s', (target) => {
+    const owner = [field('assigned_to', { multiple: target === 'Task', required: true })];
+    const data = { creationSchema: { assignment: { mode: 'self', id: 'me' } } };
+    const values = initialCreationValues(target, owner, data, { assigned_to: 'other' });
+    expect(values.assigned_to).toEqual(target === 'Task' ? ['me'] : 'me');
+    expect(missingCreationFields(owner, values)).toEqual([]);
+    expect(missingCreationFields(owner, initialCreationValues(target, owner, {}))).toEqual(owner);
+  });
+});

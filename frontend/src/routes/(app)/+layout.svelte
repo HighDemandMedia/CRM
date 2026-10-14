@@ -18,7 +18,7 @@
   import CommandPalette from '$lib/v2/components/CommandPalette.svelte';
   import { Search, Sun, Columns3, LifeBuoy, CalendarDays, Plus, Menu } from '@lucide/svelte';
 
-  /** @type {{ data: { accountUser: { name?: string, email?: string }, accountId: string, counts: Record<string, number> | Promise<Record<string, number>>, org: { name: string, terminology?: Record<string, string> | null }, role: string, isSuperAdmin?: boolean }, children: import('svelte').Snippet }} */
+  /** @type {{ data: { accountUser: { name?: string, email?: string }, accountId: string, counts: Record<string, number> | Promise<Record<string, number>>, org: { name: string, terminology?: Record<string, string> | null }, role: string, isSuperAdmin?: boolean, lifecycle?: { read_only: boolean } }, children: import('svelte').Snippet }} */
   let { data, children } = $props();
 
   let preferencesOpen = $derived(
@@ -148,6 +148,11 @@
       </button>
     </div>
 
+    {#if data.lifecycle?.read_only}
+      <div class="closure-banner" role="status">
+        {ui('This organization is closing. You can still view and export records.')}
+      </div>
+    {/if}
     <div class="page-workspace">
       {#if preferencesOpen}<PreferencesNav />{/if}
       <div class="route-content" class:with-preferences={preferencesOpen}>{@render children()}</div>
@@ -168,9 +173,11 @@
 
   <!-- Both live inside .v2-root so they inherit the scoped tokens; both are
        position:fixed, so the shell's overflow:hidden does not clip them. -->
-  <a class="v2-fab" href={resolve('/pipeline/new')} aria-label={ui('New deal')}
-    ><Plus size={21} /></a
-  >
+  {#if !data.lifecycle?.read_only}<a
+      class="v2-fab"
+      href={resolve('/pipeline/new')}
+      aria-label={ui('New deal')}><Plus size={21} /></a
+    >{/if}
 
   <!-- Mobile navigation drawer. Only openable from the mobile top bar, so it
        never surfaces on desktop; a backdrop click, Escape, or navigating all
@@ -220,6 +227,14 @@
 </div>
 
 <style>
+  .closure-banner {
+    padding: var(--crm-space-3) var(--crm-space-5);
+    border-bottom: 1px solid var(--v2-line-soft);
+    background: var(--crm-surface);
+    color: var(--crm-text-primary);
+    font-size: var(--crm-text-sm);
+    flex-shrink: 0;
+  }
   .page-workspace {
     display: flex;
     flex: 1;

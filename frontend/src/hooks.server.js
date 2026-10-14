@@ -318,9 +318,10 @@ export const handle = async function handle({ event, resolve }) {
   const AUTH_ONLY_ROUTES = ['/org'];
 
   // Check if public route
-  const isPublicRoute = PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(route + '/')
-  );
+  // The DPA loader independently validates an invitation or live admin permissions.
+  const isPublicRoute =
+    pathname === '/legal/dpa' ||
+    PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '/'));
 
   // Check if auth-only route
   const isAuthOnlyRoute = AUTH_ONLY_ROUTES.some(

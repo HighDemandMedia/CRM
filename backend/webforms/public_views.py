@@ -64,7 +64,11 @@ class PublicWebFormMixin:
         """
         set_rls_context(org_id)
         return WebForm.objects.filter(
-            id=form_id, org_id=org_id, is_published=True, org__is_active=True
+            id=form_id,
+            org_id=org_id,
+            is_published=True,
+            org__is_active=True,
+            org__closing_at__isnull=True,
         ).first()
 
     def origin_allowed(self, request, form):

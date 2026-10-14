@@ -1,0 +1,72 @@
+{
+  "version": "2026-10-12",
+  "draft": true,
+  "documents": {
+    "en": {
+      "title": "CRM Data Processing Agreement",
+      "sections": [
+        {
+          "heading": "Parties and scope",
+          "text": "This addendum accompanies the HDM CRM Terms of Service between High Demand Media and the customer organization whose authorized administrator accepts it. The customer determines the purposes of its workspace data; HDM processes that data on its behalf to provide the contracted CRM and expressly instructed services. HDM’s own account, security and legal records are addressed separately in the Privacy Notice."
+        },
+        {
+          "heading": "Processing details",
+          "text": "Processing lasts for the service term and the defined closure period. It includes storing, organizing, displaying, searching, exporting and deleting customer records, plus authorized communications and calendar synchronization. People concerned include customer staff, prospects, contacts and business representatives. Data includes identifiers, contact details, business interactions, notes, appointments, messages and uploaded files. Specially regulated data is outside scope unless agreed separately."
+        },
+        {
+          "heading": "Instructions and confidentiality",
+          "text": "HDM will process customer data only on documented customer instructions and for service delivery, security or applicable legal requirements. HDM will inform the customer if it identifies an instruction that conflicts with applicable data-protection requirements. Persons authorized to access the data must be subject to confidentiality and limited access appropriate to their functions. HDM does not sell customer data or use it for its own marketing."
+        },
+        {
+          "heading": "Providers and safeguards",
+          "text": "The customer authorizes the service providers identified in the provider section of the CRM Privacy Notice for their stated functions. HDM will require appropriate confidentiality, security and data-handling obligations from providers and remains responsible for its obligations under this agreement. HDM will notify customers of material provider changes and provide a way to raise reasonable data-protection objections before the change where practicable. Safeguards include access controls, organization isolation, encrypted transport and application encryption of Google tokens and cached message bodies; this is not a claim of certification or complete end-to-end encryption."
+        },
+        {
+          "heading": "Assistance and incidents",
+          "text": "Taking account of the service and information available, HDM will reasonably assist the customer with applicable privacy-rights requests, security obligations and required assessments. HDM will notify the customer without undue delay after becoming aware of a confirmed personal-data breach affecting its customer data, share available relevant details and cooperate in mitigation. The customer remains responsible for its own required notifications."
+        },
+        {
+          "heading": "Return and deletion",
+          "text": "The customer can export accessible records during service and the 30-day read-only closure window. The organization owner or HDM CRM platform owner can cancel closure and reactivate the organization before this window ends. Google connections require renewed authorization. Once the 30-day period expires, closure is final: the organization cannot be reactivated and HDM will not recover or restore its data. Active workspace data is scheduled for deletion, with storage retries as necessary. Residual backup copies are not available for customer recovery. Backup copies follow the provider’s actual retention cycle and must remain protected; a restoration must reapply deletion decisions. Applicable legal retention obligations may require limited exceptions."
+        },
+        {
+          "heading": "Compliance and review",
+          "text": "HDM will make reasonably necessary information available to demonstrate compliance with these obligations and cooperate with proportionate reviews subject to confidentiality, security and protection of other customers. Processing locations and any required international transfer arrangements must be assessed for the actual customer and providers. This draft does not assert that an EU or UK transfer mechanism has been executed or that every state privacy law applies. Contact info@highdemandmedia.com to agree additional requirements before submitting data that requires them."
+        }
+      ]
+    },
+    "es": {
+      "title": "Acuerdo de tratamiento de datos del CRM",
+      "sections": [
+        {
+          "heading": "Partes y alcance",
+          "text": "Este anexo acompaña los Términos de servicio de HDM CRM entre High Demand Media y la organización cuyo administrador autorizado lo acepta. El cliente determina las finalidades de sus datos; HDM los procesa por su cuenta para prestar el CRM y los servicios expresamente instruidos. Los registros propios de HDM sobre cuentas, seguridad y obligaciones legales se tratan por separado en el Aviso de privacidad."
+        },
+        {
+          "heading": "Detalle del tratamiento",
+          "text": "El tratamiento dura el servicio y el periodo definido de cierre. Incluye almacenar, organizar, mostrar, buscar, exportar y eliminar registros, además de comunicaciones y sincronización de calendario autorizadas. Los interesados incluyen empleados, prospectos, contactos y representantes comerciales. Los datos incluyen identificadores, contacto, interacciones, notas, citas, mensajes y archivos. Los datos especialmente regulados quedan fuera salvo acuerdo independiente."
+        },
+        {
+          "heading": "Instrucciones y confidencialidad",
+          "text": "HDM tratará datos del cliente solo según instrucciones documentadas y para prestar el servicio, seguridad u obligaciones legales aplicables. Informará si identifica una instrucción incompatible con requisitos de protección de datos. Las personas autorizadas estarán sujetas a confidencialidad y acceso limitado a su función. HDM no vende datos de clientes ni los usa para marketing propio."
+        },
+        {
+          "heading": "Proveedores y salvaguardas",
+          "text": "El cliente autoriza a los proveedores identificados en la sección de proveedores del Aviso de privacidad del CRM para sus funciones indicadas. HDM exigirá obligaciones adecuadas de confidencialidad, seguridad y tratamiento y seguirá siendo responsable de sus obligaciones bajo este acuerdo. Notificará cambios materiales de proveedores y permitirá plantear objeciones razonables de privacidad antes del cambio cuando sea factible. Las medidas incluyen controles de acceso, separación de organizaciones, transporte cifrado y cifrado de tokens de Google y cuerpos de mensajes guardados. Esto no afirma certificaciones ni cifrado completo de extremo a extremo."
+        },
+        {
+          "heading": "Asistencia e incidentes",
+          "text": "Considerando el servicio y la información disponible, HDM asistirá razonablemente con solicitudes de derechos, obligaciones de seguridad y evaluaciones requeridas. Notificará al cliente sin demora indebida al conocer una brecha confirmada de datos personales que afecte a sus datos, compartirá detalles relevantes disponibles y cooperará para mitigarla. El cliente conserva la responsabilidad sobre sus notificaciones obligatorias."
+        },
+        {
+          "heading": "Devolución y eliminación",
+          "text": "El cliente puede exportar registros accesibles durante el servicio y los 30 días de cierre en modo solo lectura. El propietario de la organización o el de HDM CRM puede cancelar el cierre y reactivar la organización antes de finalizar ese plazo. Las conexiones de Google requieren nueva autorización. Al vencer los 30 días, el cierre es definitivo: la organización no puede reactivarse y HDM no recuperará ni restaurará sus datos. Se programa la eliminación activa, con reintentos de almacenamiento cuando hagan falta. Las copias residuales de respaldo no están disponibles para recuperación del cliente. Las copias de seguridad siguen el ciclo real del proveedor y deben permanecer protegidas; al restaurarlas deben reaplicarse las decisiones de eliminación. Puede haber excepciones limitadas por obligación legal."
+        },
+        {
+          "heading": "Cumplimiento y revisión",
+          "text": "HDM facilitará información razonablemente necesaria para demostrar estas obligaciones y cooperará con revisiones proporcionadas sujetas a confidencialidad, seguridad y protección de otros clientes. Las ubicaciones y mecanismos de transferencia internacional requeridos se evaluarán según el cliente y proveedores reales. Este borrador no afirma que exista un mecanismo de transferencia de la UE o Reino Unido formalizado ni que apliquen todas las leyes estatales. Contacta a info@highdemandmedia.com para acordar requisitos adicionales antes de enviar datos que los necesiten."
+        }
+      ]
+    }
+  }
+}

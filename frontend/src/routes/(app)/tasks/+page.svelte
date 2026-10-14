@@ -29,7 +29,6 @@
   import TaskFilters from '$lib/components/tasks/TaskFilters.svelte';
   import '$lib/v2/styles/list-view.css';
   import Pill from '$lib/v2/components/Pill.svelte';
-  import EmptyState from '$lib/v2/components/EmptyState.svelte';
   import { daysSince } from '$lib/v2/format.js';
   import { TASK_PRIORITY_TONE, TASK_STATUS_TONE } from '$lib/v2/enums.js';
   import { invalidateAll } from '$app/navigation';
@@ -158,7 +157,7 @@
   >
     {#if pipeline}
       <div class="hdm-board" aria-label={ui('Task pipeline')}>
-        {#each statuses as status}
+        {#each statuses as status (status)}
           <section
             class="pipeline-column"
             aria-label={`${status} tasks`}
@@ -227,7 +226,8 @@
                     value={task.status}
                     disabled={moving}
                     onchange={(event) => move(task.id, event.currentTarget.value)}
-                    >{#each statuses as choice}<option value={choice}>{statusName(choice)}</option
+                    >{#each statuses as choice (choice)}<option value={choice}
+                        >{statusName(choice)}</option
                       >{/each}</select
                   >
                 </article>
@@ -236,22 +236,6 @@
           </section>
         {/each}
       </div>
-    {:else if tasks.length === 0}
-      <EmptyState
-        title={data.showAll ? ui('No tasks yet') : ui('Nothing on your list')}
-        body={data.showAll ? 'Create a task to get started.' : 'No open tasks match this view.'}
-      >
-        {#snippet icon()}<CircleCheck size={21} />{/snippet}
-        {#snippet actions()}
-          {#if can(page.data.permissions, 'tasks', 'create')}<a
-              class="v2-btn v2-btn-primary"
-              href={resolve('/tasks/new')}>{ui('New task')}</a
-            >{/if}
-          {#if !data.showAll}
-            <a class="v2-btn" href={resolve('/tasks?all=1')}>{ui('Show completed')}</a>
-          {/if}
-        {/snippet}
-      </EmptyState>
     {:else}
       <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this overflow region to scroll the table.) -->
       <div
@@ -278,6 +262,15 @@
             </tr>
           </thead>
           <tbody>
+            {#if tasks.length === 0}
+              <tr
+                ><td colspan={columns.length + 2} class="list-empty">
+                  {data.showAll ? ui('No tasks yet') : ui('No open tasks match this view.')}
+                  {#if !data.showAll}<a href={resolve('/tasks?all=1')}>{ui('Show completed')}</a
+                    >{/if}
+                </td></tr
+              >
+            {/if}
             {#each tasks as t (t.id)}
               {@const late = overdueDays(t)}
               <tr>
@@ -369,6 +362,15 @@
 </div>
 
 <style>
+  .list-empty {
+    padding: var(--crm-space-6);
+    text-align: center;
+    color: var(--crm-text-muted);
+  }
+  .list-empty a {
+    margin-inline-start: var(--crm-space-3);
+  }
+
   .task-stage {
     width: 100%;
     margin-top: 10px;

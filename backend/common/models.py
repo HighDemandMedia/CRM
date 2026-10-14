@@ -123,6 +123,9 @@ class Org(BaseModel):
     api_key = models.TextField(default=generate_unique_key, unique=True, editable=False)
     is_active = models.BooleanField(default=True)
 
+    closing_at = models.DateTimeField(null=True, blank=True, editable=False)
+    deletion_due_at = models.DateTimeField(null=True, blank=True, editable=False)
+
     # Company Profile (for invoices, documents, etc.)
     company_name = models.CharField(
         max_length=255, blank=True, help_text="Legal company name for invoices"
@@ -1372,11 +1375,13 @@ from common.google_models import (  # noqa: E402, F401
     GoogleMailActivity,
     GoogleMailSendOperation,
 )
+from common.legal_models import LegalAcceptance  # noqa: E402, F401
 
 
 class PendingFileDeletion(models.Model):
     """Internal storage outbox; deliberately survives deletion of its tenant."""
 
+    org_id = models.UUIDField(null=True, blank=True, db_index=True)
     name = models.CharField(max_length=1024)
     created_at = models.DateTimeField(auto_now_add=True)
     last_attempt_at = models.DateTimeField(null=True, blank=True)
@@ -1384,3 +1389,9 @@ class PendingFileDeletion(models.Model):
 
     class Meta:
         db_table = "pending_file_deletion"
+
+
+from common.organization_lifecycle_models import (  # noqa: E402, F401
+    OrganizationClosure,
+    OrganizationLifecycleEvent,
+)

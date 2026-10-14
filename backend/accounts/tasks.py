@@ -8,12 +8,14 @@ from django.template.loader import render_to_string
 from accounts.models import Account, AccountEmail, AccountEmailLog
 from common.links import frontend_url
 from common.models import Profile
+from common.organization_lifecycle import organization_job
 from common.tasks import set_rls_context
 
 logger = logging.getLogger(__name__)
 
 
 @shared_task
+@organization_job
 def send_email(email_obj_id, org_id):
     set_rls_context(org_id)
     try:
@@ -65,6 +67,7 @@ def send_email(email_obj_id, org_id):
 
 
 @shared_task
+@organization_job
 def send_email_to_assigned_user(recipients, account_id, org_id):
     """Send Mail To Users When they are assigned to an account"""
     set_rls_context(org_id)

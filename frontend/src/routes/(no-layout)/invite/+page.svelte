@@ -1,4 +1,6 @@
 <script>
+  import LegalAcceptance from '$lib/components/LegalAcceptance.svelte';
+  import LegalLinks from '$lib/components/LegalLinks.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -60,11 +62,13 @@
             };
           }}
         >
+          <LegalAcceptance requirements={data.invitation?.legal} />
           <button class="v2-btn v2-btn-primary" disabled={busy}
             >{busy ? ui('Joining…') : ui('Accept invitation')}</button
           >
         </form>
       {/if}
     </div>
+    <LegalLinks />
   </div>
 </div>

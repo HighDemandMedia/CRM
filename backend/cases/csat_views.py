@@ -29,6 +29,7 @@ from cases.tasks import (
     csat_signer,
     hash_csat_token,
 )
+from common.organization_lifecycle import writable_organization
 from common.permissions import HasOrgContext
 from common.tasks import set_rls_context
 
@@ -134,13 +135,16 @@ class PublicCsatView(APIView):
                 status=drf_status.HTTP_400_BAD_REQUEST,
             )
 
-        # Set RLS context so the UPDATE clears the policy on Postgres.
-        set_rls_context(survey.org_id)
-        survey.rating = rating_int
-        survey.comment = comment
-        if survey.responded_at is None:
-            survey.responded_at = timezone.now()
-        survey.save(update_fields=["rating", "comment", "responded_at", "updated_at"])
+        with writable_organization(survey.org_id):
+            # Set RLS context so the UPDATE clears the policy on Postgres.
+            set_rls_context(survey.org_id)
+            survey.rating = rating_int
+            survey.comment = comment
+            if survey.responded_at is None:
+                survey.responded_at = timezone.now()
+            survey.save(
+                update_fields=["rating", "comment", "responded_at", "updated_at"]
+            )
 
         return Response(
             {

@@ -1,0 +1,11 @@
+{
+  "Rules": [
+    {
+      "ID": "hdm-media-noncurrent-30-days",
+      "Status": "Disabled",
+      "Filter": { "Prefix": "media/" },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 30 },
+      "Expiration": { "ExpiredObjectDeleteMarker": true }
+    }
+  ]
+}

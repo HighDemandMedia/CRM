@@ -14,6 +14,7 @@ function event(token = 'valid-invitation-token-982734') {
   return {
     url: new URL('https://crm.example.com/invite'),
     locals: {},
+    request: { formData: async () => new FormData() },
     cookies: {
       get: vi.fn((key) => (key === 'crm_invitation' ? token : undefined)),
       set: vi.fn(),
@@ -71,7 +72,11 @@ describe('invitation onboarding', () => {
         name: 'Invited User',
         email: invitation.email,
         password: 'A-safe-password-2938!',
-        confirm_password: 'A-safe-password-2938!'
+        confirm_password: 'A-safe-password-2938!',
+        legal_version: '2026-10-12',
+        legal_locale: 'en',
+        accept_terms: 'on',
+        organization_authority: 'on'
       }))
         form.set(key, value);
       input.request = { formData: async () => form };
@@ -91,7 +96,11 @@ describe('invitation onboarding', () => {
         expect.stringContaining('/auth/password/register/'),
         expect.objectContaining({
           invitation: 'valid-invitation-token-982734',
-          email: invitation.email
+          email: invitation.email,
+          legal_version: '2026-10-12',
+          legal_locale: 'en',
+          accept_terms: true,
+          organization_authority: true
         }),
         expect.anything()
       );
@@ -122,4 +131,45 @@ it('does not call registration without an invitation cookie', async () => {
   input.request = { formData: async () => new FormData() };
   expect(await actions.default(input)).toMatchObject({ status: 403 });
   expect(axios.post).not.toHaveBeenCalled();
+});
+
+it('passes explicit acceptance and the displayed version to the existing-user API', async () => {
+  const input = event();
+  const form = new FormData();
+  form.set('legal_version', '2026-10-12');
+  form.set('legal_locale', 'es');
+  form.set('accept_terms', 'on');
+  form.set('organization_authority', 'on');
+  input.request = { formData: async () => form };
+  vi.mocked(apiRequest).mockResolvedValueOnce({});
+  await expect(inviteActions.accept(input)).rejects.toMatchObject({ status: 303 });
+  expect(apiRequest).toHaveBeenCalledWith(
+    '/auth/accept-invitation/',
+    {
+      method: 'POST',
+      body: {
+        token: 'valid-invitation-token-982734',
+        legal_version: '2026-10-12',
+        legal_locale: 'es',
+        accept_terms: true,
+        organization_authority: true
+      }
+    },
+    { cookies: input.cookies }
+  );
+});
+
+it('preserves the invitation when legal acceptance is rejected', async () => {
+  const input = event();
+  vi.mocked(apiRequest).mockRejectedValueOnce(
+    new Error('Accept the CRM Terms of Service to continue.')
+  );
+  expect(await inviteActions.accept(input)).toMatchObject({
+    status: 400,
+    data: {
+      error: 'Accept the CRM Terms of Service to continue.'
+    }
+  });
+  expect(input.cookies.delete).not.toHaveBeenCalled();
+  expect(apiRequest).toHaveBeenCalledTimes(1);
 });

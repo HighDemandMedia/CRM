@@ -15,6 +15,7 @@ from common.models import (
     ReminderDelivery,
     SalesAppointment,
 )
+from common.organization_lifecycle import organization_job
 from common.rbac import calendar_scoped, configured, permitted, scope_for
 from tasks.models import Task
 
@@ -54,6 +55,7 @@ def _deliver(profile, entity, verb, schedule, link, data):
             receipt.delete()
 
 
+@organization_job
 def deliver_org_reminders(org, now=None):
     now = now or timezone.now()
     # Tasks have a date, not a time. Start their reminder on the configured day

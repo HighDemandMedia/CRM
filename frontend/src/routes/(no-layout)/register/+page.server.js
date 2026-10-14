@@ -3,6 +3,7 @@ import axios from 'axios';
 import { fail, redirect } from '@sveltejs/kit';
 import { passwordError, savePasswordSession } from '$lib/server/password-session.js';
 import { previewInvitation } from '$lib/server/invitation.js';
+import { legalFormValues } from '$lib/legal.js';
 
 export async function load({ locals, cookies }) {
   if (locals.user) redirect(303, cookies.get('crm_invitation') ? '/invite' : '/org');
@@ -45,6 +46,7 @@ export const actions = {
           email: values.email,
           timezone: values.timezone || 'UTC',
           password,
+          ...legalFormValues(form),
           ...(invitation ? { invitation } : { organization: values.organization })
         },
         { timeout: 15000 }

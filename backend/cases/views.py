@@ -69,6 +69,7 @@ from common.utils import (
     create_attachment,
 )
 from common.validators import date_param, payload_id_list, uuid_list_param, uuid_param
+from common.work_item_creation import prepare_creation
 from contacts.models import Contact
 from contacts.serializer import ContactSerializer
 
@@ -347,6 +348,7 @@ class CaseListView(APIView, LimitOffsetPagination):
         },
     )
     def post(self, request, *args, **kwargs):
+        request._full_data = prepare_creation(request)
         params = request.data
         serializer = CaseCreateSerializer(data=params, request_obj=request)
         if serializer.is_valid():

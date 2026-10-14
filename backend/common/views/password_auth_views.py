@@ -21,7 +21,13 @@ from rest_framework_simplejwt.token_blacklist.models import (
 
 from common.audit_log import audit_log
 from common.invitations import accept_ownership
+from common.legal import (
+    legal_requirements,
+    record_legal_acceptance,
+    validate_legal_acceptance,
+)
 from common.models import OrganizationInvitation, Profile, User
+from common.organization_lifecycle import invitation_write
 from common.platform_access import accessible_profiles
 from common.rbac import ensure_default_roles
 from common.serializer import OrgAwareRefreshToken
@@ -177,6 +183,7 @@ class InvitationPreviewView(APIView):
             {
                 "email": invitation.email,
                 "organization": invitation.org.name,
+                "legal": legal_requirements(invitation),
                 "existing_account": User.objects.filter(
                     email__iexact=invitation.email
                 ).exists(),
@@ -191,6 +198,7 @@ class PasswordRegisterView(APIView):
     throttle_classes = [RegistrationThrottle]
 
     @extend_schema(tags=["auth"], request=RegisterInput)
+    @invitation_write
     def post(self, request):
         if not request.data.get("invitation"):
             return Response(
@@ -228,6 +236,7 @@ class PasswordRegisterView(APIView):
                             },
                             status=400,
                         )
+                acceptance = validate_legal_acceptance(request.data, invitation)
                 user = User.objects.create_user(
                     values["email"], values["password"], name=values["name"]
                 )
@@ -253,6 +262,7 @@ class PasswordRegisterView(APIView):
                     else Profile.SetupStep.PROFILE,
                 )
                 accept_ownership(invitation, user)
+                record_legal_acceptance(user, invitation, acceptance)
                 if invitation:
                     invitation.accepted_at = timezone.now()
                     invitation.save(update_fields=["accepted_at"])

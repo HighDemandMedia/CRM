@@ -31,10 +31,15 @@ class TestTaskListView:
         assert "tasks" in data
         assert data["tasks_count"] >= 1
 
-    def test_create_task(self, admin_client, org_a):
+    def test_create_task(self, admin_client, org_a, admin_profile):
         response = admin_client.post(
             "/api/tasks/",
-            {"title": "New Task", "status": "New", "priority": "High"},
+            {
+                "assigned_to": [str(admin_profile.pk)],
+                "title": "New Task",
+                "status": "New",
+                "priority": "High",
+            },
             format="json",
         )
         assert response.status_code == 200
@@ -124,7 +129,9 @@ class TestTaskListView:
         assert task.tags.count() == 1
         assert str(task.due_date) == "2026-12-31"
 
-    def test_two_tasks_may_share_a_title(self, admin_client, admin_user, org_a):
+    def test_two_tasks_may_share_a_title(
+        self, admin_client, admin_user, org_a, admin_profile
+    ):
         """Titles are not unique per org, and should not be.
 
         This test used to assert a 400 for a duplicate title. No such
@@ -142,7 +149,12 @@ class TestTaskListView:
         )
         response = admin_client.post(
             "/api/tasks/",
-            {"title": "Call back", "status": "New", "priority": "Low"},
+            {
+                "assigned_to": [str(admin_profile.pk)],
+                "title": "Call back",
+                "status": "New",
+                "priority": "Low",
+            },
             format="json",
         )
         assert response.status_code == 200
@@ -453,11 +465,15 @@ class TestTaskDetailView:
         data = response.json()
         assert "comments" in data
 
-    def test_create_task_invalid(self, admin_client):
+    def test_create_task_invalid(self, admin_client, admin_profile):
         """POST without a title should return 400."""
         response = admin_client.post(
             "/api/tasks/",
-            {"status": "New", "priority": "Low"},
+            {
+                "assigned_to": [str(admin_profile.pk)],
+                "status": "New",
+                "priority": "Low",
+            },
             format="json",
         )
         assert response.status_code == 400
@@ -1226,7 +1242,9 @@ class TestTaskCreateAssociations:
     covering lines 228-250 in task_views.py.
     """
 
-    def test_create_task_with_opportunity(self, admin_client, admin_user, org_a):
+    def test_create_task_with_opportunity(
+        self, admin_client, admin_user, org_a, admin_profile
+    ):
         """Create a task linked to an opportunity."""
         opp = Opportunity.objects.create(
             name="Create Opp Link",
@@ -1237,6 +1255,7 @@ class TestTaskCreateAssociations:
         response = admin_client.post(
             "/api/tasks/",
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "title": "Opp Linked Task",
                 "status": "New",
                 "priority": "High",
@@ -1249,7 +1268,9 @@ class TestTaskCreateAssociations:
         task = Task.objects.get(title="Opp Linked Task")
         assert task.opportunity_id == opp.id
 
-    def test_create_task_with_case(self, admin_client, admin_user, org_a):
+    def test_create_task_with_case(
+        self, admin_client, admin_user, org_a, admin_profile
+    ):
         """Create a task linked to a case."""
         case = Case.objects.create(
             name="Create Case Link",
@@ -1261,6 +1282,7 @@ class TestTaskCreateAssociations:
         response = admin_client.post(
             "/api/tasks/",
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "title": "Case Linked Task",
                 "status": "New",
                 "priority": "High",
@@ -1273,7 +1295,9 @@ class TestTaskCreateAssociations:
         task = Task.objects.get(title="Case Linked Task")
         assert task.case_id == case.id
 
-    def test_create_task_with_lead(self, admin_client, admin_user, org_a):
+    def test_create_task_with_lead(
+        self, admin_client, admin_user, org_a, admin_profile
+    ):
         """Create a task linked to a lead."""
         lead = Lead.objects.create(
             first_name="Create",
@@ -1284,6 +1308,7 @@ class TestTaskCreateAssociations:
         response = admin_client.post(
             "/api/tasks/",
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "title": "Lead Linked Task",
                 "status": "New",
                 "priority": "High",
@@ -1297,7 +1322,7 @@ class TestTaskCreateAssociations:
         assert task.lead_id == lead.id
 
     def test_create_task_with_contacts_as_json_string(
-        self, admin_client, admin_user, org_a
+        self, admin_client, admin_user, org_a, admin_profile
     ):
         """Create a task with contacts passed as a JSON string (line 176)."""
         contact = Contact.objects.create(
@@ -1309,6 +1334,7 @@ class TestTaskCreateAssociations:
         response = admin_client.post(
             "/api/tasks/",
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "title": "JSON Contact Task",
                 "status": "New",
                 "priority": "Low",
@@ -1339,13 +1365,14 @@ class TestTaskCreateAssociations:
         assert task.assigned_to.count() == 1
 
     def test_create_task_with_teams_as_json_string(
-        self, admin_client, admin_user, org_a
+        self, admin_client, admin_user, org_a, admin_profile
     ):
         """Create a task with teams as JSON string (line 190)."""
         team = Teams.objects.create(name="JSON Team", org=org_a, created_by=admin_user)
         response = admin_client.post(
             "/api/tasks/",
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "title": "JSON Team Task",
                 "status": "New",
                 "priority": "Low",
@@ -1358,13 +1385,14 @@ class TestTaskCreateAssociations:
         assert task.teams.count() == 1
 
     def test_create_task_with_tags_as_json_string(
-        self, admin_client, admin_user, org_a
+        self, admin_client, admin_user, org_a, admin_profile
     ):
         """Create a task with tags as JSON string (line 216)."""
         tag = Tags.objects.create(name="jsontag", slug="jsontag", org=org_a)
         response = admin_client.post(
             "/api/tasks/",
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "title": "JSON Tag Task",
                 "status": "New",
                 "priority": "Low",
@@ -1387,7 +1415,12 @@ class TestTaskDetailCreatedByCoverage:
         """Admin who created the task via API sees full detail."""
         create_resp = admin_client.post(
             "/api/tasks/",
-            {"title": "Creator Detail Task", "status": "New", "priority": "Low"},
+            {
+                "assigned_to": [str(admin_profile.pk)],
+                "title": "Creator Detail Task",
+                "status": "New",
+                "priority": "Low",
+            },
             format="json",
         )
         assert create_resp.status_code == 200

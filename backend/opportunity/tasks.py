@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from common.links import frontend_url
 from common.models import Org, Profile
+from common.organization_lifecycle import organization_job
 from opportunity.models import Opportunity, StageAgingConfig
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ def _set_rls_context_safe(org_id):
 
 
 @shared_task
+@organization_job
 def send_email_to_assigned_user(recipients, opportunity_id, org_id):
     """Send Mail To Users When they are assigned to an opportunity"""
     _set_rls_context_safe(org_id)
@@ -59,7 +61,7 @@ def check_stale_opportunities():
     )
 
     now = timezone.now()
-    orgs = Org.objects.filter(is_active=True)
+    orgs = Org.objects.filter(is_active=True, closing_at__isnull=True)
 
     for org in orgs:
         try:
@@ -97,6 +99,7 @@ def check_stale_opportunities():
             logger.exception("Error processing stale deals for org %s", org.id)
 
 
+@organization_job
 def send_stale_deals_alert(org, stale_opps):
     """Send per-user email alerts for rotten deals."""
     # Pre-fetch org admins for unassigned deals

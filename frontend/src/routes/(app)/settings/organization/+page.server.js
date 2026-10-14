@@ -20,7 +20,9 @@ export async function load({ cookies, url, parent }) {
   ]);
   return {
     ...settings,
-    can_edit: settingsAccess(shell.permissions, 'organization') === 'manage',
+    can_edit:
+      settingsAccess(shell.permissions, 'organization') === 'manage' &&
+      !settings.org.lifecycle?.read_only,
     timezones,
     onboarding:
       shell.permissions?.is_admin === true &&
@@ -30,6 +32,28 @@ export async function load({ cookies, url, parent }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+  lifecycle: async ({ cookies, request }) => {
+    const form = await request.formData();
+    try {
+      await apiRequest(
+        '/org/lifecycle/',
+        {
+          method: 'POST',
+          body: {
+            action: form.get('action')?.toString(),
+            confirmation: form.get('confirmation')?.toString()
+          }
+        },
+        { cookies }
+      );
+      return { lifecycleSaved: true };
+    } catch (/** @type {any} */ err) {
+      return fail(err?.status === 403 ? 403 : 400, {
+        scope: 'lifecycle',
+        message: readableError(err, 'Could not update organization access.')
+      });
+    }
+  },
   save: async ({ cookies, request }) => {
     const form = await request.formData();
     /** @type {Record<string, unknown>} */

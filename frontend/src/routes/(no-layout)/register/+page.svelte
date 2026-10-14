@@ -1,4 +1,6 @@
 <script>
+  import LegalAcceptance from '$lib/components/LegalAcceptance.svelte';
+  import LegalLinks from '$lib/components/LegalLinks.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -110,6 +112,7 @@
                 autocomplete="new-password"
               /></label
             >
+            <LegalAcceptance requirements={data.invitation?.legal} />
             {#if form?.error}<p class="v2-error" role="alert">{ui(form.error)}</p>{/if}
             <button class="v2-btn v2-btn-primary v2-btn-block"
               >{busy
@@ -121,6 +124,7 @@
           </fieldset>
         </form>{/if}
     </div>
+    <LegalLinks />
     <p class="v2-sub" style="text-align:center;margin-top:16px">
       {ui('Already have an account?')} <a href={resolve('/login')}>{ui('Sign in')}</a>
     </p>

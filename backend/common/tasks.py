@@ -21,6 +21,7 @@ from common.models import (
     Teams,
     User,
 )
+from common.organization_lifecycle import organization_job
 from contacts.models import Contact
 
 logger = logging.getLogger(__name__)
@@ -280,6 +281,7 @@ def send_email_user_delete(
 
 
 @shared_task
+@organization_job
 def remove_users(removed_users_list, team_id, org_id=None):
     # Set RLS context for org-scoped queries
     set_rls_context(org_id)
@@ -331,6 +333,7 @@ def remove_users(removed_users_list, team_id, org_id=None):
 
 
 @shared_task
+@organization_job
 def update_team_users(team_id, org_id=None):
     """this function updates assigned_to field on all models when a team is updated"""
     # Set RLS context for org-scoped queries
@@ -432,7 +435,11 @@ def purge_read_notifications(days=NOTIFICATION_PURGE_DAYS):
     cutoff = timezone.now() - timedelta(days=days)
     deleted = 0
     try:
-        for org_id in Org.objects.values_list("id", flat=True).iterator():
+        for org_id in (
+            Org.objects.filter(closing_at__isnull=True)
+            .values_list("id", flat=True)
+            .iterator()
+        ):
             set_rls_context(org_id)
             removed, _ = Notification.objects.filter(
                 read_at__isnull=False, read_at__lt=cutoff
@@ -474,6 +481,7 @@ def flush_expired_refresh_tokens():
 
 
 @shared_task(soft_time_limit=240, time_limit=270)
+@organization_job
 def sync_google_connection(org_id, connection_id):
     from django.db.models import Q
     from rest_framework.exceptions import PermissionDenied
@@ -545,7 +553,9 @@ def schedule_google_sync():
     from common.models import GoogleConnection
 
     for org_id in (
-        Org.objects.filter(is_active=True).values_list("pk", flat=True).iterator()
+        Org.objects.filter(is_active=True, closing_at__isnull=True)
+        .values_list("pk", flat=True)
+        .iterator()
     ):
         set_rls_context(org_id)
         try:
@@ -565,7 +575,7 @@ def send_due_reminders():
     """Check each active organization independently; failed scans retry next minute."""
     from common.reminders import deliver_org_reminders
 
-    for org in Org.objects.filter(is_active=True).iterator():
+    for org in Org.objects.filter(is_active=True, closing_at__isnull=True).iterator():
         try:
             set_rls_context(org.pk)
             deliver_org_reminders(org)
@@ -620,3 +630,30 @@ def purge_deleted_attachment_files():
     from common.attachment_cleanup import purge_files
 
     purge_files()
+
+
+@shared_task
+def purge_closed_organizations():
+    from common.models import OrganizationClosure
+    from common.organization_purge import finish_file_deletions, purge_organization
+
+    if not settings.CRM_ORG_PURGE_ENABLED:
+        return
+    for org_id in (
+        OrganizationClosure.objects.filter(
+            reactivated_at__isnull=True,
+            deletion_due_at__lte=timezone.now(),
+            data_deleted_at__isnull=True,
+        )
+        .values_list("org_id", flat=True)
+        .iterator()
+    ):
+        try:
+            purge_organization(org_id)
+        except Exception as exc:
+            logger.error(
+                "Organization purge failed org=%s error_type=%s; retry retained",
+                org_id,
+                type(exc).__name__,
+            )
+    finish_file_deletions()

@@ -1,4 +1,6 @@
 <script>
+  import LegalLinks from '$lib/components/LegalLinks.svelte';
+  import { legalLinks } from '$lib/legal.js';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { googleErrorMessage, googleCallbackMessage } from '$lib/utils/google-feedback.js';
   import { useI18n } from '$lib/i18n/context.js';
@@ -328,6 +330,16 @@
             <span class="subtle-badge">{ui('Per user')}</span>
           </div>
           <p class="section-description">{ui('Manage your email and calendar connections.')}</p>
+          <p class="section-description">
+            {ui(
+              'Google access is optional. Learn what we access, store and remove when you disconnect in our'
+            )}
+            <a
+              href={legalLinks(locale()).privacy + '#google'}
+              target="_blank"
+              rel="noopener noreferrer">{ui('Privacy notice')}</a
+            >.
+          </p>
           {#if googleCallbackMessage(data.googleResult)}
             <ErrorNotice message={ui(googleCallbackMessage(data.googleResult))} />
           {:else if data.googleResult === 'connected'}
@@ -462,6 +474,7 @@
           {/each}
         </div>{/if}
     </div>
+    <LegalLinks />
   </div>
 </div>
 

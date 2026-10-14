@@ -5,7 +5,8 @@
   import { page } from '$app/state';
   import { resolve } from '$app/paths';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import { BookOpen, MessageCircle } from '@lucide/svelte';
+  import { BookOpen, MessageCircle, FileText } from '@lucide/svelte';
+  let legal = $derived(page.url.pathname === '/help/legal');
   let knowledge = $derived(page.url.pathname.startsWith('/help/knowledge'));
 </script>
 
@@ -13,18 +14,22 @@
   >{#snippet sub()}{ui('Guidance and support from High Demand Media')}{/snippet}</PageHeader
 >
 <nav class="help-tabs" aria-label={ui('Help sections')}>
-  <a href={resolve('/help')} aria-current={!knowledge ? 'page' : undefined}
+  <a href={resolve('/help')} aria-current={!knowledge && !legal ? 'page' : undefined}
     ><MessageCircle size={16} />{ui('Contact support')}</a
   >
   <a href={resolve('/help/knowledge')} aria-current={knowledge ? 'page' : undefined}
     ><BookOpen size={16} />{ui('Knowledge base')}</a
+  >
+  <a href={resolve('/help/legal')} aria-current={legal ? 'page' : undefined}
+    ><FileText size={16} />{ui('Legal')}</a
   >
 </nav>
 
 <style>
   .help-tabs {
     display: flex;
-    gap: var(--crm-space-6);
+    flex-wrap: wrap;
+    gap: 0 var(--crm-space-6);
     margin: 0 28px;
     border-bottom: 1px solid var(--v2-line);
     flex-shrink: 0;
@@ -51,7 +56,7 @@
   @media (max-width: 600px) {
     .help-tabs {
       margin: 0 var(--crm-space-4);
-      gap: 18px;
+      gap: 0 var(--crm-space-4);
     }
   }
 </style>

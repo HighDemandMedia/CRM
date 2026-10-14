@@ -28,6 +28,10 @@ app.autodiscover_tasks(
 
 # Celery Beat Schedule for recurring tasks
 app.conf.beat_schedule = {
+    "purge-closed-organizations": {
+        "task": "common.tasks.purge_closed_organizations",
+        "schedule": crontab(minute="*/15"),
+    },
     "purge-deleted-attachment-files": {
         "task": "common.tasks.purge_deleted_attachment_files",
         "schedule": crontab(minute="*/5"),

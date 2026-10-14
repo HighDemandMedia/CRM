@@ -308,11 +308,14 @@ class TestParentsAreScopedToTheOrg:
     the other org's record name back to the requester.
     """
 
-    def test_an_account_from_another_org_is_refused(self, admin_client, org_a, org_b):
+    def test_an_account_from_another_org_is_refused(
+        self, admin_client, org_a, org_b, admin_profile
+    ):
         foreign = Account.objects.create(name="Their Co", org=org_b)
         response = admin_client.post(
             "/api/tasks/",
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "title": "Reach out",
                 "status": "New",
                 "priority": "Low",
@@ -324,11 +327,14 @@ class TestParentsAreScopedToTheOrg:
         assert "account" in response.json()["errors"]
         assert not Task.objects.filter(title="Reach out").exists()
 
-    def test_a_lead_from_another_org_is_refused(self, admin_client, org_a, org_b):
+    def test_a_lead_from_another_org_is_refused(
+        self, admin_client, org_a, org_b, admin_profile
+    ):
         foreign = Lead.objects.create(first_name="Their", last_name="Lead", org=org_b)
         response = admin_client.post(
             "/api/tasks/",
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "title": "Chase",
                 "status": "New",
                 "priority": "Low",
@@ -368,12 +374,15 @@ class TestParentsAreScopedToTheOrg:
 class TestOneParentEntity:
     """The model has always said so; the API only enforced it per request."""
 
-    def test_two_parents_in_one_request_are_refused(self, admin_client, org_a):
+    def test_two_parents_in_one_request_are_refused(
+        self, admin_client, org_a, admin_profile
+    ):
         account = Account.objects.create(name="Acme", org=org_a)
         lead = Lead.objects.create(first_name="Jo", last_name="Blow", org=org_a)
         response = admin_client.post(
             "/api/tasks/",
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "title": "Both",
                 "status": "New",
                 "priority": "Low",

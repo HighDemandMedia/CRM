@@ -60,6 +60,11 @@
     }
   });
   function records(field) {
+    if (field.key === 'associations')
+      return [
+        ...records({ key: 'account', label: 'Company' }),
+        ...records({ key: 'contacts', label: 'Contact' })
+      ];
     const source =
       field.key === 'account'
         ? (data.accounts ?? data.parents?.account)
@@ -78,6 +83,15 @@
     }));
   }
   function chosen(field) {
+    if (field.key === 'associations')
+      return (values[field.key] || []).map(
+        (record) =>
+          records(field).find((row) => row.type === record.type && row.id === record.id) ?? {
+            ...record,
+            name: ui('Selected record'),
+            label: record.type === 'account' ? 'Company' : 'Contact'
+          }
+      );
     const ids = field.multiple
       ? values[field.key] || []
       : values[field.key]
@@ -94,12 +108,30 @@
     );
   }
   function select(field, record) {
+    if (field.key === 'associations') {
+      // A work item has one company and any number of contacts.
+      values[field.key] = [
+        ...(values[field.key] || []).filter((row) =>
+          record.type === 'account'
+            ? row.type !== 'account'
+            : !(row.type === record.type && row.id === record.id)
+        ),
+        { type: record.type, id: record.id }
+      ];
+      return;
+    }
     if (target === 'Task' && ['account', 'opportunity', 'case'].includes(field.key)) {
       for (const key of ['account', 'opportunity', 'case']) if (key !== field.key) values[key] = '';
     }
     values[field.key] = field.multiple ? [...(values[field.key] || []), record.id] : record.id;
   }
   function remove(field, record) {
+    if (field.key === 'associations') {
+      values[field.key] = values[field.key].filter(
+        (row) => row.type !== record.type || row.id !== record.id
+      );
+      return;
+    }
     values[field.key] = field.multiple ? values[field.key].filter((id) => id !== record.id) : '';
   }
   function descriptor(field) {
@@ -155,7 +187,10 @@
     <div class="creation-field" data-field={field.key}>
       {#if field.key === 'assigned_to'}
         <TaskAssignees
-          people={data.owners ?? []}
+          label={ui('Assigned to')}
+          people={schema.assignment?.mode === 'self' ? [schema.assignment] : (data.owners ?? [])}
+          required={field.required}
+          disabled={schema.assignment?.mode === 'self'}
           multiple={target === 'Task'}
           compact
           bind:selected={
@@ -169,7 +204,7 @@
           }
         />
         {#if field.required}<small>{ui('Required')}</small>{/if}
-      {:else if field.relation && field.key !== 'tags'}
+      {:else if field.key === 'associations' || (field.relation && field.key !== 'tags')}
         <AssociationPicker
           records={records(field)}
           chosen={chosen(field)}
@@ -199,6 +234,11 @@
       {#if missing.some((row) => row.key === field.key)}<p class="v2-error" role="alert">
           {ui('This field is required.')}
         </p>{/if}
+      {#if field.key === 'associations' && (result?.fieldErrors?.account || result?.fieldErrors?.contacts)}
+        <p class="v2-error" role="alert">
+          {result.fieldErrors.account || result.fieldErrors.contacts}
+        </p>
+      {/if}
       {#if result?.fieldErrors?.[key] || result?.fieldErrors?.[field.key]}
         <p class="v2-error" role="alert">
           {result.fieldErrors[key] || result.fieldErrors[field.key]}

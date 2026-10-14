@@ -94,6 +94,7 @@ MIDDLEWARE = [
     "crum.CurrentRequestUserMiddleware",
     "common.middleware.get_company.GetProfileAndOrg",
     "common.middleware.rls_context.RequireOrgContext",  # RLS: Enforce org context + set PostgreSQL session variable
+    "common.middleware.organization_lifecycle.OrganizationLifecycleMiddleware",
 ]
 
 ROOT_URLCONF = "crm.urls"
@@ -568,6 +569,9 @@ EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() == "true"
 EMAIL_TIMEOUT = 10
 
 # Close self-service registration when onboarding is invitation-only.
+# Set only after publishing the matching, reviewed legal document bundle.
+CRM_LEGAL_VERSION = os.environ.get("CRM_LEGAL_VERSION", "").strip()
+
 PASSWORD_REGISTRATION_ENABLED = (
     os.environ.get("PASSWORD_REGISTRATION_ENABLED", "false").lower() == "true"
 )
@@ -579,4 +583,13 @@ GOOGLE_INTEGRATION_CLIENT_SECRET = os.environ.get(
 )
 GOOGLE_INTEGRATION_ENCRYPTION_KEY = os.environ.get(
     "GOOGLE_INTEGRATION_ENCRYPTION_KEY", ""
+)
+
+# Owner-confirmed closure freezes writes; purge enforces the 30-day deadline.
+# The purge switch remains available for an operational incident.
+CRM_ORG_CLOSURE_ENABLED = (
+    os.environ.get("CRM_ORG_CLOSURE_ENABLED", "true").lower() == "true"
+)
+CRM_ORG_PURGE_ENABLED = (
+    os.environ.get("CRM_ORG_PURGE_ENABLED", "true").lower() == "true"
 )

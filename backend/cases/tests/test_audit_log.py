@@ -21,11 +21,12 @@ def _case_activities(case):
 
 @pytest.mark.django_db
 class TestCaseSignalActivities:
-    def test_create_emits_create_activity(self, admin_client, org_a):
+    def test_create_emits_create_activity(self, admin_client, org_a, admin_profile):
         # Use the API so request middleware sets crum's current user.
         response = admin_client.post(
             "/api/cases/",
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "New audited case",
                 "status": "New",
                 "priority": "High",

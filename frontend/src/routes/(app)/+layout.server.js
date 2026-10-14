@@ -67,7 +67,8 @@ export async function load(event) {
   const destination = setupDestination(context.setup_step);
   // Reading pathname makes this gate run again on module navigation, including client-side links.
   const pathname = event.url?.pathname;
-  if (destination && pathname !== destination) redirect(303, destination);
+  if (!context.lifecycle?.read_only && destination && pathname !== destination)
+    redirect(303, destination);
   if (!canOpenSettingsPath(context.permissions, pathname))
     error(403, 'You do not have permission to access these settings.');
   const uiLocale = normalizeLocale(context.ui_language);
@@ -100,6 +101,7 @@ export async function load(event) {
     uiLocale,
     counts,
     permissions: context.permissions,
+    lifecycle: context.lifecycle,
     propertyLayout: context.property_layout,
     ticketSettings: context.ticket_settings,
     pipelineConfig: context.pipelines

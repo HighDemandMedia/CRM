@@ -8,6 +8,7 @@ from common.creation_forms import configuration, validate_configuration
 from common.models import Org
 from common.permissions import HasOrgContext
 from common.settings_access import require_settings
+from common.work_item_creation import chooses_assignee
 
 
 class CreationFormView(APIView):
@@ -47,4 +48,10 @@ class CreationFormSchemaView(APIView):
 
     def get(self, request, target):
         result = configuration(request.profile.org, target)
+        if target in {"Task", "Case"} and not chooses_assignee(request.profile):
+            result["assignment"] = {
+                "mode": "self",
+                "id": str(request.profile.pk),
+                "name": request.profile.user.display_name,
+            }
         return Response(result, headers={"Cache-Control": "private, no-store"})

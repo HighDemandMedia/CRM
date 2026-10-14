@@ -279,6 +279,14 @@ def permissions_payload(profile):
         if profile.role == "ADMIN" or configured(profile)
         else default_rules()
     )
+    if profile.org.closing_at:
+        rules = {
+            module: {
+                action: value if action in ("view", "export") else "none"
+                for action, value in actions.items()
+            }
+            for module, actions in rules.items()
+        }
     return {
         "rules": rules,
         "is_admin": profile.role == "ADMIN",

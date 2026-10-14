@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from common.links import frontend_url
 from common.models import Org
+from common.organization_lifecycle import organization_job
 from common.tasks import clear_rls_context, send_email, set_rls_context
 from webforms.models import WebFormSubmission
 from webforms.notifications import recipients, record_link
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task
+@organization_job
 def send_webform_submission_email(submission_id, org_id):
     set_rls_context(org_id)
     try:
@@ -125,7 +127,9 @@ def queue_notification(submission_id, org_id):
 @shared_task
 def retry_pending_webform_emails():
     for org_id in (
-        Org.objects.filter(is_active=True).values_list("pk", flat=True).iterator()
+        Org.objects.filter(is_active=True, closing_at__isnull=True)
+        .values_list("pk", flat=True)
+        .iterator()
     ):
         set_rls_context(org_id)
         try:

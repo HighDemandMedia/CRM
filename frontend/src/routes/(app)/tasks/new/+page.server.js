@@ -2,46 +2,12 @@ import { getCreationSchema, createConfigured } from '$lib/server/v2/creation-for
 import { fail, redirect } from '@sveltejs/kit';
 import { createTask, getTaskFormOptions } from '$lib/server/v2/tasks.js';
 import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
-import { listTickets } from '$lib/server/v2/tickets.js';
-import { listDeals } from '$lib/server/v2/deals.js';
-
-/**
- * The new-task form.
- *
- * A task has one parent (account, deal, ticket or lead), and the form has to
- * offer all four, so this loads four catalogues. The accounts one comes free
- * with the task list endpoint; the other three are separate calls, run
- * concurrently. A picker that fails keeps its empty list rather than failing
- * the page: a form that can still write a task with no parent is more use
- * than a 500.
- *
- */
+/** Load only the company and contact choices used by the creation form. */
 async function loadOptions(event) {
-  const [options, tickets, deals] = await Promise.allSettled([
-    getTaskFormOptions(event),
-    listTickets(event, new URLSearchParams({ limit: '100' })),
-    // Open deals only, matching what this picker offered before `listDeals`
-    // stopped assuming it: attaching a task to a deal you already closed is
-    // an edge case the picker does not need to carry by default.
-    listDeals(event, new URLSearchParams({ open: 'true', limit: '100' }))
-  ]);
-
-  const settled = options.status === 'fulfilled' ? options.value : { owners: [], accounts: [] };
-
+  const options = await getTaskFormOptions(event);
   return {
-    owners: settled.owners,
-    parents: {
-      contact: settled.contacts ?? [],
-      account: settled.accounts ?? [],
-      opportunity:
-        deals.status === 'fulfilled'
-          ? deals.value.results.map((/** @type {any} */ d) => ({ id: d.id, name: d.name }))
-          : [],
-      case:
-        tickets.status === 'fulfilled'
-          ? tickets.value.results.map((/** @type {any} */ t) => ({ id: t.id, name: t.name }))
-          : []
-    }
+    owners: options.owners,
+    parents: { contact: options.contacts, account: options.accounts }
   };
 }
 

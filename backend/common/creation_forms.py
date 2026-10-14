@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 
 from common.models import CustomFieldDefinition
 from common.property_catalog import FIELDS, LABELS, field_type, target_model
+from common.validators import payload_id_list
 
 IDENTITY = {
     "Contact": "first_name",
@@ -16,6 +17,7 @@ IDENTITY = {
     "Case": "name",
 }
 EXCLUDED = {"id", "created_at", "created_by", "last_activity_at", "appointment_at"}
+WORK_ITEMS = {"Task", "Case"}
 RELATIONS = {"account", "contacts", "opportunity", "case"}
 
 
@@ -31,6 +33,8 @@ def catalog(org, target):
     # Deals use the organization's currency, not a per-record choice.
     if target == "Opportunity":
         keys.remove("currency")
+    if target in WORK_ITEMS:
+        keys = [key for key in keys if key not in RELATIONS]
     rows = []
     for key in keys:
         f = model._meta.get_field(key)
@@ -62,8 +66,23 @@ def catalog(org, target):
                     for value, label in (f.choices or [])
                 ],
                 "max_length": getattr(f, "max_length", None),
-                "locked": key == IDENTITY[target],
+                "locked": key == IDENTITY[target]
+                or (target in WORK_ITEMS and key == "assigned_to"),
                 "section": section,
+                "custom": False,
+            }
+        )
+    if target in WORK_ITEMS:
+        rows.append(
+            {
+                "key": "associations",
+                "label": "Associated Objects",
+                "field_type": "associations",
+                "relation": "",
+                "multiple": True,
+                "options": [],
+                "locked": False,
+                "section": "Associations",
                 "custom": False,
             }
         )
@@ -104,6 +123,19 @@ def configuration(org, target):
             for f in fields
             if not f["custom"]
         ]
+    if target in WORK_ITEMS:
+        # Normalize older layouts on read, retaining their position and requirement.
+        normalized = []
+        association_row = None
+        for row in saved:
+            if row["key"] in RELATIONS | {"associations"}:
+                if association_row is None:
+                    association_row = {"key": "associations", "required": False}
+                    normalized.append(association_row)
+                association_row["required"] |= row["required"]
+            else:
+                normalized.append(row)
+        saved = normalized
     # Disabled/deleted definitions are omitted without deleting stored record values.
     selected = [
         {
@@ -115,7 +147,19 @@ def configuration(org, target):
     ]
     for field in fields:
         if field["locked"] and not any(row["key"] == field["key"] for row in selected):
-            selected.insert(0, {**field, "required": True})
+            position = (
+                0
+                if field["key"] == IDENTITY[target]
+                else next(
+                    (
+                        i
+                        for i, row in enumerate(selected)
+                        if row["section"] != "Identity"
+                    ),
+                    len(selected),
+                )
+            )
+            selected.insert(position, {**field, "required": True})
     digest = hashlib.sha256(
         json.dumps({"saved": saved, "fields": fields}, sort_keys=True).encode()
     ).hexdigest()
@@ -149,19 +193,8 @@ def validate_configuration(org, target, selected):
             r["key"] == field["key"] and r["required"] for r in selected
         ):
             raise ValidationError(
-                "The identifying field must stay visible and required."
+                "Identifying and assignment fields must stay visible and required."
             )
-    if (
-        target == "Task"
-        and sum(
-            r["required"] and r["key"] in {"account", "opportunity", "case"}
-            for r in selected
-        )
-        > 1
-    ):
-        raise ValidationError(
-            "A task can have only one parent object. Require at most one parent type."
-        )
     if any(r["key"] == "reminder_days" and r["required"] for r in selected) and not any(
         r["key"] == "due_date" and r["required"] for r in selected
     ):
@@ -201,7 +234,11 @@ def validate_creation(org, target, data):
         if not field["required"]:
             continue
         key = field["key"]
-        if field["custom"]:
+        if key == "associations":
+            value = data.get("account") or payload_id_list(
+                data.get("contacts"), "contacts"
+            )
+        elif field["custom"]:
             value = custom.get(key.removeprefix("custom_fields."))
         else:
             value = data.get(

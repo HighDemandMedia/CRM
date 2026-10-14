@@ -9,7 +9,13 @@ from crum import get_current_request
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from common.models import Activity
+from common.models import Activity, Org
+
+
+def deleting_organization(origin):
+    # A tenant deletion must not recreate activity rows after Django's cascade
+    # collector has already enumerated the tenant's history.
+    return isinstance(origin, Org) or getattr(origin, "model", None) is Org
 
 
 def get_entity_name(instance):
@@ -70,7 +76,9 @@ def opportunity_post_save(sender, instance, created, **kwargs):
 
 
 @receiver(post_delete, sender="opportunity.Opportunity")
-def opportunity_post_delete(sender, instance, **kwargs):
+def opportunity_post_delete(sender, instance, origin=None, **kwargs):
+    if deleting_organization(origin):
+        return
     create_activity(instance, "DELETE", "Opportunity")
 
 
@@ -86,5 +94,7 @@ def task_post_save(sender, instance, created, **kwargs):
 
 
 @receiver(post_delete, sender="tasks.Task")
-def task_post_delete(sender, instance, **kwargs):
+def task_post_delete(sender, instance, origin=None, **kwargs):
+    if deleting_organization(origin):
+        return
     create_activity(instance, "DELETE", "Task")

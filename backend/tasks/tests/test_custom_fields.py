@@ -71,11 +71,12 @@ def task_a2(org_a, admin_user):
 
 @pytest.mark.django_db
 class TestTaskCreateWithCustomFields:
-    def test_create_with_valid_dropdown_value(self, admin_client, org_a):
+    def test_create_with_valid_dropdown_value(self, admin_client, org_a, admin_profile):
         _make_complexity_def(org_a)
         response = admin_client.post(
             TASKS_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "title": "Tiered Task",
                 "status": "New",
                 "priority": "Low",
@@ -87,11 +88,14 @@ class TestTaskCreateWithCustomFields:
         task = Task.objects.get(title="Tiered Task", org=org_a)
         assert task.custom_fields == {"complexity": "epic"}
 
-    def test_create_rejects_invalid_dropdown_value(self, admin_client, org_a):
+    def test_create_rejects_invalid_dropdown_value(
+        self, admin_client, org_a, admin_profile
+    ):
         _make_complexity_def(org_a)
         response = admin_client.post(
             TASKS_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "title": "Bad Tier Task",
                 "status": "New",
                 "priority": "Low",
@@ -103,11 +107,12 @@ class TestTaskCreateWithCustomFields:
         assert "custom_fields" in response.json()["errors"]
         assert "complexity" in response.json()["errors"]["custom_fields"]
 
-    def test_create_drops_unknown_keys(self, admin_client, org_a):
+    def test_create_drops_unknown_keys(self, admin_client, org_a, admin_profile):
         _make_complexity_def(org_a)
         response = admin_client.post(
             TASKS_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "title": "Unknown Key Task",
                 "status": "New",
                 "priority": "Low",
@@ -120,12 +125,17 @@ class TestTaskCreateWithCustomFields:
         assert task.custom_fields == {"complexity": "trivial"}
 
     def test_creation_defers_required_properties_to_pipeline_rules(
-        self, admin_client, org_a
+        self, admin_client, org_a, admin_profile
     ):
         _make_complexity_def(org_a, is_required=True)
         response = admin_client.post(
             TASKS_LIST_URL,
-            {"title": "No CF Task", "status": "New", "priority": "Low"},
+            {
+                "assigned_to": [str(admin_profile.pk)],
+                "title": "No CF Task",
+                "status": "New",
+                "priority": "Low",
+            },
             format="json",
         )
         assert response.status_code == 200

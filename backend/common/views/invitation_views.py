@@ -13,7 +13,13 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from common.invitations import accept_ownership, send_invitation
+from common.legal import (
+    legal_requirements,
+    record_legal_acceptance,
+    validate_legal_acceptance,
+)
 from common.models import CRMRole, Org, OrganizationInvitation, Profile
+from common.organization_lifecycle import invitation_write
 from common.permissions import HasOrgContext, IsOrgAdmin
 from common.rbac import ensure_default_roles
 
@@ -166,6 +172,7 @@ class AcceptInvitationView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
+    @invitation_write
     def post(self, request):
         raw = request.data.get("token")
         if not isinstance(raw, str) or not 20 <= len(raw) <= 128:
@@ -198,8 +205,14 @@ class AcceptInvitationView(APIView):
                 )
             if request.data.get("preview") is True:
                 return Response(
-                    {"name": row.org.name, "email": row.email, "role": row.role}
+                    {
+                        "name": row.org.name,
+                        "email": row.email,
+                        "role": row.role,
+                        "legal": legal_requirements(row),
+                    }
                 )
+            acceptance = validate_legal_acceptance(request.data, row)
             if connection.vendor == "postgresql":
                 with connection.cursor() as cursor:
                     cursor.execute(
@@ -232,6 +245,7 @@ class AcceptInvitationView(APIView):
                 },
             )
             accept_ownership(row, request.user)
+            record_legal_acceptance(request.user, row, acceptance)
             row.accepted_at = timezone.now()
             row.save(update_fields=["accepted_at"])
         return Response(

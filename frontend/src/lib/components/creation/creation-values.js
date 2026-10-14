@@ -15,6 +15,19 @@ export function initialCreationValues(target, fields, data, previous = {}) {
   const result = {};
   for (const field of fields) {
     const key = inputKey(target, field.key);
+    if (key === 'associations') {
+      const source = { ...defaults, ...previous };
+      result[key] = [
+        ...(source.account ? [{ type: 'account', id: String(source.account) }] : []),
+        ...(source.contacts || []).map((id) => ({ type: 'contacts', id: String(id) }))
+      ];
+      continue;
+    }
+    if (key === 'assigned_to' && data.creationSchema?.assignment?.mode === 'self') {
+      const id = data.creationSchema.assignment.id;
+      result[key] = field.multiple ? [id] : id;
+      continue;
+    }
     const prior = field.custom ? previous.custom_fields?.[field.key.slice(14)] : previous[key];
     result[field.key] = prior ?? defaults[key] ?? (field.multiple || key === 'pages' ? [] : '');
     if (key === 'pages' && typeof result[field.key] === 'string') {
@@ -43,6 +56,14 @@ export function creationPayload(target, fields, values) {
   const custom = {};
   for (const field of fields) {
     let value = values[field.key];
+    if (field.key === 'associations') {
+      const account = (value || []).find((record) => record.type === 'account');
+      if (account) body.account = account.id;
+      body.contacts = (value || [])
+        .filter((record) => record.type === 'contacts')
+        .map((record) => record.id);
+      continue;
+    }
     if (field.field_type === 'datetime' && value) value = new Date(value).toISOString();
     if (field.custom) {
       if (field.field_type === 'list' && typeof value === 'string' && value.trim())

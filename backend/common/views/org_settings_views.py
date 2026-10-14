@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 
 from common.models import Profile
 from common.org_time import selectable_timezones
+from common.organization_lifecycle import lifecycle_payload
 from common.permissions import HasOrgContext
 from common.serializer import OrgSettingsSerializer
 from common.settings_access import HasSettingsAccess, can_access_settings
@@ -35,6 +36,7 @@ class OrgSettingsView(APIView):
         return Response(
             {
                 **serializer.data,
+                "lifecycle": lifecycle_payload(org, request.user),
                 "is_super_admin": request.profile.is_super_admin,
                 "setup_step": request.profile.setup_step,
             }

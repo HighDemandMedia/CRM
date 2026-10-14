@@ -4,6 +4,7 @@ import { apiRequest } from '$lib/api-helpers.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
 import { previewInvitation } from '$lib/server/invitation.js';
 import { passwordError, savePasswordSession } from '$lib/server/password-session.js';
+import { legalFormValues } from '$lib/legal.js';
 export async function load({ url, cookies, locals }) {
   const token = url.searchParams.get('token');
   if (token && /^[A-Za-z0-9_-]{20,128}$/.test(token)) {
@@ -45,14 +46,15 @@ export async function load({ url, cookies, locals }) {
   };
 }
 export const actions = {
-  accept: async ({ cookies }) => {
+  accept: async ({ cookies, request }) => {
     const token = cookies.get('crm_invitation');
     if (!token) return fail(400, { error: 'Open the link from your invitation email.' });
+    const form = await request.formData();
     let accepted;
     try {
       accepted = await apiRequest(
         '/auth/accept-invitation/',
-        { method: 'POST', body: { token } },
+        { method: 'POST', body: { token, ...legalFormValues(form) } },
         { cookies }
       );
     } catch (err) {

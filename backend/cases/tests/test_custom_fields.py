@@ -41,11 +41,14 @@ def _make_severity_def(org, **overrides):
 @pytest.mark.django_db
 class TestCaseCreateWithCustomFields:
     @patch("cases.views.send_email_to_assigned_user")
-    def test_create_with_valid_dropdown_value(self, mock_email, admin_client, org_a):
+    def test_create_with_valid_dropdown_value(
+        self, mock_email, admin_client, org_a, admin_profile
+    ):
         _make_severity_def(org_a)
         response = admin_client.post(
             CASES_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "Login crash",
                 "status": "New",
                 "priority": "High",
@@ -60,12 +63,13 @@ class TestCaseCreateWithCustomFields:
 
     @patch("cases.views.send_email_to_assigned_user")
     def test_create_rejects_invalid_dropdown_value(
-        self, mock_email, admin_client, org_a
+        self, mock_email, admin_client, org_a, admin_profile
     ):
         _make_severity_def(org_a)
         response = admin_client.post(
             CASES_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "Login crash",
                 "status": "New",
                 "priority": "High",
@@ -78,11 +82,14 @@ class TestCaseCreateWithCustomFields:
         assert "severity" in response.json()["errors"]["custom_fields"]
 
     @patch("cases.views.send_email_to_assigned_user")
-    def test_create_drops_unknown_keys(self, mock_email, admin_client, org_a):
+    def test_create_drops_unknown_keys(
+        self, mock_email, admin_client, org_a, admin_profile
+    ):
         _make_severity_def(org_a)
         response = admin_client.post(
             CASES_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "Login crash",
                 "status": "New",
                 "priority": "High",
@@ -96,12 +103,13 @@ class TestCaseCreateWithCustomFields:
 
     @patch("cases.views.send_email_to_assigned_user")
     def test_creation_defers_required_properties_to_pipeline_rules(
-        self, mock_email, admin_client, org_a
+        self, mock_email, admin_client, org_a, admin_profile
     ):
         _make_severity_def(org_a, is_required=True)
         response = admin_client.post(
             CASES_LIST_URL,
             {
+                "assigned_to": [str(admin_profile.pk)],
                 "name": "Login crash",
                 "status": "New",
                 "priority": "High",
