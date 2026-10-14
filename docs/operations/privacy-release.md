@@ -3,7 +3,7 @@
 > Historical implementation/review record. The 2026-10-14 release supersedes
 > the disabled-purge gates below: closure and automatic purge now default to
 > enabled by the owner's decision. Read-only/export access lasts 30 days, then
-> access is denied and the next 15-minute scheduler cycle deletes active tenant
+> access is denied and the next daily scheduler cycle deletes active tenant
 > data. Backup verification is not a prerequisite for this deletion. See
 > [current release instructions](release-2026-10-14.md). Cloud backup/version
 > retention and legal acceptance activation remain separate concerns.

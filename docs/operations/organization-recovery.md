@@ -36,8 +36,9 @@ administrador o tener permisos de configuración no otorga este control.
 ## Al alcanzar la fecha límite
 
 La aplicación rechaza la reactivación y el acceso a los datos de la organización.
-El scheduler revisa los cierres cada 15 minutos; el borrado se ejecuta en el primer
-ciclo posterior al vencimiento, sujeto a disponibilidad del worker y reintentos.
+El scheduler revisa los cierres una vez al día, a las 04:00 UTC. El acceso termina
+al vencer los 30 días; el borrado se ejecuta en la siguiente revisión diaria
+(hasta 24 horas después), sujeto a disponibilidad del worker y reintentos.
 El borrado de archivos utiliza una cola persistente y reintentos separados. Un
 fallo de almacenamiento no se presenta como eliminación completa.
 

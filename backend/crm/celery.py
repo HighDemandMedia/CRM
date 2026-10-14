@@ -30,7 +30,8 @@ app.autodiscover_tasks(
 app.conf.beat_schedule = {
     "purge-closed-organizations": {
         "task": "common.tasks.purge_closed_organizations",
-        "schedule": crontab(minute="*/15"),
+        # Daily at 04:00 UTC; access still ends at the exact 30-day deadline.
+        "schedule": crontab(hour=4, minute=0),
     },
     "purge-deleted-attachment-files": {
         "task": "common.tasks.purge_deleted_attachment_files",
