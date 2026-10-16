@@ -8,6 +8,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from common.organization_lifecycle import lifecycle_payload
 from common.permissions import HasOrgContext
 from common.pipeline_settings import OBJECTS
+from common.platform_access import is_platform_owner
 from common.property_layout import layout
 from common.views.pipeline_settings_views import pipeline_data
 from common.views.role_views import permissions_payload
@@ -32,6 +33,7 @@ class UIContextView(APIView):
                     "auto_close_children_on_parent_close": org.auto_close_children_on_parent_close,
                 },
                 "is_super_admin": profile.is_super_admin,
+                "is_platform_owner": is_platform_owner(request.user),
                 "permissions": permissions_payload(profile),
                 "property_layout": layout(org),
                 "pipelines": {

@@ -384,6 +384,10 @@ REST_FRAMEWORK = {
 # Redis is already a dependency (it is the Celery broker) and Django ships the
 # backend, so this adds no package. Local development falls back to LocMemCache,
 # where per-process limits are fine because there is one process.
+# Optional, operator-maintained storage allocation for the current database.
+# Zero means unknown. Do not copy production capacity into a local environment.
+CRM_DATABASE_CAPACITY_BYTES = int(os.environ.get("CRM_DATABASE_CAPACITY_BYTES", "0"))
+
 CACHE_URL = os.environ.get("CACHE_URL", "")
 if CACHE_URL:
     CACHES = {

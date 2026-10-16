@@ -150,3 +150,11 @@ describe('Settings direct navigation', () => {
     ).rejects.toMatchObject({ status: 403 });
   });
 });
+
+it('uses fresh platform ownership instead of a stale token for navigation', async () => {
+  vi.mocked(apiRequest).mockResolvedValue({ ...context, is_platform_owner: false });
+  const request = event(false);
+  request.locals.profile.is_platform_owner = true;
+  const result = await load(request);
+  expect(result).toHaveProperty('isPlatformOwner', false);
+});

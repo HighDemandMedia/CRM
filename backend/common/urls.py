@@ -56,6 +56,7 @@ from common.views.password_auth_views import (
     PasswordRegisterView,
 )
 from common.views.pipeline_settings_views import PipelineSettingsView
+from common.views.platform_usage_views import PlatformUsageView
 from common.views.profile_photo_views import ProfilePhotoView
 from common.views.property_layout_views import PropertyLayoutView
 from common.views.record_association_views import RecordAssociationView
@@ -110,6 +111,7 @@ urlpatterns = [
         RecordMailActionView.as_view(),
     ),
     path("org/ui-context/", UIContextView.as_view()),
+    path("platform/usage/", PlatformUsageView.as_view()),
     path("auth/password/login/", PasswordLoginView.as_view()),
     path("auth/password/register/", PasswordRegisterView.as_view()),
     path("auth/password/invitation/", InvitationPreviewView.as_view()),

@@ -82,6 +82,7 @@ export async function load(event) {
     });
   }
   shell.org.terminology = context.terminology;
+  shell.isPlatformOwner = context.is_platform_owner === true;
   shell.isSuperAdmin = !!context.is_super_admin;
   // The database may have changed since the access token was issued.
   shell.role = context.permissions?.is_admin === true ? 'ADMIN' : 'USER';

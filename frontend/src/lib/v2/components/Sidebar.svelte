@@ -117,6 +117,10 @@
   /** @type {{label: string, items: {href: string, label: string, icon: typeof Sun, exact?: boolean, termKey?: string, count?: string}[]}[]} */
   const GROUPS = [
     {
+      label: 'Platform',
+      items: [{ href: '/platform-usage', label: 'Usage', icon: ChartNoAxesCombined }]
+    },
+    {
       label: 'Sell',
       items: [
         { href: '/', label: 'Today', icon: Sun, exact: true },
@@ -150,6 +154,7 @@
       ...group,
       items: group.items
         .filter((item) => {
+          if (item.href === '/platform-usage') return page.data.isPlatformOwner === true;
           const module = {
             '/contacts': 'contacts',
             '/accounts': 'companies',
