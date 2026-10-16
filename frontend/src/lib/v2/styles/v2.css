@@ -1836,7 +1836,7 @@ select.v2-input[size='1']:not([multiple]):dir(rtl) {
 /* Shared record workspace: equal visual hierarchy across CRM objects. */
 .v2-root .hdm-profile {
   display: grid;
-  grid-template-columns: minmax(240px, 300px) minmax(300px, 1fr) minmax(250px, 320px);
+  grid-template-columns: minmax(15rem, 18.75rem) minmax(0, 1fr) minmax(15rem, 20rem);
   grid-template-rows: minmax(0, 1fr);
   gap: var(--crm-space-4);
   padding: var(--crm-space-5) var(--crm-space-6) var(--crm-space-6);
@@ -1892,10 +1892,10 @@ select.v2-input[size='1']:not([multiple]):dir(rtl) {
   outline: 2px solid var(--crm-focus);
   outline-offset: 3px;
 }
-@media (max-width: 1150px) {
+@container crm-workspace (max-width: 64rem) {
   .v2-root .hdm-profile {
-    grid-template-columns: minmax(220px, 280px) minmax(280px, 1fr);
-    grid-template-rows: auto auto;
+    grid-template-columns: minmax(15rem, 17.5rem) minmax(0, 1fr);
+    grid-template-rows: max-content max-content;
     overflow-y: auto;
     align-content: start;
   }
@@ -1906,7 +1906,7 @@ select.v2-input[size='1']:not([multiple]):dir(rtl) {
     grid-column: 1 / -1;
   }
 }
-@media (max-width: 700px) {
+@container crm-workspace (max-width: 42rem) {
   .v2-root .hdm-profile {
     display: flex;
     flex-direction: column;
@@ -1915,6 +1915,7 @@ select.v2-input[size='1']:not([multiple]):dir(rtl) {
   }
   .v2-root .hdm-profile > .hdm-panel {
     flex-shrink: 0;
+    padding: var(--crm-space-4);
   }
 }
 

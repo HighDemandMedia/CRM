@@ -283,6 +283,7 @@
     padding: var(--crm-space-4) var(--crm-space-6) var(--crm-space-5);
   }
   main {
+    min-width: 0;
     overflow-y: auto;
     min-height: 0;
     display: flex;
@@ -290,6 +291,7 @@
     gap: 14px;
   }
   .panel {
+    min-width: 0;
     background: var(--v2-card);
     border-radius: var(--crm-radius-lg);
     padding: var(--crm-space-5);
@@ -398,9 +400,10 @@
     margin: 0;
     padding: 10px var(--crm-space-6);
   }
-  @media (max-width: 800px) {
+  @container crm-workspace (max-width: 48rem) {
     .task-profile {
       grid-template-columns: 1fr;
+      grid-template-rows: max-content max-content;
       overflow: auto;
       padding: var(--crm-space-3);
     }

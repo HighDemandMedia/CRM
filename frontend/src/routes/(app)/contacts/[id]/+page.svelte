@@ -122,6 +122,7 @@
         ]}
       />
     {/if}
+    <DeleteRecord kind="contact" id={contact.id} />
   </section>
   <main class="contact-center hdm-panel">
     <RecordTabs bind:active={recordTab}>
@@ -216,12 +217,11 @@
   </aside>
 </div>
 
-<DeleteRecord kind="contact" id={contact.id} />
-
 <style>
   .properties-heading {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     justify-content: space-between;
     gap: 10px;
     margin-bottom: var(--crm-space-4);
@@ -241,31 +241,6 @@
     text-decoration: underline;
   }
 
-  .contact-profile {
-    display: grid;
-    grid-template-columns: minmax(180px, 300px) minmax(240px, 1fr) minmax(180px, 280px);
-    grid-template-rows: minmax(0, 1fr);
-    flex: 1;
-    min-height: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    align-items: stretch;
-  }
-  .properties,
-  .contact-center,
-  .contact-relations {
-    min-width: 0;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    padding: var(--crm-space-4);
-  }
-  .properties {
-    border-right: 1px solid var(--v2-line);
-  }
-  .contact-relations {
-    border-left: 1px solid var(--v2-line);
-  }
   h2 {
     font-size: var(--crm-text-sm);
     font-weight: 600;
@@ -301,13 +276,5 @@
   .add-note {
     justify-self: start;
     width: auto;
-  }
-
-  @media (max-width: 700px) {
-    .properties,
-    .contact-center,
-    .contact-relations {
-      padding: var(--crm-space-3);
-    }
   }
 </style>

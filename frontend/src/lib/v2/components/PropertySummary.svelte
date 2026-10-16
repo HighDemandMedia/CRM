@@ -178,8 +178,12 @@
   }
   dl {
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
     gap: 19px;
     margin: var(--crm-space-6) 0 0;
+  }
+  dl > div {
+    min-width: 0;
   }
   dt {
     font-size: var(--crm-text-xs);

@@ -143,6 +143,7 @@
             >{/each}
         </div>{/if}
     {/if}
+    <DeleteRecord kind="company" id={account.id} />
   </aside>
   <div class="v2-pad company-content" style="padding-bottom:32px">
     <div class="company-workspace">
@@ -225,8 +226,6 @@
   </div>
 </div>
 
-<DeleteRecord kind="company" id={account.id} />
-
 <style>
   .scheduled-message {
     padding: var(--crm-space-2) var(--crm-space-6);
@@ -263,6 +262,7 @@
     min-height: 0;
   }
   .company-properties {
+    min-width: 0;
     min-height: 0;
     overflow-y: auto;
     padding: var(--crm-space-5);
@@ -320,10 +320,10 @@
   .secondary-content {
     padding: 0 var(--crm-space-4) var(--crm-space-4);
   }
-  @media (max-width: 800px) {
+  @container crm-workspace (max-width: 48rem) {
     .company-layout {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto auto;
+      grid-template-rows: max-content max-content;
       padding: var(--crm-space-3);
       gap: 14px;
       overflow-y: auto;

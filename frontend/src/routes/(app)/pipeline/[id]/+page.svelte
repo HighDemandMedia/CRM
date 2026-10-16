@@ -232,7 +232,7 @@
       response. Filling it means two more cross-module requests per page load
       for a rail nobody asked for. Add it back deliberately if it earns them.
     -->
-    <DeleteRecord kind="deal" id={deal.id} inFlow />
+    <DeleteRecord kind="deal" id={deal.id} />
   </aside>
 </div>
 
@@ -338,7 +338,7 @@
     min-height: 0;
     overflow-y: auto;
   }
-  @media (max-width: 800px) {
+  @container crm-workspace (max-width: 48rem) {
     .deal-layout {
       display: block;
       overflow-y: auto;

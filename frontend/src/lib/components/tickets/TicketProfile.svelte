@@ -73,8 +73,8 @@
       </form>{/if}{/snippet}
 </PageHeader>
 {#if form?.error}<p class="v2-error message" role="alert">{ui(form.error)}</p>{/if}
-<div class="profile">
-  <aside>
+<div class="hdm-profile">
+  <aside class="hdm-panel">
     <div class="heading">
       <h2>{ui('Properties')}</h2>
       {#if !editing}<button class="v2-btn" onclick={edit}>{ui('Edit')}</button>{/if}
@@ -108,7 +108,7 @@
         ]}
       />{/if}
   </aside>
-  <main>
+  <main class="hdm-panel">
     <section class="description">
       <h2>{ui('Description')}</h2>
       <p class="body">{ticket.description || '—'}</p>
@@ -154,7 +154,7 @@
         </div>{/snippet}
     </RecordTabs>
   </main>
-  <aside>
+  <aside class="hdm-panel hdm-relations">
     {#if !editing}
       <h2>{ui('Associations')}</h2>
       {#each ticket.contacts as contact}<a
@@ -211,23 +211,6 @@
   </dialog>{/if}
 
 <style>
-  .profile {
-    display: grid;
-    grid-template-columns: 280px minmax(300px, 1fr) 260px;
-    gap: var(--crm-space-4);
-    flex: 1;
-    min-height: 0;
-    padding: 18px var(--crm-space-6);
-    overflow: auto;
-  }
-  .profile > aside,
-  .profile > main {
-    background: var(--v2-bg);
-    padding: var(--crm-space-5);
-    border-radius: var(--crm-radius-lg);
-    overflow: auto;
-    min-width: 0;
-  }
   h2 {
     font-size: var(--crm-text-sm);
     font-weight: 650;
@@ -321,24 +304,5 @@
     border-radius: var(--crm-radius-lg);
     padding: var(--crm-space-6);
     width: min(460px, 100%);
-  }
-  @media (max-width: 1100px) {
-    .profile {
-      grid-template-columns: 260px 1fr;
-    }
-    .profile > aside:last-child {
-      grid-column: 1/-1;
-    }
-  }
-  @media (max-width: 700px) {
-    .profile {
-      display: block;
-      padding: var(--crm-space-3);
-    }
-    .profile > aside,
-    .profile > main {
-      margin-bottom: var(--crm-space-3);
-      overflow: visible;
-    }
   }
 </style>

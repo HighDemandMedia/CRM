@@ -6,8 +6,8 @@
   import { can } from '$lib/v2/permissions.js';
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
-  /** @type {{kind:'contact'|'company'|'deal',id:string,inFlow?:boolean}} */
-  let { kind, id, inFlow = false } = $props();
+  /** @type {{kind:'contact'|'company'|'deal',id:string}} */
+  let { kind, id } = $props();
   let dialog;
   let loading = $state(false),
     busy = $state(false),
@@ -65,7 +65,6 @@
 
 {#if can(page.data.permissions, { contact: 'contacts', company: 'companies', deal: 'deals' }[kind], 'delete')}<button
     class="v2-btn delete-trigger"
-    class:in-flow={inFlow}
     type="button"
     onclick={open}>{ui('Delete')}</button
   >{/if}
@@ -156,10 +155,9 @@
     margin-top: var(--crm-space-1);
   }
   .delete-trigger {
-    position: fixed;
-    right: 24px;
-    bottom: 16px;
-    z-index: 10;
+    display: flex;
+    margin: var(--crm-space-6) 0 0 auto;
+    width: fit-content;
     background: var(--v2-bg, white);
     color: var(--crm-danger);
   }
@@ -218,17 +216,5 @@
   }
   .error {
     color: var(--crm-danger);
-  }
-  @media (max-width: 767px) {
-    .delete-trigger {
-      bottom: 76px;
-      right: 82px;
-    }
-  }
-  .delete-trigger.in-flow {
-    position: static;
-    display: flex;
-    margin: 28px 0 0 auto;
-    width: fit-content;
   }
 </style>

@@ -61,6 +61,10 @@
 </div>
 
 <style>
+  .record-tabs,
+  .panel {
+    min-width: 0;
+  }
   .tabs {
     display: flex;
     gap: var(--crm-space-5);
@@ -69,6 +73,7 @@
     margin-bottom: var(--crm-space-6);
   }
   .tabs button {
+    flex-shrink: 0;
     background: none;
     border: 0;
     border-bottom: 3px solid transparent;

@@ -49,6 +49,14 @@
 </header>
 
 <style>
+  .heading {
+    flex: 1 1 16rem;
+    overflow-wrap: anywhere;
+  }
+  .v2-header .v2-actions {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
   .v2-sub {
     margin-top: 5px;
   }

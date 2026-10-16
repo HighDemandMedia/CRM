@@ -243,6 +243,7 @@
     overflow: hidden;
   }
   .route-content {
+    container: crm-workspace / inline-size;
     display: flex;
     flex-direction: column;
     flex: 1;
