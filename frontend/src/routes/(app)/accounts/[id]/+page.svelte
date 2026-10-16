@@ -10,8 +10,10 @@
   import RecordEmails from '$lib/components/RecordEmails.svelte';
   let recordTab = $state('activity'),
     selectedThread = $state('');
+  let conversationRequest = $state(0);
   function showConversation(thread) {
     selectedThread = thread;
+    conversationRequest++;
     recordTab = 'emails';
   }
   import NotesEditor from '$lib/components/deals/DealNotes.svelte';
@@ -181,12 +183,14 @@
         </ContactAssociations>
       </section>
       <section class="v2-card company-journal" aria-label={ui('Company notes and activity')}>
-        <RecordTabs bind:active={recordTab}>
+        <RecordTabs bind:active={recordTab} recordId={account.id}>
           {#snippet emails()}{#key account.id}<RecordEmails
+                active={recordTab === 'emails'}
                 kind="company"
                 id={account.id}
                 {contacts}
                 initialThread={selectedThread}
+                initialRequest={conversationRequest}
               />{/key}{/snippet}
           {#snippet notes()}{#key account.id}<NotesEditor
                 notes={data.activity ?? []}

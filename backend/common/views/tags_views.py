@@ -110,7 +110,7 @@ class TagsListView(APIView, LimitOffsetPagination):
         can_read = can_access_settings(self.request.profile, "tags")
         queryset = (
             _annotated_tags(self.request.profile.org)
-            if can_read
+            if can_read and params.get("compact") != "true"
             else Tags.objects.filter(org=self.request.profile.org)
         )
 
@@ -147,7 +147,9 @@ class TagsListView(APIView, LimitOffsetPagination):
         """List tags for the org, each with per-model usage counts, plus totals."""
         tags_qs = list(self.get_queryset())
         rows = TagsSerializer(tags_qs, many=True).data
-        if not can_access_settings(request.profile, "tags"):
+        if request.query_params.get("compact") == "true" or not can_access_settings(
+            request.profile, "tags"
+        ):
             return Response({"tags_count": len(rows), "tags": rows})
         # Attach usage from the annotations (serializer order matches the qs).
         for row, obj in zip(rows, tags_qs):

@@ -33,6 +33,7 @@ it.each([
   const result = await load(
     /** @type {any} */ ({
       cookies: {},
+      depends: vi.fn(),
       locals: {},
       url: new URL('https://crm.example.com/?view=pipeline&CUSTOM_offset=25&search=Example'),
       parent: async () => ({

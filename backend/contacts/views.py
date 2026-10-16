@@ -292,7 +292,12 @@ class ContactsListView(APIView, LimitOffsetPagination):
             )
             for contact in contacts:
                 contact["deal_values"] = values.get(str(contact["id"]), [])
-        if results_contact:
+        if params.get("compact") == "true":
+            # DRF already counted the filtered queryset. Compact consumers do
+            # not need the legacy UUID-based offset and its two extra counts.
+            next_offset = self.offset + len(results_contact)
+            offset = next_offset if next_offset < self.count else None
+        elif results_contact:
             offset = queryset.filter(id__gte=results_contact[-1].id).count()
             if offset == queryset.count():
                 offset = None

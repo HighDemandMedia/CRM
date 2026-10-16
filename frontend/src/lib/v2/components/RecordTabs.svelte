@@ -1,10 +1,19 @@
 <script>
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
-  /** @type {{notes: import('svelte').Snippet, activity: import('svelte').Snippet, emails?:import('svelte').Snippet, active?:string}} */
-  let { notes, activity, emails, active = $bindable('activity') } = $props();
+  /** @type {{notes: import('svelte').Snippet, activity: import('svelte').Snippet, emails?:import('svelte').Snippet, active?:string, recordId?:string}} */
+  let { notes, activity, emails, active = $bindable('activity'), recordId = '' } = $props();
   const id = $props.id();
   let buttons = $state([]);
+  let emailsVisited = $state(false);
+  $effect(() => {
+    recordId;
+    emailsVisited = false;
+    active = 'activity';
+  });
+  $effect(() => {
+    if (active === 'emails') emailsVisited = true;
+  });
   const tabs = $derived([
     { key: 'activity', label: 'Activity', content: activity },
     { key: 'notes', label: 'Notes', content: notes },
@@ -55,7 +64,7 @@
       hidden={active !== tab.key}
       tabindex="0"
     >
-      {#if tab.key !== 'emails' || active === 'emails'}{@render tab.content()}{/if}
+      {#if tab.key !== 'emails' || active === 'emails' || emailsVisited}{@render tab.content()}{/if}
     </div>
   {/each}
 </div>

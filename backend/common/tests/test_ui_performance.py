@@ -174,3 +174,33 @@ def test_compact_lists_respect_own_scope_and_hidden_relations(
             payload = response.content.decode()
             assert "Visible" in payload
             assert "Hidden" not in payload
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("client_name", ["admin_client", "user_client"])
+def test_compact_tag_options_skip_usage_and_remain_scoped(
+    request, client_name, org_a, org_b
+):
+    from common.models import Tags
+
+    tag = Tags.objects.create(org=org_a, name="Visible", slug="visible")
+    Tags.objects.create(org=org_a, name="Archived", slug="archived", is_active=False)
+    with rls_org(org_b):
+        Tags.objects.create(org=org_b, name="Private", slug="private")
+    client = request.getfixturevalue(client_name)
+    with CaptureQueriesContext(connection) as queries:
+        response = client.get("/api/tags/?compact=true")
+    assert response.status_code == 200
+    data = response.json()
+    assert [row["id"] for row in data["tags"]] == [str(tag.id)]
+    assert "usage" not in data["tags"][0]
+    assert "totals" not in data
+    assert not any("_u_accounts" in query["sql"] for query in queries)
+
+
+@pytest.mark.django_db
+def test_compact_tags_cannot_bypass_archived_settings_access(user_client):
+    assert (
+        user_client.get("/api/tags/?compact=true&include_archived=true").status_code
+        == 403
+    )

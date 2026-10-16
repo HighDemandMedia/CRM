@@ -13,6 +13,7 @@ import { load } from './+page.server.js';
 /** @returns {any} */
 const event = (query) => ({
   cookies: {},
+  depends: vi.fn(),
   locals: {},
   url: new URL('http://localhost/contacts?' + query),
   parent: async () => ({ pipelineConfig: {} })

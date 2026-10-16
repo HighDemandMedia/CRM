@@ -4,11 +4,11 @@ import { configuredStages } from '$lib/v2/pipeline-config.js';
 import { fail } from '@sveltejs/kit';
 import { listDeals, moveDeal } from '$lib/server/v2/deals.js';
 import { dealQuery } from '$lib/server/v2/deal-query.js';
-import { getOrgPeopleAndTeams } from '$lib/server/v2/org-people.js';
 import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 import { STAGES, STAGE_LABEL } from '$lib/v2/enums.js';
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies, url, parent }) {
+export async function load({ cookies, url, parent, depends }) {
+  depends('crm:deals');
   const view = ['pipeline', 'board'].includes(url.searchParams.get('view') ?? '')
     ? 'pipeline'
     : 'list';
@@ -24,11 +24,7 @@ export async function load({ cookies, url, parent }) {
   const { pageSize, offset } = listPagination(url, view === 'list');
   query.set('limit', String(pageSize));
   query.set('offset', String(view === 'list' ? offset : 0));
-  const [response, people, shell] = await Promise.all([
-    listDeals({ cookies }, query),
-    getOrgPeopleAndTeams(cookies),
-    parent()
-  ]);
+  const [response, shell] = await Promise.all([listDeals({ cookies }, query), parent()]);
   checkListPage(url, { pageSize, offset }, response.totals.count);
   const stages = configuredStages(
     shell.pipelineConfig,
@@ -46,7 +42,7 @@ export async function load({ cookies, url, parent }) {
     totals: response.totals,
     contacts: response.contacts,
     accounts: response.accounts,
-    people: people.people,
+    people: shell.people,
     stages,
     board,
     pageSize,

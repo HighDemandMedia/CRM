@@ -25,7 +25,7 @@
   import StageProgress from '$lib/v2/components/StageProgress.svelte';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
-  import { goto, invalidateAll } from '$app/navigation';
+  import { goto, invalidate } from '$app/navigation';
   import { deserialize } from '$app/forms';
   let dragging = $state('');
   let insertionIndex = $state(-1);
@@ -129,7 +129,7 @@
         return;
       }
       saved = true;
-      await invalidateAll();
+      await invalidate('crm:companies');
       moveStatus = `Company moved to ${data.board.find((item) => item.value === stage)?.label ?? stage}.`;
     } catch {
       moveStatus = '';

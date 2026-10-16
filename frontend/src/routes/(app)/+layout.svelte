@@ -11,7 +11,7 @@
   import { asInternalPath } from '$lib/utils/paths.js';
   import '../../app.css';
   import '$lib/v2/styles/v2.css';
-  import { page } from '$app/state';
+  import { page, navigating } from '$app/state';
   import { afterNavigate } from '$app/navigation';
   import PreferencesNav from '$lib/v2/components/PreferencesNav.svelte';
   import Sidebar from '$lib/v2/components/Sidebar.svelte';
@@ -88,6 +88,11 @@
 
 <svelte:window {onkeydown} />
 <Toaster position="top-right" closeButton />
+{#if navigating.to}<div
+    class="navigation-progress"
+    role="status"
+    aria-label={ui('Loading…')}
+  ></div>{/if}
 
 <div class="v2-root v2-shell">
   <div class="desktop-navigation" class:collapsed={navigationHidden}>
@@ -227,6 +232,15 @@
 </div>
 
 <style>
+  .navigation-progress {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 100;
+    height: 0.1875rem;
+    background: var(--v2-accent, #c82322);
+    pointer-events: none;
+  }
+
   .closure-banner {
     padding: var(--crm-space-3) var(--crm-space-5);
     border-bottom: 1px solid var(--v2-line-soft);

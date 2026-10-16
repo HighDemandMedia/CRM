@@ -1,5 +1,5 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
+  import { untrack, onDestroy } from 'svelte';
   import { SvelteURLSearchParams } from 'svelte/reactivity';
   import { resolve } from '$app/paths';
   import { Mail, ArrowLeft, ListFilter } from '@lucide/svelte';
@@ -7,8 +7,16 @@
   import EmailComposer from './EmailComposer.svelte';
   import EmailActivity from './EmailActivity.svelte';
   const { ui, exactTime } = useI18n();
-  /** @type {{kind:'contact'|'company',id:string,contacts?:any[],initialThread?:string,recipient?:string}} */
-  let { kind, id, contacts = [], initialThread = '', recipient = '' } = $props();
+  /** @type {{kind:'contact'|'company',id:string,contacts?:any[],initialThread?:string,initialRequest?:number,recipient?:string,active?:boolean}} */
+  let {
+    kind,
+    id,
+    contacts = [],
+    initialThread = '',
+    initialRequest = 0,
+    recipient = '',
+    active = true
+  } = $props();
   let composing = $state(false);
   let thread = $state(''),
     search = $state(''),
@@ -24,9 +32,20 @@
   let controller,
     requestVersion = 0;
   const endpoint = $derived(`/api/record-mail/${kind}/${id}`);
-  onMount(() => {
-    thread = initialThread;
-    void load();
+  $effect(() => {
+    const selected = initialThread;
+    initialRequest;
+    untrack(() => {
+      thread = selected;
+      void load();
+    });
+  });
+  let lastLoaded = 0;
+  $effect(() => {
+    if (active)
+      untrack(() => {
+        if (error || (lastLoaded && Date.now() - lastLoaded > 60000)) void load();
+      });
   });
   onDestroy(() => {
     requestVersion++;
@@ -56,6 +75,7 @@
       items = [
         ...new Map(combined.map((item) => [thread ? item.id : item.thread_id, item])).values()
       ];
+      lastLoaded = Date.now();
       connection = result.connection;
       next = result.next_offset;
     } catch (err) {

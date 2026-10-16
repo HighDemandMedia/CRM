@@ -7,7 +7,8 @@ import { listAccounts, updateAccount } from '$lib/server/v2/accounts.js';
 import { companyQuery } from '$lib/server/v2/company-query.js';
 import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js';
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies, url, parent }) {
+export async function load({ cookies, url, parent, depends }) {
+  depends('crm:companies');
   const query = companyQuery(url),
     view = url.searchParams.get('view') === 'pipeline' ? 'pipeline' : 'list';
   if (view === 'pipeline') {

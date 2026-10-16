@@ -1,4 +1,5 @@
 <script>
+  import { onDestroy } from 'svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { exactTime, ui } = useI18n();
 
@@ -6,8 +7,10 @@
   import RecordEmails from '$lib/components/RecordEmails.svelte';
   let recordTab = $state('activity'),
     selectedThread = $state('');
+  let conversationRequest = $state(0);
   function showConversation(thread) {
     selectedThread = thread;
+    conversationRequest++;
     recordTab = 'emails';
   }
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
@@ -19,6 +22,42 @@
   import ContactAssociations from '$lib/v2/components/ContactAssociations.svelte';
   import ContactForm from '$lib/components/contacts/ContactForm.svelte';
   let editingProperties = $state(false);
+  let editor = $state(null);
+  let editorBusy = $state(false);
+  let editorError = $state('');
+  let editorController;
+  onDestroy(() => editorController?.abort());
+  async function openEditor() {
+    editorController?.abort();
+    const controller = new AbortController();
+    editorController = controller;
+    const id = contact.id;
+    editorBusy = true;
+    editorError = '';
+    try {
+      const response = await fetch(`/api/contact-editor/${id}`, { signal: controller.signal });
+      if (!response.ok) throw new Error();
+      const result = await response.json();
+      if (contact.id !== id || controller.signal.aborted) return;
+      editor = result;
+      editingProperties = true;
+    } catch (error) {
+      if (!controller.signal.aborted && contact.id === id)
+        editorError = 'Could not load contact. Please try again.';
+    } finally {
+      if (editorController === controller) editorBusy = false;
+    }
+  }
+  let editorContactId = '';
+  $effect(() => {
+    // A reused route component must not carry another contact's editor.
+    const id = contact.id;
+    if (editorContactId === id) return;
+    editorContactId = id;
+    editingProperties = false;
+    editor = null;
+    editorError = '';
+  });
   import Attachments from '$lib/v2/components/Attachments.svelte';
   import { resolve } from '$app/paths';
   import { invalidateAll } from '$app/navigation';
@@ -73,16 +112,17 @@
   <section class="properties hdm-panel" aria-label={ui('Contact properties')}>
     <div class="properties-heading">
       <h2>{ui('Properties')}</h2>
-      <ContactActions
-        {contact}
-        disabled={editingProperties}
-        onEdit={() => (editingProperties = true)}
-      />
+      <ContactActions {contact} disabled={editingProperties || editorBusy} onEdit={openEditor} />
     </div>
 
-    {#if editingProperties}
+    {#if editorBusy}<p role="status">{ui('Loading…')}</p>{/if}
+    {#if editorError}<p class="v2-error" role="alert">
+        {ui(editorError)}
+        <button type="button" class="v2-btn v2-btn-sm" onclick={openEditor}>{ui('Retry')}</button>
+      </p>{/if}
+    {#if editingProperties && editor}
       <ContactForm
-        data={data.editor}
+        data={editor}
         result={form}
         editing
         inline
@@ -125,12 +165,14 @@
     <DeleteRecord kind="contact" id={contact.id} />
   </section>
   <main class="contact-center hdm-panel">
-    <RecordTabs bind:active={recordTab}>
+    <RecordTabs bind:active={recordTab} recordId={contact.id}>
       {#snippet emails()}{#key contact.id}<RecordEmails
+            active={recordTab === 'emails'}
             kind="contact"
             recipient={contact.email || ''}
             id={contact.id}
             initialThread={selectedThread}
+            initialRequest={conversationRequest}
           />{/key}{/snippet}
       {#snippet notes()}
         <section class="profile-section" aria-label={ui('Contact notes')}>

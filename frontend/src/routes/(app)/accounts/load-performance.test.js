@@ -16,7 +16,12 @@ it('starts the company request without waiting for shell settings', async () => 
     /** @type {any} */ ({ results: [], totals: {}, contacts: [], industries: [], countries: [] })
   );
   const pending = load(
-    /** @type {any} */ ({ cookies: {}, url: new URL('http://localhost/accounts'), parent })
+    /** @type {any} */ ({
+      cookies: {},
+      depends: vi.fn(),
+      url: new URL('http://localhost/accounts'),
+      parent
+    })
   );
   expect(listAccounts).toHaveBeenCalledOnce();
   expect(parent).toHaveBeenCalledOnce();

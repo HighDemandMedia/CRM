@@ -24,6 +24,7 @@ import { load as tickets } from '../../../routes/(app)/tickets/+page.server.js';
 /** @returns {any} */
 const event = (path, query) => ({
   cookies: {},
+  depends: vi.fn(),
   locals: {},
   url: new URL(`http://localhost/${path}?${query}`),
   parent: async () => ({ pipelineConfig: {} })

@@ -6,9 +6,9 @@ import { viewerRole } from './organization.js';
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
  * @returns {Promise<{ tags: any[], totals: any, can_edit: boolean }>}
  */
-export async function getTags({ cookies }, { includeArchived = false } = {}) {
+export async function getTags({ cookies }, { includeArchived = false, compact = false } = {}) {
   const resp = await apiRequest(
-    includeArchived ? '/tags/?include_archived=true' : '/tags/',
+    includeArchived ? '/tags/?include_archived=true' : compact ? '/tags/?compact=true' : '/tags/',
     {},
     { cookies }
   );

@@ -1,5 +1,4 @@
 import { apiRequest } from '$lib/api-helpers.js';
-import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 import { fail, redirect } from '@sveltejs/kit';
@@ -11,13 +10,10 @@ import {
 } from '$lib/server/v2/contacts.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies, params, locals }) {
-  const [contact, { people }] = await Promise.all([
-    getContact({ cookies }, params.id, true),
-    getOrgPeopleAndTeams(cookies)
-  ]);
+export async function load({ cookies, params, parent }) {
+  const [contact, options] = await Promise.all([getContact({ cookies }, params.id), parent()]);
   if (contact.contact.id !== params.id) redirect(303, `/contacts/${contact.contact.id}`);
-  return { ...contact, hosts: people, defaultHost: resolveMe(people, locals.user?.email) };
+  return { ...contact, hosts: options.people, defaultHost: options.meId };
 }
 
 const FLAGS = ['is_active'];
