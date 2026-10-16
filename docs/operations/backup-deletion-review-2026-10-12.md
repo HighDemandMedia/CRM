@@ -1,5 +1,9 @@
 # Revisión de backups y eliminación — 12 de octubre de 2026
 
+> Registro histórico. La configuración online cambió desde esta revisión:
+> consultar [la revisión del 16 de octubre](cloud-readiness-2026-10-16.md) para
+> el estado actual de PITR, red privada, ciclo de vida S3 y variables de cierre.
+
 ## Resultado
 
 Revisión técnica realizada sobre la configuración online y el código local del CRM principal. **La política de eliminación aún no está lista para activarse.** El plan de base de datos ya fue actualizado por el propietario, pero la recuperación aún inicializa; falta probar una restauración aislada y completar los controles operativos. El cierre y la reactivación se implementaron y probaron localmente; el control de cierre/cancelación quedó disponible para el propietario y la eliminación definitiva sigue desactivada. No se modificó la infraestructura online.

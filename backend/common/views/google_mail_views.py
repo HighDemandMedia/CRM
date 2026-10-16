@@ -1,5 +1,7 @@
 """Paginated conversations for contact/company records, never an entire mailbox."""
 
+import json
+
 from django.db.models import Count, Max, OuterRef, Subquery
 from django.db.models.functions import Lower, Trim
 from rest_framework import serializers
@@ -171,7 +173,16 @@ class RecordMailActionView(APIView):
     def post(self, request, kind, pk):
         from common.google_mail_actions import MailAction, perform_mail_action
 
-        serializer = MailAction(data=request.data)
+        data = request.data
+        if request.content_type.startswith("multipart/form-data"):
+            try:
+                data = json.loads(request.data.get("payload", ""))
+                if not isinstance(data, dict):
+                    raise ValueError()
+            except (ValueError, TypeError):
+                raise serializers.ValidationError("Invalid email request.") from None
+            data["attachments"] = request.FILES.getlist("attachments")
+        serializer = MailAction(data=data)
         serializer.is_valid(raise_exception=True)
         return Response(
             perform_mail_action(request.profile, kind, pk, serializer.validated_data),

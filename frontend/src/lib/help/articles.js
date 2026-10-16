@@ -531,7 +531,7 @@ export const articles = [
       },
       {
         title: 'What sync includes',
-        text: 'The initial import covers the last 90 days, followed by background sync about every five minutes. Large imports can take several jobs. Full message text is available, including expandable quoted history; remote images and attachments are not imported. Drafts, spam and trash are excluded. The CRM does not create contacts from Gmail, mark messages read in Gmail or track recipient opens. Compose and forward support plain text and To/CC, with up to 25 recipients; attachments are not supported here.'
+        text: 'The initial import covers the last 90 days, followed by background sync about every five minutes. Large imports can take several jobs. Full message text is available, including expandable quoted history; remote images and attachments are not imported. Drafts, spam and trash are excluded. The CRM does not create contacts from Gmail, mark messages read in Gmail or track recipient opens. Compose, reply and forward support basic formatting and To/CC/BCC, with up to 25 recipients. Attach up to 10 files from your device, totaling 10 MB. Original Gmail attachments are not automatically forwarded. Drafts remain open only on this page; close confirmation prevents accidental discarding.'
       },
       {
         title: 'Privacy and troubleshooting',

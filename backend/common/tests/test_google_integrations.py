@@ -172,10 +172,12 @@ def test_mail_privacy_even_between_org_admin_and_member(
         sender="contact@example.com",
         direction="received",
         occurred_at=timezone.now(),
-        encrypted_body=encrypt("<script>not executed</script>"),
+        encrypted_body=encrypt(
+            "<p>Readable cached email</p><script>not executed</script>"
+        ),
     )
     path = f"/api/integrations/google/mail/{row.pk}/"
-    assert admin_client.get(path).data["body"] == "<script>not executed</script>"
+    assert admin_client.get(path).data["body"] == "Readable cached email"
     assert user_client.get(path).status_code == 404
     assert org_b_client.get(path).status_code == 404
     Contact.objects.filter(email="contact@example.com").update(

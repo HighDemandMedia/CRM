@@ -310,7 +310,9 @@ class GoogleMailBodyView(APIView):
 
             raise NotFound()
         try:
-            body = decrypt(row.encrypted_body)
+            from common.mail_content import readable_mail_body
+
+            body = readable_mail_body(decrypt(row.encrypted_body))
         except GoogleError:
             raise serializers.ValidationError(
                 "This email is unavailable. Reconnect Gmail and synchronize again."

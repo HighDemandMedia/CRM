@@ -1,0 +1,10 @@
+{
+  "Rules": [
+    {
+      "ID": "hdm-crm-media-noncurrent-30-days",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "media/" },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 30 }
+    }
+  ]
+}

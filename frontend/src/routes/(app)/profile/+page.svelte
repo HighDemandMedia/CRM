@@ -1,6 +1,4 @@
 <script>
-  import LegalLinks from '$lib/components/LegalLinks.svelte';
-  import { legalLinks } from '$lib/legal.js';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { googleErrorMessage, googleCallbackMessage } from '$lib/utils/google-feedback.js';
   import { useI18n } from '$lib/i18n/context.js';
@@ -327,26 +325,17 @@
         >
           <div class="section-heading">
             <h2 id="integration-title"><Link2 size={17} />{ui('Connected accounts')}</h2>
-            <span class="subtle-badge">{ui('Per user')}</span>
           </div>
-          <p class="section-description">{ui('Manage your email and calendar connections.')}</p>
-          <p class="section-description">
-            {ui(
-              'Google access is optional. Learn what we access, store and remove when you disconnect in our'
-            )}
-            <a
-              href={legalLinks(locale()).privacy + '#google'}
-              target="_blank"
-              rel="noopener noreferrer">{ui('Privacy notice')}</a
-            >.
-          </p>
+          {#if !p.integrations?.gmail?.configured || !p.integrations?.google_calendar?.configured}
+            <p class="setup-note" role="status">
+              {ui('Google setup is required. Contact your CRM administrator.')}
+            </p>
+          {/if}
           {#if googleCallbackMessage(data.googleResult)}
             <ErrorNotice message={ui(googleCallbackMessage(data.googleResult))} />
           {:else if data.googleResult === 'connected'}
             <p class="feedback" role="status">
-              {ui(
-                'Google connected. Check the connection status below for synchronization progress.'
-              )}
+              {ui('Google connected.')}
             </p>
           {/if}
           {#if googleActionError}<ErrorNotice message={ui(googleActionError)} />{/if}
@@ -356,7 +345,7 @@
           {/if}
           {#each [{ key: 'gmail', service: 'gmail', title: 'Gmail' }, { key: 'google_calendar', service: 'calendar', title: 'Google Calendar' }] as item}
             {@const connection = p.integrations?.[item.key]}
-            <div class="integration">
+            <section class="integration" aria-labelledby={`integration-${item.key}`}>
               <div class="integration-heading">
                 <div class="service-icon">
                   {#if item.service === 'gmail'}<Mail size={21} />{:else}<CalendarDays
@@ -364,10 +353,12 @@
                     />{/if}
                 </div>
                 <div>
-                  <h3>{item.title}</h3>
+                  <h3 id={`integration-${item.key}`}>{item.title}</h3>
                   <p>{connection?.email || ui('No account connected')}</p>
                 </div>
-                <span class="status-badge"
+                <span
+                  class="status-badge"
+                  class:connected={connection?.configured && connection?.status === 'connected'}
                   >{!connection?.configured
                     ? ui('Setup required')
                     : connection?.status === 'connected'
@@ -379,12 +370,15 @@
               </div>
               <p class="help">
                 {item.service === 'gmail'
-                  ? ui(
-                      'Sent and received emails are matched to your contacts by email address. Only you can see your connected mailbox activity, including the message text. Initial import covers the last 90 days; attachments are not imported.'
-                    )
-                  : ui(
-                      'Events synchronize in both directions. Your hosted CRM appointments and their meeting notes appear in Google Calendar. Google changes update the linked appointment. No invitation emails are sent by this sync.'
-                    )}
+                  ? ui('View contact emails. Your mailbox stays private.')
+                  : ui('Sync appointments and meeting notes in both directions.')}
+                <a
+                  href={resolve(
+                    item.service === 'gmail'
+                      ? '/help/knowledge/gmail-records'
+                      : '/help/knowledge/google-calendar'
+                  )}>{ui(item.service === 'gmail' ? 'Gmail guide' : 'Calendar guide')}</a
+                >
               </p>
               {#if connection?.last_sync}<p class="help">
                   {ui('Last sync:')}
@@ -394,87 +388,84 @@
                   class="help"
                 >
                   {ui('Calendar:')}
-                  {connection.calendar}{ui(
-                    '. Sync includes the previous 90 days and the next 12 months.'
-                  )}
+                  {connection.calendar}
                 </p>{/if}
               {#if connection?.error}<ErrorNotice
                   message={ui(googleErrorMessage(connection.error))}
                 />{/if}
-              {#if !connection?.configured}<p class="setup-note">
-                  {ui(
-                    'The CRM administrator needs to configure Google connections before you can connect.'
-                  )}
-                </p>{/if}
               <div class="integration-actions">
-                <form method="POST" action="?/googleConnect">
-                  <input type="hidden" name="service" value={item.service} /><button
-                    class="v2-btn v2-btn-primary v2-btn-sm"
-                    disabled={!connection?.configured || googlePending}
-                    >{connection?.email ? ui('Reconnect') : ui(`Connect ${item.title}`)}</button
-                  >
-                </form>
+                {#if connection?.status !== 'connected'}
+                  <form method="POST" action="?/googleConnect">
+                    <input type="hidden" name="service" value={item.service} /><button
+                      class="v2-btn v2-btn-primary v2-btn-sm"
+                      disabled={!connection?.configured || googlePending}
+                      >{connection?.email ? ui('Reconnect') : ui(`Connect ${item.title}`)}</button
+                    >
+                  </form>
+                {/if}
                 {#if connection?.status === 'connected'}<form
                     method="POST"
                     action="?/googleManage"
                     use:enhance={onGoogleManage}
                   >
                     <input type="hidden" name="service" value={item.service} /><button
-                      class="v2-btn v2-btn-sm"
+                      class="v2-btn v2-btn-primary v2-btn-sm"
                       disabled={googlePending}
                       name="operation"
                       value="sync">{ui('Sync now')}</button
                     >
                   </form>{/if}
-                {#if connection?.email}<form
-                    method="POST"
-                    action="?/googleManage"
-                    use:enhance={onGoogleManage}
-                  >
-                    <input type="hidden" name="service" value={item.service} /><button
-                      class="v2-btn v2-btn-sm"
-                      disabled={googlePending}
-                      name="operation"
-                      value="disconnect">{ui('Disconnect')}</button
-                    >
-                  </form>{/if}
-                {#if item.service === 'calendar' && connection?.status === 'connected'}<button
-                    class="v2-btn v2-btn-sm"
-                    disabled={loadingCalendars || googlePending}
-                    onclick={loadCalendars}
-                    >{ui(loadingCalendars ? 'Loading…' : 'Choose calendar')}</button
-                  >{/if}
               </div>
-              {#if item.service === 'calendar' && calendars.length}<form
-                  method="POST"
-                  action="?/googleManage"
-                  use:enhance={onGoogleManage}
-                >
-                  <input type="hidden" name="service" value="calendar" /><input
-                    type="hidden"
-                    name="operation"
-                    value="calendar"
-                  /><label
-                    >{ui('Calendar')}<select
-                      class="v2-input"
-                      name="calendar_id"
-                      bind:value={selectedCalendar}
-                      >{#each calendars as calendar}<option value={calendar.id}
-                          >{calendar.name}{calendar.writable ? '' : ui(' (read only)')}</option
-                        >{/each}</select
-                    ></label
-                  ><button class="v2-btn v2-btn-sm" disabled={googlePending}
-                    >{ui('Use this calendar')}</button
-                  >
-                </form>{/if}
+              {#if connection?.email}
+                <details class="connection-settings">
+                  <summary>{ui('Manage connection')}</summary>
+                  <div class="integration-actions">
+                    <form method="POST" action="?/googleManage" use:enhance={onGoogleManage}>
+                      <input type="hidden" name="service" value={item.service} /><button
+                        class="v2-btn v2-btn-sm"
+                        disabled={googlePending}
+                        name="operation"
+                        value="disconnect">{ui('Disconnect')}</button
+                      >
+                    </form>
+                    {#if item.service === 'calendar' && connection?.status === 'connected'}<button
+                        class="v2-btn v2-btn-sm"
+                        disabled={loadingCalendars || googlePending}
+                        onclick={loadCalendars}
+                        >{ui(loadingCalendars ? 'Loading…' : 'Choose calendar')}</button
+                      >{/if}
+                  </div>
+                  {#if item.service === 'calendar' && connection?.status === 'connected' && calendars.length}<form
+                      method="POST"
+                      action="?/googleManage"
+                      use:enhance={onGoogleManage}
+                    >
+                      <input type="hidden" name="service" value="calendar" /><input
+                        type="hidden"
+                        name="operation"
+                        value="calendar"
+                      /><label
+                        >{ui('Calendar')}<select
+                          class="v2-input"
+                          name="calendar_id"
+                          bind:value={selectedCalendar}
+                          >{#each calendars as calendar}<option value={calendar.id}
+                              >{calendar.name}{calendar.writable ? '' : ui(' (read only)')}</option
+                            >{/each}</select
+                        ></label
+                      ><button class="v2-btn v2-btn-sm" disabled={googlePending}
+                        >{ui('Use this calendar')}</button
+                      >
+                    </form>{/if}
+                </details>
+              {/if}
               {#if item.service === 'calendar' && calendarError}<ErrorNotice
                   message={ui(calendarError)}
                 />{/if}
-            </div>
+            </section>
           {/each}
         </div>{/if}
     </div>
-    <LegalLinks />
   </div>
 </div>
 
@@ -658,16 +649,45 @@
     line-height: 1.6;
     margin: 0 0 var(--crm-space-4);
   }
+  .integration {
+    padding: var(--crm-space-5);
+    border: 1px solid var(--v2-line);
+    border-radius: var(--crm-radius-md);
+  }
   .integration + .integration {
-    border-top: 1px solid var(--v2-line);
-    padding-top: var(--crm-space-6);
-    margin-top: var(--crm-space-6);
+    margin-top: var(--crm-space-4);
+  }
+  .connection-settings {
+    margin-top: var(--crm-space-4);
+  }
+  .connection-settings summary {
+    width: fit-content;
+    cursor: pointer;
+    color: var(--v2-slate);
+    font-size: var(--crm-text-xs);
+    padding-block: var(--crm-space-2);
+  }
+  .connection-settings summary:focus-visible {
+    outline: 2px solid var(--v2-ink);
+    outline-offset: 3px;
+    border-radius: var(--crm-radius-sm);
+  }
+  .connection-settings > form {
+    display: grid;
+    gap: var(--crm-space-3);
+    margin-top: var(--crm-space-3);
+  }
+  .connection-settings > form button {
+    justify-self: start;
+  }
+  .status-badge.connected {
+    color: var(--v2-moss);
   }
   .integration-heading {
     display: flex;
     gap: var(--crm-space-3);
     align-items: center;
-    margin-bottom: 18px;
+    margin-bottom: var(--crm-space-2);
     flex-wrap: wrap;
   }
   .integration-heading > div:nth-child(2) {
@@ -688,14 +708,25 @@
     border-radius: var(--crm-radius-md);
     color: var(--v2-slate);
   }
-  .status-badge,
-  .subtle-badge {
+  .status-badge {
     font-size: var(--crm-text-xs);
     padding: var(--crm-space-1) var(--crm-space-2);
     background: var(--v2-line-soft);
     color: var(--v2-slate);
     border-radius: var(--crm-radius-sm);
     white-space: nowrap;
+  }
+  .integration .help a {
+    font-size: var(--crm-text-xs);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .integration .help a {
+    display: inline-block;
+    margin-inline-start: var(--crm-space-1);
+  }
+  .integration-heading p {
+    overflow-wrap: anywhere;
   }
   .integration-actions {
     display: flex;
@@ -704,9 +735,7 @@
     margin-top: var(--crm-space-3);
   }
   .setup-note {
-    margin: var(--crm-space-5) 0 0;
-    padding-top: var(--crm-space-4);
-    border-top: 1px solid var(--v2-line);
+    margin: 0 0 var(--crm-space-4);
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     line-height: 1.6;

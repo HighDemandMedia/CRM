@@ -82,8 +82,11 @@ expire and require reconnecting. See [Google's scope documentation](https://deve
 ## Sending and internal comments
 
 - **New email**, **Reply** and **Forward** use the current profile's connected Gmail,
-  with the record's Edit permission enforced by the API. Plain-text messages support
-  To and CC, up to 25 recipients. Attachments are not forwarded or composed here.
+  with the record's Edit permission enforced by the API. The compact composer supports
+  sanitized rich text, To, CC and BCC, up to 25 recipients in total. Users can attach
+  up to ten local files, totaling at most 10 MiB. Uploads are transient and are not
+  saved as record attachments. Original Gmail attachments are not automatically
+  included when forwarding; add them from the computer or forward in Gmail.
 - Existing read-only Gmail grants continue importing mail. Reconnect once in
   Profile → Integrations to grant `gmail.send` before sending from the CRM.
 - Replies preserve the original subject and Gmail thread headers. Newly synchronized
@@ -134,3 +137,72 @@ Automated tests use provider responses mocked locally. Actual OAuth consent,
 Google API enablement, a real sent/received email and a real bidirectional calendar
 round trip must be verified with the user's connected account after setup. No
 production connection is implied by a successful local test.
+
+## Production OAuth review — October 14, 2026
+
+The Google Cloud project `hdm-crm-staging` was inspected under the HDM account.
+Its project name still contains "Staging", but its OAuth audience is now
+**External / In production**, changed with the CRM owner's authorization.
+This is not equivalent to Google approval of its data-access scopes.
+
+Completed in Google Cloud:
+
+- Saved the public application homepage: `https://highdemandmedia.com/crm`.
+- Saved privacy: `https://highdemandmedia.com/crm/privacy` and terms:
+  `https://highdemandmedia.com/crm/terms`. All three returned HTTP 200;
+  the public privacy notice includes Google integration and Limited Use language.
+- Ran brand verification and published the verified branding. Google confirmed
+  that the branding is verified and shown to users.
+- Confirmed the connected-accounts web client's redirect matches
+  `https://crm.highdemandmedia.com/profile/google/callback`.
+- Confirmed declared Calendar events/list, Gmail read/send and identity email
+  scopes. The code also requests the standard `openid` identity scope; reconcile
+  that declaration before submitting the final scope inventory.
+
+The project contains both **HDM CRM Connected Accounts** (web client) and
+**HDM CRM - Correo del sistema** (desktop client). Publishing affects both.
+Credentials and the persistent encryption key were not changed. No Render
+deployment is required for these Google Console changes.
+
+### Still required before claiming verified production integration
+
+1. Complete the data-access application. Google reports missing scope
+   justification, intended data usage and a demonstration video. The text below
+   was prepared in the Console, but cannot be saved there without a video URL.
+2. Record an English demonstration covering consent and actual use of every
+   requested sensitive/restricted scope and both OAuth clients. Use demonstration
+   data and a controlled mailbox, show the consent screen/app name/client ID,
+   never credentials or tokens. Upload as an unlisted YouTube video and supply
+   its link. Do not send real test emails without the owner's authorization.
+3. Submit data-access verification and complete Google's requested security
+   assessment. `gmail.readonly` is restricted; this CRM processes and caches
+   message data on its server. Google requires an assessment for that use unless
+   an applicable exception is accepted; customer organizations are not the same
+   as an internal-only Workspace app. Do not claim an exemption or assessment
+   completion without evidence.
+4. Reconnect test accounts after publication to obtain fresh offline grants,
+   then verify real Gmail import, explicit send/reply/forward, and Calendar
+   create/edit/notes synchronization in both directions. Validate the separate
+   system sender as well. This review did not perform those live round trips.
+
+At this review, Google still shows **data access not verified**, with **5 / 100**
+OAuth users. The unverified-app warning and cap can remain until scope approval.
+Testing grants have a seven-day refresh-token expiry for these scopes; publishing
+does not prove previously issued tokens have been renewed. Production tokens can
+still be revoked or expire for other reasons.
+
+### Prepared scope justifications
+
+Sensitive scopes (Calendar events and Gmail send):
+
+> HDM CRM is an invitation-only CRM for customer organizations. calendar.events enables users to view their selected calendar and synchronize CRM appointments, times and meeting notes with Google events in both directions, including edits and cancellations. Read-only access cannot support these user-requested writes. gmail.send enables users to compose, reply and forward from Contact and Company records using their connected mailbox; sending happens only on an explicit user action. A separate system-sender client sends service invitations and authentication emails from the HDM service mailbox. We do not need Gmail modify, full mailbox access or calendar sharing-management permissions. Each customer connects their own account; organization access and record permissions are enforced by the backend.
+
+Restricted scope (`gmail.readonly`); intended use: **Email productivity**:
+
+> HDM CRM uses gmail.readonly to display sent and received conversations associated with CRM contacts the connected user can access. Initial import covers the last 90 days; subsequent sync uses Gmail history. The CRM stores message metadata and encrypted message text on its backend. Only the connected mailbox user can read this cache. Mail attachments are not imported, except MIME text parts needed to reconstruct message text. Metadata-only scopes cannot display message bodies or support text search; add-on scopes cannot support background sync in this standalone CRM. Read-only access avoids mailbox modification/deletion privileges. Disconnecting deletes CRM cached messages and tokens without deleting original Gmail messages. Google data is not sold, used for advertising or used to train general AI models; use is limited to the connected CRM features.
+
+References:
+
+- [Google restricted scope verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification)
+- [Gmail scope classifications](https://developers.google.com/workspace/gmail/api/auth/scopes)
+- [Refresh-token expiration](https://developers.google.com/identity/protocols/oauth2#expiration)

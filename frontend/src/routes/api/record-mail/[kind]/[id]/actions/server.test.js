@@ -49,3 +49,24 @@ it('does not expose upstream internals or automatically retry uncertain sends', 
   );
   expect(apiRequest).toHaveBeenCalledTimes(1);
 });
+
+it('forwards multipart files and message payload without inventing content-type boundaries', async () => {
+  const form = new FormData();
+  form.set('payload', JSON.stringify({ action: 'send', body_html: '<p>Hello</p>' }));
+  form.append('attachments', new File(['contents'], 'proposal.txt'));
+  const request = new Request('http://localhost/api/send', { method: 'POST', body: form });
+  apiRequest.mockResolvedValue({ sent: true });
+  const response = await POST({ ...event({}), request });
+  expect(response.status).toBe(200);
+  const forwarded = apiRequest.mock.calls[0][1].body;
+  expect(forwarded).toBeInstanceOf(FormData);
+  expect(await forwarded.get('attachments').text()).toBe('contents');
+  expect(JSON.parse(forwarded.get('payload')).body_html).toBe('<p>Hello</p>');
+});
+it('rejects non-file attachment fields before contacting the API', async () => {
+  const form = new FormData();
+  form.set('attachments', 'not a file');
+  const request = new Request('http://localhost/api/send', { method: 'POST', body: form });
+  expect((await POST({ ...event({}), request })).status).toBe(400);
+  expect(apiRequest).not.toHaveBeenCalled();
+});

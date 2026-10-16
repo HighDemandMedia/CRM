@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
+import { mailAttachmentError } from '$lib/v2/mail-composition.js';
 
 export async function POST({ cookies, params, request }) {
   const headers = { 'Cache-Control': 'private, no-store' };
@@ -7,7 +8,14 @@ export async function POST({ cookies, params, request }) {
     return json({ error: 'Invalid record.' }, { status: 400, headers });
   let body;
   try {
-    body = await request.json();
+    if (request.headers.get('content-type')?.startsWith('multipart/form-data')) {
+      body = await request.formData();
+      const files = body.getAll('attachments');
+      if (files.some((file) => !(file instanceof File)))
+        return json({ error: 'Invalid attachment.' }, { status: 400, headers });
+      const error = mailAttachmentError(/** @type {File[]} */ (files));
+      if (error) return json({ error }, { status: 400, headers });
+    } else body = await request.json();
   } catch {
     return json({ error: 'Invalid request.' }, { status: 400, headers });
   }

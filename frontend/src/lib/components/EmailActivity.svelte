@@ -1,9 +1,19 @@
 <script>
   import EmailComposer from './EmailComposer.svelte';
+  import EmailBody from './EmailBody.svelte';
   import { onDestroy } from 'svelte';
-  import { ArrowDownLeft, ArrowUpRight, ExternalLink } from '@lucide/svelte';
+  import {
+    ArrowDownLeft,
+    ArrowUpRight,
+    ExternalLink,
+    Reply,
+    ReplyAll,
+    Forward,
+    MessageSquare,
+    ChevronRight
+  } from '@lucide/svelte';
   import { useI18n } from '$lib/i18n/context.js';
-  import { splitEmailBody } from '$lib/v2/email-presentation.js';
+  import { splitEmailBody, replyRecipients } from '$lib/v2/email-presentation.js';
   const { ui, exactTime } = useI18n();
   /** @type {{id:string,href?:string|null,mail?:any,onConversation?:(thread:string)=>void,kind?:string,recordId?:string,onchanged?:()=>void}} */
   let { id, href, mail = null, onConversation, kind, recordId, onchanged } = $props();
@@ -13,6 +23,13 @@
     error = $state('');
   let controller;
   let content = $derived(splitEmailBody(email?.body || ''));
+  let hasReplyAll = $derived(
+    email &&
+      (() => {
+        const { to, cc } = replyRecipients(email, true);
+        return to.length + cc.length > 1;
+      })()
+  );
   onDestroy(() => controller?.abort());
   async function load() {
     if (email || busy) return;
@@ -41,6 +58,7 @@
     {#if mail}
       <span class="email-heading">
         <span class="direction">
+          <span class="toggle-marker"><ChevronRight size={14} /></span>
           {#if mail.direction === 'sent'}<ArrowUpRight size={16} />{ui('Sent')}{:else}<ArrowDownLeft
               size={16}
             />{ui('Received')}{/if}
@@ -58,36 +76,49 @@
     {#if error}<p class="v2-error" role="alert">{ui(error)}</p>
       <button class="v2-btn v2-btn-sm" type="button" onclick={load}>{ui('Try again')}</button>{/if}
     {#if email}
-      <dl class="envelope">
-        <dt>{ui('From:')}</dt>
-        <dd>{email.sender}</dd>
-        <dt>{ui('To:')}</dt>
-        <dd>{email.recipients.join(', ') || ui('Undisclosed recipients')}</dd>
-        {#if email.cc?.length}<dt>CC</dt>
-          <dd>{email.cc.join(', ')}</dd>{/if}
-      </dl>
-      <div class="email-body">{content.text || ui('(Empty message)')}</div>
+      <details class="message-details">
+        <summary>{ui('Message details')}</summary>
+        <dl class="envelope">
+          <dt>{ui('From:')}</dt>
+          <dd>{email.sender}</dd>
+          <dt>{ui('To:')}</dt>
+          <dd>{email.recipients.join(', ') || ui('Undisclosed recipients')}</dd>
+          {#if email.cc?.length}<dt>CC</dt>
+            <dd>{email.cc.join(', ')}</dd>{/if}
+        </dl>
+      </details>
+      <EmailBody text={content.text || ui('(Empty message)')} />
       {#if content.quoted}<details class="quoted">
           <summary>{ui('Show quoted text and signature')}</summary>
-          <div class="email-body">{content.quoted}</div>
+          <EmailBody text={content.quoted} />
         </details>{/if}
     {/if}
     <div class="email-actions">
       {#if email && kind && recordId}
-        {#each ['reply', 'forward', 'comment'] as mode (mode)}
-          <button type="button" class="v2-btn v2-btn-sm" onclick={() => (compose = mode)}
-            >{ui(
-              mode === 'reply' ? 'Reply' : mode === 'forward' ? 'Forward' : 'Internal comment'
-            )}</button
+        <div class="message-reply-actions">
+          <button type="button" class="v2-btn v2-btn-sm" onclick={() => (compose = 'reply')}
+            ><Reply size={16} />{ui('Reply')}</button
           >
-        {/each}
+          {#if hasReplyAll}<button
+              type="button"
+              class="v2-btn v2-btn-sm"
+              onclick={() => (compose = 'reply-all')}
+              ><ReplyAll size={16} />{ui('Reply all')}</button
+            >{/if}
+          <button type="button" class="v2-btn v2-btn-sm" onclick={() => (compose = 'forward')}
+            ><Forward size={16} />{ui('Forward')}</button
+          >
+          <button type="button" class="v2-btn v2-btn-sm" onclick={() => (compose = 'comment')}
+            ><MessageSquare size={16} />{ui('Internal comment')}</button
+          >
+        </div>
       {/if}
       {#if onConversation && mail?.thread_id}<button
           type="button"
           class="v2-btn v2-btn-sm"
           onclick={() => onConversation(mail.thread_id)}>{ui('View conversation')}</button
         >{/if}
-      {#if href}<a {href} target="_blank" rel="noopener noreferrer"
+      {#if href}<a {href} target="_blank" rel="external noopener noreferrer"
           >{ui('Open in Gmail')} <ExternalLink size={13} /></a
         >{/if}
     </div>
@@ -116,20 +147,33 @@
   }
   summary {
     cursor: pointer;
-    padding: var(--crm-space-3) var(--crm-space-4);
+    padding: var(--crm-space-2) var(--crm-space-3);
     overflow-wrap: anywhere;
   }
   summary:focus-visible {
     outline: 2px solid var(--v2-ink);
     outline-offset: 2px;
   }
+  .email-message > summary {
+    list-style: none;
+  }
+  .email-message > summary::-webkit-details-marker {
+    display: none;
+  }
+  .toggle-marker {
+    display: inline-flex;
+  }
+  .email-message[open] .toggle-marker {
+    transform: rotate(90deg);
+  }
   summary strong,
   .participants {
     display: block;
-    margin-top: var(--crm-space-2);
+    margin-top: var(--crm-space-1);
   }
   .email-heading,
   .direction,
+  .message-reply-actions,
   .email-actions {
     display: flex;
     align-items: center;
@@ -138,6 +182,7 @@
   }
   .email-heading {
     justify-content: space-between;
+    font-size: var(--crm-text-xs);
   }
   .direction {
     font-weight: 600;
@@ -149,33 +194,35 @@
     color: var(--v2-slate);
   }
   .message-content {
-    padding: 0 var(--crm-space-4) var(--crm-space-4);
+    padding: 0 var(--crm-space-3) var(--crm-space-3);
   }
   .envelope {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    gap: var(--crm-space-2);
+    gap: var(--crm-space-1) var(--crm-space-2);
+    margin-block: var(--crm-space-2);
   }
   dd {
     margin: 0;
     overflow-wrap: anywhere;
   }
-  .email-body {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    line-height: 1.65;
-    font-size: var(--crm-text-sm);
-  }
   .quoted {
-    margin-top: var(--crm-space-3);
+    margin-top: var(--crm-space-2);
     color: var(--v2-slate);
   }
-  .quoted summary {
-    padding: var(--crm-space-2) 0;
+  .quoted summary,
+  .message-details summary {
+    padding: var(--crm-space-1) 0;
     font-size: var(--crm-text-xs);
+    color: var(--v2-slate);
+  }
+  .message-details {
+    margin-bottom: var(--crm-space-2);
   }
   .email-actions {
-    margin-top: var(--crm-space-4);
+    margin-top: var(--crm-space-2);
+    padding-top: var(--crm-space-2);
+    border-top: 1px solid var(--v2-line-soft);
     justify-content: space-between;
   }
   .email-actions a {

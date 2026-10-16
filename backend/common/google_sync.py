@@ -19,6 +19,7 @@ from django.utils.dateparse import parse_datetime
 
 from common.google_integration import GoogleError, encrypt
 from common.google_mail import visible_mail_contacts
+from common.mail_content import readable_mail_body
 from common.models import (
     GoogleCalendarEvent,
     GoogleCalendarMirror,
@@ -88,11 +89,9 @@ def message_body(api, message_id, payload):
             walk(child)
 
     walk(payload)
-    if plain:
-        return "\n".join(plain)
-    parser = PlainHTML()
-    parser.feed("\n".join(html))
-    return "".join(parser.parts).strip()
+    if any(part.strip() for part in plain):
+        return readable_mail_body("\n".join(plain))
+    return readable_mail_body("\n".join(html), is_html=True)
 
 
 def sync_gmail(conn, api):

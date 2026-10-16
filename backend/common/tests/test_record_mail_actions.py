@@ -275,3 +275,135 @@ def test_unchanged_owner_payload_does_not_add_activity(
     )
     assert response.status_code == 200, response.data
     assert Activity.objects.filter(entity_id=contact.pk).count() == previous
+
+
+def multipart_post(client, contact, data, files):
+    import json
+
+    return client.post(
+        endpoint(contact) + "actions/",
+        {"payload": json.dumps(data), "attachments": files},
+        format="multipart",
+    )
+
+
+def test_formatted_mail_uploads_and_bcc_stay_private(admin_client, setup_mail):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    contact, _ = setup_mail
+    data = payload(
+        body_html="<p>Hello <strong>client</strong></p><script>stolen()</script>"
+        '<p><a href="javascript:alert(1)">Bad link</a>'
+        '<img src="https://tracking.invalid/pixel" onerror="alert(1)"></p>',
+        bcc=["private@example.com"],
+    )
+    with patch("common.google_mail_actions.GoogleAPI") as provider:
+        provider.return_value.request.return_value = {"id": "with-file"}
+        result = multipart_post(
+            admin_client,
+            contact,
+            data,
+            [
+                SimpleUploadedFile("proposal.pdf", b"%PDF-fixture", "application/pdf"),
+            ],
+        )
+        assert result.status_code == 200, result.data
+        mime = BytesParser(policy=policy.default).parsebytes(
+            base64.urlsafe_b64decode(
+                provider.return_value.request.call_args.kwargs["body"]["raw"]
+            )
+        )
+        assert mime["Bcc"] == "private@example.com"
+        html = mime.get_body(preferencelist=("html",)).get_content()
+        assert "<strong>client</strong>" in html
+        assert not any(
+            value in html
+            for value in ["script", "stolen", "javascript:", "<img", "tracking.invalid"]
+        )
+        assert "Hello client" in mime.get_body(preferencelist=("plain",)).get_content()
+        attached = list(mime.iter_attachments())
+        assert len(attached) == 1
+        assert attached[0].get_filename() == "proposal.pdf"
+        assert attached[0].get_content() == b"%PDF-fixture"
+    cached = GoogleMailActivity.objects.get(message_id="with-file")
+    assert cached.recipients == [contact.email]
+    assert cached.cc == []
+    assert "private@example.com" not in decrypt(cached.encrypted_body)
+    assert "<strong>" not in decrypt(cached.encrypted_body)
+
+
+def test_attachment_digest_checks_bytes_not_just_filename(admin_client, setup_mail):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    contact, _ = setup_mail
+    data = payload()
+    with patch("common.google_mail_actions.GoogleAPI") as provider:
+        provider.return_value.request.return_value = {"id": "file-digest"}
+        for content, status in [(b"first", 200), (b"first", 200), (b"other", 409)]:
+            result = multipart_post(
+                admin_client, contact, data, [SimpleUploadedFile("same.txt", content)]
+            )
+            assert result.status_code == status, result.data
+        assert provider.return_value.request.call_count == 1
+
+
+def test_attachment_and_recipient_limits_before_send(admin_client, setup_mail):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from common.mail_composition import MAIL_ATTACHMENT_MAX_BYTES
+
+    contact, original = setup_mail
+    with patch("common.google_mail_actions.GoogleAPI") as provider:
+        for files in [
+            [SimpleUploadedFile("large.bin", b"x" * (MAIL_ATTACHMENT_MAX_BYTES + 1))],
+            [SimpleUploadedFile(f"{i}.txt", b"x") for i in range(11)],
+            [SimpleUploadedFile("empty.txt", b"")],
+        ]:
+            assert (
+                multipart_post(admin_client, contact, payload(), files).status_code
+                == 400
+            )
+        assert (
+            post(
+                admin_client,
+                contact,
+                payload(bcc=[f"person{i}@example.com" for i in range(25)]),
+            ).status_code
+            == 400
+        )
+        assert (
+            post(
+                admin_client,
+                contact,
+                payload(body_html="<script>no visible message</script>"),
+            ).status_code
+            == 400
+        )
+        assert (
+            multipart_post(
+                admin_client,
+                contact,
+                {"action": "comment", "message": str(original.pk), "body": "Note"},
+                [SimpleUploadedFile("file.txt", b"x")],
+            ).status_code
+            == 400
+        )
+        provider.assert_not_called()
+    assert not GoogleMailSendOperation.objects.exists()
+
+
+def test_multipart_keeps_record_permissions(admin_client, org_b_client, setup_mail):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    contact, _ = setup_mail
+    with patch("common.google_mail_actions.GoogleAPI") as provider:
+        result = multipart_post(
+            org_b_client, contact, payload(), [SimpleUploadedFile("file.txt", b"x")]
+        )
+        assert result.status_code in (403, 404)
+        provider.assert_not_called()
+    for value in ["[]", "not json"]:
+        response = admin_client.post(
+            endpoint(contact) + "actions/", {"payload": value}, format="multipart"
+        )
+        assert response.status_code == 400

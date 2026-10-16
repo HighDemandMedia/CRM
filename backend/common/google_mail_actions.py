@@ -17,6 +17,7 @@ from rest_framework.exceptions import APIException
 from accounts.models import Account
 from common.google_integration import GMAIL_SEND_SCOPE, GoogleAPI, GoogleError, encrypt
 from common.google_mail import mail_rows, record_contacts, visible_mail_contacts
+from common.mail_composition import prepare_uploads, sanitize_message, validate_uploads
 from common.models import (
     Comment,
     GoogleConnection,
@@ -40,10 +41,28 @@ class MailAction(serializers.Serializer):
     cc = serializers.ListField(
         child=serializers.EmailField(), max_length=25, required=False, default=list
     )
+    bcc = serializers.ListField(
+        child=serializers.EmailField(), max_length=25, required=False, default=list
+    )
+    body_html = serializers.CharField(
+        max_length=200000, required=False, allow_blank=True
+    )
+    attachments = serializers.ListField(
+        child=serializers.FileField(), required=False, default=list, max_length=10
+    )
     subject = serializers.CharField(max_length=998, required=False, allow_blank=True)
     body = serializers.CharField(max_length=100000, trim_whitespace=False)
 
     def validate(self, data):
+        validate_uploads(data["attachments"])
+        if data["action"] == "comment" and (
+            data["attachments"] or data.get("body_html")
+        ):
+            raise serializers.ValidationError("Internal comments support text only.")
+        if data.get("body_html"):
+            data["body_html"], data["body"] = sanitize_message(data["body_html"])
+        if len(data["body"]) > 100000:
+            raise serializers.ValidationError("Message is too long.")
         if not data["body"].strip():
             raise serializers.ValidationError("Write a message first.")
         if data["action"] != "comment":
@@ -51,7 +70,7 @@ class MailAction(serializers.Serializer):
                 raise serializers.ValidationError(
                     "Recipients and request ID are required."
                 )
-            if len(data["to"]) + len(data["cc"]) > 25:
+            if len(data["to"]) + len(data["cc"]) + len(data["bcc"]) > 25:
                 raise serializers.ValidationError("Use at most 25 recipients.")
             if any(char in data.get("subject", "") for char in "\r\n"):
                 raise serializers.ValidationError("Use a single-line subject.")
@@ -95,8 +114,16 @@ def perform_mail_action(profile, kind, pk, data):
         raise ActionError(
             "Reconnect Gmail in Profile → Integrations to enable sending."
         )
+    uploads = prepare_uploads(data["attachments"])
+    digest_data = {
+        **data,
+        "attachments": [
+            {key: value for key, value in upload.items() if key != "content"}
+            for upload in uploads
+        ],
+    }
     digest = hashlib.sha256(
-        json.dumps(data, sort_keys=True, default=str).encode()
+        json.dumps(digest_data, sort_keys=True, default=str).encode()
     ).hexdigest()
     operation, created = GoogleMailSendOperation.objects.get_or_create(
         connection=conn,
@@ -118,6 +145,8 @@ def perform_mail_action(profile, kind, pk, data):
         mime["To"] = ", ".join(data["to"])
         if data["cc"]:
             mime["Cc"] = ", ".join(data["cc"])
+        if data["bcc"]:
+            mime["Bcc"] = ", ".join(data["bcc"])
         subject = data.get("subject", "")
         if data["action"] == "reply":
             remote = api.get(
@@ -143,6 +172,16 @@ def perform_mail_action(profile, kind, pk, data):
         mime["Date"] = format_datetime(timezone.now())
         mime["Message-ID"] = make_msgid()
         mime.set_content(data["body"])
+        if data.get("body_html"):
+            mime.add_alternative(data["body_html"], subtype="html")
+        for upload in uploads:
+            maintype, subtype = upload["type"].split("/", 1)
+            mime.add_attachment(
+                upload["content"],
+                maintype=maintype,
+                subtype=subtype,
+                filename=upload["name"],
+            )
         payload = {"raw": base64.urlsafe_b64encode(mime.as_bytes()).decode()}
         if data["action"] == "reply":
             payload["threadId"] = original.thread_id
