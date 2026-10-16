@@ -59,15 +59,15 @@
   {#if data.usage}
     {@const usage = data.usage}
     <div class="metrics">
-      <article>
+      <article class="count-metric">
         <h2>{ui('Organizations')}</h2>
         <strong>{count(usage.organizations)}</strong>
       </article>
-      <article>
+      <article class="count-metric">
         <h2>{ui('Active user accounts')}</h2>
         <strong>{count(usage.active_users)}</strong>
       </article>
-      <article>
+      <article class="database-metric">
         <h2>{ui('Database size')}</h2>
         <span class="database-environment">{ui(usage.database.environment)}</span>
         <dl class="database-space">
@@ -185,14 +185,33 @@
 
 <style>
   .usage-page {
-    padding: var(--crm-space-6);
+    flex: 1;
+    min-height: 0;
     min-width: 0;
+    overflow-y: auto;
+    padding: var(--crm-space-4);
   }
   .metrics,
   .infrastructure {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--crm-space-4);
+    gap: var(--crm-space-3);
+  }
+  .metrics {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.5fr);
+    align-items: start;
+  }
+  .count-metric {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--crm-space-3);
+  }
+  .count-metric h2 {
+    margin: 0;
+  }
+  .database-metric h2 {
+    display: inline;
+    margin-right: var(--crm-space-2);
   }
   article,
   .organizations {
@@ -223,23 +242,24 @@
     font-size: var(--crm-text-sm);
   }
   .database-space {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--crm-space-3);
     margin: var(--crm-space-3) 0 0;
     font-size: var(--crm-text-sm);
   }
   .database-space div {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--crm-space-3);
-    margin-top: var(--crm-space-2);
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   .database-space dd {
     margin: 0;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    text-align: right;
+    margin-top: var(--crm-space-1);
   }
   .capacity-alert {
-    margin-top: var(--crm-space-5);
+    margin-top: var(--crm-space-3);
     padding: var(--crm-space-4);
     border: 1px solid var(--v2-line);
     border-radius: var(--crm-radius-md);
@@ -267,7 +287,7 @@
     border-color: currentColor;
   }
   .organizations {
-    margin-top: var(--crm-space-5);
+    margin-top: var(--crm-space-3);
     overflow: hidden;
   }
   .table-heading {
@@ -321,7 +341,7 @@
   }
   .infrastructure {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-top: var(--crm-space-5);
+    margin-top: var(--crm-space-3);
   }
   .infrastructure a {
     margin-top: var(--crm-space-2);
@@ -329,11 +349,18 @@
   .error {
     color: var(--crm-danger, #b42318);
   }
+  @container crm-workspace (max-width: 900px) {
+    .metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .database-metric {
+      grid-column: 1 / -1;
+    }
+  }
   @media (max-width: 767px) {
     .usage-page {
       padding: var(--crm-space-4);
     }
-    .metrics,
     .infrastructure {
       grid-template-columns: 1fr;
     }
