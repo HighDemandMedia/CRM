@@ -1427,6 +1427,8 @@
   "Synchronization queued. Refresh in a moment to see new emails.": "Sincronización solicitada. Actualiza en unos momentos para ver nuevos correos.",
   "Could not queue synchronization. Please try again.": "No se pudo solicitar la sincronización. Inténtalo de nuevo.",
   "Could not load emails. Please try again.": "No se pudieron cargar los correos. Inténtalo de nuevo.",
+  "No emails match this record and these filters.": "No hay correos para este registro con estos filtros.",
+  "Connect Gmail to see your emails here.": "Conecta Gmail para ver tus correos aquí.",
   "No conversations match this record and these filters.": "No hay conversaciones para este registro con estos filtros.",
   "Connect Gmail to see your conversations here.": "Conecta Gmail para ver tus conversaciones aquí.",
   "Loading emails…": "Cargando correos…",

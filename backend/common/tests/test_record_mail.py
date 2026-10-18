@@ -242,3 +242,66 @@ def test_legacy_company_rollup_excludes_inaccessible_contact(
     response = user_client.get(endpoint(company, "company"))
     assert response.status_code == 200, response.data
     assert [row["thread_id"] for row in response.data["results"]] == ["visible"]
+
+
+@pytest.mark.parametrize("view", ["messages", "conversations"])
+def test_record_mail_view_keeps_mailbox_and_tenant_boundaries(
+    admin_client, user_client, org_b_client, conn, org_a, view
+):
+    contact = Contact.objects.create(org=org_a, email="client@example.com")
+    message(conn, contact)
+    response = user_client.get(endpoint(contact), {"view": view})
+    assert response.status_code in (403, 404) or response.data["results"] == []
+    assert org_b_client.get(endpoint(contact), {"view": view}).status_code in (403, 404)
+    assert admin_client.get(endpoint(contact), {"view": view}).data["results"]
+
+
+def test_message_list_shows_each_message_newest_first_and_filters_exact_messages(
+    admin_client, conn, org_a
+):
+    contact = Contact.objects.create(org=org_a, email="client@example.com")
+    first = message(conn, contact, at=timezone.now() - timedelta(days=1))
+    second = message(conn, contact, message_id="m2", direction="sent")
+    first.encrypted_body = encrypt("Unique customer question")
+    first.save()
+    response = admin_client.get(endpoint(contact), {"view": "messages"})
+    assert response.status_code == 200
+    assert response["Cache-Control"] == "private, no-store"
+    assert [row["id"] for row in response.data["results"]] == [
+        str(second.pk),
+        str(first.pk),
+    ]
+    assert all(
+        "body" not in row and "encrypted_body" not in row
+        for row in response.data["results"]
+    )
+    for query in [{"direction": "received"}, {"q": "customer question"}]:
+        filtered = admin_client.get(endpoint(contact), {"view": "messages", **query})
+        assert [row["id"] for row in filtered.data["results"]] == [str(first.pk)]
+    assert not admin_client.get(
+        endpoint(contact),
+        {"view": "messages", "q": "customer question", "direction": "sent"},
+    ).data["results"]
+
+
+def test_message_list_paginates_one_thread_without_duplicates(
+    admin_client, conn, org_a
+):
+    company = Account.objects.create(org=org_a, name="Client company")
+    a = Contact.objects.create(org=org_a, email="a@example.com", account=company)
+    b = Contact.objects.create(org=org_a, email="b@example.com", account=company)
+    for index in range(23):
+        for contact in (a, b):
+            message(conn, contact, message_id=f"m{index}", thread="same-thread")
+    first = admin_client.get(endpoint(company, "company"), {"view": "messages"}).data
+    second = admin_client.get(
+        endpoint(company, "company"),
+        {"view": "messages", "offset": first["next_offset"]},
+    ).data
+    assert len(first["results"]) == 20 and len(second["results"]) == 3
+    assert second["next_offset"] is None
+    assert len({row["id"] for row in first["results"] + second["results"]}) == 23
+    assert (
+        admin_client.get(endpoint(company, "company"), {"view": "invalid"}).status_code
+        == 400
+    )

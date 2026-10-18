@@ -62,7 +62,7 @@
       items = [];
       next = null;
     }
-    const query = new SvelteURLSearchParams({ direction, q: appliedSearch });
+    const query = new SvelteURLSearchParams({ direction, q: appliedSearch, view: 'messages' });
     if (thread) query.set('thread', thread);
     if (contact) query.set('contact', contact);
     if (more && next !== null) query.set('offset', String(next));
@@ -72,9 +72,7 @@
       const result = await response.json();
       if (version !== requestVersion) return;
       const combined = more ? [...items, ...result.results] : result.results;
-      items = [
-        ...new Map(combined.map((item) => [thread ? item.id : item.thread_id, item])).values()
-      ];
+      items = [...new Map(combined.map((item) => [item.id, item])).values()];
       lastLoaded = Date.now();
       connection = result.connection;
       next = result.next_offset;
@@ -125,7 +123,7 @@
   {#if connection?.error}<p class="v2-error" role="status">{ui(connection.error)}</p>{/if}
   {#if thread}
     <button type="button" class="v2-btn v2-btn-sm" onclick={() => openThread('')}
-      ><ArrowLeft size={15} />{ui('All conversations')}</button
+      ><ArrowLeft size={15} />{ui('All emails')}</button
     >
     <p class="v2-sub">{ui('Messages shown oldest first.')}</p>
   {:else}
@@ -188,48 +186,29 @@
       onclick={() => load(items.length > 0 && next !== null)}>{ui('Try again')}</button
     >{/if}
   <div class="mail-list" aria-busy={busy}>
-    {#each items as item (thread ? item.id : item.thread_id)}
-      {#if thread}<EmailActivity
+    {#each items as item (item.id)}
+      <div class="mail-entry">
+        <EmailActivity
           id={item.id}
           href={item.href}
           mail={item}
           {kind}
           recordId={id}
+          onConversation={thread ? undefined : openThread}
           onchanged={() => void load()}
         />
-      {:else}<article class="conversation">
-          <button
-            type="button"
-            class="conversation-open"
-            onclick={() => openThread(item.thread_id)}
-          >
-            <span class="conversation-meta"
-              ><span>{ui(item.direction === 'sent' ? 'Sent' : 'Received')}</span><time
-                datetime={item.at}>{exactTime(item.at)}</time
-              ></span
-            >
-            <strong>{item.subject || ui('(No subject)')}</strong>
-            <span class="participants"
-              >{item.sender} → {item.recipients.join(', ') || ui('Undisclosed recipients')}</span
-            >
-            <span class="conversation-meta"
-              >{ui(item.message_count === 1 ? '1 message' : '{count} messages', {
-                count: item.message_count
-              })} · {ui('View conversation')}</span
-            >
-          </button>
-          {#if kind === 'company' && item.contacts?.length}<div class="linked-contacts">
-              {#each item.contacts as person (person.id)}<a href={resolve(`/contacts/${person.id}`)}
-                  >{person.name}</a
-                >{/each}
-            </div>{/if}
-        </article>{/if}
+        {#if kind === 'company' && item.contacts?.length}<div class="linked-contacts">
+            {#each item.contacts as person (person.id)}<a href={resolve(`/contacts/${person.id}`)}
+                >{person.name}</a
+              >{/each}
+          </div>{/if}
+      </div>
     {:else}
       {#if !busy && !error}<p class="empty-mail">
           {ui(
             connection?.status === 'connected'
-              ? 'No conversations match this record and these filters.'
-              : 'Connect Gmail to see your conversations here.'
+              ? 'No emails match this record and these filters.'
+              : 'Connect Gmail to see your emails here.'
           )}
         </p>{/if}
     {/each}
@@ -272,9 +251,7 @@
     gap: var(--crm-space-2);
     flex-wrap: wrap;
   }
-  .mail-status p,
-  .conversation-meta,
-  .participants {
+  .mail-status p {
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
@@ -327,43 +304,14 @@
     width: 100%;
     min-width: 0;
   }
-  .conversation {
-    border: 1px solid var(--v2-line);
-    border-radius: var(--crm-radius-md);
-    background: var(--v2-card);
-    overflow: hidden;
-  }
-  .conversation-open {
-    padding: var(--crm-space-4);
-    display: grid;
-    gap: var(--crm-space-2);
-    width: 100%;
-    text-align: left;
-    background: none;
-    border: none;
-    font: inherit;
-    color: var(--v2-ink);
-    cursor: pointer;
-    overflow-wrap: anywhere;
-  }
-  .conversation-open:hover {
-    background: var(--v2-bg);
-  }
-  .conversation-open:focus-visible {
-    outline: 2px solid var(--v2-ink);
-    outline-offset: -3px;
-  }
-  .conversation-meta {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: var(--crm-space-2);
+  .mail-entry {
+    min-width: 0;
   }
   .linked-contacts {
     display: flex;
     gap: var(--crm-space-3);
     flex-wrap: wrap;
-    padding: 0 var(--crm-space-4) var(--crm-space-3);
+    padding: var(--crm-space-2) var(--crm-space-3) 0;
     font-size: var(--crm-text-xs);
   }
   .linked-contacts a {

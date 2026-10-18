@@ -7,7 +7,7 @@ async function forward({ cookies, params, url, request }) {
   if (!['contact', 'company'].includes(params.kind) || !/^[0-9a-f-]{36}$/i.test(params.id))
     return json({ error: 'Invalid record.' }, { status: 400, headers });
   const query = new URLSearchParams();
-  for (const key of ['offset', 'direction', 'q', 'contact', 'thread']) {
+  for (const key of ['offset', 'direction', 'q', 'contact', 'thread', 'view']) {
     if (url.searchParams.has(key)) query.set(key, url.searchParams.get(key));
   }
   try {

@@ -1,4 +1,4 @@
-"""Paginated conversations for contact/company records, never an entire mailbox."""
+"""Paginated messages and conversations scoped to contact/company records."""
 
 import json
 
@@ -25,6 +25,9 @@ class MailQuery(serializers.Serializer):
     )
     contact = serializers.UUIDField(required=False)
     thread = serializers.CharField(max_length=128, required=False)
+    view = serializers.ChoiceField(
+        choices=["conversations", "messages"], default="conversations"
+    )
 
 
 class RecordMailView(APIView):
@@ -64,7 +67,8 @@ class RecordMailView(APIView):
                 matching = matching.filter(direction=params["direction"])
             if params["q"]:
                 needle = params["q"].casefold()
-                matched_threads = set()
+                match_field = "id" if params["view"] == "messages" else "thread_id"
+                matched_ids = set()
                 # Bodies stay encrypted at rest; search only this user's authorized
                 # record messages, in bounded database batches, never in shared indexes.
                 try:
@@ -87,40 +91,48 @@ class RecordMailView(APIView):
                             needle in envelope.casefold()
                             or needle in decrypt(mail.encrypted_body).casefold()
                         ):
-                            matched_threads.add(mail.thread_id)
+                            matched_ids.add(getattr(mail, match_field))
                 except GoogleError:
                     raise serializers.ValidationError(
                         "Email search is unavailable. Reconnect Gmail and synchronize again."
                     )
-                matching = matching.filter(thread_id__in=matched_threads)
-            # Filters select conversations, while counts and previews describe the full thread.
-            threads = rows.filter(thread_id__in=matching.values("thread_id"))
-            latest = rows.filter(thread_id=OuterRef("thread_id")).order_by(
-                "-occurred_at", "-id"
-            )
-            page = list(
-                threads.order_by()
-                .values("thread_id")
-                .annotate(
-                    last_at=Max("occurred_at"),
-                    message_count=Count("message_id", distinct=True),
-                    latest_id=Subquery(latest.values("id")[:1]),
+                matching = matching.filter(**{f"{match_field}__in": matched_ids})
+            if params["view"] == "messages":
+                page = list(
+                    unique_messages(matching)
+                    .select_related("connection")
+                    .order_by("-occurred_at", "-id")[offset : offset + page_size + 1]
                 )
-                .order_by("-last_at", "thread_id")[offset : offset + page_size + 1]
-            )
-            latest_rows = {
-                str(row.pk): row
-                for row in rows.filter(
-                    pk__in=[item["latest_id"] for item in page[:page_size]]
-                ).select_related("connection")
-            }
-            results = [
-                {
-                    **mail_summary(latest_rows[str(item["latest_id"])]),
-                    "message_count": item["message_count"],
+                results = [mail_summary(row) for row in page[:page_size]]
+            else:
+                # Filters select conversations, while counts and previews describe the full thread.
+                threads = rows.filter(thread_id__in=matching.values("thread_id"))
+                latest = rows.filter(thread_id=OuterRef("thread_id")).order_by(
+                    "-occurred_at", "-id"
+                )
+                page = list(
+                    threads.order_by()
+                    .values("thread_id")
+                    .annotate(
+                        last_at=Max("occurred_at"),
+                        message_count=Count("message_id", distinct=True),
+                        latest_id=Subquery(latest.values("id")[:1]),
+                    )
+                    .order_by("-last_at", "thread_id")[offset : offset + page_size + 1]
+                )
+                latest_rows = {
+                    str(row.pk): row
+                    for row in rows.filter(
+                        pk__in=[item["latest_id"] for item in page[:page_size]]
+                    ).select_related("connection")
                 }
-                for item in page[:page_size]
-            ]
+                results = [
+                    {
+                        **mail_summary(latest_rows[str(item["latest_id"])]),
+                        "message_count": item["message_count"],
+                    }
+                    for item in page[:page_size]
+                ]
         # Only expose contact identities already visible to this user and related to this record.
         selected_emails = {
             email.lower()

@@ -38,3 +38,13 @@ it('queues sync through the authenticated backend', async () => {
   expect((await POST(event('contact', '', 'POST'))).status).toBe(200);
   expect(apiRequest).toHaveBeenCalledWith(expect.any(String), { method: 'POST' }, { cookies: {} });
 });
+
+it('forwards the message view and preserves explicit conversation requests', async () => {
+  vi.mocked(apiRequest).mockResolvedValue({ results: [] });
+  await GET(event('contact', '?view=messages&direction=received&thread=t1'));
+  expect(apiRequest).toHaveBeenCalledWith(
+    `/integrations/google/records/contact/${id}/mail/?direction=received&thread=t1&view=messages`,
+    { method: 'GET' },
+    { cookies: {} }
+  );
+});
