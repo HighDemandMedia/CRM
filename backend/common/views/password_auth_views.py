@@ -30,6 +30,7 @@ from common.models import OrganizationInvitation, Profile, User
 from common.organization_lifecycle import invitation_write
 from common.platform_access import accessible_profiles
 from common.rbac import ensure_default_roles
+from common.request_meta import client_ip
 from common.serializer import OrgAwareRefreshToken
 from common.views.auth_views import _org_payload
 from common.views.invitation_views import digest
@@ -44,7 +45,7 @@ class PasswordIPThrottle(SimpleRateThrottle):
             return None
         return self.cache_format % {
             "scope": self.scope,
-            "ident": self.get_ident(request),
+            "ident": client_ip(request) or "unknown",
         }
 
 

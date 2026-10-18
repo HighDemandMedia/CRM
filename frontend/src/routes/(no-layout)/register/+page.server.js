@@ -1,3 +1,4 @@
+import { signedJson } from '$lib/server/proxy-identity.js';
 import { API_ORIGIN } from '$lib/server/api-origin.js';
 import axios from 'axios';
 import { fail, redirect } from '@sveltejs/kit';
@@ -23,7 +24,7 @@ export async function load({ locals, cookies }) {
 }
 
 export const actions = {
-  default: async ({ request, cookies }) => {
+  default: async ({ request, cookies, getClientAddress }) => {
     const form = await request.formData();
     const values = Object.fromEntries(
       ['name', 'email', 'organization', 'timezone'].map((key) => [
@@ -39,8 +40,8 @@ export const actions = {
     if (!invitation)
       return fail(403, { error: 'An invitation is required to create an account.', values });
     try {
-      const response = await axios.post(
-        `${API_ORIGIN}/api/auth/password/register/`,
+      const payload = signedJson(
+        '/api/auth/password/register/',
         {
           name: values.name,
           email: values.email,
@@ -49,8 +50,12 @@ export const actions = {
           ...legalFormValues(form),
           ...(invitation ? { invitation } : { organization: values.organization })
         },
-        { timeout: 15000 }
+        getClientAddress
       );
+      const response = await axios.post(`${API_ORIGIN}/api/auth/password/register/`, payload.body, {
+        headers: payload.headers,
+        timeout: 15000
+      });
       data = response.data;
     } catch (error) {
       return fail(error.response?.status === 429 ? 429 : 400, {

@@ -108,12 +108,9 @@ class AuditLogger:
         if not request:
             return {}
 
-        # Get IP address
-        ip = request.META.get("HTTP_X_FORWARDED_FOR")
-        if ip:
-            ip = ip.split(",")[0].strip()
-        else:
-            ip = request.META.get("REMOTE_ADDR")
+        from common.request_meta import client_ip
+
+        ip = client_ip(request)
 
         return {
             "ip_address": ip,

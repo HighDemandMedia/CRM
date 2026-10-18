@@ -7,6 +7,16 @@ const config = {
   kit: {
     adapter: adapter(),
 
+    csp: {
+      mode: 'auto',
+      directives: {
+        'script-src': ['self'],
+        'object-src': ['none'],
+        'base-uri': ['self'],
+        'frame-ancestors': ['none']
+      }
+    },
+
     version: {
       pollInterval: 60000
     },

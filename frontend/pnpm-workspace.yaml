@@ -11,3 +11,6 @@ overrides:
   # this package. Kit still asks for ^0.6.0, so force the patched line. Kit
   # only calls parse() and serialize(), both unchanged in 0.7.
   'cookie@<0.7.0': '^0.7.2'
+  # Build-tool denial of service fixes (GHSA-68fv-2mgg-jv7q, GHSA-rj75-hqrm-r3gf).
+  'source-map-js@<1.2.2': '^1.2.2'
+  'postcss-selector-parser@<7.1.6': '^7.1.6'

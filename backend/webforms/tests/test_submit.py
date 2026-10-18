@@ -352,14 +352,14 @@ class TestThrottling:
                 submit_url(org_a, form),
                 {"email": f"pat{index}@example.com"},
                 format="json",
-                HTTP_X_FORWARDED_FOR=f"203.0.113.{index}",
+                REMOTE_ADDR=f"203.0.113.{index}",
             )
             assert response.status_code == 200
         response = unauthenticated_client.post(
             submit_url(org_a, form),
             {"email": "fourth@example.com"},
             format="json",
-            HTTP_X_FORWARDED_FOR="203.0.113.99",
+            REMOTE_ADDR="203.0.113.99",
         )
         assert response.status_code == 429
 

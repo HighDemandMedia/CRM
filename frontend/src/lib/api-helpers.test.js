@@ -1,8 +1,13 @@
 import { afterEach, expect, it, vi } from 'vitest';
 vi.mock('$lib/server/api-origin.js', () => ({ apiOriginFor: () => 'https://api.example.test' }));
+vi.mock('$env/dynamic/private', () => ({ env: {} }));
+import { env } from '$env/dynamic/private';
 import { apiRequest } from './api-helpers.js';
 const cookies = /** @type {any} */ ({ get: () => undefined });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  delete env.CRM_PROXY_SIGNING_KEY;
+  vi.unstubAllGlobals();
+});
 it('bounds requests and consumes JSON', async () => {
   const fetch = vi.fn().mockResolvedValue(new Response('{"ok":true}'));
   vi.stubGlobal('fetch', fetch);
@@ -48,4 +53,30 @@ it('rejects oversized multipart attachments before forwarding any data', async (
     apiRequest('/contacts/id/', { method: 'POST', body }, cookies)
   ).rejects.toMatchObject({ status: 400, message: 'Files must be 25 MB or smaller.' });
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it('signs the exact password-change JSON without losing authentication', async () => {
+  env.CRM_PROXY_SIGNING_KEY = 'ab'.repeat(32);
+  const fetch = vi.fn().mockResolvedValue(new Response('{}'));
+  vi.stubGlobal('fetch', fetch);
+  await apiRequest(
+    '/auth/password/change/',
+    {
+      method: 'POST',
+      body: { password: 'fictional' },
+      getClientAddress: () => '198.51.100.10'
+    },
+    /** @type {any} */ ({ get: () => 'test-access-token' })
+  );
+  expect(fetch).toHaveBeenCalledWith(
+    'https://api.example.test/api/auth/password/change/',
+    expect.objectContaining({
+      body: '{"password":"fictional"}',
+      headers: expect.objectContaining({
+        Authorization: 'Bearer test-access-token',
+        'X-CRM-Client-IP': '198.51.100.10',
+        'X-CRM-Client-Signature': expect.stringMatching(/^[0-9a-f]{64}$/)
+      })
+    })
+  );
 });

@@ -81,7 +81,7 @@ export const actions = {
       });
     }
   },
-  password: async ({ cookies, request }) => {
+  password: async ({ cookies, request, getClientAddress }) => {
     const form = await request.formData();
     if (form.get('password') !== form.get('confirm_password'))
       return fail(400, { scope: 'password', message: 'Passwords do not match.' });
@@ -89,6 +89,7 @@ export const actions = {
       const result = await apiRequest(
         '/auth/password/change/',
         {
+          getClientAddress,
           method: 'POST',
           body: {
             current_password: String(form.get('current_password') || ''),

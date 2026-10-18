@@ -1,3 +1,4 @@
+import { logProxyProbe } from '$lib/server/proxy-diagnostics.js';
 import { savePasswordSession, saveSessionTokens } from '$lib/server/password-session.js';
 import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
@@ -10,7 +11,7 @@ import { API_ORIGIN } from '$lib/server/api-origin.js';
  * 4. Routes protected based on authentication and org membership
  */
 
-import { redirect } from '@sveltejs/kit';
+import { isRedirect, redirect } from '@sveltejs/kit';
 import { demoPageAllowed } from '$lib/v2/demo-view.js';
 import axios from 'axios';
 import { describeError } from '$lib/server/log-safe.js';
@@ -177,7 +178,30 @@ async function switchOrg(accessToken, orgId, refreshToken) {
   }
 }
 
-export const handle = async function handle({ event, resolve }) {
+/** @type {import('@sveltejs/kit').Handle} */
+export const handle = async (input) => {
+  logProxyProbe(input.event);
+  let response;
+  try {
+    response = await handleSession(input);
+  } catch (error) {
+    if (!isRedirect(error)) throw error;
+    response = new Response(null, { status: error.status, headers: { location: error.location } });
+  }
+  // Fetch responses can have immutable headers; preserve the streaming body.
+  const headers = new Headers(response.headers);
+  headers.set('x-frame-options', 'DENY');
+  headers.set('x-content-type-options', 'nosniff');
+  headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+};
+
+/** @type {import('@sveltejs/kit').Handle} */
+const handleSession = async ({ event, resolve }) => {
   // Get tokens from cookies
   /** @type {string | undefined} */
   let accessToken = event.cookies.get('jwt_access');

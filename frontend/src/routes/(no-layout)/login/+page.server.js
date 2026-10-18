@@ -1,3 +1,4 @@
+import { signedJson } from '$lib/server/proxy-identity.js';
 import { normalizeLocale } from '$lib/i18n/messages.js';
 import { API_ORIGIN } from '$lib/server/api-origin.js';
 import { savePasswordSession, passwordError } from '$lib/server/password-session.js';
@@ -206,18 +207,22 @@ async function generateOAuthUrl(cookies) {
 
 /** @type {import('@sveltejs/kit').Actions} */
 export const actions = {
-  password: async ({ request, cookies }) => {
+  password: async ({ request, cookies, getClientAddress }) => {
     const form = await request.formData();
     let data;
     try {
-      const response = await axios.post(
-        `${API_ORIGIN}/api/auth/password/login/`,
+      const payload = signedJson(
+        '/api/auth/password/login/',
         {
           email: String(form.get('email') || '').trim(),
           password: String(form.get('password') || '')
         },
-        { timeout: 15000 }
+        getClientAddress
       );
+      const response = await axios.post(`${API_ORIGIN}/api/auth/password/login/`, payload.body, {
+        headers: payload.headers,
+        timeout: 15000
+      });
       data = response.data;
       if (
         !data ||
@@ -238,7 +243,7 @@ export const actions = {
     savePasswordSession(cookies, data);
     redirect(303, cookies.get('crm_invitation') ? '/invite' : data.current_org ? '/' : '/org');
   },
-  recovery: async ({ request }) => {
+  recovery: async ({ request, getClientAddress }) => {
     const formData = await request.formData();
     const email = formData.get('email');
 
@@ -248,11 +253,11 @@ export const actions = {
 
     try {
       const apiUrl = API_ORIGIN;
-      await axios.post(
-        `${apiUrl}/api/auth/magic-link/request/`,
-        { email },
-        { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
-      );
+      const payload = signedJson('/api/auth/magic-link/request/', { email }, getClientAddress);
+      await axios.post(`${apiUrl}/api/auth/magic-link/request/`, payload.body, {
+        headers: payload.headers,
+        timeout: 10000
+      });
       return { success: true, recovery: true, email: String(email) };
     } catch {
       return fail(503, {

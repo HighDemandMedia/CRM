@@ -2,9 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('axios', () => ({ default: { post: vi.fn() } }));
 vi.mock('$env/dynamic/private', () => ({ env: { NODE_ENV: 'production' } }));
 import axios from 'axios';
+import { env } from '$env/dynamic/private';
 import { actions, load } from './+page.server.js';
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  delete env.CRM_PROXY_SIGNING_KEY;
+  vi.restoreAllMocks();
+});
 
 /** @returns {any} */
 function input() {
@@ -107,3 +111,29 @@ describe('sign-in language', () => {
     await expect(load(event)).rejects.toMatchObject({ status: 307, location: '/org' });
   });
 });
+
+it.each(['password', 'recovery'])(
+  'forwards the adapter identity for %s, not a browser header',
+  async (action) => {
+    env.CRM_PROXY_SIGNING_KEY = 'ab'.repeat(32);
+    const event = input();
+    event.getClientAddress = () => '198.51.100.10';
+    event.request.headers = new Headers({ 'X-Forwarded-For': '203.0.113.99' });
+    vi.mocked(axios.post).mockResolvedValue({
+      data: {
+        access_token: 'access',
+        refresh_token: 'refresh',
+        current_org: { id: 'org' }
+      }
+    });
+    if (action === 'password') {
+      await expect(actions.password(event)).rejects.toMatchObject({ status: 303 });
+    } else {
+      expect(await actions.recovery(event)).toMatchObject({ success: true });
+    }
+    const call = vi.mocked(axios.post).mock.lastCall;
+    expect(call?.[2]?.headers).toMatchObject({ 'X-CRM-Client-IP': '198.51.100.10' });
+    expect(call?.[2]?.headers).not.toHaveProperty('X-Forwarded-For');
+    expect(JSON.parse(String(call?.[1]))).toMatchObject({ email: 'test@example.com' });
+  }
+);

@@ -3,11 +3,15 @@ vi.mock('axios', () => ({ default: { post: vi.fn() } }));
 vi.mock('$lib/api-helpers.js', () => ({ apiRequest: vi.fn() }));
 vi.mock('$env/dynamic/private', () => ({ env: { NODE_ENV: 'production' } }));
 import axios from 'axios';
+import { env } from '$env/dynamic/private';
 import { load, actions as inviteActions } from './+page.server.js';
 import { apiRequest } from '$lib/api-helpers.js';
 import { load as registerLoad, actions } from '../register/+page.server.js';
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  delete env.CRM_PROXY_SIGNING_KEY;
+  vi.clearAllMocks();
+});
 
 /** @returns {any} */
 function event(token = 'valid-invitation-token-982734') {
@@ -66,7 +70,9 @@ describe('invitation onboarding', () => {
   it.each([false, true])(
     'joins with the invitation and routes initial administrators to setup (%s)',
     async (needsSetup) => {
+      env.CRM_PROXY_SIGNING_KEY = 'ab'.repeat(32);
       const input = event();
+      input.getClientAddress = () => '198.51.100.10';
       const form = new FormData();
       for (const [key, value] of Object.entries({
         name: 'Invited User',
@@ -92,20 +98,24 @@ describe('invitation onboarding', () => {
         status: 303,
         location: '/profile'
       });
-      expect(axios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/auth/password/register/'),
-        expect.objectContaining({
-          invitation: 'valid-invitation-token-982734',
-          email: invitation.email,
-          legal_version: '2026-10-12',
-          legal_locale: 'en',
-          accept_terms: true,
-          organization_authority: true
-        }),
-        expect.anything()
-      );
+      const [url, body, config] = vi.mocked(axios.post).mock.calls[0];
+      expect(url).toContain('/auth/password/register/');
+      const payload = JSON.parse(String(body));
+      expect(payload).toMatchObject({
+        invitation: 'valid-invitation-token-982734',
+        email: invitation.email,
+        legal_version: '2026-10-12',
+        legal_locale: 'en',
+        accept_terms: true,
+        organization_authority: true
+      });
+      expect(config?.headers).toMatchObject({
+        'Content-Type': 'application/json',
+        'X-CRM-Client-IP': '198.51.100.10',
+        'X-CRM-Client-Signature': expect.stringMatching(/^[0-9a-f]{64}$/)
+      });
       expect(input.cookies.set).toHaveBeenCalledWith('org', 'invited-org', expect.anything());
-      expect(vi.mocked(axios.post).mock.calls[0][1]).not.toHaveProperty('organization');
+      expect(payload).not.toHaveProperty('organization');
       expect(input.cookies.delete).toHaveBeenCalledWith('crm_invitation', { path: '/' });
     }
   );

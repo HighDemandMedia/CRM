@@ -2,9 +2,7 @@
 
 Two layers, because neither is sufficient alone:
 
-- `WebFormIPThrottle` buckets on the validated forwarded client IP. It stops
-  one visitor or one bot from flooding, but `X-Forwarded-For` is spoofable, so
-  an attacker who rotates the header gets a fresh bucket every request.
+- `WebFormIPThrottle` uses the shared, trusted-proxy-aware client IP resolver.
 - `WebFormGlobalThrottle` caps submissions per form across all clients. Header
   rotation cannot evade it, so this is the real backstop.
 

@@ -1,3 +1,4 @@
+import { clientIdentityHeaders } from '$lib/server/proxy-identity.js';
 import { attachmentError } from '$lib/v2/attachment-policy.js';
 import { apiOriginFor } from '$lib/server/api-origin.js';
 /**
@@ -18,7 +19,7 @@ import { apiOriginFor } from '$lib/server/api-origin.js';
  * are managed by hooks and locals contains the user and org context.
  *
  * @param {string} endpoint - API endpoint (e.g., '/accounts/', '/leads/123/')
- * @param {{ method?: string, body?: Record<string, unknown> | FormData, headers?: Record<string, string> }} options - Fetch options
+ * @param {{ method?: string, body?: Record<string, unknown> | FormData, headers?: Record<string, string>, getClientAddress?: () => string }} options - Fetch options
  * @param {{ cookies?: Cookies, org?: { id: string } } | Cookies} locals - SvelteKit locals object or cookies directly
  * @returns {Promise<any>} Response data
  * @throws {Error} If request fails
@@ -75,6 +76,16 @@ export async function apiRequest(endpoint, options = {}, locals) {
   // Add body for non-GET requests
   if (body && method !== 'GET') {
     requestOptions.body = isFormData ? body : JSON.stringify(body);
+  }
+
+  if (options.getClientAddress) {
+    if (method !== 'POST' || typeof requestOptions.body !== 'string') {
+      throw new Error('Signed client context requires a JSON POST');
+    }
+    Object.assign(
+      requestHeaders,
+      clientIdentityHeaders(`/api${endpoint}`, requestOptions.body, options.getClientAddress)
+    );
   }
 
   const url = `${apiOriginFor(endpoint)}/api${endpoint}`;

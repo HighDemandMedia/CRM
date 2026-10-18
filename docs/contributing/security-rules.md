@@ -180,3 +180,93 @@ correctly or whether it denies *everyone*, admin included, because of a mistake 
 Only the paired `True` test catches that. See [Testing](testing.md) for the fast-iteration commands,
 and [Adding an org-scoped model](adding-an-org-scoped-model.md#the-tests) for the same pairing
 applied to tenant isolation specifically.
+
+
+## Client IPs, CSV exports and browser protections
+
+Use `common.request_meta.client_ip` for request IPs. Do not read the first
+`X-Forwarded-For` entry or use DRF's default forwarded-header identity for login
+throttles. `DJANGO_TRUSTED_PROXY_CIDRS` is an explicit, comma-separated list of
+verified ingress proxy networks. The resolver walks the chain from the socket
+peer right to left, stopping at the first untrusted address. An empty setting
+uses the socket peer; invalid or oversized chains also fall back to that peer.
+
+For managed ingress without stable published proxy CIDRs, the alternative
+`DJANGO_TRUSTED_PROXY_HOPS` selects the Nth XFF entry from the right. These modes
+are mutually exclusive. Fixed hops require **every public ingress route** to
+append the same trusted tail, with no direct access bypassing those proxies.
+Neither mode trusts the first caller-supplied XFF entry. Do not use `0.0.0.0/0`,
+`::/0`, guess private networks, or enable a hop count based only on a diagram.
+Unverified/empty configuration intentionally uses the peer and can group visitors.
+
+Web sends authenticated visitor context on password login, registration,
+password changes and recovery. `CRM_PROXY_SIGNING_KEY` must be the same dedicated
+random 32-byte secret (64 hex characters) on Web and API. It is server-only;
+never use a `PUBLIC_` variable or reuse Django/JWT/Google credentials. The HMAC
+binds version, timestamp, HTTP method, path, IP and SHA-256 of the exact JSON
+bytes. The API validates it before parsing, with a 60-second clock tolerance,
+64 KiB body limit and an explicit authentication-path allowlist. Invalid,
+incomplete or expired context is rejected. Valid context only selects an IP
+bucket: it never authenticates a user or grants permissions. Replaying identical
+signed bytes within the short window still consumes the same throttle bucket.
+
+Web takes the IP exclusively from adapter-node `getClientAddress()`. Configure
+`ADDRESS_HEADER=X-Forwarded-For` and `XFF_DEPTH` only after validating the actual
+public/custom-domain proxy chain; never forward browser IP headers directly.
+A configured signing key with an unavailable/invalid adapter address fails
+closed. Without a key, local development keeps its unsigned behavior. The API
+continues to support direct clients via its verified ingress configuration.
+Retain per-account login and per-form global limits with the shared Redis cache.
+
+### Render activation gate (2026-10-16)
+
+Read-only runtime inspection confirmed that Web uses the private API origin.
+Controlled empty login requests against the public API demonstrated an XFF tail
+of `[actual caller, edge proxy]`, including when the caller supplied a forged
+prefix. Therefore `DJANGO_TRUSTED_PROXY_HOPS=2` is the observed API candidate;
+it is **not evidence that Web's custom-domain path has the same depth**.
+
+Before committing to production activation:
+
+1. Temporarily set `CRM_PROXY_DIAGNOSTIC_ID` on Web to an operator-chosen
+   alphanumeric/hyphen identifier (16-80 characters). Deploy Web with signing
+   still disabled, then send `HEAD /login` with `X-CRM-Proxy-Probe` matching it.
+   Only this matching request logs bounded IP metadata as `crm.proxy_probe`;
+   it never returns diagnostics, credentials or cookies to the caller. Remove
+   the variable after verification. Verify Web's actual XFF tail on both `crm.highdemandmedia.com` and its enabled
+   Render hostname, including a forged prefix. Verify API custom domains too if
+   any are added. If depths differ, normalize ingress first; do not guess.
+2. Set the shared signing key on API first and deploy the API verifier. Keep Web
+   signing disabled until the verifier is live. No database migration is needed.
+3. Configure the verified API hop count (leave CIDRs empty), then Web's verified
+   `ADDRESS_HEADER`/`XFF_DEPTH` and the same signing key; deploy Web. Keep clocks
+   synchronized. Never print the signing key in shell output or logs.
+4. Send controlled empty login requests through Web and directly to API. Check
+   the selected throttle identities in restricted server diagnostics, without
+   exposing raw headers publicly. Forged prefixes must not change the identity;
+   distinct source IPs must remain distinct. Do not exhaust a customer's quota.
+5. Confirm normal sign-in, recovery and invitation registration. Roll back Web
+   signing first if necessary, then the API verifier/key. Restore proxy settings
+   together with their code. Never roll back to trusting the leftmost XFF entry.
+
+The code and automated tests do not constitute live verification of Web's proxy
+chain. Do not mark the production gate complete until step 4 passes.
+
+CSV quoting is not formula protection. Pass untrusted cell values through
+`common.csv_utils.csv_safe` before `csv.writer`; it also handles whitespace and
+BOM-prefixed formulas. Keep the existing browser-side CSV protection for client
+exports.
+
+SvelteKit generates CSP nonces/hashes for its own scripts. The CRM permits
+same-origin scripts, blocks plugins, restricts base URLs and rejects embedding
+via `frame-ancestors 'none'` and `X-Frame-Options: DENY`. These frontend rules do
+not change the public form embed endpoint served by Django. Inline dynamic
+styles and integration images remain supported; do not weaken script policy to
+fix a styling issue. Verify the compiled login, navigation, email composer and
+public form preview when changing CSP.
+
+The development Compose ports bind to `127.0.0.1`. Editing Compose does not
+change existing containers: activating these bindings requires their recreation.
+Inventory the actual Compose project/overrides first and preserve database
+volumes and Redis queued work. Do not use `down -v`, prune, or restart the
+separate laboratory stack. These development settings do not configure Render.

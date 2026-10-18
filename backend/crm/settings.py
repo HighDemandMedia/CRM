@@ -1,6 +1,7 @@
 import os
 import warnings
 from datetime import timedelta
+from ipaddress import ip_network
 from urllib.parse import urlparse
 
 from corsheaders.defaults import default_headers
@@ -84,6 +85,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "common.middleware.proxy_identity.ProxyIdentityMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",  # CSRF protection
@@ -552,6 +554,30 @@ if not IS_DEV_ENV:
             "the CSAT survey) and carries the magic-link sign-in URL. Set it to "
             "the web app's public base URL, for example https://app.example.com."
         )
+
+# Only list proxies that overwrite/append XFF and are the sole ingress.
+# Empty means use the socket peer, never a caller-supplied forwarded address.
+TRUSTED_PROXY_CIDRS = tuple(
+    str(ip_network(value.strip()))
+    for value in os.environ.get("DJANGO_TRUSTED_PROXY_CIDRS", "").split(",")
+    if value.strip()
+)
+
+# Fixed-depth ingress is an alternative to CIDRs for managed proxies. Enable
+# only after verifying that every public route has the same appended XFF tail.
+TRUSTED_PROXY_HOPS = int(os.environ.get("DJANGO_TRUSTED_PROXY_HOPS", "0"))
+if not 0 <= TRUSTED_PROXY_HOPS <= 8:
+    raise ValueError("DJANGO_TRUSTED_PROXY_HOPS must be between 0 and 8")
+if TRUSTED_PROXY_HOPS and TRUSTED_PROXY_CIDRS:
+    raise ValueError("Choose proxy hops or proxy CIDRs, not both")
+
+# Dedicated Web-to-API identity key, never a browser credential or an auth token.
+PROXY_SIGNING_KEY = os.environ.get("CRM_PROXY_SIGNING_KEY", "")
+if PROXY_SIGNING_KEY:
+    if len(PROXY_SIGNING_KEY) != 64 or any(
+        char not in "0123456789abcdefABCDEF" for char in PROXY_SIGNING_KEY
+    ):
+        raise ValueError("CRM_PROXY_SIGNING_KEY must contain 64 hexadecimal characters")
 
 # Google OAuth Configuration
 #

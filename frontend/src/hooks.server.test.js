@@ -25,7 +25,11 @@ function input(values, path = '/contacts') {
     delete: vi.fn((key, _options) => jar.delete(key))
   };
   return /** @type {any} */ ({
-    event: { cookies, locals: {}, url: new URL(`https://crm.example.com${path}`) },
+    event: {
+      cookies,
+      locals: {},
+      url: new URL(`https://crm.example.com${path}`)
+    },
     resolve: vi.fn(async () => new Response('page'))
   });
 }
@@ -64,7 +68,9 @@ describe('persistent session refresh', () => {
   it('refuses an expired or revoked refresh and removes authentication cookies', async () => {
     vi.mocked(axios.post).mockRejectedValue({ response: { status: 401 } });
     const request = input({ jwt_refresh: 'expired-refresh', org: orgId });
-    await expect(handle(request)).rejects.toMatchObject({ status: 307, location: '/login' });
+    const response = await handle(request);
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('/login');
     expect(request.resolve).not.toHaveBeenCalled();
     for (const key of ['jwt_access', 'jwt_refresh', 'org'])
       expect(request.event.cookies.delete).toHaveBeenCalledWith(key, { path: '/' });
@@ -88,7 +94,7 @@ describe('persistent session refresh', () => {
   });
   it('allows public pages without a session and rejects protected ones', async () => {
     await handle(input({}, '/login'));
-    await expect(handle(input({}))).rejects.toMatchObject({ location: '/login' });
+    expect((await handle(input({}))).headers.get('location')).toBe('/login');
     expect(axios.post).not.toHaveBeenCalled();
   });
 });
@@ -109,7 +115,35 @@ it('restores the organization from the refreshed session if its cookie also expi
 it('does not establish a session from an unusable refresh response', async () => {
   vi.mocked(axios.post).mockResolvedValue({ data: { access: 'invalid', refresh: 'replacement' } });
   const request = input({ jwt_refresh: 'valid-refresh', org: orgId });
-  await expect(handle(request)).rejects.toMatchObject({ location: '/login' });
+  expect((await handle(request)).headers.get('location')).toBe('/login');
   expect(request.event.cookies.set).not.toHaveBeenCalled();
   expect(request.resolve).not.toHaveBeenCalled();
+});
+
+it.each(['/login', '/contacts'])(
+  'sets browser protections on the response for %s',
+  async (path) => {
+    const response = await handle(input({}, path));
+    expect(response.headers.get('x-frame-options')).toBe('DENY');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(response.headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin');
+    if (path === '/contacts') {
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe('/login');
+    } else {
+      expect(await response.text()).toBe('page');
+    }
+  }
+);
+
+it('preserves status and headers on error responses', async () => {
+  const request = input({}, '/login');
+  request.resolve.mockResolvedValue(
+    new Response('Unavailable', { status: 503, headers: { 'retry-after': '60' } })
+  );
+  const response = await handle(request);
+  expect(response.status).toBe(503);
+  expect(response.headers.get('retry-after')).toBe('60');
+  expect(response.headers.get('x-frame-options')).toBe('DENY');
+  expect(await response.text()).toBe('Unavailable');
 });

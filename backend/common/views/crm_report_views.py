@@ -19,6 +19,7 @@ from rest_framework.views import APIView
 
 from accounts.models import Account
 from cases.models import Case
+from common.csv_utils import csv_safe
 from common.last_activity import with_last_activity
 from common.models import Profile, SalesAppointment
 from common.permissions import HasOrgContext, is_org_admin
@@ -190,15 +191,6 @@ def money_totals(qs, currency):
         }
         for r in rows.order_by("money_currency")
     ]
-
-
-def csv_safe(value):
-    text = str(value if value is not None else "")
-    return (
-        "'" + text
-        if text.lstrip().startswith(("=", "+", "-", "@", "\t", "\r"))
-        else text
-    )
 
 
 class CRMReportView(APIView):

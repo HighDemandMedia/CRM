@@ -28,14 +28,14 @@ class TestAuditLoggerMethods:
         self.factory = RequestFactory()
 
     def test_get_request_info_with_forwarded_for(self):
-        """X-Forwarded-For should be parsed for the first IP."""
+        """Untrusted XFF must not forge the audit IP."""
         request = self.factory.get(
             "/api/test/",
             HTTP_X_FORWARDED_FOR="203.0.113.50, 70.41.3.18, 150.172.238.178",
             HTTP_USER_AGENT="TestAgent/1.0",
         )
         info = self.logger._get_request_info(request)
-        assert info["ip_address"] == "203.0.113.50"
+        assert info["ip_address"] == "127.0.0.1"
         assert info["user_agent"] == "TestAgent/1.0"
         assert info["request_path"] == "/api/test/"
         assert info["request_method"] == "GET"

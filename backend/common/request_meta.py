@@ -1,57 +1,67 @@
-"""Request metadata derived server-side.
+"""One validated client IP definition for throttles, submissions and audit logs."""
 
-Shared by the views that record it and the throttles that bucket on it, so both
-agree on what "the client" means. A throttle keyed on one definition of the
-client and a stored value using another is a bug that only shows up during an
-incident.
+from ipaddress import ip_address, ip_network
 
-`common/audit_log.py` carries an unvalidated inline version of the same idea.
-It is deliberately left alone: changing it is outside the scope of the web
-forms work and would need its own tests.
-"""
-
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_ipv46_address
+from django.conf import settings
 
 REFERER_MAX_LENGTH = 512
 
 
+def _address(value):
+    try:
+        # Scope IDs are interface-local, not valid public client identities.
+        if "%" in value:
+            return None
+        address = ip_address(value.strip())
+        # Normalize IPv4-mapped IPv6 so it cannot create a second throttle bucket.
+        return getattr(address, "ipv4_mapped", None) or address
+    except (ValueError, AttributeError, TypeError):
+        return None
+
+
 def client_ip(request):
-    """Best-effort originating client IP, or None when nothing validates.
+    """Prefer authenticated Web context, then explicitly configured ingress.
 
-    A reverse proxy makes the socket peer the proxy rather than the visitor, so
-    every visitor would otherwise collapse into a single throttle bucket.
-    `X-Forwarded-For` carries the original client as its first entry.
-
-    That header is submitter-controlled for anything that can reach the
-    endpoint directly, so the result is informational: it is stored for triage
-    and used to bucket the per-IP throttle, and it is never an input to an
-    authorization decision. The global throttle is the control a forged header
-    cannot evade.
-
-    Every candidate is validated before it is returned, because the caller
-    writes this into a GenericIPAddressField and Django does not run field
-    validators on save().
+    CIDRs walk right-to-left through trusted peers; fixed hops select the
+    verified managed-ingress tail. With neither configured, use the socket peer.
+    Malformed trusted addresses fall back to that peer, never an untrusted prefix.
     """
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    candidates = [part.strip() for part in forwarded.split(",") if part.strip()]
-    candidates.append(request.META.get("REMOTE_ADDR", ""))
+    verified = getattr(request, "_verified_client_ip", None)
+    if verified is not None:
+        return verified
+    peer = _address(request.META.get("REMOTE_ADDR", ""))
+    if peer is None:
+        return None
+    networks = [ip_network(cidr) for cidr in settings.TRUSTED_PROXY_CIDRS]
 
-    for candidate in candidates:
-        if not candidate:
-            continue
-        try:
-            validate_ipv46_address(candidate)
-        except ValidationError:
-            continue
-        return candidate
-    return None
+    def trusted(address):
+        return any(address in network for network in networks)
+
+    hops = settings.TRUSTED_PROXY_HOPS
+    if not hops and not trusted(peer):
+        return str(peer)
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    if not forwarded or len(forwarded) > 2048:
+        return str(peer)
+    values = forwarded.split(",")
+    if hops:
+        # Validate only the trusted tail. A caller controls the prefix and must
+        # not force valid requests into the shared proxy bucket with junk there.
+        if len(values) < hops:
+            return str(peer)
+        tail = [_address(value) for value in values[-hops:]]
+        return str(tail[0]) if all(tail) else str(peer)
+    chain = [_address(value) for value in values]
+    if len(chain) > 32 or any(address is None for address in chain):
+        return str(peer)
+    current = peer
+    for address in reversed(chain):
+        if not trusted(current):
+            break
+        current = address
+    return str(current)
 
 
 def referer(request):
-    """The Referer header, truncated to the column width.
-
-    Returns an empty string rather than None: the model field is
-    `blank=True, default=""`, and None would be a second spelling of absent.
-    """
+    """Store a bounded Referer string; it is informational, never trusted."""
     return request.META.get("HTTP_REFERER", "")[:REFERER_MAX_LENGTH]

@@ -29,6 +29,7 @@ from cases.access import is_org_admin
 from cases.analytics import DEFAULT_SERVICE_DAYS
 from cases.models import Case
 from cases.serializer import CaseSerializer
+from common.csv_utils import csv_safe
 from common.permissions import HasOrgContext
 from common.renderers import CSV_RENDERERS
 from common.validators import uuid_param
@@ -327,7 +328,7 @@ class AnalyticsExportView(_AnalyticsBaseView):
                     c.sla_first_response_hours,
                     c.sla_resolution_hours,
                 ]
-                yield writer.writerow(row)
+                yield writer.writerow([csv_safe(value) for value in row])
 
         response = StreamingHttpResponse(stream(), content_type="text/csv")
         response["Content-Disposition"] = (

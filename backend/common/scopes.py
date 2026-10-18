@@ -53,6 +53,7 @@ API_RESOURCES = frozenset(
         "help",
         "integrations",
         "permissions",
+        "platform",  # JWT-only owner endpoint; scoped credentials cannot authenticate.
         "pipeline-settings",
         "property-layout",
         "record-associations",
