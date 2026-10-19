@@ -21,6 +21,7 @@
     CircleUser,
     CircleHelp,
     Search,
+    Plus,
     LogOut
   } from '@lucide/svelte';
   import { t } from '$lib/terminology.js';
@@ -355,6 +356,16 @@
           >{ui('Try again')}</button
         >{/if}
     </form>
+    {#if page.data.isPlatformOwner === true}
+      <a
+        class="account-action"
+        href={resolve('/org/new')}
+        onclick={() => accountPanel?.hidePopover()}
+      >
+        <Plus size={17} />
+        {ui('Create new organization')}
+      </a>
+    {/if}
     <div class="account-signout">
       <a class="account-action" href={resolve('/logout')} data-sveltekit-reload
         ><LogOut size={17} />{ui('Sign out')}</a
