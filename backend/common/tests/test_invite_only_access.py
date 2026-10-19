@@ -60,6 +60,8 @@ def test_owner_creates_customer_and_customer_invites_team(admin_client, admin_us
     assert row.grants_ownership and row.role == "ADMIN"
     assert row.token_hash == digest(raw)
     assert not User.objects.filter(email=row.email).exists()
+    platform_profile = Profile.objects.get(user=admin_user, org=row.org)
+    assert platform_profile.is_platform_access
     accepted = APIClient().post(
         "/api/auth/password/register/",
         {
@@ -75,9 +77,21 @@ def test_owner_creates_customer_and_customer_invites_team(admin_client, admin_us
     user = User.objects.get(email=row.email)
     profile = Profile.objects.get(user=user, org=row.org)
     assert profile.is_super_admin and not user.is_superuser
+    assert not profile.is_platform_access
     assert profile.setup_step == Profile.SetupStep.PROFILE_ORGANIZATION
     customer = APIClient()
     customer.credentials(HTTP_AUTHORIZATION="Bearer " + accepted.data["access_token"])
+    roster = customer.get("/api/users/").json()["active_users"]
+    assert roster["active_users_count"] == 1
+    assert [p["id"] for p in roster["active_users"]] == [str(profile.pk)]
+    people = customer.get("/api/users/get-teams-and-users/").json()["profiles"]
+    assert [p["id"] for p in people] == [str(profile.pk)]
+    switched = admin_client.post(
+        "/api/auth/switch-org/", {"org_id": str(row.org_id)}, format="json"
+    )
+    assert switched.status_code == 200
+    platform_profile.refresh_from_db()
+    assert platform_profile.is_platform_access and not platform_profile.is_super_admin
     assert (
         customer.post("/api/org/", {"name": "Not Allowed"}, format="json").status_code
         == 403
@@ -147,6 +161,9 @@ def test_owner_can_still_create_own_workspace_without_admin_email(
     result = admin_client.post("/api/org/", {"name": "My Workspace"}, format="json")
     assert result.status_code == 200, result.data
     assert Org.objects.get(name="My Workspace").owner_id == admin_user.pk
+    assert not Profile.objects.get(
+        org__name="My Workspace", user=admin_user
+    ).is_platform_access
     assert not OrganizationInvitation.objects.filter(org__name="My Workspace").exists()
 
 
@@ -163,12 +180,20 @@ def test_existing_customer_acceptance_hands_off_ownership_and_requests_setup(
         )
     assert result.status_code == 200
     invitation, raw = send.call_args.args
+    # Pending invitations issued by the old code had an ordinary creator seat.
+    Profile.objects.filter(org=invitation.org, user=admin_user).update(
+        is_platform_access=False
+    )
     response = user_client.post(
         "/api/auth/accept-invitation/", {"token": raw}, format="json"
     )
     assert response.status_code == 200, response.data
     assert response.data["needs_organization_setup"]
     assert Org.objects.get(pk=invitation.org_id).owner_id == regular_user.pk
+    assert Profile.objects.get(org=invitation.org, user=admin_user).is_platform_access
+    assert not Profile.objects.get(
+        org=invitation.org, user=regular_user
+    ).is_platform_access
     assert (
         Profile.objects.get(org=invitation.org, user=regular_user).setup_step
         == Profile.SetupStep.PROFILE_ORGANIZATION

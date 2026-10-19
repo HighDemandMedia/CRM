@@ -70,7 +70,10 @@ class GetTeamsAndUsersView(APIView):
         teams = Teams.objects.filter(org=request.profile.org).order_by("-id")
         teams_data = TeamsSerializer(teams, many=True).data
         profiles = Profile.objects.filter(
-            is_active=True, org=request.profile.org
+            is_active=True,
+            org=request.profile.org,
+            removed_at__isnull=True,
+            is_platform_access=False,
         ).order_by("user__email")
         profiles_data = ProfileSerializer(profiles, many=True).data
         data["teams"] = teams_data

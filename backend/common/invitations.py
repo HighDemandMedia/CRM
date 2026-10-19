@@ -5,7 +5,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from rest_framework.exceptions import ValidationError
 
-from common.models import Org
+from common.models import Org, Profile
 
 
 def send_invitation(row, raw, *, sender=send_mail):
@@ -44,4 +44,9 @@ def accept_ownership(invitation, user):
             "This administrator invitation is no longer valid. Contact High Demand Media."
         )
     Org.objects.filter(pk=org.pk, owner_id=invitation.invited_by_id).update(owner=user)
+    # Also normalize invitations created before provisioning distinguished
+    # platform access from customer membership. Preserve the profile for audit FKs.
+    Profile.objects.filter(org=org, user_id=invitation.invited_by_id).update(
+        is_platform_access=True
+    )
     invitation.org.owner_id = user.pk

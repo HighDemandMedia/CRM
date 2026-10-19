@@ -80,12 +80,14 @@ class OrgProfileCreateView(APIView):
         if serializer.is_valid():
             org_obj = serializer.save(created_by=request.user)
 
-            # now creating the profile
-            profile_obj = self.model2.objects.create(user=request.user, org=org_obj)
-            # now the current user is the admin of the newly created organisation.
-            # `is_organization_admin` is derived from `role` in `Profile.save`.
-            profile_obj.role = "ADMIN"
-            profile_obj.save()
+            # Provisioning a customer's workspace grants platform access, not a
+            # seat on their team. Own workspaces retain ordinary membership.
+            self.model2.objects.create(
+                user=request.user,
+                org=org_obj,
+                role="ADMIN",
+                is_platform_access=administrator_email is not serializers.empty,
+            )
 
             invitation_warning = None
             if administrator_email is not serializers.empty:
