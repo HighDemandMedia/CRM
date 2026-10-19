@@ -657,3 +657,10 @@ def purge_closed_organizations():
                 type(exc).__name__,
             )
     finish_file_deletions()
+
+
+# Register recovery tasks with Celery autodiscovery.
+from common.password_reset import (  # noqa: F401,E402
+    send_password_changed_email,
+    send_password_reset_email,
+)

@@ -72,3 +72,38 @@ it('does not overwrite a refresh cookie when no replacement was returned', () =>
   expect(cookies.set).toHaveBeenCalledTimes(1);
   expect(cookies.delete).not.toHaveBeenCalled();
 });
+
+function token(payload) {
+  return `header.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.signature`;
+}
+
+it('keeps unremembered access, refresh and organization cookies browser-session scoped', () => {
+  const cookies = { set: vi.fn(), delete: vi.fn() };
+  const payload = {
+    remember_me: false,
+    exp: Math.floor(Date.now() / 1000) + 3600,
+    session_expires_at: Math.floor(Date.now() / 1000) + 28800
+  };
+  saveSessionTokens(cookies, {
+    access_token: token(payload),
+    refresh_token: token(payload),
+    current_org: { id: 'org' }
+  });
+  expect(cookies.set).toHaveBeenCalledTimes(3);
+  for (const [, , options] of cookies.set.mock.calls) {
+    expect(options).not.toHaveProperty('maxAge');
+    expect(options).not.toHaveProperty('expires');
+    expect(options.httpOnly).toBe(true);
+  }
+});
+
+it('uses remaining signed lifetime instead of extending remembered cookies', () => {
+  const cookies = { set: vi.fn(), delete: vi.fn() };
+  const deadline = Math.floor(Date.now() / 1000) + 60;
+  const jwt = token({ remember_me: true, exp: deadline, session_expires_at: deadline });
+  saveSessionTokens(cookies, { access_token: jwt, refresh_token: jwt, current_org: { id: 'org' } });
+  for (const [, , options] of cookies.set.mock.calls) {
+    expect(options.maxAge).toBeGreaterThanOrEqual(59);
+    expect(options.maxAge).toBeLessThanOrEqual(60);
+  }
+});

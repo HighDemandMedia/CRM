@@ -31,7 +31,7 @@
 </script>
 
 <svelte:head>
-  <title>{isRecovery ? ui('Recover access') : ui('Sign in')} · High Demand Media CRM</title>
+  <title>{isRecovery ? ui('Reset password') : ui('Sign in')} · High Demand Media CRM</title>
 </svelte:head>
 <main class="v2-root v2-auth login-page" aria-labelledby="login-title">
   <div class="v2-auth-box">
@@ -51,12 +51,12 @@
         >
         <div class="v2-auth-head">
           <h1 id="login-title">
-            {form?.success ? ui('Check your email') : ui('Recover access')}
+            {form?.success ? ui('Check your email') : ui('Reset password')}
           </h1>
           <p>
             {form?.success
               ? ui('Your next step is in your inbox.')
-              : ui('We’ll email you a sign-in link. Then you can set a new password in Profile.')}
+              : ui('We’ll email you a link to create a new password.')}
           </p>
         </div>
         {#if form?.success}
@@ -64,12 +64,12 @@
             <Check size={18} />
             <p>
               {ui('If an account exists for')} <strong>{form.email}</strong>{ui(
-                ', we’ll send a link to recover access.'
+                ', we’ll send a password reset link.'
               )}
             </p>
           </div>
           <p class="recovery-guidance">
-            {ui('After signing in, choose a new password in Profile.')}
+            {ui('The link expires in 30 minutes and can only be used once.')}
           </p>
           <a href={resolve('/login?signin=1')} class="v2-btn v2-btn-primary v2-btn-block"
             >{ui('Back to sign in')}</a
@@ -191,6 +191,15 @@
                   {ui('Caps Lock is on.')}
                 </p>{/if}
             </div>
+            <label class="remember-choice" for="remember-me">
+              <input
+                id="remember-me"
+                type="checkbox"
+                name="remember_me"
+                checked={form?.remember_me || false}
+              />
+              <span>{ui('Remember me for 14 days')}</span>
+            </label>
             {#if signInError}<p id="signin-error" class="v2-error auth-error" role="alert">
                 {signInError}
               </p>{/if}
@@ -222,6 +231,18 @@
 </main>
 
 <style>
+  .remember-choice {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-weight: 400;
+  }
+  .remember-choice input {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+  }
+
   .login-page .v2-auth-box {
     max-width: 30rem;
   }

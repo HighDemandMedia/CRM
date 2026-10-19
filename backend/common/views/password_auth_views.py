@@ -14,10 +14,6 @@ from rest_framework.response import Response
 from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.token_blacklist.models import (
-    BlacklistedToken,
-    OutstandingToken,
-)
 
 from common.audit_log import audit_log
 from common.invitations import accept_ownership
@@ -28,6 +24,7 @@ from common.legal import (
 )
 from common.models import OrganizationInvitation, Profile, User
 from common.organization_lifecycle import invitation_write
+from common.password_reset import revoke_user_sessions
 from common.platform_access import accessible_profiles
 from common.rbac import ensure_default_roles
 from common.request_meta import client_ip
@@ -69,6 +66,7 @@ class RegistrationThrottle(PasswordIPThrottle):
 
 
 class LoginInput(serializers.Serializer):
+    remember_me = serializers.BooleanField(default=False)
     email = serializers.EmailField()
     password = serializers.CharField(
         trim_whitespace=False, max_length=128, write_only=True
@@ -103,7 +101,7 @@ class RegisterInput(LoginInput):
         return attrs
 
 
-def session_response(user, request, status=200):
+def session_response(user, request, status=200, *, remember_me=False):
     profiles = list(
         accessible_profiles(user).select_related("org").order_by("org__name")
     )
@@ -113,7 +111,9 @@ def session_response(user, request, status=200):
             (p for p in profiles if str(p.org_id) == request.auth["org_id"]), profile
         )
     org = profile.org if profile else None
-    token = OrgAwareRefreshToken.for_user_and_org(user, org, profile)
+    token = OrgAwareRefreshToken.for_user_and_org(
+        user, org, profile, remember_me=remember_me, session=request.auth
+    )
     user.last_login = timezone.now()
     user.save(update_fields=["last_login"])
     audit_log.login_success(user, org, request)
@@ -147,7 +147,9 @@ class PasswordLoginView(APIView):
                 {"error": "Email or password is incorrect, or access is disabled."},
                 status=401,
             )
-        return session_response(user, request)
+        return session_response(
+            user, request, remember_me=data.validated_data["remember_me"]
+        )
 
 
 class InvitationPreviewView(APIView):
@@ -318,6 +320,5 @@ class PasswordChangeView(APIView):
         check_new_password(password, user)
         user.set_password(password)
         user.save(update_fields=["password"])
-        for token in OutstandingToken.objects.filter(user=user):
-            BlacklistedToken.objects.get_or_create(token=token)
+        revoke_user_sessions(user)
         return session_response(user, request)

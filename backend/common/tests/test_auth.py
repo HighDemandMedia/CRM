@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from common.models import Profile, User
 from common.serializer import OrgAwareRefreshToken
@@ -564,6 +565,9 @@ class TestGoogleOAuthCallbackView:
         )
         assert response.status_code == status.HTTP_200_OK
         assert User.objects.count() == user_count_before
+        token = RefreshToken(response.data["refresh_token"])
+        assert token["remember_me"] is False
+        assert token["exp"] - token["iat"] == 8 * 3600
 
     @patch("common.views.auth_views.requests.post")
     def test_token_exchange_failure_empty_content(

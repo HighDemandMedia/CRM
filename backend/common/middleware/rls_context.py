@@ -112,6 +112,8 @@ class RequireOrgContext:
     # Paths that don't require org context
     EXEMPT_PATHS = [
         "/api/auth/password/login/",
+        "/api/auth/password/reset/request/",
+        "/api/auth/password/reset/confirm/",
         "/api/auth/password/register/",
         "/api/auth/password/invitation/",
         "/api/auth/password/change/",

@@ -211,3 +211,14 @@ def test_real_login_endpoint_uses_signed_identity_without_changing_auth_result()
         assert cache.get("throttle_password_ip_127.0.0.1") is None
     finally:
         cache.clear()
+
+
+@pytest.mark.parametrize(
+    "path", ["/api/auth/password/reset/request/", "/api/auth/password/reset/confirm/"]
+)
+def test_password_reset_endpoints_verify_signed_client_identity(path):
+    request = signed_request(path=path)
+    assert process(request).status_code == 200
+    tampered = signed_request(path=path)
+    tampered.META["HTTP_X_CRM_CLIENT_SIGNATURE"] = "0" * 64
+    assert process(tampered).status_code == 400

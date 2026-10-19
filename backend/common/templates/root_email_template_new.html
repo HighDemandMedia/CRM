@@ -1,5 +1,5 @@
 {% load crm_email %}{% crm_email_theme as email_theme %}<!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="{{ email_language|default:'en' }}" xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -34,7 +34,7 @@
           <div style="margin-top:24px;">{% block button_link %}{% endblock button_link %}</div>
           <div style="margin-top:24px;">{% block extra_content %}{% endblock extra_content %}</div>
         </td></tr>
-        <tr><td style="padding:20px 8px;text-align:center;color:{{ email_theme.muted }};font-size:12px;line-height:1.5;">Sent by High Demand Media CRM</td></tr>
+        <tr><td style="padding:20px 8px;text-align:center;color:{{ email_theme.muted }};font-size:12px;line-height:1.5;">{% if email_language == 'es' %}Enviado por High Demand Media CRM{% else %}Sent by High Demand Media CRM{% endif %}</td></tr>
       </table>
       <!--[if mso]></td></tr></table><![endif]-->
     </td></tr>

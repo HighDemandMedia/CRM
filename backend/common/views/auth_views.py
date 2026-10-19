@@ -205,7 +205,7 @@ class GoogleOAuthCallbackView(APIView):
         user.save(update_fields=["last_login"])
 
         # Generate JWT tokens (with user info embedded)
-        token = OrgAwareRefreshToken.for_user_and_org(user, None)
+        token = OrgAwareRefreshToken.for_user_and_org(user, None, remember_me=False)
 
         return Response(
             {
@@ -440,7 +440,9 @@ class OrgAwareTokenRefreshView(APIView):
             # what for_user_and_org expects.
             with transaction.atomic():
                 token.blacklist()
-                new_token = OrgAwareRefreshToken.for_user_and_org(user, org, profile)
+                new_token = OrgAwareRefreshToken.for_user_and_org(
+                    user, org, profile, session=token
+                )
                 if token.get("password_reset_until", 0) > timezone.now().timestamp():
                     new_token["password_reset_until"] = token["password_reset_until"]
 
@@ -658,7 +660,7 @@ class OrgSwitchView(APIView):
         with transaction.atomic():
             self._retire_presented_refresh_token(request)
             token = OrgAwareRefreshToken.for_user_and_org(
-                request.user, profile.org, profile
+                request.user, profile.org, profile, session=request.auth
             )
             if (
                 request.auth

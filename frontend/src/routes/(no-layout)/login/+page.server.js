@@ -215,7 +215,8 @@ export const actions = {
         '/api/auth/password/login/',
         {
           email: String(form.get('email') || '').trim(),
-          password: String(form.get('password') || '')
+          password: String(form.get('password') || ''),
+          remember_me: form.get('remember_me') === 'on'
         },
         getClientAddress
       );
@@ -237,13 +238,14 @@ export const actions = {
       console.error('Password sign-in failed:', describeError(error));
       return fail(error.response?.status === 429 ? 429 : 400, {
         error: passwordError(error, 'Sign-in is unavailable. Please try again.'),
-        email: String(form.get('email') || '')
+        email: String(form.get('email') || ''),
+        remember_me: form.get('remember_me') === 'on'
       });
     }
     savePasswordSession(cookies, data);
     redirect(303, cookies.get('crm_invitation') ? '/invite' : data.current_org ? '/' : '/org');
   },
-  recovery: async ({ request, getClientAddress }) => {
+  recovery: async ({ request, cookies, getClientAddress }) => {
     const formData = await request.formData();
     const email = formData.get('email');
 
@@ -253,8 +255,12 @@ export const actions = {
 
     try {
       const apiUrl = API_ORIGIN;
-      const payload = signedJson('/api/auth/magic-link/request/', { email }, getClientAddress);
-      await axios.post(`${apiUrl}/api/auth/magic-link/request/`, payload.body, {
+      const payload = signedJson(
+        '/api/auth/password/reset/request/',
+        { email, language: normalizeLocale(cookies.get('crm_language')) },
+        getClientAddress
+      );
+      await axios.post(`${apiUrl}/api/auth/password/reset/request/`, payload.body, {
         headers: payload.headers,
         timeout: 10000
       });

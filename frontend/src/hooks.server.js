@@ -192,7 +192,13 @@ export const handle = async (input) => {
   const headers = new Headers(response.headers);
   headers.set('x-frame-options', 'DENY');
   headers.set('x-content-type-options', 'nosniff');
-  headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+  headers.set(
+    'referrer-policy',
+    input.event.url.pathname.startsWith('/login/reset')
+      ? 'no-referrer'
+      : 'strict-origin-when-cross-origin'
+  );
+  if (input.event.url.pathname.startsWith('/login/reset')) headers.set('cache-control', 'no-store');
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

@@ -1,9 +1,14 @@
 import re
+from datetime import datetime
+from datetime import timezone as dt_timezone
 
 from disposable_email_domains import blocklist as disposable_domains
+from django.conf import settings
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from common.custom_fields import (
@@ -51,7 +56,9 @@ class OrgAwareRefreshToken(RefreshToken):
     """
 
     @classmethod
-    def for_user_and_org(cls, user, org, profile=None):
+    def for_user_and_org(
+        cls, user, org, profile=None, *, remember_me=True, session=None
+    ):
         """
         Generate a refresh token for a user with org context.
 
@@ -63,7 +70,32 @@ class OrgAwareRefreshToken(RefreshToken):
         Returns:
             OrgAwareRefreshToken with org claims
         """
+        now = int(datetime.now(dt_timezone.utc).timestamp())
+        if session is not None:
+            remember_me = session.get("remember_me", True)
+            # Legacy access tokens lack a session deadline. Anchor their migration
+            # to issuance, rather than granting another 14 days on every switch.
+            deadline = session.get("session_expires_at") or (
+                session.get("exp")
+                if session.get("token_type") == "refresh"
+                else session.get("iat", now) + settings.CRM_REMEMBER_SESSION_SECONDS
+            )
+        else:
+            deadline = now + (
+                settings.CRM_REMEMBER_SESSION_SECONDS
+                if remember_me
+                else settings.CRM_BROWSER_SESSION_SECONDS
+            )
+        if deadline <= now:
+            raise TokenError("Session expired. Please sign in again.")
         token = cls.for_user(user)
+        token["remember_me"] = bool(remember_me)
+        token["session_expires_at"] = int(deadline)
+        token["exp"] = int(deadline)
+        OutstandingToken.objects.filter(jti=token["jti"]).update(
+            expires_at=datetime.fromtimestamp(deadline, dt_timezone.utc),
+            token=str(token),
+        )
 
         # Add user info to token (avoids extra API calls for display)
         if user:
@@ -101,6 +133,12 @@ class OrgAwareRefreshToken(RefreshToken):
 
             token["can_preview"] = can_preview(profile)
 
+        return token
+
+    @property
+    def access_token(self):
+        token = super().access_token
+        token["exp"] = min(token["exp"], self["exp"])
         return token
 
 

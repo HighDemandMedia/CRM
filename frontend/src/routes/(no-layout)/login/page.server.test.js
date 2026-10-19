@@ -137,3 +137,28 @@ it.each(['password', 'recovery'])(
     expect(JSON.parse(String(call?.[1]))).toMatchObject({ email: 'test@example.com' });
   }
 );
+
+it.each([false, true])('passes the explicit remember choice to the API: %s', async (remember) => {
+  const event = input();
+  const form = await event.request.formData();
+  if (remember) form.set('remember_me', 'on');
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.mocked(axios.post).mockRejectedValue({ response: { status: 401 } });
+  const result = await actions.password(event);
+  const encoded = vi.mocked(axios.post).mock.lastCall[1];
+  if (typeof encoded !== 'string') throw new Error('Expected signed JSON body');
+  const body = JSON.parse(encoded);
+  expect(body.remember_me).toBe(remember);
+  expect(result).toMatchObject({ data: { remember_me: remember } });
+});
+
+it('requests a password reset instead of a magic login link', async () => {
+  const event = input();
+  event.cookies.get.mockReturnValue('es');
+  vi.mocked(axios.post).mockResolvedValue({ data: { message: 'Accepted' } });
+  await actions.recovery(event);
+  const [url, body] = vi.mocked(axios.post).mock.lastCall;
+  expect(url).toContain('/api/auth/password/reset/request/');
+  if (typeof body !== 'string') throw new Error('Expected signed JSON body');
+  expect(JSON.parse(body)).toEqual({ email: 'test@example.com', language: 'es' });
+});

@@ -525,6 +525,11 @@ DOMAIN_NAME = os.environ.get("DOMAIN_NAME", "http://localhost:8000")
 ORG_API_KEY_AUTH_ENABLED = os.environ.get(
     "DJANGO_ORG_API_KEY_AUTH", "true"
 ).strip().lower() not in ("false", "0", "no", "off")
+# Absolute session limits; refresh and organization switching do not extend them.
+CRM_BROWSER_SESSION_SECONDS = 8 * 60 * 60
+CRM_REMEMBER_SESSION_SECONDS = 14 * 24 * 60 * 60
+PASSWORD_RESET_TIMEOUT = 30 * 60
+
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
 # Every link this system puts in an email is built from this one value, via

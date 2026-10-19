@@ -1725,5 +1725,17 @@
   "Increase database storage soon. Check disk usage in Render.": "Amplía pronto el almacenamiento. Revisa el uso del disco en Render.",
   "Database capacity is critical. Review and expand storage now.": "Capacidad crítica. Revisa y amplía el almacenamiento ahora.",
   "Database: plan at 70% · expand at 80% · urgent at 90%.": "Base de datos: planificar al 70% · ampliar al 80% · urgente al 90%.",
-  "Check total disk, CPU and memory in Render.": "Consulta el disco total, CPU y memoria en Render."
+  "Check total disk, CPU and memory in Render.": "Consulta el disco total, CPU y memoria en Render.",
+  "Remember me for 14 days": "Recordarme durante 14 días",
+  "Reset password": "Restablecer contraseña",
+  "We’ll email you a link to create a new password.": "Te enviaremos un enlace para crear una contraseña nueva.",
+  "The link expires in 30 minutes and can only be used once.": "El enlace vence en 30 minutos y solo puede usarse una vez.",
+  ", we’ll send a password reset link.": ", enviaremos un enlace para restablecer la contraseña.",
+  "Password updated": "Contraseña actualizada",
+  "Sign in with your new password. Your previous sessions have been signed out.": "Inicia sesión con tu contraseña nueva. Se cerraron tus sesiones anteriores.",
+  "Save new password": "Guardar contraseña nueva",
+  "Request a new link": "Solicitar un enlace nuevo",
+  "This reset link is invalid or expired. Request a new one.": "Este enlace no es válido o ha vencido. Solicita uno nuevo.",
+  "Password could not be updated. Please try again.": "No se pudo actualizar la contraseña. Inténtalo de nuevo.",
+  "Passwords do not match.": "Las contraseñas no coinciden."
 }
