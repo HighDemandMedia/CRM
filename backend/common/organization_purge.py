@@ -3,17 +3,51 @@
 from django.conf import settings
 from django.db import connection
 from django.utils import timezone
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 
+from common.attachment_cleanup import enqueue_cleanup
 from common.models import (
     Address,
+    MagicLinkToken,
     Org,
     OrganizationClosure,
     OrganizationInvitation,
     PendingFileDeletion,
     Profile,
     SalesAppointment,
+    User,
 )
 from common.organization_lifecycle import organization_lock
+
+
+def _delete_unshared_users(users, org_id):
+    """Called inside the purge transaction with candidate user rows locked.
+
+    Profiles and Org are auth-bootstrap tables without tenant RLS. Check all
+    memberships, including inactive ones, before deleting a global identity.
+    Never turn organization deletion into deletion of a platform operator.
+    """
+    from django.db import transaction
+
+    from common.audit_log import SecurityAuditLog
+
+    for user in users:
+        if user.is_superuser or user.is_staff:
+            continue
+        if Profile.objects.filter(user=user).exists():
+            continue
+        if Org.objects.filter(owner=user).exists():
+            continue
+        # These records otherwise retain email/token payloads after User deletion.
+        MagicLinkToken.objects.filter(email__iexact=user.email).delete()
+        OutstandingToken.objects.filter(user=user).delete()
+        SecurityAuditLog.objects.filter(user=user, org__isnull=True).delete()
+        if user.profile_image:
+            PendingFileDeletion.objects.get_or_create(
+                org_id=org_id, name=user.profile_image.name
+            )
+            transaction.on_commit(enqueue_cleanup)
+        user.delete()
 
 
 def purge_organization(org_id):
@@ -47,6 +81,16 @@ def purge_organization(org_id):
         org = Org.objects.select_for_update().get(pk=org_id)
         if not org.closing_at or org.deletion_due_at != receipt.deletion_due_at:
             raise ValueError("Organization closure and deletion ledger disagree")
+        user_ids = set(
+            Profile.objects.filter(org=org).values_list("user_id", flat=True)
+        )
+        if org.owner_id:
+            user_ids.add(org.owner_id)
+        # Lock before removing memberships; concurrent joins cannot commit a new
+        # reference to an identity between the final membership check and deletion.
+        users = list(
+            User.objects.select_for_update().filter(pk__in=user_ids).order_by("pk")
+        )
         addresses = list(
             Profile.objects.filter(org=org)
             .exclude(address_id=None)
@@ -64,6 +108,7 @@ def purge_organization(org_id):
         SecurityAuditLog.objects.filter(org=org).delete()
         org.delete()
         Address.objects.filter(pk__in=addresses, address_users__isnull=True).delete()
+        _delete_unshared_users(users, org_id)
         receipt.data_deleted_at = now
         receipt.save(update_fields=["data_deleted_at"])
         return True

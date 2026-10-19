@@ -9,6 +9,19 @@ permite consultar/exportar durante 30 días. Al vencer el plazo se bloquea el ac
 y el siguiente ciclo del scheduler elimina los datos activos de la organización.
 La verificación de backups no es una condición para ejecutar ese borrado.
 
+La eliminación definitiva también elimina las cuentas de acceso de sus miembros
+y propietario cuando ya no tienen ninguna membresía ni son propietarios de otra
+organización. Se borran el email, el hash de contraseña, los tokens de sesión y
+los tokens antiguos de acceso; la foto de perfil se añade a la cola de borrado
+de archivos. Las cuentas compartidas y los operadores de la plataforma se
+conservan. Durante los 30 días de recuperación no se eliminan las credenciales.
+Después del borrado, una invitación nueva al mismo email crea una identidad nueva
+y pide establecer contraseña. No recupera datos de la organización eliminada.
+
+Este cambio se aplica a las purgas futuras. No realiza un barrido global de
+usuarios huérfanos ni modifica cuentas conservadas por eliminaciones anteriores;
+esas correcciones requieren revisar individualmente sus membresías actuales.
+
 El despliegue en Render es manual. Si hay valores explícitos anteriores en `false`,
 cambiarlos a `true` en API, Worker y Scheduler. Desplegar primero API con las
 migraciones, luego Worker, Scheduler y Web con el mismo commit. El interruptor de
