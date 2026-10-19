@@ -5,7 +5,7 @@ import { readableError } from '$lib/server/v2/form-errors.js';
 import { previewInvitation } from '$lib/server/invitation.js';
 import { passwordError, savePasswordSession } from '$lib/server/password-session.js';
 import { legalFormValues } from '$lib/legal.js';
-export async function load({ url, cookies, locals }) {
+export async function load({ url, cookies, locals, getClientAddress }) {
   const token = url.searchParams.get('token');
   if (token && /^[A-Za-z0-9_-]{20,128}$/.test(token)) {
     cookies.set('crm_invitation', token, {
@@ -19,15 +19,15 @@ export async function load({ url, cookies, locals }) {
   }
   let invitation = null,
     error = '';
-  if (!locals.user && cookies.get('crm_invitation')) {
+  if (cookies.get('crm_invitation')) {
     try {
-      invitation = await previewInvitation(cookies.get('crm_invitation'));
+      invitation = await previewInvitation(cookies.get('crm_invitation'), getClientAddress);
     } catch (err) {
       error = passwordError(err, 'Could not open this invitation. Please try again.');
     }
-    if (invitation && !invitation.existing_account) redirect(303, '/register');
+    if (!locals.user && invitation && !invitation.existing_account) redirect(303, '/register');
   }
-  if (locals.user && cookies.get('crm_invitation')) {
+  if (locals.user && invitation && !error) {
     try {
       invitation = await apiRequest(
         '/auth/accept-invitation/',
@@ -35,6 +35,17 @@ export async function load({ url, cookies, locals }) {
         { cookies }
       );
     } catch (err) {
+      if (
+        err?.status === 403 &&
+        err?.body?.error === 'Sign in with the email address that received this invitation.'
+      )
+        return {
+          hasInvitation: true,
+          signedIn: true,
+          invitation,
+          differentAccount: true,
+          error: ''
+        };
       error = readableError(err, 'Could not open this invitation.');
     }
   }
@@ -78,7 +89,7 @@ export const actions = {
             'Invitation accepted. Sign in and select the invited organization to finish your profile.'
         });
       }
-      redirect(303, '/profile');
+      redirect(303, '/onboarding');
     }
     redirect(303, '/org');
   }

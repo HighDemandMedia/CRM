@@ -19,6 +19,7 @@ SIGNED_PATHS = frozenset(
         "/api/auth/password/reset/request/",
         "/api/auth/password/reset/confirm/",
         "/api/auth/password/register/",
+        "/api/auth/password/invitation/",
         "/api/auth/password/change/",
         "/api/auth/magic-link/request/",
     }

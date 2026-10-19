@@ -62,10 +62,10 @@ describe('CRM shell critical path', () => {
 
 describe('invitation setup navigation', () => {
   it.each([
-    ['profile', '/contacts', '/profile'],
-    ['profile_organization', '/settings/organization', '/profile'],
-    ['organization', '/profile', '/settings/organization'],
-    ['organization', '/pipeline', '/settings/organization']
+    ['profile', '/contacts', '/onboarding'],
+    ['profile_organization', '/settings/organization', '/onboarding'],
+    ['organization', '/profile', '/onboarding'],
+    ['organization', '/pipeline', '/onboarding']
   ])('resumes %s before opening %s', async (step, pathname, destination) => {
     vi.mocked(apiRequest).mockResolvedValue({
       ...context,
@@ -77,12 +77,7 @@ describe('invitation setup navigation', () => {
     ).rejects.toMatchObject({ status: 303, location: destination });
     expect(apiRequest).toHaveBeenCalledTimes(1);
   });
-  it.each([
-    ['complete', '/contacts'],
-    ['profile', '/profile'],
-    ['profile_organization', '/profile'],
-    ['organization', '/settings/organization']
-  ])('allows %s at %s', async (step, pathname) => {
+  it.each([['complete', '/contacts']])('allows %s at %s', async (step, pathname) => {
     vi.mocked(apiRequest).mockResolvedValue({
       ...context,
       permissions: { is_admin: step === 'organization' },

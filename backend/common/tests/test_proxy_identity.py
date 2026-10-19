@@ -214,11 +214,39 @@ def test_real_login_endpoint_uses_signed_identity_without_changing_auth_result()
 
 
 @pytest.mark.parametrize(
-    "path", ["/api/auth/password/reset/request/", "/api/auth/password/reset/confirm/"]
+    "path",
+    [
+        "/api/auth/password/reset/request/",
+        "/api/auth/password/reset/confirm/",
+        "/api/auth/password/invitation/",
+    ],
 )
-def test_password_reset_endpoints_verify_signed_client_identity(path):
+def test_public_account_endpoints_verify_signed_client_identity(path):
     request = signed_request(path=path)
     assert process(request).status_code == 200
     tampered = signed_request(path=path)
     tampered.META["HTTP_X_CRM_CLIENT_SIGNATURE"] = "0" * 64
     assert process(tampered).status_code == 400
+
+
+@pytest.mark.django_db
+def test_invitation_preview_uses_visitor_limit_without_exposing_invalid_invitation():
+    cache.clear()
+    try:
+        path = "/api/auth/password/invitation/"
+        body = b'{"token":"invalid"}'
+        request = signed_request(path=path, body=body)
+        headers = {
+            key: value
+            for key, value in request.META.items()
+            if key.startswith("HTTP_X_CRM_")
+        }
+        response = APIClient().post(
+            path, body, content_type="application/json", **headers
+        )
+        assert response.status_code == 400
+        assert "email" not in response.data
+        assert len(cache.get("throttle_password_ip_198.51.100.10")) == 1
+        assert cache.get("throttle_password_ip_127.0.0.1") is None
+    finally:
+        cache.clear()

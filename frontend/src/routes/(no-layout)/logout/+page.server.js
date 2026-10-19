@@ -26,7 +26,7 @@ export async function load({ locals, cookies, fetch }) {
   if (locals.user) delete locals.user;
   if (locals.org) delete locals.org;
 
-  throw redirect(303, '/login');
+  throw redirect(303, cookies.get('crm_invitation') ? '/invite' : '/login');
 }
 
 /**

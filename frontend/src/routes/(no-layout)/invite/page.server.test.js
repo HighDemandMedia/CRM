@@ -96,7 +96,7 @@ describe('invitation onboarding', () => {
       });
       await expect(actions.default(input)).rejects.toMatchObject({
         status: 303,
-        location: '/profile'
+        location: '/onboarding'
       });
       const [url, body, config] = vi.mocked(axios.post).mock.calls[0];
       expect(url).toContain('/auth/password/register/');
@@ -130,7 +130,7 @@ it.each([false, true])(
       .mockResolvedValueOnce({ access_token: 'new-access', refresh_token: 'new-refresh' });
     await expect(inviteActions.accept(input)).rejects.toMatchObject({
       status: 303,
-      location: '/profile'
+      location: '/onboarding'
     });
     expect(input.cookies.set).toHaveBeenCalledWith('org', 'customer-org', expect.anything());
   }
@@ -182,4 +182,30 @@ it('preserves the invitation when legal acceptance is rejected', async () => {
   });
   expect(input.cookies.delete).not.toHaveBeenCalled();
   expect(apiRequest).toHaveBeenCalledTimes(1);
+});
+
+it('offers a deliberate account switch instead of an error for another signed-in user', async () => {
+  const input = event();
+  input.locals.user = { email: 'owner@example.com' };
+  vi.mocked(axios.post).mockResolvedValue({ data: invitation });
+  vi.mocked(apiRequest).mockRejectedValueOnce({
+    status: 403,
+    body: { error: 'Sign in with the email address that received this invitation.' }
+  });
+  expect(await load(input)).toMatchObject({ differentAccount: true, error: '', invitation });
+  expect(input.cookies.delete).not.toHaveBeenCalled();
+});
+
+it('signs invitation previews so visitors do not share the Web server throttle bucket', async () => {
+  env.CRM_PROXY_SIGNING_KEY = 'ab'.repeat(32);
+  const input = event();
+  input.getClientAddress = () => '198.51.100.12';
+  vi.mocked(axios.post).mockResolvedValue({ data: invitation });
+  await expect(load(input)).rejects.toMatchObject({ location: '/register' });
+  const [, body, config] = vi.mocked(axios.post).mock.calls[0];
+  expect(JSON.parse(String(body))).toEqual({ token: 'valid-invitation-token-982734' });
+  expect(config.headers).toMatchObject({
+    'X-CRM-Client-IP': '198.51.100.12',
+    'X-CRM-Client-Signature': expect.stringMatching(/^[0-9a-f]{64}$/)
+  });
 });

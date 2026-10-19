@@ -6,13 +6,13 @@ import { passwordError, savePasswordSession } from '$lib/server/password-session
 import { previewInvitation } from '$lib/server/invitation.js';
 import { legalFormValues } from '$lib/legal.js';
 
-export async function load({ locals, cookies }) {
+export async function load({ locals, cookies, getClientAddress }) {
   if (locals.user) redirect(303, cookies.get('crm_invitation') ? '/invite' : '/org');
   const token = cookies.get('crm_invitation');
   if (!token) return { invited: false };
   let invitation;
   try {
-    invitation = await previewInvitation(token);
+    invitation = await previewInvitation(token, getClientAddress);
   } catch (error) {
     return {
       invited: true,
@@ -65,6 +65,6 @@ export const actions = {
     }
     savePasswordSession(cookies, data);
     cookies.delete('crm_invitation', { path: '/' });
-    redirect(303, data.current_org ? '/profile' : '/org');
+    redirect(303, data.current_org ? '/onboarding' : '/org');
   }
 };

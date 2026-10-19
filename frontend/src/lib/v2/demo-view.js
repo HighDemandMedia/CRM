@@ -1,5 +1,6 @@
 // Modules ready for the customer demonstration. Exact prefix boundaries matter.
 export const DEMO_MAIN = [
+  '/onboarding',
   '/platform-usage',
   '/',
   '/contacts',

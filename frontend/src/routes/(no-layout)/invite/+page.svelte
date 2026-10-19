@@ -23,7 +23,14 @@
     <div class="v2-auth-card">
       <h1>{ui('Join your team')}</h1>
       {#if !data.hasInvitation}<p>{ui('Open the invitation link from your email.')}</p>
-      {:else if data.error}<p role="alert" class="v2-error">{data.error}</p>
+      {:else if data.differentAccount}
+        <h2>{data.invitation?.organization}</h2>
+        <p>{ui('This invitation is for')} <strong>{data.invitation?.email}</strong>.</p>
+        <a class="v2-btn v2-btn-primary" href={resolve('/logout')} data-sveltekit-reload
+          >{ui('Continue with the invited account')}</a
+        >
+      {:else if data.error}<p role="alert" class="v2-error">{ui(data.error)}</p>
+        <a class="v2-btn" href={resolve('/invite')} data-sveltekit-reload>{ui('Try again')}</a>
         {#if data.signedIn}<a href={resolve('/logout')}>{ui('Sign in with a different account')}</a
           >{/if}
       {:else if !data.signedIn}<h2>{data.invitation?.organization}</h2>
@@ -34,7 +41,7 @@
         <a class="v2-btn v2-btn-primary" href={resolve('/login')}>{ui('Sign in')}</a>
         <p>
           {ui('Need to set or recover your password?')}
-          <a href={`${resolve('/login')}?recover=1`}>{ui('Get a secure sign-in link')}</a>.
+          <a href={resolve('/login?recover=1')}>{ui('Reset password')}</a>.
         </p>
       {:else}<h2>{data.invitation?.name}</h2>
         <p>

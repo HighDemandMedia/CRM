@@ -1737,5 +1737,19 @@
   "Request a new link": "Solicitar un enlace nuevo",
   "This reset link is invalid or expired. Request a new one.": "Este enlace no es válido o ha vencido. Solicita uno nuevo.",
   "Password could not be updated. Please try again.": "No se pudo actualizar la contraseña. Inténtalo de nuevo.",
-  "Passwords do not match.": "Las contraseñas no coinciden."
+  "Passwords do not match.": "Las contraseñas no coinciden.",
+  "This invitation is for": "Esta invitación es para",
+  "Continue with the invited account": "Continuar con la cuenta invitada",
+  "Welcome to HDM CRM": "Bienvenido a HDM CRM",
+  "Account setup": "Configuración de la cuenta",
+  "Your profile": "Tu perfil",
+  "Your organization": "Tu organización",
+  "Set up your organization": "Configura tu organización",
+  "Confirm the basics for your team.": "Confirma los datos básicos de tu equipo.",
+  "Confirm your details to get started.": "Confirma tus datos para comenzar.",
+  "Back to your profile": "Volver a tu perfil",
+  "Open CRM": "Entrar al CRM",
+  "Finish later and sign out": "Continuar después y cerrar sesión",
+  "Could not save your setup. Please try again.": "No se pudo guardar la configuración. Inténtalo de nuevo.",
+  "Check your details and try again.": "Revisa tus datos e inténtalo de nuevo."
 }

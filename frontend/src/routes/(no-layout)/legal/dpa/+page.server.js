@@ -4,13 +4,13 @@ import { previewInvitation } from '$lib/server/invitation.js';
 import agreement from '$lib/server/legal/dpa.json';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies, locals, url, setHeaders }) {
+export async function load({ cookies, locals, url, setHeaders, getClientAddress }) {
   setHeaders({ 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex, nofollow' });
   let authorized = false;
   const token = cookies.get('crm_invitation');
   if (token) {
     try {
-      const invitation = await previewInvitation(token);
+      const invitation = await previewInvitation(token, getClientAddress);
       authorized = invitation.legal?.organization_authority_required === true;
     } catch (err) {
       const status = err?.response?.status;
