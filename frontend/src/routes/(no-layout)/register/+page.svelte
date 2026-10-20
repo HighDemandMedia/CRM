@@ -22,7 +22,7 @@
 <svelte:head
   ><title>{ui('Create account · High Demand Media CRM')}</title><meta
     name="referrer"
-    content="no-referrer"
+    content="strict-origin"
   /></svelte:head
 >
 <div class="v2-root v2-auth">
