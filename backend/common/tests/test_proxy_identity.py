@@ -250,3 +250,9 @@ def test_invitation_preview_uses_visitor_limit_without_exposing_invalid_invitati
         assert cache.get("throttle_password_ip_127.0.0.1") is None
     finally:
         cache.clear()
+
+
+def test_google_signin_uses_the_verified_visitor_context():
+    request = signed_request(path="/api/auth/google/callback/", body=b'{"code":"test"}')
+    assert process(request).status_code == 200
+    assert client_ip(request) == "198.51.100.10"

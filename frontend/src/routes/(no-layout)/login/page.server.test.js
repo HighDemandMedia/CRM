@@ -162,3 +162,142 @@ it('requests a password reset instead of a magic login link', async () => {
   if (typeof body !== 'string') throw new Error('Expected signed JSON body');
   expect(JSON.parse(body)).toEqual({ email: 'test@example.com', language: 'es' });
 });
+
+describe('primary Google sign-in', () => {
+  function event(query = '', saved = {}) {
+    const values = new Map(Object.entries(saved));
+    return /** @type {any} */ ({
+      url: new URL(`https://crm.example.test/login${query}`),
+      request: { formData: async () => new FormData() },
+      getClientAddress: () => '198.51.100.10',
+      cookies: {
+        get: (name) => values.get(name),
+        set: vi.fn((name, value) => values.set(name, value)),
+        delete: vi.fn((name) => values.delete(name))
+      }
+    });
+  }
+
+  afterEach(() => {
+    delete env.GOOGLE_CLIENT_ID;
+    delete env.GOOGLE_LOGIN_DOMAIN;
+  });
+  function configure() {
+    env.GOOGLE_CLIENT_ID = 'test-client';
+    env.GOOGLE_LOGIN_DOMAIN = 'https://crm.example.test/';
+  }
+
+  it('keeps password available without Google configuration', async () => {
+    expect(await load(event())).toMatchObject({ google_available: false });
+    expect(await actions.google(event())).toMatchObject({ status: 503 });
+  });
+  it('offers Google first and opens email only when requested', async () => {
+    configure();
+    const e = event();
+    expect(await load(e)).toMatchObject({ google_available: true, password: false });
+    expect(e.cookies.set).not.toHaveBeenCalled(); // Loading/reloading cannot invalidate another tab's OAuth.
+    expect(await load(event('?method=password'))).toMatchObject({ password: true });
+  });
+  it.each([false, true])(
+    'starts PKCE only on submission and remembers choice %s',
+    async (remember) => {
+      configure();
+      const e = event();
+      e.request.formData = async () => new URLSearchParams(remember ? 'remember_me=on' : '');
+      let destination;
+      try {
+        await actions.google(e);
+      } catch (error) {
+        destination = error.location;
+      }
+      const url = new URL(destination);
+      expect(url.origin).toBe('https://accounts.google.com');
+      expect(url.searchParams.get('scope')).toBe('openid email profile');
+      expect(url.searchParams.get('redirect_uri')).toBe('https://crm.example.test/login');
+      expect(url.searchParams.get('prompt')).toBe('select_account');
+      expect(url.searchParams.has('access_type')).toBe(false);
+      expect(url.searchParams.get('code_challenge_method')).toBe('S256');
+      expect(url.searchParams.get('state')).toBe(e.cookies.get('oauth_state'));
+      expect(e.cookies.get('oauth_remember_me')).toBe(remember ? '1' : '0');
+      expect(e.cookies.set).toHaveBeenCalledWith(
+        'oauth_state',
+        expect.any(String),
+        expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600 })
+      );
+    }
+  );
+  it('allows another attempt after cancellation without echoing provider input', async () => {
+    configure();
+    const e = event('?error=access_denied&error_description=secret', { oauth_state: 'old' });
+    expect(await load(e)).toMatchObject({
+      google_available: true,
+      error: 'Google sign-in was cancelled. Try again or use email.'
+    });
+    expect(e.cookies.get('oauth_state')).toBeUndefined();
+  });
+  it.each([
+    {},
+    { oauth_state: 'wrong', oauth_code_verifier: 'verifier' },
+    { oauth_state: 'state' }
+  ])('rejects callbacks without matching one-use state and verifier', async (saved) => {
+    configure();
+    vi.mocked(axios.post).mockClear();
+    await expect(load(event('?code=code&state=state', saved))).rejects.toMatchObject({
+      status: 303
+    });
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+  it('sends signed visitor context, preserves invitation, and prevents callback replay', async () => {
+    configure();
+    env.CRM_PROXY_SIGNING_KEY = 'ab'.repeat(32);
+    const e = event('?code=code&state=state', {
+      oauth_state: 'state',
+      oauth_code_verifier: 'verifier',
+      oauth_remember_me: '1',
+      crm_invitation: 'pending'
+    });
+    vi.mocked(axios.post).mockResolvedValue({
+      data: { access_token: 'access', refresh_token: 'refresh' }
+    });
+    await expect(load(e)).rejects.toMatchObject({ status: 303, location: '/invite' });
+    const [url, body, options] = vi.mocked(axios.post).mock.lastCall;
+    expect(url).toContain('/api/auth/google/callback/');
+    expect(JSON.parse(String(body))).toMatchObject({
+      code: 'code',
+      code_verifier: 'verifier',
+      remember_me: true
+    });
+    expect(options.headers['X-CRM-Client-IP']).toBe('198.51.100.10');
+    expect(e.cookies.get('org')).toBeUndefined();
+    vi.mocked(axios.post).mockClear();
+    await expect(load(e)).rejects.toMatchObject({ location: '/login?error=state_mismatch' });
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+  it.each(['invitation_required', 'account_disabled', 'password_required', 'raw provider message'])(
+    'classifies API failures safely: %s',
+    async (code) => {
+      configure();
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.mocked(axios.post).mockRejectedValue({ response: { status: 403, data: { code } } });
+      const e = event('?code=code&state=state', {
+        oauth_state: 'state',
+        oauth_code_verifier: 'verifier'
+      });
+      await expect(load(e)).rejects.toMatchObject({
+        location: `/login?error=${code === 'raw provider message' ? 'auth_failed' : code}`
+      });
+      expect(e.cookies.set).not.toHaveBeenCalled();
+    }
+  );
+  it('rejects incomplete session tokens', async () => {
+    configure();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(axios.post).mockResolvedValue({ data: { access_token: 'access' } });
+    const e = event('?code=code&state=state', {
+      oauth_state: 'state',
+      oauth_code_verifier: 'verifier'
+    });
+    await expect(load(e)).rejects.toMatchObject({ location: '/login?error=auth_failed' });
+    expect(e.cookies.set).not.toHaveBeenCalled();
+  });
+});

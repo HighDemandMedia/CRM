@@ -12,7 +12,7 @@ El registro por contraseña requiere siempre una invitación válida para ese em
 
 ## Entrar e invitar
 
-En `/login` pulsa Sign in y utiliza email y contraseña. Una sola organización activa se selecciona automáticamente; si perteneces a varias, eliges una. El formulario no concede acceso por escribir el nombre o ID de una organización.
+En `/login`, Google es la opción principal cuando está configurado. «Sign in with email» abre el formulario de email y contraseña. Ambos conservan la opción explícita «Remember me for 14 days». Una sola organización activa se selecciona automáticamente; si perteneces a varias, eliges una. El formulario no concede acceso por escribir el nombre o ID de una organización.
 
 Los usuarios adicionales reciben una invitación. Al abrir un enlace válido, un usuario nuevo llega directamente al formulario de nombre, contraseña y confirmación. El correo viene definido por la invitación y se muestra la organización a la que se unirá. El servidor vuelve a validar el token y el correo al guardar; recibe exactamente la organización y el rol concedidos. El token se consume al registrarse; no se crea una organización adicional. Funciona aunque el registro público esté cerrado. Los enlaces anteriores válidos también usan este flujo.
 

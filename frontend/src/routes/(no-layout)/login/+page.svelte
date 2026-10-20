@@ -9,8 +9,9 @@
   import { authForm } from '$lib/utils/auth-form.js';
   import { ArrowLeft, Check, Eye, EyeOff } from '@lucide/svelte';
   import imgGoogle from '$lib/assets/images/google.svg';
-  let { data = {}, form } = $props();
+  let { data, form } = $props();
   let busy = $state(false);
+  let googleBusy = $state(false);
   let recoveryBusy = $state(false);
   let transportError = $state('');
   let recoveryTransportError = $state('');
@@ -20,11 +21,8 @@
     `https://highdemandmedia.com/${locale().startsWith('es') ? 'crm-es.html' : 'crm.html'}`
   );
   const isRecovery = $derived(Boolean(data['recovery'] || form?.recovery));
-  const signInError = $derived(
-    transportError ||
-      form?.error ||
-      (data['error'] ? 'Sign-in could not be completed. Please try again.' : '')
-  );
+  const signInError = $derived(transportError || form?.error || data['error'] || '');
+  const showEmail = $derived(!data['google_available'] || data['password'] || Boolean(form?.email));
   function checkCapsLock(event) {
     capsLock = event.getModifierState('CapsLock');
   }
@@ -120,99 +118,130 @@
           </form>
         {/if}
       {:else}
-        <a href={websiteUrl} rel="external" class="back-link"
-          ><ArrowLeft size={16} />{ui('Visit our website')}</a
-        >
+        {#if showEmail && data['google_available']}
+          <a href={resolve('/login')} class="back-link">
+            <ArrowLeft size={16} />{ui('Back to sign in')}
+          </a>
+        {:else}
+          <a href={websiteUrl} rel="external" class="back-link">
+            <ArrowLeft size={16} />{ui('Visit our website')}
+          </a>
+        {/if}
         <div class="v2-auth-head">
           <h1 id="login-title">{ui('Sign in')}</h1>
           <p>{ui('Welcome back. Use the email associated with your account.')}</p>
         </div>
-        <form
-          method="POST"
-          action="?/password"
-          aria-busy={busy}
-          use:authForm={{
-            setBusy: (value) => (busy = value),
-            setError: (value) => (transportError = value)
-          }}
-        >
-          <fieldset disabled={busy}>
-            <label for="login-email"
-              >{ui('Email')}
-              <input
-                id="login-email"
-                class="v2-input"
-                name="email"
-                type="email"
-                required
-                autocomplete="username"
-                autocapitalize="none"
-                spellcheck="false"
-                aria-describedby={signInError ? 'signin-error' : undefined}
-                placeholder="you@company.com"
-                value={form?.email || ''}
-              />
-            </label>
-            <div class="password-field">
-              <div class="password-label">
-                <label for="login-password">{ui('Password')}</label><a
-                  href={resolve('/login?recover=1')}>{ui('Forgot password?')}</a
-                >
-              </div>
-              <div class="password-control">
-                <input
-                  id="login-password"
-                  class="v2-input"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  maxlength="128"
-                  autocomplete="current-password"
-                  autocapitalize="none"
-                  spellcheck="false"
-                  aria-describedby={[capsLock ? 'caps-lock' : '', signInError ? 'signin-error' : '']
-                    .filter(Boolean)
-                    .join(' ') || undefined}
-                  onkeydown={checkCapsLock}
-                  onkeyup={checkCapsLock}
-                  onblur={() => (capsLock = false)}
-                /><button
-                  type="button"
-                  class="password-toggle"
-                  aria-label={showPassword ? ui('Hide password') : ui('Show password')}
-                  aria-controls="login-password"
-                  onclick={() => (showPassword = !showPassword)}
-                >
-                  {#if showPassword}<EyeOff size={18} />{:else}<Eye size={18} />{/if}
-                  <span>{showPassword ? ui('Hide') : ui('Show')}</span>
-                </button>
-              </div>
-              {#if capsLock}<p id="caps-lock" class="caps-lock" role="status">
-                  {ui('Caps Lock is on.')}
-                </p>{/if}
-            </div>
-            <label class="remember-choice" for="remember-me">
-              <input
-                id="remember-me"
-                type="checkbox"
-                name="remember_me"
-                checked={form?.remember_me || false}
-              />
+        {#if data['google_available'] && !showEmail}
+          <form
+            method="POST"
+            action="?/google"
+            aria-busy={googleBusy}
+            onsubmit={() => (googleBusy = true)}
+          >
+            <button type="submit" class="v2-btn v2-btn-block google-signin" disabled={googleBusy}>
+              <img src={imgGoogle} alt="" width="20" height="20" />
+              {googleBusy ? ui('Connecting…') : ui('Continue with Google')}
+            </button>
+            <label class="remember-choice" for="google-remember-me">
+              <input id="google-remember-me" type="checkbox" name="remember_me" />
               <span>{ui('Remember me for 14 days')}</span>
             </label>
-            {#if signInError}<p id="signin-error" class="v2-error auth-error" role="alert">
-                {signInError}
-              </p>{/if}
-            <button type="submit" class="v2-btn v2-btn-primary v2-btn-block"
-              >{busy ? ui('Signing in…') : ui('Sign in')}</button
-            >
-          </fieldset>
-        </form>
-        {#if data['google_url']}
+          </form>
+          {#if !showEmail && signInError}
+            <p class="v2-error auth-error" role="alert">{ui(signInError)}</p>
+          {/if}
           <div class="v2-auth-divider">{ui('or')}</div>
-          <a href={data['google_url']} rel="external" class="v2-btn v2-btn-block"
-            ><img src={imgGoogle} alt="" class="v2-auth-gicon" />{ui('Continue with Google')}</a
+          {#if !showEmail}
+            <a href={resolve('/login?method=password')} class="email-alternative">
+              {ui('Sign in with email')}
+            </a>
+          {/if}
+        {/if}
+        {#if showEmail}
+          <form
+            method="POST"
+            action="?/password"
+            aria-busy={busy}
+            use:authForm={{
+              setBusy: (value) => (busy = value),
+              setError: (value) => (transportError = value)
+            }}
           >
+            <fieldset disabled={busy}>
+              <label for="login-email"
+                >{ui('Email')}
+                <input
+                  id="login-email"
+                  class="v2-input"
+                  name="email"
+                  type="email"
+                  required
+                  autocomplete="username"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  aria-describedby={signInError ? 'signin-error' : undefined}
+                  placeholder="you@company.com"
+                  value={form?.email || ''}
+                />
+              </label>
+              <div class="password-field">
+                <div class="password-label">
+                  <label for="login-password">{ui('Password')}</label><a
+                    href={resolve('/login?recover=1')}>{ui('Forgot password?')}</a
+                  >
+                </div>
+                <div class="password-control">
+                  <input
+                    id="login-password"
+                    class="v2-input"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    maxlength="128"
+                    autocomplete="current-password"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    aria-describedby={[
+                      capsLock ? 'caps-lock' : '',
+                      signInError ? 'signin-error' : ''
+                    ]
+                      .filter(Boolean)
+                      .join(' ') || undefined}
+                    onkeydown={checkCapsLock}
+                    onkeyup={checkCapsLock}
+                    onblur={() => (capsLock = false)}
+                  /><button
+                    type="button"
+                    class="password-toggle"
+                    aria-label={showPassword ? ui('Hide password') : ui('Show password')}
+                    aria-controls="login-password"
+                    onclick={() => (showPassword = !showPassword)}
+                  >
+                    {#if showPassword}<EyeOff size={18} />{:else}<Eye size={18} />{/if}
+                    <span>{showPassword ? ui('Hide') : ui('Show')}</span>
+                  </button>
+                </div>
+                {#if capsLock}<p id="caps-lock" class="caps-lock" role="status">
+                    {ui('Caps Lock is on.')}
+                  </p>{/if}
+              </div>
+              <label class="remember-choice" for="remember-me">
+                <input
+                  id="remember-me"
+                  type="checkbox"
+                  name="remember_me"
+                  checked={form?.remember_me || false}
+                />
+                <span>{ui('Remember me for 14 days')}</span>
+              </label>
+              {#if signInError}<p id="signin-error" class="v2-error auth-error" role="alert">
+                  {ui(signInError)}
+                </p>{/if}
+              <button type="submit" class="v2-btn v2-btn-primary v2-btn-block"
+                >{busy ? ui('Signing in…') : ui('Sign in')}</button
+              >
+            </fieldset>
+          </form>
         {/if}
       {/if}
     </div>
@@ -231,6 +260,30 @@
 </main>
 
 <style>
+  .email-alternative {
+    display: block;
+    padding: var(--crm-space-3);
+    text-align: center;
+    color: var(--crm-link);
+    font-size: var(--crm-text-sm);
+    font-weight: 600;
+  }
+  .email-alternative:hover {
+    text-decoration: underline;
+  }
+  .google-signin {
+    background: #fff;
+    border: 1px solid #747775;
+    color: #1f1f1f;
+    gap: 0.625rem;
+  }
+  .google-signin img {
+    flex: 0 0 1.25rem;
+  }
+  .google-signin:hover:not(:disabled) {
+    background: #f2f2f2;
+  }
+
   .remember-choice {
     display: flex;
     align-items: center;

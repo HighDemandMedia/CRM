@@ -44,7 +44,7 @@ function getCookieOptions(maxAge) {
 }
 
 /** @type {import('@sveltejs/kit').ServerLoad} */
-export async function load({ url, cookies }) {
+export async function load({ url, cookies, getClientAddress }) {
   const language = url.searchParams.get('lang');
   if (language === 'en' || language === 'es') {
     cookies.set('crm_language', language, {
@@ -59,20 +59,18 @@ export async function load({ url, cookies }) {
   const code = url.searchParams.get('code');
   const returnedState = url.searchParams.get('state');
   const error = url.searchParams.get('error');
-  const errorDescription = url.searchParams.get('error_description');
-
-  // Handle OAuth error returned from Google
+  // Provider errors are untrusted input; show only our own concise messages.
   if (error) {
-    console.error('Google OAuth error:', error, errorDescription);
+    clearOAuthCookies(cookies);
     return {
-      google_url: null,
-      error: errorDescription || `OAuth error: ${error}`
+      uiLocale,
+      google_available: googleAvailable(),
+      error: googleError(error)
     };
   }
 
-  // Handle OAuth callback with authorization code
   if (code) {
-    return handleOAuthCallback(code, returnedState, cookies);
+    return handleOAuthCallback(code, returnedState, cookies, getClientAddress);
   }
 
   // Check if user is already authenticated
@@ -81,96 +79,98 @@ export async function load({ url, cookies }) {
     throw redirect(307, cookies.get('crm_invitation') ? '/invite' : '/org');
   }
 
-  // Generate OAuth parameters and return login URL
+  // OAuth starts only when the user submits the Google sign-in form.
   return {
     uiLocale,
-    ...(await generateOAuthUrl(cookies)),
+    google_available: googleAvailable(),
+    password: url.searchParams.get('method') === 'password',
     recovery: url.searchParams.get('recover') === '1'
   };
 }
 
-/**
- * Handle the OAuth callback when Google redirects back with an authorization code
- * @param {string} code - Authorization code from Google
- * @param {string|null} returnedState - State parameter returned from Google
- * @param {import('@sveltejs/kit').Cookies} cookies - SvelteKit cookies
- */
-async function handleOAuthCallback(code, returnedState, cookies) {
-  // Retrieve and immediately clear OAuth cookies (one-time use)
+function googleAvailable() {
+  return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_LOGIN_DOMAIN);
+}
+
+function googleError(code) {
+  const messages = {
+    access_denied: 'Google sign-in was cancelled. Try again or use email.',
+    state_mismatch: 'Your sign-in session expired. Please try again.',
+    session_expired: 'Your sign-in session expired. Please try again.',
+    invitation_required: 'Use the email on your invitation. Accept it before signing in.',
+    account_disabled: 'Your account is disabled. Contact your administrator.',
+    password_required: 'Use email and password to sign in with this account.'
+  };
+  return Object.hasOwn(messages, code)
+    ? messages[code]
+    : 'Google sign-in is unavailable. Try again or use email.';
+}
+
+function clearOAuthCookies(cookies) {
+  for (const name of ['oauth_state', 'oauth_code_verifier', 'oauth_remember_me']) {
+    cookies.delete(name, { path: '/' });
+  }
+}
+
+async function handleOAuthCallback(code, returnedState, cookies, getClientAddress) {
   const savedState = cookies.get('oauth_state');
   const codeVerifier = cookies.get('oauth_code_verifier');
+  const rememberMe = cookies.get('oauth_remember_me') === '1';
+  clearOAuthCookies(cookies);
 
-  // Clear OAuth cookies regardless of outcome
-  cookies.delete('oauth_state', { path: '/' });
-  cookies.delete('oauth_code_verifier', { path: '/' });
-
-  // Validate state parameter (CSRF protection)
   if (!savedState || savedState !== returnedState) {
-    console.error('OAuth state mismatch - possible CSRF attack');
-    console.error('Expected:', savedState?.substring(0, 10) + '...');
-    console.error('Received:', returnedState?.substring(0, 10) + '...');
-    throw redirect(307, '/login?error=state_mismatch');
+    redirect(303, '/login?error=state_mismatch');
   }
-
-  // Validate code verifier exists
-  if (!codeVerifier) {
-    console.error('Missing PKCE code verifier - session may have expired');
-    throw redirect(307, '/login?error=session_expired');
+  if (!codeVerifier || !googleAvailable()) {
+    redirect(303, '/login?error=session_expired');
   }
-
-  const redirect_uri = env.GOOGLE_LOGIN_DOMAIN + '/login';
 
   try {
-    // Exchange code for tokens via Django backend
-    // The backend handles the actual token exchange with Google using the client secret
-    const apiUrl = API_ORIGIN;
-    const response = await axios.post(
-      `${apiUrl}/api/auth/google/callback/`,
+    const path = '/api/auth/google/callback/';
+    const payload = signedJson(
+      path,
       {
         code,
         code_verifier: codeVerifier,
-        redirect_uri
+        redirect_uri: env.GOOGLE_LOGIN_DOMAIN.replace(/\/$/, '') + '/login',
+        remember_me: rememberMe
       },
-      {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000
-      }
+      getClientAddress
     );
-
+    const response = await axios.post(`${API_ORIGIN}${path}`, payload.body, {
+      headers: payload.headers,
+      timeout: 30000
+    });
+    if (
+      !response.data ||
+      typeof response.data.access_token !== 'string' ||
+      !response.data.access_token ||
+      typeof response.data.refresh_token !== 'string' ||
+      !response.data.refresh_token
+    ) {
+      throw new Error('Sign-in response did not contain session tokens');
+    }
     savePasswordSession(cookies, response.data);
   } catch (error) {
-    // Never log the raw error or the response body: the axios `config.data` for
-    // this call is the authorization code plus the PKCE code_verifier, and a
-    // token endpoint's response body can carry tokens.
-    console.error('OAuth token exchange failed:', describeError(error));
-    const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
-
-    // Provide user-friendly error messages
-    let userError = 'auth_failed';
-    const errStr = String(errorMessage);
-    if (errStr.includes('code_verifier')) {
-      userError = 'pkce_failed';
-    } else if (errStr.includes('expired')) {
-      userError = 'code_expired';
-    }
-    // Log the classification, not errorMessage: that string comes from the
-    // token endpoint's response body, which does not belong in logs.
-    console.error('OAuth failure classified as:', userError);
-
-    throw redirect(307, `/login?error=${userError}`);
+    console.error('Google sign-in failed:', describeError(error));
+    const code = error.response?.data?.code;
+    const knownCode = ['invitation_required', 'account_disabled', 'password_required'].includes(
+      code
+    );
+    redirect(303, `/login?error=${knownCode ? code : 'auth_failed'}`);
   }
 
-  // Success - redirect to organization selection
-  throw redirect(307, cookies.get('crm_invitation') ? '/invite' : '/org');
+  redirect(303, cookies.get('crm_invitation') ? '/invite' : '/org');
 }
 
 /**
  * Generate Google OAuth URL with PKCE parameters
  * @param {import('@sveltejs/kit').Cookies} cookies - SvelteKit cookies
- * @returns {Promise<object>} Object containing the Google OAuth URL
+ * @param {boolean} rememberMe - Explicit CRM session persistence choice
+ * @returns {Promise<string|null>} Google authorization URL when configured
  */
-async function generateOAuthUrl(cookies) {
-  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_LOGIN_DOMAIN) return { google_url: null };
+async function generateOAuthUrl(cookies, rememberMe) {
+  if (!googleAvailable()) return null;
   // Generate PKCE parameters
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = await generateCodeChallenge(codeVerifier);
@@ -184,9 +184,10 @@ async function generateOAuthUrl(cookies) {
 
   cookies.set('oauth_code_verifier', codeVerifier, getCookieOptions(oauthCookieMaxAge));
   cookies.set('oauth_state', state, getCookieOptions(oauthCookieMaxAge));
+  cookies.set('oauth_remember_me', rememberMe ? '1' : '0', getCookieOptions(oauthCookieMaxAge));
 
   // Build Google OAuth URL with all required parameters
-  const redirect_uri = env.GOOGLE_LOGIN_DOMAIN + '/login';
+  const redirect_uri = env.GOOGLE_LOGIN_DOMAIN.replace(/\/$/, '') + '/login';
 
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
@@ -196,17 +197,22 @@ async function generateOAuthUrl(cookies) {
     state,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
-    access_type: 'offline', // Request refresh token
-    prompt: 'consent' // Always show consent screen (required for refresh token)
+    prompt: 'select_account' // Sign-in does not need mailbox access or a Google refresh token.
   });
 
   const google_login_url = `${GOOGLE_AUTH_URL}?${params.toString()}`;
 
-  return { google_url: google_login_url };
+  return google_login_url;
 }
 
 /** @type {import('@sveltejs/kit').Actions} */
 export const actions = {
+  google: async ({ request, cookies }) => {
+    const form = await request.formData();
+    const url = await generateOAuthUrl(cookies, form.get('remember_me') === 'on');
+    if (!url) return fail(503, { error: googleError('unavailable') });
+    redirect(303, url);
+  },
   password: async ({ request, cookies, getClientAddress }) => {
     const form = await request.formData();
     let data;

@@ -19,6 +19,11 @@ from common.models import Profile, User
 from common.serializer import OrgAwareRefreshToken
 
 
+@pytest.fixture(autouse=True)
+def google_client_configuration(settings):
+    settings.GOOGLE_CLIENT_ID = "test-client.apps.googleusercontent.com"
+
+
 @pytest.mark.django_db
 class TestMeView:
     """Tests for GET /api/auth/me/"""
@@ -386,7 +391,12 @@ def _make_fake_id_token(
     payload = (
         base64.urlsafe_b64encode(
             json.dumps(
-                {"email": email, "picture": picture, "email_verified": email_verified}
+                {
+                    "email": email,
+                    "picture": picture,
+                    "email_verified": email_verified,
+                    "hd": "example.com",
+                }
             ).encode()
         )
         .decode()
@@ -401,6 +411,26 @@ class TestGoogleOAuthCallbackView:
     """Tests for POST /api/auth/google/callback/"""
 
     url = "/api/auth/google/callback/"
+
+    @pytest.fixture(autouse=True)
+    def verified_google_token(self, settings):
+        from django.core.cache import cache
+
+        cache.clear()
+        settings.GOOGLE_CLIENT_ID = "test-client.apps.googleusercontent.com"
+        settings.GOOGLE_CLIENT_SECRET = "test-only-secret"
+
+        def verified_claims(token, transport, audience):
+            try:
+                return json.loads(base64.urlsafe_b64decode(token.split(".")[1] + "=="))
+            except (IndexError, ValueError) as exc:
+                raise ValueError("Invalid token") from exc
+
+        # The provider boundary is mocked; rejection tests override it below.
+        with patch(
+            "google.oauth2.id_token.verify_oauth2_token", side_effect=verified_claims
+        ) as verify:
+            yield verify
 
     def test_missing_parameters(self, unauthenticated_client):
         """Missing code/code_verifier/redirect_uri should return 400."""
@@ -446,7 +476,7 @@ class TestGoogleOAuthCallbackView:
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "invalid_grant" in response.data["error"]
+        assert response.data["error"] == "Token exchange failed"
 
     @patch("common.views.auth_views.requests.post")
     def test_missing_id_token(self, mock_post, unauthenticated_client):
@@ -674,6 +704,118 @@ class TestGoogleOAuthCallbackView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "access_token" not in response.data
 
+    @patch("common.views.auth_views.requests.post")
+    def test_rejects_bad_signature_audience_or_expiry(
+        self, mock_post, verified_google_token, unauthenticated_client
+    ):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {"id_token": "invalid-token"}
+        verified_google_token.side_effect = ValueError(
+            "Token not valid for this client"
+        )
+        response = self._post_code(unauthenticated_client)
+        assert response.status_code == 400
+        assert "access_token" not in response.data
+        assert (
+            verified_google_token.call_args.args[2]
+            == "test-client.apps.googleusercontent.com"
+        )
+
+    @patch("common.views.auth_views.requests.post")
+    def test_verifier_network_failure_is_safe(
+        self, mock_post, verified_google_token, unauthenticated_client
+    ):
+        from google.auth.exceptions import TransportError
+
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {"id_token": "token"}
+        verified_google_token.side_effect = TransportError("provider detail")
+        response = self._post_code(unauthenticated_client)
+        assert response.status_code == 502
+        assert "provider detail" not in str(response.data)
+
+    @patch("common.views.auth_views.requests.post")
+    def test_third_party_email_requires_password(
+        self, mock_post, verified_google_token, unauthenticated_client, admin_user
+    ):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {"id_token": "token"}
+        verified_google_token.side_effect = None
+        verified_google_token.return_value = {
+            "email": admin_user.email,
+            "email_verified": True,
+        }
+        response = self._post_code(unauthenticated_client)
+        assert response.status_code == 403
+        assert response.data["code"] == "password_required"
+        assert "access_token" not in response.data
+
+    @pytest.mark.parametrize("remember", [True, False, "false"])
+    @patch("common.views.auth_views.requests.post")
+    def test_remember_choice_is_explicit(
+        self, mock_post, remember, unauthenticated_client, admin_user
+    ):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {
+            "id_token": _make_fake_id_token(admin_user.email)
+        }
+        response = unauthenticated_client.post(
+            self.url,
+            {
+                "code": "authcode",
+                "code_verifier": "verifier",
+                "redirect_uri": "http://localhost:3000/callback",
+                "remember_me": remember,
+            },
+            format="json",
+        )
+        assert response.status_code == 200
+        token = RefreshToken(response.data["refresh_token"])
+        assert token["remember_me"] is (remember is True)
+        assert token["exp"] - token["iat"] == (
+            14 * 86400 if remember is True else 8 * 3600
+        )
+
+    @patch("common.views.auth_views.requests.post")
+    def test_gmail_can_authenticate_without_workspace_domain(
+        self, mock_post, verified_google_token, unauthenticated_client, admin_user
+    ):
+        admin_user.email = "invited@gmail.com"
+        admin_user.save(update_fields=["email"])
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {"id_token": "token"}
+        verified_google_token.side_effect = None
+        verified_google_token.return_value = {
+            "email": admin_user.email,
+            "email_verified": True,
+        }
+        assert self._post_code(unauthenticated_client).status_code == 200
+
+    @patch("common.views.auth_views.requests.post")
+    def test_google_failure_body_is_not_exposed(
+        self, mock_post, unauthenticated_client
+    ):
+        mock_post.return_value.status_code = 400
+        mock_post.return_value.json.side_effect = ValueError("not json")
+        assert self._post_code(unauthenticated_client).status_code == 400
+
+    @patch("common.views.auth_views.requests.post")
+    def test_signin_attempts_are_throttled(self, mock_post, unauthenticated_client):
+        mock_post.return_value.status_code = 400
+        for _ in range(30):
+            assert self._post_code(unauthenticated_client).status_code == 400
+        assert self._post_code(unauthenticated_client).status_code == 429
+        assert mock_post.call_count == 30
+
+    @patch("common.views.auth_views.requests.post")
+    def test_missing_configuration_fails_closed(
+        self, mock_post, settings, unauthenticated_client
+    ):
+        settings.GOOGLE_CLIENT_ID = ""
+        response = self._post_code(unauthenticated_client)
+        assert response.status_code == 503
+        mock_post.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # Google ID Token View tests (lines 173-232)
@@ -748,6 +890,7 @@ class TestGoogleIdTokenView:
         """Existing user should get their organizations in response."""
         mock_verify.return_value = {
             "email": admin_user.email,
+            "hd": "example.com",
             "email_verified": True,
             "picture": "https://photo.example.com/pic.jpg",
         }
@@ -801,6 +944,7 @@ class TestGoogleIdTokenView:
         admin_user.save(update_fields=["is_active"])
         mock_verify.return_value = {
             "email": admin_user.email,
+            "hd": "example.com",
             "email_verified": True,
         }
 
@@ -922,6 +1066,7 @@ class TestGoogleOrgListExcludesDeactivated:
         )
         mock_verify.return_value = {
             "email": admin_user.email,
+            "hd": "example.com",
             "email_verified": True,
             "picture": "",
         }
@@ -961,6 +1106,7 @@ class TestOrgPayloadCarriesCurrency:
         org_a.save(update_fields=["default_currency"])
         mock_verify.return_value = {
             "email": admin_user.email,
+            "hd": "example.com",
             "email_verified": True,
             "picture": "",
         }

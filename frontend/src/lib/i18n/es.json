@@ -1753,5 +1753,12 @@
   "Could not save your setup. Please try again.": "No se pudo guardar la configuración. Inténtalo de nuevo.",
   "Check your details and try again.": "Revisa tus datos e inténtalo de nuevo.",
   "Service temporarily unavailable": "Servicio temporalmente no disponible",
-  "Please try again shortly.": "Inténtalo de nuevo en unos momentos."
+  "Please try again shortly.": "Inténtalo de nuevo en unos momentos.",
+  "Sign in with email": "Entrar con email",
+  "Google sign-in was cancelled. Try again or use email.": "Se canceló el acceso con Google. Inténtalo de nuevo o usa email.",
+  "Your sign-in session expired. Please try again.": "Tu sesión de acceso caducó. Inténtalo de nuevo.",
+  "Use the email on your invitation. Accept it before signing in.": "Usa el email de tu invitación. Acéptala antes de iniciar sesión.",
+  "Your account is disabled. Contact your administrator.": "Tu cuenta está desactivada. Contacta con tu administrador.",
+  "Use email and password to sign in with this account.": "Usa email y contraseña para entrar con esta cuenta.",
+  "Google sign-in is unavailable. Try again or use email.": "El acceso con Google no está disponible. Inténtalo de nuevo o usa email."
 }

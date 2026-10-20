@@ -1,14 +1,17 @@
-import json
 import logging
 import secrets
 import uuid
 from datetime import timedelta
+from functools import partial
 
 import requests
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, inline_serializer
+from google.auth.exceptions import GoogleAuthError, TransportError
+from google.auth.transport.requests import Request as GoogleRequest
+from google.oauth2 import id_token as google_id_token
 from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -67,6 +70,25 @@ def _google_email_is_verified(claims):
     return verified is True or str(verified).strip().lower() == "true"
 
 
+def _google_email_is_authoritative(claims):
+    # For third-party addresses, email_verified can outlive ownership of the
+    # mailbox. Require the existing CRM password instead of linking by email.
+    email = claims.get("email", "")
+    return isinstance(email, str) and (
+        email.lower().endswith("@gmail.com") or bool(claims.get("hd"))
+    )
+
+
+def _google_password_required_response():
+    return Response(
+        {
+            "error": "Use email and password to sign in with this account.",
+            "code": "password_required",
+        },
+        status=403,
+    )
+
+
 def _disabled_account_response():
     """403 for a login attempt by a deactivated account.
 
@@ -75,7 +97,7 @@ def _disabled_account_response():
     Google and magic-link flows so clients can handle one shape.
     """
     return Response(
-        {"error": "User account is disabled"},
+        {"error": "User account is disabled", "code": "account_disabled"},
         status=status.HTTP_403_FORBIDDEN,
     )
 
@@ -88,6 +110,12 @@ class GoogleOAuthCallbackView(APIView):
     permission_classes = []
     authentication_classes = []
 
+    def get_throttles(self):
+        # Share the login attempt budget with password sign-in.
+        from common.views.password_auth_views import PasswordIPThrottle
+
+        return [PasswordIPThrottle()]
+
     @extend_schema(
         tags=["auth"],
         request=inline_serializer(
@@ -96,6 +124,7 @@ class GoogleOAuthCallbackView(APIView):
                 "code": serializers.CharField(),
                 "code_verifier": serializers.CharField(),
                 "redirect_uri": serializers.CharField(),
+                "remember_me": serializers.BooleanField(required=False, default=False),
             },
         ),
         responses={
@@ -110,10 +139,6 @@ class GoogleOAuthCallbackView(APIView):
         },
     )
     def post(self, request):
-        import base64
-
-        from django.utils import timezone
-
         code = request.data.get("code")
         code_verifier = request.data.get("code_verifier")
         redirect_uri = request.data.get("redirect_uri")
@@ -123,6 +148,9 @@ class GoogleOAuthCallbackView(APIView):
                 {"error": "Missing required parameters"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+            return Response({"error": "Google sign-in is unavailable."}, status=503)
 
         # Exchange code for tokens with Google
         try:
@@ -145,33 +173,23 @@ class GoogleOAuthCallbackView(APIView):
             )
 
         if token_response.status_code != 200:
-            error_data = token_response.json() if token_response.content else {}
-            return Response(
-                {"error": error_data.get("error_description", "Token exchange failed")},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"error": "Token exchange failed"}, status=400)
 
-        token_data = token_response.json()
-        id_token = token_data.get("id_token")
-        if not id_token:
-            return Response(
-                {"error": "No ID token received"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Decode ID token payload (no verification needed - we just got it from Google over HTTPS)
         try:
-            payload_part = id_token.split(".")[1]
-            # Add padding if needed
-            payload_part += "=" * (4 - len(payload_part) % 4)
-            payload = json.loads(base64.urlsafe_b64decode(payload_part))
+            token_data = token_response.json()
+            token = token_data.get("id_token")
+            if not token:
+                return Response({"error": "No ID token received"}, status=400)
+            # Verify signature, issuer, audience and expiry, as in mobile sign-in.
+            payload = google_id_token.verify_oauth2_token(
+                token, partial(GoogleRequest(), timeout=10), settings.GOOGLE_CLIENT_ID
+            )
             email = payload.get("email")
             google_name = (payload.get("name") or "").strip()[:255]
-        except (IndexError, ValueError, json.JSONDecodeError):
-            return Response(
-                {"error": "Invalid ID token format"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        except TransportError:
+            return Response({"error": "Failed to communicate with Google"}, status=502)
+        except (GoogleAuthError, ValueError, TypeError, AttributeError):
+            return Response({"error": "Invalid ID token"}, status=400)
 
         if not email:
             return Response(
@@ -191,10 +209,16 @@ class GoogleOAuthCallbackView(APIView):
         try:
             user = User.objects.get(email__iexact=email)
         except User.DoesNotExist:
-            return Response({"error": "Access is by invitation."}, status=403)
+            return Response(
+                {"error": "Access is by invitation.", "code": "invitation_required"},
+                status=403,
+            )
 
         if not user.is_active:
             return _disabled_account_response()
+
+        if not _google_email_is_authoritative(payload):
+            return _google_password_required_response()
 
         # Backfill name from Google when the user hasn't set one yet.
         if not user.name and google_name:
@@ -205,7 +229,9 @@ class GoogleOAuthCallbackView(APIView):
         user.save(update_fields=["last_login"])
 
         # Generate JWT tokens (with user info embedded)
-        token = OrgAwareRefreshToken.for_user_and_org(user, None, remember_me=False)
+        token = OrgAwareRefreshToken.for_user_and_org(
+            user, None, remember_me=request.data.get("remember_me") is True
+        )
 
         return Response(
             {
@@ -255,17 +281,22 @@ class GoogleIdTokenView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if not settings.GOOGLE_CLIENT_ID:
+            return Response({"error": "Google sign-in is unavailable."}, status=503)
+
         # Verify the ID token with Google
         try:
             idinfo = id_token.verify_oauth2_token(
                 id_token_str,
-                google_requests.Request(),
+                partial(google_requests.Request(), timeout=10),
                 settings.GOOGLE_CLIENT_ID,
             )
             email = idinfo.get("email")
             google_name = (idinfo.get("name") or "").strip()[:255]
-        except ValueError:
-            logger.warning("Google OAuth token validation failed", exc_info=True)
+        except TransportError:
+            return Response({"error": "Failed to communicate with Google"}, status=502)
+        except (GoogleAuthError, ValueError):
+            logger.warning("Google OAuth token validation failed")
             return Response(
                 {"error": "Invalid token"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -288,9 +319,15 @@ class GoogleIdTokenView(APIView):
         # Sign-in never provisions a CRM identity. New users must accept an invitation.
         user = User.objects.filter(email__iexact=email).first()
         if user is None:
-            return Response({"error": "Access is by invitation."}, status=403)
+            return Response(
+                {"error": "Access is by invitation.", "code": "invitation_required"},
+                status=403,
+            )
         if not user.is_active:
             return _disabled_account_response()
+
+        if not _google_email_is_authoritative(idinfo):
+            return _google_password_required_response()
 
         # Backfill name from Google for existing users who don't have one.
         if not user.name and google_name:
