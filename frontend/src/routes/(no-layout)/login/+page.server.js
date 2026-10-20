@@ -17,31 +17,14 @@ import { savePasswordSession, passwordError } from '$lib/server/password-session
 import axios from 'axios';
 import { redirect, fail } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
-import { generateCodeVerifier, generateCodeChallenge, generateState } from '$lib/utils/pkce.js';
+import {
+  googleAvailable,
+  googleError,
+  clearOAuthCookies,
+  generateOAuthUrl,
+  invitationContext
+} from '$lib/server/google-oauth.js';
 import { describeError } from '$lib/server/log-safe.js';
-
-const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_SCOPES = ['openid', 'email', 'profile'].join(' ');
-
-// Cookie configuration
-const COOKIE_OPTIONS = {
-  path: '/',
-  httpOnly: true,
-  sameSite: 'lax'
-};
-
-/**
- * Get secure cookie options based on environment
- * @param {number} maxAge - Cookie max age in seconds
- * @returns {object} Cookie options with secure flag for production
- */
-function getCookieOptions(maxAge) {
-  return {
-    ...COOKIE_OPTIONS,
-    secure: env.NODE_ENV === 'production',
-    maxAge
-  };
-}
 
 /** @type {import('@sveltejs/kit').ServerLoad} */
 export async function load({ url, cookies, getClientAddress }) {
@@ -61,7 +44,13 @@ export async function load({ url, cookies, getClientAddress }) {
   const error = url.searchParams.get('error');
   // Provider errors are untrusted input; show only our own concise messages.
   if (error) {
+    const joining = Boolean(invitationContext(cookies));
     clearOAuthCookies(cookies);
+    if (joining)
+      redirect(
+        303,
+        `/register?error=${error === 'access_denied' ? 'access_denied' : 'auth_failed'}`
+      );
     return {
       uiLocale,
       google_available: googleAvailable(),
@@ -88,38 +77,20 @@ export async function load({ url, cookies, getClientAddress }) {
   };
 }
 
-function googleAvailable() {
-  return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_LOGIN_DOMAIN);
-}
-
-function googleError(code) {
-  const messages = {
-    access_denied: 'Google sign-in was cancelled. Try again or use email.',
-    state_mismatch: 'Your sign-in session expired. Please try again.',
-    session_expired: 'Your sign-in session expired. Please try again.',
-    invitation_required: 'Use the email on your invitation. Accept it before signing in.',
-    account_disabled: 'Your account is disabled. Contact your administrator.',
-    password_required: 'Use email and password to sign in with this account.'
-  };
-  return Object.hasOwn(messages, code)
-    ? messages[code]
-    : 'Google sign-in is unavailable. Try again or use email.';
-}
-
-function clearOAuthCookies(cookies) {
-  for (const name of ['oauth_state', 'oauth_code_verifier', 'oauth_remember_me']) {
-    cookies.delete(name, { path: '/' });
-  }
-}
-
 async function handleOAuthCallback(code, returnedState, cookies, getClientAddress) {
   const savedState = cookies.get('oauth_state');
   const codeVerifier = cookies.get('oauth_code_verifier');
   const rememberMe = cookies.get('oauth_remember_me') === '1';
+  const invitation = invitationContext(cookies);
+  const hadInvitation = Boolean(cookies.get('oauth_invitation'));
+  let joined = false;
   clearOAuthCookies(cookies);
 
   if (!savedState || savedState !== returnedState) {
     redirect(303, '/login?error=state_mismatch');
+  }
+  if (hadInvitation && (!invitation || invitation.token !== cookies.get('crm_invitation'))) {
+    redirect(303, '/register?error=session_expired');
   }
   if (!codeVerifier || !googleAvailable()) {
     redirect(303, '/login?error=session_expired');
@@ -133,7 +104,16 @@ async function handleOAuthCallback(code, returnedState, cookies, getClientAddres
         code,
         code_verifier: codeVerifier,
         redirect_uri: env.GOOGLE_LOGIN_DOMAIN.replace(/\/$/, '') + '/login',
-        remember_me: rememberMe
+        remember_me: rememberMe,
+        ...(invitation
+          ? {
+              invitation: invitation.token,
+              legal_version: invitation.legal?.legal_version,
+              legal_locale: invitation.legal?.legal_locale,
+              accept_terms: invitation.legal?.accept_terms === true,
+              organization_authority: invitation.legal?.organization_authority === true
+            }
+          : {})
       },
       getClientAddress
     );
@@ -150,6 +130,7 @@ async function handleOAuthCallback(code, returnedState, cookies, getClientAddres
     ) {
       throw new Error('Sign-in response did not contain session tokens');
     }
+    joined = response.data.invitation_accepted === true && Boolean(response.data.current_org);
     savePasswordSession(cookies, response.data);
   } catch (error) {
     console.error('Google sign-in failed:', describeError(error));
@@ -157,52 +138,17 @@ async function handleOAuthCallback(code, returnedState, cookies, getClientAddres
     const knownCode = ['invitation_required', 'account_disabled', 'password_required'].includes(
       code
     );
-    redirect(303, `/login?error=${knownCode ? code : 'auth_failed'}`);
+    redirect(
+      303,
+      `${invitation ? '/register' : '/login'}?error=${knownCode ? code : 'auth_failed'}`
+    );
   }
 
+  if (joined) {
+    cookies.delete('crm_invitation', { path: '/' });
+    redirect(303, '/onboarding');
+  }
   redirect(303, cookies.get('crm_invitation') ? '/invite' : '/org');
-}
-
-/**
- * Generate Google OAuth URL with PKCE parameters
- * @param {import('@sveltejs/kit').Cookies} cookies - SvelteKit cookies
- * @param {boolean} rememberMe - Explicit CRM session persistence choice
- * @returns {Promise<string|null>} Google authorization URL when configured
- */
-async function generateOAuthUrl(cookies, rememberMe) {
-  if (!googleAvailable()) return null;
-  // Generate PKCE parameters
-  const codeVerifier = generateCodeVerifier();
-  const codeChallenge = await generateCodeChallenge(codeVerifier);
-
-  // Generate cryptographically random state for CSRF protection
-  const state = generateState();
-
-  // Store PKCE verifier and state in secure httpOnly cookies
-  // These expire in 10 minutes - should be plenty for OAuth flow
-  const oauthCookieMaxAge = 60 * 10; // 10 minutes
-
-  cookies.set('oauth_code_verifier', codeVerifier, getCookieOptions(oauthCookieMaxAge));
-  cookies.set('oauth_state', state, getCookieOptions(oauthCookieMaxAge));
-  cookies.set('oauth_remember_me', rememberMe ? '1' : '0', getCookieOptions(oauthCookieMaxAge));
-
-  // Build Google OAuth URL with all required parameters
-  const redirect_uri = env.GOOGLE_LOGIN_DOMAIN.replace(/\/$/, '') + '/login';
-
-  const params = new URLSearchParams({
-    client_id: env.GOOGLE_CLIENT_ID,
-    redirect_uri,
-    response_type: 'code',
-    scope: GOOGLE_SCOPES,
-    state,
-    code_challenge: codeChallenge,
-    code_challenge_method: 'S256',
-    prompt: 'select_account' // Sign-in does not need mailbox access or a Google refresh token.
-  });
-
-  const google_login_url = `${GOOGLE_AUTH_URL}?${params.toString()}`;
-
-  return google_login_url;
 }
 
 /** @type {import('@sveltejs/kit').Actions} */

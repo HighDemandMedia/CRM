@@ -94,6 +94,9 @@ describe('persistent session refresh', () => {
   });
   it('allows public pages without a session and rejects protected ones', async () => {
     await handle(input({}, '/login'));
+    const terms = input({}, '/legal/terms?lang=es');
+    await handle(terms);
+    expect(terms.resolve).toHaveBeenCalled();
     expect((await handle(input({}))).headers.get('location')).toBe('/login');
     expect(axios.post).not.toHaveBeenCalled();
   });

@@ -14,7 +14,7 @@ El registro por contraseña requiere siempre una invitación válida para ese em
 
 En `/login`, Google es la opción principal cuando está configurado. «Sign in with email» abre el formulario de email y contraseña. Ambos conservan la opción explícita «Remember me for 14 days». Una sola organización activa se selecciona automáticamente; si perteneces a varias, eliges una. El formulario no concede acceso por escribir el nombre o ID de una organización.
 
-Los usuarios adicionales reciben una invitación. Al abrir un enlace válido, un usuario nuevo llega directamente al formulario de nombre, contraseña y confirmación. El correo viene definido por la invitación y se muestra la organización a la que se unirá. El servidor vuelve a validar el token y el correo al guardar; recibe exactamente la organización y el rol concedidos. El token se consume al registrarse; no se crea una organización adicional. Funciona aunque el registro público esté cerrado. Los enlaces anteriores válidos también usan este flujo.
+Los usuarios adicionales reciben una invitación. Al abrir un enlace válido, un usuario nuevo puede continuar con Google (sin crear contraseña local) o elegir email y contraseña. Google proporciona el nombre y debe verificar el mismo correo de la invitación. El correo viene definido por la invitación y se muestra la organización a la que se unirá. El servidor vuelve a validar el token y el correo al guardar; recibe exactamente la organización y el rol concedidos. El token se consume al registrarse; no se crea una organización adicional. Funciona aunque el registro público esté cerrado. Los enlaces anteriores válidos también usan este flujo.
 
 Si el correo ya pertenece a una cuenta, el enlace pide iniciar sesión para aceptar sin cambiar su contraseña. Las cuentas que aún no tienen contraseña pueden obtener un enlace de acceso seguro y establecerla en Profile. Un enlace caducado, cancelado o aceptado muestra un aviso y no permite crear la cuenta con esa invitación.
 
@@ -52,3 +52,5 @@ Esto no completa por sí solo los restantes bloqueos de producción del informe 
 - Revisión de Svelte: cero errores y advertencias; compilación de producción correcta.
 - Generación real de PDF y bloqueo de URL interna: verificados.
 - La suite general del frontend mantiene cuatro fallos anteriores del informe de auditoría (pipeline e historial de contactos); no se presentan como corregidos por este cambio.
+
+Invitation enrollment uses one explicit terms checkbox. For an organization owner, its label accepts on behalf of the organization; `organization_authority` is forwarded only together with checked terms. `/legal/terms` contains the published website terms plus the linked DPA appendix; the DPA retains invitation/admin access checks. Keep `frontend/src/lib/server/legal/terms.json` synchronized when the published terms change.

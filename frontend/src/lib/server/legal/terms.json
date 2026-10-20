@@ -1,0 +1,80 @@
+{
+  "version": "2026-10-12",
+  "draft": false,
+  "documents": {
+    "en": {
+      "title": "HDM CRM Terms of Service",
+      "sections": [
+        {
+          "heading": "The service and agreement",
+          "text": "These terms govern HDM CRM provided by High Demand Media to approved business organizations and invited users. A signed service order or commercial agreement defines the purchased package, pricing, term and support scope. CRM access may be included in a contracted advertising service; these terms do not promise free, perpetual or unlimited access. Contact info@highdemandmedia.com."
+        },
+        {
+          "heading": "Invitations and authority",
+          "text": "Only the CRM platform owner creates customer organizations and invites their initial administrator. Authorized organization administrators can invite their teams within their permissions. The initial administrator must be authorized to accept these terms and the Data Processing Agreement on behalf of the organization. Team members accept the terms governing their use. An invitation does not authorize access to another organization."
+        },
+        {
+          "heading": "Accounts and acceptable use",
+          "text": "Use accurate account details, protect credentials and promptly report suspected misuse. Do not share passwords, bypass permissions, attack the service, upload malware, send spam, infringe rights or collect or use information unlawfully. Follow the rules of connected providers. Do not submit specially regulated information unless a written agreement expressly supports that use."
+        },
+        {
+          "heading": "Customer data and intellectual property",
+          "text": "The customer retains its rights in its records and files. It authorizes HDM and necessary providers to process those data only for contracted services, support, security and applicable legal obligations. HDM does not gain ownership of customer records. HDM retains its rights in its branding and service modifications; third-party and open-source components remain subject to their own licenses. Access permits use of the hosted product during the agreed service term."
+        },
+        {
+          "heading": "Organization responsibilities",
+          "text": "The customer decides who can access its workspace, maintains appropriate permissions, obtains necessary permissions for its records and communications, and gives appropriate privacy notices on its own forms. The customer is responsible for lawful campaign instructions and messages sent using the service. The Privacy Notice and Data Processing Agreement explain the handling of personal information."
+        },
+        {
+          "heading": "Integrations and support",
+          "text": "Google integrations require separate authorization and can be disconnected. Provider limitations, outages or withdrawn permission can affect functionality. Do not rely on the CRM as the only copy of essential business information; use available exports. Features and support are subject to the agreed scope. No specific uptime, response time, sales result or advertising return is promised unless agreed in writing."
+        },
+        {
+          "heading": "Service closure and export",
+          "text": "The organization owner or HDM CRM owner can initiate closure under the commercial agreement. The organization receives 30 days of read-only consultation and export after closure starts, followed by scheduled deletion of active workspace data. Permissions still apply during that window. During those 30 days, the organization owner or the HDM CRM owner can cancel closure and reactivate the organization with its records preserved; Google connections require renewed authorization. Once the 30-day period expires, closure is final: the organization cannot be reactivated and HDM will not recover or restore its data. Export any records you need before the deadline. Security or legal restrictions may require earlier suspension; contact HDM to arrange an appropriate export where permitted. Backup and legally necessary record handling are described in the Privacy Notice."
+        },
+        {
+          "heading": "Changes, disputes and applicable rights",
+          "text": "Material changes will be communicated with an updated version and acceptance requested where appropriate. Contact info@highdemandmedia.com first to discuss a service issue. Applicable mandatory rights are preserved. Any governing law, venue, billing, renewal, cancellation charges or limitation of liability must be specified in the signed commercial agreement; those terms are not established by this page."
+        }
+      ]
+    },
+    "es": {
+      "title": "Términos de servicio de HDM CRM",
+      "sections": [
+        {
+          "heading": "Servicio y acuerdo",
+          "text": "Estos términos regulan HDM CRM, prestado por High Demand Media a organizaciones empresariales aprobadas y usuarios invitados. La orden de servicio o acuerdo comercial firmado define paquete, precio, duración y soporte. El acceso puede estar incluido en publicidad contratada; estos términos no prometen acceso gratuito, perpetuo o ilimitado. Contacto: info@highdemandmedia.com."
+        },
+        {
+          "heading": "Invitaciones y autoridad",
+          "text": "Solo el propietario de la plataforma crea organizaciones clientes e invita a su administrador inicial. Los administradores autorizados pueden invitar al equipo dentro de sus permisos. El administrador inicial debe estar autorizado para aceptar estos términos y el Acuerdo de tratamiento de datos en nombre de la organización. Los miembros aceptan los términos de su uso. Una invitación no autoriza acceso a otras organizaciones."
+        },
+        {
+          "heading": "Cuentas y uso permitido",
+          "text": "Utiliza datos de cuenta correctos, protege tus credenciales e informa de posibles usos indebidos. No compartas contraseñas, evadas permisos, ataques el servicio, subas malware, envíes spam, vulneres derechos ni obtengas o uses información ilícitamente. Cumple las reglas de los proveedores conectados. No envíes información especialmente regulada salvo acuerdo escrito que admita ese uso."
+        },
+        {
+          "heading": "Datos del cliente y propiedad intelectual",
+          "text": "El cliente conserva los derechos sobre sus registros y archivos. Autoriza a HDM y proveedores necesarios a procesarlos solo para los servicios contratados, soporte, seguridad y obligaciones legales aplicables. HDM no adquiere la propiedad de esos registros. HDM conserva sus derechos sobre marca y modificaciones del servicio; los componentes de terceros y de código abierto mantienen sus propias licencias. El acceso permite usar el producto alojado durante el periodo acordado."
+        },
+        {
+          "heading": "Responsabilidades de la organización",
+          "text": "El cliente decide quién accede, mantiene permisos adecuados, obtiene las autorizaciones necesarias para sus registros y comunicaciones y facilita avisos de privacidad en sus formularios. Es responsable de instrucciones de campañas y mensajes lícitos. El Aviso de privacidad y el Acuerdo de tratamiento de datos explican el manejo de información personal."
+        },
+        {
+          "heading": "Integraciones y soporte",
+          "text": "Google requiere autorización independiente y puede desconectarse. Límites, interrupciones o revocaciones del proveedor pueden afectar funciones. No utilices el CRM como única copia de información esencial; utiliza las exportaciones disponibles. Funciones y soporte dependen del alcance acordado. No se promete disponibilidad, tiempo de respuesta, ventas ni rentabilidad publicitaria concretos salvo acuerdo escrito."
+        },
+        {
+          "heading": "Cierre y exportación",
+          "text": "El propietario de la organización o de HDM CRM puede iniciar el cierre conforme al acuerdo comercial. La organización dispone de 30 días de consulta y exportación en modo solo lectura desde el inicio del cierre, seguidos por la eliminación programada de los datos activos. Se mantienen los permisos durante ese plazo. Durante esos 30 días, el propietario de la organización o el de HDM CRM puede cancelar el cierre y reactivar la organización conservando sus registros; las conexiones de Google requieren nueva autorización. Al vencer los 30 días, el cierre es definitivo: la organización no puede reactivarse y HDM no recuperará ni restaurará sus datos. Exporta los registros que necesites antes del vencimiento. Restricciones legales o de seguridad pueden requerir suspensión previa; contacta a HDM para coordinar una exportación cuando sea posible. El Aviso de privacidad describe copias de seguridad y registros legalmente necesarios."
+        },
+        {
+          "heading": "Cambios, controversias y derechos aplicables",
+          "text": "Se comunicarán cambios materiales con una nueva versión y se pedirá aceptación cuando corresponda. Contacta primero con info@highdemandmedia.com para tratar incidencias. Se preservan los derechos imperativos aplicables. La ley aplicable, jurisdicción, facturación, renovación, cargos de cancelación o límites de responsabilidad deben establecerse en el acuerdo comercial firmado; esas condiciones no se establecen en esta página."
+        }
+      ]
+    }
+  }
+}

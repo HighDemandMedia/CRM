@@ -3,7 +3,7 @@ import secrets
 from datetime import timedelta
 
 from django.core.mail import send_mail
-from django.db import connection, transaction
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers
@@ -12,10 +12,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from common.invitations import accept_ownership, send_invitation
+from common.invitation_registration import complete_invited_membership
+from common.invitations import send_invitation
 from common.legal import (
     legal_requirements,
-    record_legal_acceptance,
     validate_legal_acceptance,
 )
 from common.models import CRMRole, Org, OrganizationInvitation, Profile
@@ -213,41 +213,7 @@ class AcceptInvitationView(APIView):
                     }
                 )
             acceptance = validate_legal_acceptance(request.data, row)
-            if connection.vendor == "postgresql":
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        "SELECT set_config('app.current_org', %s, true)",
-                        [str(row.org_id)],
-                    )
-            if Profile.objects.filter(
-                org=row.org, user=request.user, removed_at__isnull=True
-            ).exists():
-                return Response(
-                    {
-                        "error": "Membership already exists. Ask an admin if access is inactive."
-                    },
-                    status=400,
-                )
-            Profile.objects.update_or_create(
-                org=row.org,
-                user=request.user,
-                defaults={
-                    "role": row.role,
-                    "access_role": (row.access_role or ensure_default_roles(row.org)[0])
-                    if row.role == "USER"
-                    else None,
-                    "is_active": True,
-                    "removed_at": None,
-                    "date_of_joining": timezone.localdate(),
-                    "setup_step": Profile.SetupStep.PROFILE_ORGANIZATION
-                    if row.grants_ownership
-                    else Profile.SetupStep.PROFILE,
-                },
-            )
-            accept_ownership(row, request.user)
-            record_legal_acceptance(request.user, row, acceptance)
-            row.accepted_at = timezone.now()
-            row.save(update_fields=["accepted_at"])
+            complete_invited_membership(row, request.user, acceptance)
         return Response(
             {
                 "org_id": str(row.org_id),

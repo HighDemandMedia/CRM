@@ -12,7 +12,7 @@ def send_invitation(row, raw, *, sender=send_mail):
     link = f"{settings.FRONTEND_URL.rstrip('/')}/invite?token={raw}"
     sent = sender(
         f"Invitation to {row.org.name} · High Demand Media CRM",
-        f"You have been invited to {row.org.name}.\n\nOpen this link to join:\n{link}\n\nIf you are new to High Demand Media CRM, you will create your own password for {row.email}. If you already have an account, sign in with that email to accept.\n\nThis invitation expires in 7 days. If you were not expecting it, you can ignore this email.",
+        f"You have been invited to {row.org.name}.\n\nOpen this link to join:\n{link}\n\nContinue with Google using {row.email}, or create your own password. If you already have an account, sign in with that email to accept.\n\nThis invitation expires in 7 days. If you were not expecting it, you can ignore this email.",
         settings.DEFAULT_FROM_EMAIL,
         [row.email],
         fail_silently=False,

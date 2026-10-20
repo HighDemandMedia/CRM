@@ -1,6 +1,6 @@
 {
   "version": "2026-10-12",
-  "draft": true,
+  "draft": false,
   "documents": {
     "en": {
       "title": "CRM Data Processing Agreement",
@@ -31,7 +31,7 @@
         },
         {
           "heading": "Compliance and review",
-          "text": "HDM will make reasonably necessary information available to demonstrate compliance with these obligations and cooperate with proportionate reviews subject to confidentiality, security and protection of other customers. Processing locations and any required international transfer arrangements must be assessed for the actual customer and providers. This draft does not assert that an EU or UK transfer mechanism has been executed or that every state privacy law applies. Contact info@highdemandmedia.com to agree additional requirements before submitting data that requires them."
+          "text": "HDM will make reasonably necessary information available to demonstrate compliance with these obligations and cooperate with proportionate reviews subject to confidentiality, security and protection of other customers. Processing locations and any required international transfer arrangements must be assessed for the actual customer and providers. This agreement does not assert that an EU or UK transfer mechanism has been executed or that every state privacy law applies. Contact info@highdemandmedia.com to agree additional requirements before submitting data that requires them."
         }
       ]
     },
@@ -64,7 +64,7 @@
         },
         {
           "heading": "Cumplimiento y revisión",
-          "text": "HDM facilitará información razonablemente necesaria para demostrar estas obligaciones y cooperará con revisiones proporcionadas sujetas a confidencialidad, seguridad y protección de otros clientes. Las ubicaciones y mecanismos de transferencia internacional requeridos se evaluarán según el cliente y proveedores reales. Este borrador no afirma que exista un mecanismo de transferencia de la UE o Reino Unido formalizado ni que apliquen todas las leyes estatales. Contacta a info@highdemandmedia.com para acordar requisitos adicionales antes de enviar datos que los necesiten."
+          "text": "HDM facilitará información razonablemente necesaria para demostrar estas obligaciones y cooperará con revisiones proporcionadas sujetas a confidencialidad, seguridad y protección de otros clientes. Las ubicaciones y mecanismos de transferencia internacional requeridos se evaluarán según el cliente y proveedores reales. Este acuerdo no afirma que exista un mecanismo de transferencia de la UE o Reino Unido formalizado ni que apliquen todas las leyes estatales. Contacta a info@highdemandmedia.com para acordar requisitos adicionales antes de enviar datos que los necesiten."
         }
       ]
     }

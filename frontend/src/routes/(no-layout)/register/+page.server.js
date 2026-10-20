@@ -1,3 +1,4 @@
+import { googleAvailable, googleError, generateOAuthUrl } from '$lib/server/google-oauth.js';
 import { signedJson } from '$lib/server/proxy-identity.js';
 import { API_ORIGIN } from '$lib/server/api-origin.js';
 import axios from 'axios';
@@ -6,7 +7,7 @@ import { passwordError, savePasswordSession } from '$lib/server/password-session
 import { previewInvitation } from '$lib/server/invitation.js';
 import { legalFormValues } from '$lib/legal.js';
 
-export async function load({ locals, cookies, getClientAddress }) {
+export async function load({ locals, cookies, getClientAddress, url }) {
   if (locals.user) redirect(303, cookies.get('crm_invitation') ? '/invite' : '/org');
   const token = cookies.get('crm_invitation');
   if (!token) return { invited: false };
@@ -20,11 +21,47 @@ export async function load({ locals, cookies, getClientAddress }) {
     };
   }
   if (invitation.existing_account) redirect(303, '/invite');
-  return { invited: true, invitation };
+  return {
+    invited: true,
+    invitation,
+    google_available: googleAvailable(),
+    password: url?.searchParams.get('method') === 'password',
+    googleError: url?.searchParams.has('error') ? googleError(url.searchParams.get('error')) : ''
+  };
 }
 
 export const actions = {
-  default: async ({ request, cookies, getClientAddress }) => {
+  google: async ({ request, cookies, getClientAddress }) => {
+    const token = cookies.get('crm_invitation');
+    if (!token) return fail(403, { error: 'An invitation is required to create an account.' });
+    const form = await request.formData();
+    let invitation;
+    try {
+      invitation = await previewInvitation(token, getClientAddress);
+    } catch (error) {
+      return fail(400, {
+        error: passwordError(error, 'Could not open this invitation. Please try again.')
+      });
+    }
+    const legal = legalFormValues(form);
+    if (
+      invitation.legal?.version &&
+      (legal.legal_version !== invitation.legal.version ||
+        !legal.accept_terms ||
+        !['en', 'es'].includes(legal.legal_locale) ||
+        (invitation.legal.organization_authority_required && !legal.organization_authority))
+    ) {
+      return fail(400, { error: 'Review and accept the terms before continuing.' });
+    }
+    const destination = await generateOAuthUrl(cookies, false, {
+      token,
+      email: invitation.email,
+      legal
+    });
+    if (!destination) return fail(503, { error: googleError('unavailable') });
+    redirect(303, destination);
+  },
+  password: async ({ request, cookies, getClientAddress }) => {
     const form = await request.formData();
     const values = Object.fromEntries(
       ['name', 'email', 'organization', 'timezone'].map((key) => [

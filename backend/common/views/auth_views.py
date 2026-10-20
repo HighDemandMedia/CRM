@@ -7,6 +7,7 @@ from functools import partial
 import requests
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
+from django.db import IntegrityError
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, inline_serializer
 from google.auth.exceptions import GoogleAuthError, TransportError
@@ -20,6 +21,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from common import serializer
 from common.models import Org, Profile, User
+from common.organization_lifecycle import invitation_write
 from common.platform_access import accessible_profiles, select_organization
 from common.serializer import OrgAwareRefreshToken
 from common.utils import CURRENCY_SYMBOLS
@@ -138,6 +140,7 @@ class GoogleOAuthCallbackView(APIView):
             )
         },
     )
+    @invitation_write
     def post(self, request):
         code = request.data.get("code")
         code_verifier = request.data.get("code_verifier")
@@ -205,7 +208,36 @@ class GoogleOAuthCallbackView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Sign-in never provisions a CRM identity. New users must accept an invitation.
+        # Only a verified identity plus an explicit invitation can enroll a new user.
+        if request.data.get("invitation"):
+            if not _google_email_is_authoritative(payload):
+                return _google_password_required_response()
+            from common.invitation_registration import register_invited_user
+            from common.views.password_auth_views import session_response
+
+            try:
+                user, invitation = register_invited_user(
+                    token=request.data["invitation"],
+                    email=email,
+                    name=google_name,
+                    password=None,
+                    legal_data=request.data,
+                    allow_existing=True,
+                )
+            except IntegrityError:
+                return Response(
+                    {"error": "Could not accept invitation. Please try again."},
+                    status=400,
+                )
+            response = session_response(
+                user,
+                request,
+                remember_me=request.data.get("remember_me") is True,
+                organization_id=invitation.org_id,
+            )
+            response.data["invitation_accepted"] = True
+            return response
+
         try:
             user = User.objects.get(email__iexact=email)
         except User.DoesNotExist:

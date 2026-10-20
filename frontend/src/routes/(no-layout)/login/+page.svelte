@@ -8,7 +8,7 @@
   import '$lib/v2/styles/v2.css';
   import { authForm } from '$lib/utils/auth-form.js';
   import { ArrowLeft, Check, Eye, EyeOff } from '@lucide/svelte';
-  import imgGoogle from '$lib/assets/images/google.svg';
+  import GoogleSignInButton from '$lib/components/GoogleSignInButton.svelte';
   let { data, form } = $props();
   let busy = $state(false);
   let googleBusy = $state(false);
@@ -138,10 +138,7 @@
             aria-busy={googleBusy}
             onsubmit={() => (googleBusy = true)}
           >
-            <button type="submit" class="v2-btn v2-btn-block google-signin" disabled={googleBusy}>
-              <img src={imgGoogle} alt="" width="20" height="20" />
-              {googleBusy ? ui('Connecting…') : ui('Continue with Google')}
-            </button>
+            <GoogleSignInButton busy={googleBusy} />
             <label class="remember-choice" for="google-remember-me">
               <input id="google-remember-me" type="checkbox" name="remember_me" />
               <span>{ui('Remember me for 14 days')}</span>
@@ -271,19 +268,6 @@
   .email-alternative:hover {
     text-decoration: underline;
   }
-  .google-signin {
-    background: #fff;
-    border: 1px solid #747775;
-    color: #1f1f1f;
-    gap: 0.625rem;
-  }
-  .google-signin img {
-    flex: 0 0 1.25rem;
-  }
-  .google-signin:hover:not(:disabled) {
-    background: #f2f2f2;
-  }
-
   .remember-choice {
     display: flex;
     align-items: center;

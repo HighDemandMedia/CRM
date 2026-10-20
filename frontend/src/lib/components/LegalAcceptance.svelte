@@ -1,5 +1,4 @@
 <script>
-  import { resolve } from '$app/paths';
   import { useI18n } from '$lib/i18n/context.js';
   import { legalLinks } from '$lib/legal.js';
   /** @type {{ requirements?: {version?: string, organization_authority_required?: boolean} }} */
@@ -19,7 +18,9 @@
         >{ui('I accept the')}
         <a href={links.terms} target="_blank" rel="external noopener noreferrer"
           >{ui('CRM Terms of Service')}</a
-        >.</span
+        >{requirements.organization_authority_required
+          ? ` ${ui('on behalf of my organization')}`
+          : ''}.</span
       >
     </label>
     <p>
@@ -29,16 +30,7 @@
       >.
     </p>
     {#if requirements.organization_authority_required}
-      <label>
-        <input type="checkbox" name="organization_authority" required />
-        <span
-          >{ui('I am authorized to accept these terms and the')}
-          <a href={resolve(`/legal/dpa?lang=${language}`)} target="_blank" rel="noopener noreferrer"
-            >{ui('Data Processing Agreement')}</a
-          >
-          {ui('on behalf of my organization')}.</span
-        >
-      </label>
+      <input type="hidden" name="organization_authority" value="on" />
     {/if}
   </div>
 {/if}

@@ -1,4 +1,5 @@
 <script>
+  import GoogleSignInButton from '$lib/components/GoogleSignInButton.svelte';
   import LegalAcceptance from '$lib/components/LegalAcceptance.svelte';
   import LegalLinks from '$lib/components/LegalLinks.svelte';
   import { useI18n } from '$lib/i18n/context.js';
@@ -11,6 +12,7 @@
   import { onMount } from 'svelte';
   let { data, form } = $props();
   let busy = $state(false);
+  const usePassword = $derived(!data.google_available || data.password);
   let timezone = $state('UTC');
   onMount(() => {
     timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -37,19 +39,38 @@
     <div class="v2-auth-card">
       <div class="v2-auth-head">
         <h1>{data.invited ? ui('Set up your account') : ui('Create your account')}</h1>
-        <p>
-          {data.invited
-            ? `Create your password to join ${data.invitation?.organization || 'your organization'}.`
-            : ui('Start with your organization and personal login.')}
-        </p>
+        <p>{data.invitation?.organization || ui('Access is by invitation.')}</p>
       </div>
-      {#if data.error}<p class="v2-error" role="alert">{data.error}</p>{:else}<form
+      {#if data.error}<p class="v2-error" role="alert">{ui(data.error)}</p>
+      {:else if !data.invited}<p>{ui('Open the invitation link from your email.')}</p>
+      {:else if !usePassword}
+        <p class="invited-email">{data.invitation?.email}</p>
+        <form method="POST" action="?/google" aria-busy={busy} onsubmit={() => (busy = true)}>
+          <LegalAcceptance requirements={data.invitation?.legal} />
+          {#if form?.error || data.googleError}<p class="v2-error" role="alert">
+              {ui(form?.error || data.googleError)}
+            </p>{/if}
+          <GoogleSignInButton {busy} />
+        </form>
+        <div class="v2-auth-divider">{ui('or')}</div>
+        <a class="alternative" href={resolve('/register?method=password')}
+          >{ui('Create account with email')}</a
+        >
+      {:else}
+        {#if data.google_available}<a class="alternative" href={resolve('/register')}
+            >{ui('Back to sign in')}</a
+          >{/if}
+        <form
           method="POST"
+          action="?/password"
           use:enhance={() => {
             busy = true;
             return async ({ update }) => {
-              await update();
-              busy = false;
+              try {
+                await update();
+              } finally {
+                busy = false;
+              }
             };
           }}
         >
@@ -132,6 +153,19 @@
 </div>
 
 <style>
+  .invited-email {
+    overflow-wrap: anywhere;
+    margin-bottom: var(--crm-space-4);
+    color: var(--crm-text-muted);
+  }
+  .alternative {
+    display: block;
+    text-align: center;
+    padding: var(--crm-space-3);
+    color: var(--crm-link);
+    font-size: var(--crm-text-sm);
+  }
+
   fieldset {
     border: 0;
     padding: 0;

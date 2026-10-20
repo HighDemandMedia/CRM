@@ -46,7 +46,7 @@ describe('invitation onboarding', () => {
   it('takes new invitees directly to password creation with verified email and organization', async () => {
     vi.mocked(axios.post).mockResolvedValue({ data: invitation });
     await expect(load(event())).rejects.toMatchObject({ status: 303, location: '/register' });
-    expect(await registerLoad(event())).toEqual({ invited: true, invitation });
+    expect(await registerLoad(event())).toMatchObject({ invited: true, invitation });
   });
   it('keeps existing users on the sign-in and acceptance flow', async () => {
     vi.mocked(axios.post).mockResolvedValue({ data: { ...invitation, existing_account: true } });
@@ -94,7 +94,7 @@ describe('invitation onboarding', () => {
           needs_organization_setup: needsSetup
         }
       });
-      await expect(actions.default(input)).rejects.toMatchObject({
+      await expect(actions.password(input)).rejects.toMatchObject({
         status: 303,
         location: '/onboarding'
       });
@@ -139,7 +139,7 @@ it.each([false, true])(
 it('does not call registration without an invitation cookie', async () => {
   const input = event('');
   input.request = { formData: async () => new FormData() };
-  expect(await actions.default(input)).toMatchObject({ status: 403 });
+  expect(await actions.password(input)).toMatchObject({ status: 403 });
   expect(axios.post).not.toHaveBeenCalled();
 });
 

@@ -1760,5 +1760,7 @@
   "Use the email on your invitation. Accept it before signing in.": "Usa el email de tu invitación. Acéptala antes de iniciar sesión.",
   "Your account is disabled. Contact your administrator.": "Tu cuenta está desactivada. Contacta con tu administrador.",
   "Use email and password to sign in with this account.": "Usa email y contraseña para entrar con esta cuenta.",
-  "Google sign-in is unavailable. Try again or use email.": "El acceso con Google no está disponible. Inténtalo de nuevo o usa email."
+  "Google sign-in is unavailable. Try again or use email.": "El acceso con Google no está disponible. Inténtalo de nuevo o usa email.",
+  "Create account with email": "Crear cuenta con email",
+  "Review and accept the terms before continuing.": "Revisa y acepta los términos antes de continuar."
 }

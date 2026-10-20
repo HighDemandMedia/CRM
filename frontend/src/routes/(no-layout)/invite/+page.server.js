@@ -1,3 +1,4 @@
+import { googleAvailable } from '$lib/server/google-oauth.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { apiRequest } from '$lib/api-helpers.js';
@@ -52,6 +53,7 @@ export async function load({ url, cookies, locals, getClientAddress }) {
   return {
     hasInvitation: !!cookies.get('crm_invitation'),
     signedIn: !!locals.user,
+    google_available: googleAvailable(),
     invitation,
     error
   };

@@ -5,7 +5,7 @@ import hashlib
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, connection, transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -16,17 +16,14 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from common.audit_log import audit_log
-from common.invitations import accept_ownership
+from common.invitation_registration import register_invited_user
 from common.legal import (
     legal_requirements,
-    record_legal_acceptance,
-    validate_legal_acceptance,
 )
-from common.models import OrganizationInvitation, Profile, User
+from common.models import OrganizationInvitation, User
 from common.organization_lifecycle import invitation_write
 from common.password_reset import revoke_user_sessions
 from common.platform_access import accessible_profiles
-from common.rbac import ensure_default_roles
 from common.request_meta import client_ip
 from common.serializer import OrgAwareRefreshToken
 from common.views.auth_views import _org_payload
@@ -101,7 +98,9 @@ class RegisterInput(LoginInput):
         return attrs
 
 
-def session_response(user, request, status=200, *, remember_me=False):
+def session_response(
+    user, request, status=200, *, remember_me=False, organization_id=None
+):
     profiles = list(
         accessible_profiles(user).select_related("org").order_by("org__name")
     )
@@ -109,6 +108,10 @@ def session_response(user, request, status=200, *, remember_me=False):
     if request.auth and request.auth.get("org_id"):
         profile = next(
             (p for p in profiles if str(p.org_id) == request.auth["org_id"]), profile
+        )
+    if organization_id is not None:
+        profile = next(
+            (p for p in profiles if str(p.org_id) == str(organization_id)), None
         )
     org = profile.org if profile else None
     token = OrgAwareRefreshToken.for_user_and_org(
@@ -216,62 +219,18 @@ class PasswordRegisterView(APIView):
         if User.objects.filter(email__iexact=values["email"]).exists():
             return Response(duplicate, status=400)
         try:
-            with transaction.atomic():
-                invitation = None
-                if values.get("invitation"):
-                    invitation = (
-                        OrganizationInvitation.objects.select_for_update()
-                        .select_related("org")
-                        .filter(
-                            token_hash=digest(values["invitation"]),
-                            email__iexact=values["email"],
-                            accepted_at__isnull=True,
-                            revoked_at__isnull=True,
-                            expires_at__gt=timezone.now(),
-                            org__is_active=True,
-                        )
-                        .first()
-                    )
-                    if not invitation:
-                        return Response(
-                            {
-                                "error": "Invitation is invalid, expired, or belongs to another email."
-                            },
-                            status=400,
-                        )
-                acceptance = validate_legal_acceptance(request.data, invitation)
-                user = User.objects.create_user(
-                    values["email"], values["password"], name=values["name"]
-                )
-                org = invitation.org
-                # Default roles are tenant tables protected by FORCE RLS.
-                if connection.vendor == "postgresql":
-                    with connection.cursor() as cursor:
-                        cursor.execute(
-                            "SELECT set_config('app.current_org', %s, true)",
-                            [str(org.pk)],
-                        )
-                defaults = ensure_default_roles(org)
-                Profile.objects.create(
-                    user=user,
-                    org=org,
-                    role=invitation.role,
-                    access_role=(invitation.access_role or defaults[0])
-                    if invitation and invitation.role != "ADMIN"
-                    else None,
-                    is_active=True,
-                    setup_step=Profile.SetupStep.PROFILE_ORGANIZATION
-                    if invitation.grants_ownership
-                    else Profile.SetupStep.PROFILE,
-                )
-                accept_ownership(invitation, user)
-                record_legal_acceptance(user, invitation, acceptance)
-                if invitation:
-                    invitation.accepted_at = timezone.now()
-                    invitation.save(update_fields=["accepted_at"])
-                response = session_response(user, request, status=201)
-                response.data["needs_organization_setup"] = invitation.grants_ownership
-                return response
+            user, invitation = register_invited_user(
+                token=values.get("invitation"),
+                email=values["email"],
+                name=values["name"],
+                password=values["password"],
+                legal_data=request.data,
+            )
+            response = session_response(
+                user, request, status=201, organization_id=invitation.org_id
+            )
+            response.data["needs_organization_setup"] = invitation.grants_ownership
+            return response
         except IntegrityError:
             return Response(duplicate, status=400)
 

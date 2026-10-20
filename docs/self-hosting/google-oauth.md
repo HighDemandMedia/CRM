@@ -4,7 +4,7 @@ Google is the primary option on `/login` when configured. **Sign in with email**
 
 ## Account access
 
-- This is sign-in, not public registration. A new user must first accept their invitation and complete onboarding. Existing users can sign in with the same email as their CRM account.
+- This is sign-in, not public registration. A new user opens their invitation, explicitly accepts the current terms, and chooses Google or a CRM password. Google enrollment requires the verified Google email to match the invitation. It creates an unusable local password, consumes the invitation atomically, preserves its role, and starts profile setup (plus organization setup for an owner). Existing users can sign in with the same email as their CRM account.
 - Disabled users cannot sign in. Google does not grant organization membership, roles or platform-owner access. Organization selection continues to use active assigned memberships and the existing platform-owner policy.
 - Google must verify the address. Gmail addresses and Google Workspace identities with an `hd` claim can authenticate. A Google account using another provider's email without `hd` must use its CRM password, because Google may no longer be authoritative for that mailbox.
 - This flow only requests `openid email profile`. Connecting Gmail or Calendar is a separate opt-in action in Profile → Integrations.
@@ -26,7 +26,7 @@ For this release deploy **API before Web**: the API now accepts the signed visit
 
 ## Session and failure handling
 
-- Starting Google sign-in is a same-origin POST. It creates a random state and PKCE verifier in HttpOnly, SameSite=Lax cookies valid for ten minutes, Secure in production. Merely opening or reloading login does not replace a pending flow.
+- Starting Google sign-in is a same-origin POST. Invitation enrollment stores the invitation and explicit agreement choices in a short-lived HttpOnly cookie bound to that OAuth state; the callback revalidates the invitation, organization lifecycle and legal version before any account or membership is created. It creates a random state and PKCE verifier in HttpOnly, SameSite=Lax cookies valid for ten minutes, Secure in production. Merely opening or reloading login does not replace a pending flow.
 - The callback consumes those cookies once, checks state, and sends the code/verifier to the API with signed visitor identity. The API exchanges the code and validates the Google ID token's signature, issuer, audience and expiry with the installed Google authentication library.
 - Login shares the password-login IP attempt limit. No mailbox permissions or offline Google refresh token are requested.
 - Remember me is unchecked initially: the CRM session is limited to eight hours with session cookies. Explicitly checking it uses the existing 14-day persistent-session policy, for Google or password sign-in.

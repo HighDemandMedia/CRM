@@ -1,4 +1,5 @@
 <script>
+  import GoogleSignInButton from '$lib/components/GoogleSignInButton.svelte';
   import LegalAcceptance from '$lib/components/LegalAcceptance.svelte';
   import LegalLinks from '$lib/components/LegalLinks.svelte';
   import { useI18n } from '$lib/i18n/context.js';
@@ -38,7 +39,13 @@
           {ui('You already have a CRM account with')}
           {data.invitation?.email}{ui('. Sign in to join this organization.')}
         </p>
-        <a class="v2-btn v2-btn-primary" href={resolve('/login')}>{ui('Sign in')}</a>
+        {#if data.google_available}
+          <form method="POST" action={resolve('/login?/google')} onsubmit={() => (busy = true)}>
+            <GoogleSignInButton {busy} />
+          </form>
+          <div class="v2-auth-divider">{ui('or')}</div>
+        {/if}
+        <a class="v2-btn" href={resolve('/login?method=password')}>{ui('Sign in with email')}</a>
         <p>
           {ui('Need to set or recover your password?')}
           <a href={resolve('/login?recover=1')}>{ui('Reset password')}</a>.

@@ -350,6 +350,7 @@ const handleSession = async ({ event, resolve }) => {
   // Check if public route
   // The DPA loader independently validates an invitation or live admin permissions.
   const isPublicRoute =
+    pathname === '/legal/terms' ||
     pathname === '/legal/dpa' ||
     PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '/'));
 
