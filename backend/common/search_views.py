@@ -1,22 +1,4 @@
-"""Org-scoped global search behind ``GET /api/search/?q=``, the ⌘K palette.
-
-ONE endpoint, deliberately. The org comes from the JWT (`request.profile.org`)
-exactly once and every queryset is filtered by it; a per-model fan-out from the
-browser would be as many chances to read another tenant's rows.
-
-Each type also honours the SAME read visibility as its own list view, so search
-can never surface a record the caller could not open from the list:
-
-* leads / opportunities / invoices, admin (role ``ADMIN`` or a Django
-  superuser) sees the whole org; everyone else sees only what they created or
-  were assigned.
-* accounts / contacts, admin (role ``ADMIN`` or the org-admin flag) sees the
-  whole org; everyone else sees created-or-assigned.
-* tickets. Reuse ``visible_cases_qs`` (adds the watcher clause).
-* knowledge-base articles. Org-wide, every member reads them.
-
-Matching stays on the server; the whole record set never reaches the browser.
-"""
+"""Global search uses each object's read scope within the current organization."""
 
 from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
@@ -26,6 +8,7 @@ from rest_framework.views import APIView
 from accounts.models import Account
 from cases.access import is_org_admin, visible_cases_qs
 from common.permissions import HasOrgContext
+from common.rbac import configured, scoped
 from contacts.models import Contact
 from opportunity.models import Opportunity
 
@@ -48,6 +31,8 @@ def _own_filter(profile):
 
 def _scope_orgadmin(qs, profile):
     """accounts / contacts rule: admin = role ADMIN or the org-admin flag."""
+    if configured(profile):
+        return scoped(qs, profile)
     if is_org_admin(profile):
         return qs
     return qs.filter(_own_filter(profile)).distinct()
@@ -55,6 +40,8 @@ def _scope_orgadmin(qs, profile):
 
 def _scope_superuser(qs, profile, user):
     """leads / opportunities / invoices rule: admin = role ADMIN or superuser."""
+    if configured(profile):
+        return scoped(qs, profile)
     if is_org_admin(profile) or user.is_superuser:
         return qs
     return qs.filter(_own_filter(profile)).distinct()

@@ -1,4 +1,5 @@
 <script>
+  import { canChooseOwner } from '$lib/v2/permissions.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -102,7 +103,9 @@
 
     <TaskParent parents={data.parents} bind:kind bind:selected bind:contacts />
 
-    <TaskAssignees people={data.owners} bind:selected={assignees} />
+    {#if canChooseOwner(page.data.permissions, 'tasks')}
+      <TaskAssignees people={data.owners} bind:selected={assignees} />
+    {/if}
 
     <label class="v2-field">
       <span class="v2-label">{ui('Description')}</span>

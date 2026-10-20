@@ -115,12 +115,15 @@ describe('work item creation', () => {
       custom_fields: {}
     });
   });
-  it.each(['Task', 'Case'])('uses the server-provided member assignment for %s', (target) => {
-    const owner = [field('assigned_to', { multiple: target === 'Task', required: true })];
-    const data = { creationSchema: { assignment: { mode: 'self', id: 'me' } } };
-    const values = initialCreationValues(target, owner, data, { assigned_to: 'other' });
-    expect(values.assigned_to).toEqual(target === 'Task' ? ['me'] : 'me');
-    expect(missingCreationFields(owner, values)).toEqual([]);
-    expect(missingCreationFields(owner, initialCreationValues(target, owner, {}))).toEqual(owner);
-  });
+  it.each(['Contact', 'Account', 'Opportunity', 'Task', 'Case'])(
+    'uses the server-provided member assignment for %s',
+    (target) => {
+      const owner = [field('assigned_to', { multiple: target === 'Task', required: true })];
+      const data = { creationSchema: { assignment: { mode: 'self', id: 'me' } } };
+      const values = initialCreationValues(target, owner, data, { assigned_to: 'other' });
+      expect(values.assigned_to).toEqual(target === 'Task' ? ['me'] : 'me');
+      expect(missingCreationFields(owner, values)).toEqual([]);
+      expect(missingCreationFields(owner, initialCreationValues(target, owner, {}))).toEqual(owner);
+    }
+  );
 });

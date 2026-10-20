@@ -7,7 +7,7 @@
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
 
-  import { can } from '$lib/v2/permissions.js';
+  import { can, canFilterOwners } from '$lib/v2/permissions.js';
   import { showStageRequirements } from '$lib/components/pipelines/feedback.js';
   import { configuredStages, configuredLabel } from '$lib/v2/pipeline-config.js';
   import '$lib/v2/styles/pipeline.css';
@@ -204,15 +204,17 @@
           timer = setTimeout(() => filter('search', search), 300);
         }}
       />
-      <select
-        class="v2-input"
-        aria-label={ui('Assigned to')}
-        value={page.url.searchParams.get('assigned_to') ?? ''}
-        onchange={(e) => filter('assigned_to', e.currentTarget.value)}
-        ><option value="">{ui('Assigned to')}</option>{#each data.people as person}<option
-            value={person.id}>{person.name}</option
-          >{/each}</select
-      >
+      {#if canFilterOwners(page.data.permissions, 'tickets')}
+        <select
+          class="v2-input"
+          aria-label={ui('Assigned to')}
+          value={page.url.searchParams.get('assigned_to') ?? ''}
+          onchange={(e) => filter('assigned_to', e.currentTarget.value)}
+          ><option value="">{ui('Assigned to')}</option>{#each data.people as person}<option
+              value={person.id}>{person.name}</option
+            >{/each}</select
+        >
+      {/if}
       <select
         class="v2-input"
         aria-label={ui('Status')}

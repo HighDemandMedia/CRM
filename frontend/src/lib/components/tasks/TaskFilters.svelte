@@ -6,6 +6,8 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { onDestroy } from 'svelte';
+  import { page } from '$app/state';
+  import { canFilterOwners } from '$lib/v2/permissions.js';
   let { url, people, columnTools } = $props();
   let timer;
   onDestroy(() => clearTimeout(timer));
@@ -55,18 +57,20 @@
         value={url.searchParams.get('q') ?? ''}
       /></label
     >
-    <label class="crm-module-field"
-      ><span class="v2-sr-only">{ui('Owner')}</span>
-      <select
-        class="v2-input"
-        name="assigned_to"
-        aria-label={ui('Owner')}
-        value={url.searchParams.get('assigned_to') ?? ''}
-        ><option value="">{ui('All owners')}</option>{#each people as person}<option
-            value={person.id}>{person.name}</option
-          >{/each}</select
-      ></label
-    >
+    {#if canFilterOwners(page.data.permissions, 'tasks')}
+      <label class="crm-module-field"
+        ><span class="v2-sr-only">{ui('Owner')}</span>
+        <select
+          class="v2-input"
+          name="assigned_to"
+          aria-label={ui('Owner')}
+          value={url.searchParams.get('assigned_to') ?? ''}
+          ><option value="">{ui('All owners')}</option>{#each people as person}<option
+              value={person.id}>{person.name}</option
+            >{/each}</select
+        ></label
+      >
+    {/if}
     <label class="crm-module-field"
       ><span class="v2-sr-only">{ui('Status')}</span>
       <select

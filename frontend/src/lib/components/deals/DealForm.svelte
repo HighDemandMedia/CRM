@@ -1,4 +1,5 @@
 <script>
+  import { canChooseOwner } from '$lib/v2/permissions.js';
   import ConfiguredCreationFields from '$lib/components/creation/ConfiguredCreationFields.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -308,17 +309,19 @@
       {#each contacts as id}<input type="hidden" name="contacts" value={id} />{/each}
     </RecordSection>
     <RecordSection title={ui('Ownership & classification')}>
-      <label
-        >{ui('Deal Owner')}<select
-          class="v2-input"
-          name="assigned_to"
-          bind:value={values.assigned_to}
-          ><option value="">{ui('Select user')}</option>{#each data.owners as owner}<option
-              value={owner.id}>{owner.name}</option
-            >{/each}</select
-        ></label
-      >
-      <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
+      {#if canChooseOwner(page.data.permissions, 'deals')}
+        <label
+          >{ui('Deal Owner')}<select
+            class="v2-input"
+            name="assigned_to"
+            bind:value={values.assigned_to}
+            ><option value="">{ui('Select user')}</option>{#each data.owners as owner}<option
+                value={owner.id}>{owner.name}</option
+              >{/each}</select
+          ></label
+        >
+        <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
+      {/if}
       <label
         >{ui('Priority')}<select class="v2-input" name="priority" bind:value={values.priority}
           ><option value="">{ui('Select priority')}</option

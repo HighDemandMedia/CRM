@@ -12,3 +12,13 @@ export function recordModule(pathname) {
     tickets: 'tickets'
   }[pathname.split('/')[1]];
 }
+
+/** An owner filter is redundant when only the viewer's own records are visible. */
+export function canFilterOwners(permissions, module) {
+  return ['team', 'organization'].includes(permissions?.rules?.[module]?.view);
+}
+
+/** No owner picker is needed for self-assigned records. */
+export function canChooseOwner(permissions, module) {
+  return ['team', 'organization'].includes(permissions?.rules?.[module]?.reassign);
+}

@@ -1,4 +1,6 @@
 <script>
+  import { page } from '$app/state';
+  import { canChooseOwner } from '$lib/v2/permissions.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -52,7 +54,7 @@
   {#if action === ''}
     <select class="v2-input" bind:value={action} aria-label={ui('Choose a bulk action')}>
       <option value="">{ui('Actions')}</option>
-      {#each ACTIONS as a (a.key)}
+      {#each ACTIONS.filter((item) => item.key !== 'assigned_to' || canChooseOwner(page.data.permissions, 'tickets')) as a (a.key)}
         <option value={a.key}>{a.label}</option>
       {/each}
     </select>

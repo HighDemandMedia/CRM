@@ -49,6 +49,10 @@
     for (const field of fields)
       if (values[field.key] === undefined) values[field.key] = defaults[field.key];
   });
+  // Keep the automatic assignment in validation/payload, without rendering a control or section.
+  const visibleFields = $derived(
+    fields.filter((field) => field.key !== 'assigned_to' || schema.assignment?.mode !== 'self')
+  );
   let payloadError = $state('');
   let submitted = $state(false);
   const missing = $derived(submitted ? missingCreationFields(fields, values) : []);
@@ -179,9 +183,9 @@
   <StageRuleNotice issue={result?.stageRequirements} />
   <input type="hidden" name="_creation_values" value={serialized} />
   {#if payloadError}<p class="v2-error" role="alert">{payloadError}</p>{/if}
-  {#each fields as field, index (field.key)}
+  {#each visibleFields as field, index (field.key)}
     {@const key = inputKey(target, field.key)}
-    {#if index === 0 || fields[index - 1].section !== field.section}
+    {#if index === 0 || visibleFields[index - 1].section !== field.section}
       <h3>{ui(field.section)}</h3>
     {/if}
     <div class="creation-field" data-field={field.key}>
@@ -226,6 +230,7 @@
         {#if field.required}<small>{ui('Required')}</small>{/if}
       {:else}
         <StageRequirementField
+          {target}
           field={descriptor(field)}
           required={field.required}
           bind:value={values[field.key]}

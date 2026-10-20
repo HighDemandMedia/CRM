@@ -95,6 +95,7 @@
       <dd>
         {#if editing === row.key}<form onsubmit={(event) => save(event, row)}>
             <StageRequirementField
+              {target}
               field={{ ...row.definition, label: row.label }}
               required={row.definition.is_required}
               bind:value={draft}

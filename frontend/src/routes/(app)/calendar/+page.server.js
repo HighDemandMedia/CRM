@@ -3,7 +3,10 @@ import { apiRequest } from '$lib/api-helpers.js';
 import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
 export async function load({ cookies, locals }) {
-  const { people } = await getOrgPeopleAndTeams(cookies);
+  const { people } = await getOrgPeopleAndTeams(cookies, {
+    module: 'calendar',
+    action: 'reassign'
+  });
   return { hosts: people, defaultHost: resolveMe(people, locals.user?.email) };
 }
 export const actions = {

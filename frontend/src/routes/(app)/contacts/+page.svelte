@@ -12,7 +12,7 @@
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, count, relativeDays } = useI18n();
 
-  import { can } from '$lib/v2/permissions.js';
+  import { can, canFilterOwners } from '$lib/v2/permissions.js';
   import ContactActions from '$lib/components/contacts/ContactActions.svelte';
   import { showStageRequirements } from '$lib/components/pipelines/feedback.js';
   import PipelineTotal from '$lib/v2/components/PipelineTotal.svelte';
@@ -511,16 +511,18 @@
       value={filterValues.search ?? ''}
     /></label
   >
-  <label
-    ><span class="v2-sr-only">{ui('Contact Owner')}</span><select
-      class="v2-input"
-      name="assigned_to"
-      value={filterValues.assigned_to ?? ''}
+  {#if canFilterOwners(page.data.permissions, 'contacts')}
+    <label
+      ><span class="v2-sr-only">{ui('Contact Owner')}</span><select
+        class="v2-input"
+        name="assigned_to"
+        value={filterValues.assigned_to ?? ''}
+      >
+        <option value="">{ui('All owners')}</option>
+        {#each data.people as person}<option value={person.id}>{person.name}</option>{/each}
+      </select></label
     >
-      <option value="">{ui('All owners')}</option>
-      {#each data.people as person}<option value={person.id}>{person.name}</option>{/each}
-    </select></label
-  >
+  {/if}
   <label
     ><span class="v2-sr-only">{ui('Stage')}</span><select
       class="v2-input"

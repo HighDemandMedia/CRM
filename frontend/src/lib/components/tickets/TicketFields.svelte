@@ -1,4 +1,5 @@
 <script>
+  import { canChooseOwner } from '$lib/v2/permissions.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -45,15 +46,17 @@
   >
 </RecordSection>
 <RecordSection title={ui('Assignment & status')}>
-  <TaskAssignees
-    people={options.owners}
-    multiple={false}
-    compact
-    bind:selected={
-      () => (values.assigned_to ? [values.assigned_to] : []),
-      (ids) => (values.assigned_to = ids[0] ?? '')
-    }
-  />
+  {#if canChooseOwner(page.data.permissions, 'tickets')}
+    <TaskAssignees
+      people={options.owners}
+      multiple={false}
+      compact
+      bind:selected={
+        () => (values.assigned_to ? [values.assigned_to] : []),
+        (ids) => (values.assigned_to = ids[0] ?? '')
+      }
+    />
+  {/if}
   <TicketAssociates bind:values {options} />
   <label
     >{ui('Status')}<select class="v2-input" name="status" bind:value={values.status}

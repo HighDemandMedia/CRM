@@ -1,4 +1,5 @@
 <script>
+  import { canChooseOwner } from '$lib/v2/permissions.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale, longDate } = useI18n();
 
@@ -207,7 +208,9 @@
             /></label
           >
           <TaskReminder bind:value={draft.reminder_days} />
-          <TaskAssignees people={data.editor.owners} bind:selected={draft.assigned_to} />
+          {#if canChooseOwner(page.data.permissions, 'tasks')}
+            <TaskAssignees people={data.editor.owners} bind:selected={draft.assigned_to} />
+          {/if}
           <TaskParent
             parents={data.editor.parents}
             bind:kind={draft.parent_kind}

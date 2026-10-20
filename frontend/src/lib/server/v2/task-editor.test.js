@@ -51,3 +51,22 @@ describe('inline task editing', () => {
     expect(result.data.error).toBeTruthy();
   });
 });
+
+describe('hidden task owner picker', () => {
+  beforeEach(() => updateTask.mockReset());
+  it('does not change assignees when the picker is absent', async () => {
+    const request = event();
+    const fields = await request.request.formData();
+    fields.delete('assigned_to');
+    await saveTaskEditor(request);
+    expect(updateTask.mock.calls[0][2]).not.toHaveProperty('assigned_to');
+  });
+  it('still supports explicitly clearing an available picker', async () => {
+    const request = event();
+    const fields = await request.request.formData();
+    fields.delete('assigned_to');
+    fields.set('assigned_to_present', '1');
+    await saveTaskEditor(request);
+    expect(updateTask.mock.calls[0][2].assigned_to).toEqual([]);
+  });
+});

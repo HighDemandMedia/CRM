@@ -55,7 +55,7 @@ from common.models import (
     Teams,
 )
 from common.permissions import HasOrgContext
-from common.rbac import configured
+from common.rbac import configured, record_people
 from common.serializer import (
     ActivitySerializer,
     AttachmentsSerializer,
@@ -228,7 +228,7 @@ class CaseListView(APIView, LimitOffsetPagination):
             )
         accounts = Account.objects.filter(org=self.request.profile.org).order_by("-id")
         contacts = Contact.objects.filter(org=self.request.profile.org).order_by("-id")
-        profiles = Profile.objects.filter(is_active=True, org=self.request.profile.org)
+        profiles = record_people(self.request.profile, "tickets", "reassign")
         if not configured(self.request.profile) and not is_org_admin(
             self.request.profile
         ):
@@ -248,7 +248,6 @@ class CaseListView(APIView, LimitOffsetPagination):
                 Q(created_by=self.request.profile.user)
                 | Q(assigned_to=self.request.profile)
             ).distinct()
-            profiles = profiles.filter(role="ADMIN")
 
         queryset = apply_case_list_filters(queryset, params)
 
@@ -298,11 +297,7 @@ class CaseListView(APIView, LimitOffsetPagination):
         if params.get("slim") != "true":
             context["accounts_list"] = AccountSerializer(accounts, many=True).data
             context["contacts_list"] = ContactSerializer(contacts, many=True).data
-        # `profiles` was computed a few lines up, narrowed to admins for
-        # non-admins, even, and then dropped on the floor. So a ticket form
-        # had no way to populate an assignee picker from the endpoint that
-        # already knew the answer. Same `id` / `user__email` shape the
-        # contacts and accounts lists publish.
+        # Keep assignment choices consistent with the other creation forms.
         context["users"] = list(profiles.values("id", "user__email", "user__name"))
         return context
 

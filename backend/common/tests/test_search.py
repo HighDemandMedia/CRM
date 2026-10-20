@@ -10,6 +10,7 @@ from crum import impersonate
 
 from accounts.models import Account
 from cases.models import Case, Solution
+from common.testing import rls_org
 from contacts.models import Contact
 from invoices.models import Invoice
 from leads.models import Lead
@@ -83,7 +84,8 @@ class TestGlobalSearch:
 
     def test_cross_tenant_isolation(self, admin_client, org_b_client, org_a, org_b):
         """org A's admin must not find org B's record, and vice-versa."""
-        Account.objects.create(name="SecretB Holdings", org=org_b)
+        with rls_org(org_b):
+            Account.objects.create(name="SecretB Holdings", org=org_b)
         seen_by_a = admin_client.get(f"{URL}?q=SecretB").json()["results"]
         assert seen_by_a == []
         seen_by_b = org_b_client.get(f"{URL}?q=SecretB").json()["results"]

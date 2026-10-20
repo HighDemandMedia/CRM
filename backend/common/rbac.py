@@ -2,7 +2,7 @@
 
 from crum import get_current_request
 from django.db import models
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 RECORD_MODULES = ("contacts", "companies", "deals", "tasks", "tickets")
@@ -395,7 +395,6 @@ def check_request(request):
 
 
 def validate_assignment(request, module, obj, creating=False):
-    from common.models import Profile, Teams
     from common.validators import payload_id_list
 
     profile = request.profile
@@ -421,21 +420,11 @@ def validate_assignment(request, module, obj, creating=False):
             raise PermissionDenied(
                 "Your permission set does not allow changing the owner or team."
             )
-        team_ids = profile.user_teams.filter(org_id=profile.org_id).values("pk")
-        if field == "assigned_to":
-            allowed = Profile.objects.filter(org_id=profile.org_id, is_active=True)
-            if scope == "team":
-                allowed = allowed.filter(Q(pk=profile.pk) | Q(user_teams__in=team_ids))
-            elif scope == "own":
-                allowed = allowed.filter(pk=profile.pk)
-        else:
-            allowed = Teams.objects.filter(org_id=profile.org_id)
-            if scope != "organization":
-                allowed = (
-                    allowed.filter(pk__in=team_ids)
-                    if scope == "team"
-                    else allowed.none()
-                )
+        allowed = (
+            record_people(profile, module, "reassign")
+            if field == "assigned_to"
+            else record_teams(profile, module, "reassign")
+        )
         if not target.issubset(
             {str(pk) for pk in allowed.values_list("pk", flat=True)}
         ):
@@ -600,21 +589,64 @@ def calendar_scoped(qs, profile, action="view", limit=None):
     return qs.filter(pk__in=authorized.values("pk"))
 
 
-def calendar_hosts(profile):
+def people_scope(profile, module=None, action="view"):
+    """Pickers follow the same policy as records, including disabled modules."""
+    if profile.role == "ADMIN":
+        return "organization"
+    if module:
+        scope = scope_for(profile, module, action) if configured(profile) else "own"
+    else:
+        # Older consumers do not name a module. Never default them to org access.
+        scope = max(
+            (row.get(action, "none") for row in (policy(profile) or {}).values()),
+            key=SCOPES.index,
+            default="own",
+        )
+    # A member can choose themselves when creating, without a reassign grant.
+    return "own" if action == "reassign" and scope == "none" else scope
+
+
+def record_people(profile, module=None, action="view"):
     from common.models import Profile
 
-    qs = Profile.objects.filter(
-        org_id=profile.org_id, is_active=True, user__is_active=True
+    qs = (
+        Profile.objects.filter(
+            org_id=profile.org_id,
+            is_active=True,
+            user__is_active=True,
+            removed_at__isnull=True,
+            is_platform_access=False,
+        )
+        .select_related("user", "access_role")
+        .order_by("user__email", "pk")
     )
-    if profile.role == "ADMIN":
-        return qs
-    scope = scope_for(profile, "calendar", "reassign") if configured(profile) else "own"
+    scope = people_scope(profile, module, action)
+    if scope == "none":
+        return qs.none()
     if scope == "organization":
         return qs
     if scope == "team":
         teams = profile.user_teams.filter(org_id=profile.org_id).values("pk")
         return qs.filter(Q(pk=profile.pk) | Q(user_teams__in=teams)).distinct()
     return qs.filter(pk=profile.pk)
+
+
+def record_teams(profile, module=None, action="view"):
+    from common.models import Teams
+
+    qs = Teams.objects.filter(org_id=profile.org_id).prefetch_related(
+        Prefetch("users", queryset=record_people(profile, module, action))
+    )
+    scope = people_scope(profile, module, action)
+    if scope == "organization":
+        return qs
+    if scope == "team":
+        return qs.filter(users=profile)
+    return qs.none()
+
+
+def calendar_hosts(profile):
+    return record_people(profile, "calendar", "reassign")
 
 
 def activity_scoped(qs, profile):

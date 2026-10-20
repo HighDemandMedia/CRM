@@ -7,6 +7,8 @@ from rest_framework.views import APIView
 from common.creation_forms import configuration, validate_configuration
 from common.models import Org
 from common.permissions import HasOrgContext
+from common.property_catalog import target_model
+from common.rbac import MODEL_MODULES, scope_for
 from common.settings_access import require_settings
 from common.work_item_creation import chooses_assignee
 
@@ -48,7 +50,14 @@ class CreationFormSchemaView(APIView):
 
     def get(self, request, target):
         result = configuration(request.profile.org, target)
-        if target in {"Task", "Case"} and not chooses_assignee(request.profile):
+        module = MODEL_MODULES[target_model(target)._meta.label_lower]
+        self_assigned = (
+            not chooses_assignee(request.profile)
+            if target in {"Task", "Case"}
+            else scope_for(request.profile, module, "reassign")
+            not in ("team", "organization")
+        )
+        if self_assigned:
             result["assignment"] = {
                 "mode": "self",
                 "id": str(request.profile.pk),

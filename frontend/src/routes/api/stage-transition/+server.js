@@ -41,7 +41,15 @@ export async function GET({ cookies, url }) {
   const query = url.searchParams.get('q') || '';
   try {
     if (relation === 'Profile') {
-      const { people } = await getOrgPeopleAndTeams(cookies);
+      const module = {
+        Contact: 'contacts',
+        Account: 'companies',
+        Opportunity: 'deals',
+        Task: 'tasks',
+        Case: 'tickets'
+      }[url.searchParams.get('target')];
+      if (!module) return json({ options: [] });
+      const { people } = await getOrgPeopleAndTeams(cookies, { module, action: 'reassign' });
       return json(
         {
           options: people

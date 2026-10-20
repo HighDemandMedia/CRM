@@ -1,4 +1,6 @@
 <script>
+  import { page } from '$app/state';
+  import { canChooseOwner } from '$lib/v2/permissions.js';
   import ConfiguredCreationFields from '$lib/components/creation/ConfiguredCreationFields.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -227,30 +229,32 @@
       />
     </RecordSection>
     <RecordSection title={ui('Ownership & stage')}>
-      <div class="v2-field">
-        <label for="contact-owner">{ui('Contact Owner')}</label>
-        <select
-          id="contact-owner"
-          name="assigned_to"
-          class="v2-input"
-          bind:value={values.assigned_to}
-        >
-          <option value="">{ui('Unassigned')}</option>
-          {#each data.owners ?? [] as owner}
-            <option value={owner.id}>{owner.name}</option>
-          {/each}
-        </select>
-        {#if editing}
-          <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
-        {/if}
-        {#if editing && data.server?.owner_count > 1}
-          <p class="v2-sub">
-            {ui(
-              'This contact has multiple owners. Choosing another owner replaces the current assignments.'
-            )}
-          </p>
-        {/if}
-      </div>
+      {#if canChooseOwner(page.data.permissions, 'contacts')}
+        <div class="v2-field">
+          <label for="contact-owner">{ui('Contact Owner')}</label>
+          <select
+            id="contact-owner"
+            name="assigned_to"
+            class="v2-input"
+            bind:value={values.assigned_to}
+          >
+            <option value="">{ui('Unassigned')}</option>
+            {#each data.owners ?? [] as owner}
+              <option value={owner.id}>{owner.name}</option>
+            {/each}
+          </select>
+          {#if editing}
+            <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
+          {/if}
+          {#if editing && data.server?.owner_count > 1}
+            <p class="v2-sub">
+              {ui(
+                'This contact has multiple owners. Choosing another owner replaces the current assignments.'
+              )}
+            </p>
+          {/if}
+        </div>
+      {/if}
       <div class="v2-field">
         <label for="contact-stage">{ui('Stage')}</label>
         <select id="contact-stage" name="stage" class="v2-input" bind:value={values.stage}>

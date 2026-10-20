@@ -21,10 +21,17 @@ from accounts.models import Account
 from cases.models import Case
 from common.csv_utils import csv_safe
 from common.last_activity import with_last_activity
-from common.models import Profile, SalesAppointment
+from common.models import SalesAppointment
 from common.permissions import HasOrgContext, is_org_admin
 from common.pipeline_settings import stages_for
-from common.rbac import calendar_scoped, configured, require, scope_for, scoped
+from common.rbac import (
+    calendar_scoped,
+    configured,
+    record_people,
+    require,
+    scope_for,
+    scoped,
+)
 from contacts.models import Contact
 from opportunity.models import Opportunity
 from tasks.models import Task
@@ -250,21 +257,25 @@ class CRMReportView(APIView):
             params.get("page", 1)
         )
         qs = base_records(profile, key)
+        object_module = "calendar" if key == "events" else key
+        allowed_owners = record_people(profile, object_module).filter(
+            pk__in=record_people(profile, "reports").values("pk")
+        )
         if key == "events":
             states = [
                 {"key": "scheduled", "label": "Scheduled"},
                 {"key": "cancelled", "label": "Cancelled"},
             ]
-            owners = Profile.objects.filter(
-                org=org, pk__in=qs.values("host_id")
-            ).select_related("user")
+            owners = allowed_owners.filter(pk__in=qs.values("host_id")).select_related(
+                "user"
+            )
         else:
             states = [
                 {"key": s["key"], "label": s["label"]}
                 for s in stages_for(org, model.__name__)
             ]
-            owners = Profile.objects.filter(
-                org=org, pk__in=qs.values("assigned_to")
+            owners = allowed_owners.filter(
+                pk__in=qs.values("assigned_to")
             ).select_related("user")
         owners = [
             {"id": str(p.pk), "name": p.user.name or p.user.email}

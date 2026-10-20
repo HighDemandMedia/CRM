@@ -68,7 +68,7 @@ from common.money_totals import money_totals
 from common.permissions import HasOrgContext, is_org_admin
 from common.pipeline_board import pipeline_board
 from common.pipeline_settings import stages_for
-from common.rbac import configured
+from common.rbac import configured, record_people, record_teams
 from common.record_history import history_for
 from common.serializer import (
     AttachmentsSerializer,
@@ -529,7 +529,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
                 context.pop("contacts", None)
             return context
         context["teams"] = TeamsSerializer(
-            Teams.objects.filter(org=self.request.profile.org), many=True
+            record_teams(self.request.profile, "companies", "reassign"), many=True
         ).data
         context["countries"] = COUNTRIES
         context["industries"] = COMPANY_INDUSTRIES
@@ -538,9 +538,9 @@ class AccountsListView(APIView, LimitOffsetPagination):
         tags = TagsSerializer(tags, many=True).data
 
         context["tags"] = tags
-        users = Profile.objects.filter(
-            is_active=True, org=self.request.profile.org
-        ).values("id", "user__email", "user__name")
+        users = record_people(self.request.profile, "companies", "reassign").values(
+            "id", "user__email", "user__name"
+        )
         context["users"] = users
         context["status"] = ["active", "inactive"]  # Maps to is_active field
         return context
@@ -892,8 +892,8 @@ class AccountDetailView(APIView):
                     Opportunity.objects.filter(account=self.account), many=True
                 ).data,
                 "users": ProfileSerializer(
-                    Profile.objects.filter(
-                        is_active=True, org=self.request.profile.org
+                    record_people(
+                        self.request.profile, "companies", "reassign"
                     ).order_by("user__email"),
                     many=True,
                 ).data,
@@ -901,7 +901,8 @@ class AccountDetailView(APIView):
                     self.account.accounts_cases.all(), many=True
                 ).data,
                 "teams": TeamsSerializer(
-                    Teams.objects.filter(org=self.request.profile.org), many=True
+                    record_teams(self.request.profile, "companies", "reassign"),
+                    many=True,
                 ).data,
                 "stages": STAGES,
                 "sources": SOURCES,

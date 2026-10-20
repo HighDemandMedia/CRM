@@ -27,6 +27,7 @@ from common.models import (
 )
 from common.permissions import HasOrgContext
 from common.pipeline_settings import stages_for
+from common.rbac import record_people, record_teams
 from common.serializer import (
     AttachmentsSerializer,
     CommentSerializer,
@@ -207,11 +208,9 @@ class TaskListView(APIView, LimitOffsetPagination):
         # second name for the same list is how clients end up with two.
         context["status"] = Task.STATUS_CHOICES
         context["priority"] = Task.PRIORITY_CHOICES
-        profiles = Profile.objects.filter(
-            is_active=True, org=self.request.profile.org
-        ).order_by("user__email")
-        if not is_org_admin(self.request.profile):
-            profiles = profiles.filter(role="ADMIN")
+        profiles = record_people(self.request.profile, "tasks", "reassign").order_by(
+            "user__email"
+        )
         context["users"] = list(profiles.values("id", "user__email"))
         # The catalogues are for the parent picker and grow with the org, not
         # with the page, `?slim=true` omits them for callers that only want
@@ -398,14 +397,9 @@ class TaskDetailView(APIView):
             )
         else:
             users_mention = list(self.task_obj.assigned_to.all().values("user__email"))
-        if is_org_admin(self.request.profile):
-            users = Profile.objects.filter(
-                is_active=True, org=self.request.profile.org
-            ).order_by("user__email")
-        else:
-            users = Profile.objects.filter(
-                role="ADMIN", org=self.request.profile.org
-            ).order_by("user__email")
+        users = record_people(self.request.profile, "tasks", "reassign").order_by(
+            "user__email"
+        )
 
         team_ids = [user.id for user in self.task_obj.get_team_users]
         all_user_ids = users.values_list("id", flat=True)
@@ -433,7 +427,7 @@ class TaskDetailView(APIView):
             users_excluding_team, many=True
         ).data
         context["teams"] = TeamsSerializer(
-            Teams.objects.filter(org=self.request.profile.org), many=True
+            record_teams(self.request.profile, "tasks", "reassign"), many=True
         ).data
         return context
 

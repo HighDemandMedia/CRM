@@ -93,6 +93,7 @@
           completion
         />{#each pending.issue.fields || [] as field (field.key)}<StageRequirementField
             {field}
+            target={pending.target}
             bind:value={values[field.key]}
           />{/each}{#if error}<p class="panel-error" role="alert">{ui(error)}</p>{/if}
       </div>

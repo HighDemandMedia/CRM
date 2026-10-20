@@ -31,7 +31,7 @@ from common.models import (
 from common.permissions import HasOrgContext, is_org_admin
 from common.pipeline_board import pipeline_board
 from common.pipeline_settings import stages_for
-from common.rbac import configured
+from common.rbac import configured, record_people
 from common.record_history import history_for
 from common.serializer import (
     AttachmentsSerializer,
@@ -320,9 +320,9 @@ class ContactsListView(APIView, LimitOffsetPagination):
             for s in stages_for(self.request.profile.org, "Contact")
         ]
         context["communication_channels"] = COMMUNICATION_CHANNELS
-        users = Profile.objects.filter(
-            is_active=True, org=self.request.profile.org
-        ).values("id", "user__email", "user__name")
+        users = record_people(self.request.profile, "contacts", "reassign").values(
+            "id", "user__email", "user__name"
+        )
         context["users"] = users
 
         return context

@@ -398,7 +398,11 @@ async function listAccounts(cookies) {
  */
 async function listOwners(cookies) {
   try {
-    const response = await apiRequest('/users/get-teams-and-users/', {}, { cookies });
+    const response = await apiRequest(
+      '/users/get-teams-and-users/?module=deals&action=reassign',
+      {},
+      { cookies }
+    );
     return (response.profiles ?? []).map((/** @type {any} */ profile) => ({
       id: profile.id,
       name: userName(profile)

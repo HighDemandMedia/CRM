@@ -13,7 +13,7 @@ from cases.models import Case
 from cases.serializer import CaseSerializer
 from common import swagger_params
 from common.member_access import assert_member_management
-from common.models import Comment, PersonalAccessToken, Profile, Teams
+from common.models import Comment, PersonalAccessToken, Profile
 from common.permissions import HasOrgContext, is_org_admin
 from common.serializer import (
     BillingAddressSerializer,
@@ -67,14 +67,17 @@ class GetTeamsAndUsersView(APIView):
     )
     def get(self, request, *args, **kwargs):
         data = {}
-        teams = Teams.objects.filter(org=request.profile.org).order_by("-id")
+        from common.rbac import MODULES, record_people, record_teams
+
+        module = request.query_params.get("module")
+        action = request.query_params.get("action", "view")
+        if module is not None and module not in MODULES:
+            raise serializers.ValidationError("Choose a valid CRM module.")
+        if action not in ("view", "reassign"):
+            raise serializers.ValidationError("Choose view or reassign.")
+        teams = record_teams(request.profile, module, action).order_by("-id")
         teams_data = TeamsSerializer(teams, many=True).data
-        profiles = Profile.objects.filter(
-            is_active=True,
-            org=request.profile.org,
-            removed_at__isnull=True,
-            is_platform_access=False,
-        ).order_by("user__email")
+        profiles = record_people(request.profile, module, action).select_related("user")
         profiles_data = ProfileSerializer(profiles, many=True).data
         data["teams"] = teams_data
         data["profiles"] = profiles_data

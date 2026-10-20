@@ -1,4 +1,5 @@
 <script>
+  import { canChooseOwner } from '$lib/v2/permissions.js';
   import ConfiguredCreationFields from '$lib/components/creation/ConfiguredCreationFields.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -82,7 +83,9 @@
         <TaskParent parents={data.parents} bind:kind bind:selected bind:contacts />
       </RecordSection>
       <RecordSection title={ui('Assignment & schedule')}>
-        <TaskAssignees people={data.owners} bind:selected={assignees} />
+        {#if canChooseOwner(page.data.permissions, 'tasks')}
+          <TaskAssignees people={data.owners} bind:selected={assignees} />
+        {/if}
         <div style="display:flex;gap:12px;flex-wrap:wrap">
           <label class="v2-field" style="flex:1;min-width:150px">
             <span class="v2-label">{ui('Priority')}</span>

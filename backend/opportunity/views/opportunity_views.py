@@ -28,7 +28,7 @@ from common.models import (
 from common.money_totals import money_totals
 from common.permissions import HasOrgContext, is_org_admin
 from common.pipeline_board import pipeline_board
-from common.rbac import configured
+from common.rbac import configured, record_people
 from common.serializer import (
     AttachmentsSerializer,
     CommentSerializer,
@@ -712,9 +712,9 @@ class OpportunityDetailView(APIView):
                     self.opportunity.contacts.all(), many=True
                 ).data,
                 "users": ProfileSerializer(
-                    Profile.objects.filter(
-                        is_active=True, org=self.request.profile.org
-                    ).order_by("user__email"),
+                    record_people(self.request.profile, "deals", "reassign").order_by(
+                        "user__email"
+                    ),
                     many=True,
                 ).data,
                 "stage": STAGES,

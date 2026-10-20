@@ -37,7 +37,7 @@ export async function load({ cookies, url, locals, parent }) {
 
   const [{ results, totals }, orgPeople, tagList] = await Promise.all([
     listTickets({ cookies }, params),
-    getOrgPeopleAndTeams(cookies),
+    getOrgPeopleAndTeams(cookies, { module: 'tickets' }),
     // getTags has no fallback of its own: on /settings/tags a failed fetch is
     // meant to surface as an error. Here the tag list is just one picker in
     // the filter bar, so the degradation belongs to this caller, not to the

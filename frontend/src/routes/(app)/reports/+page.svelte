@@ -7,6 +7,7 @@
   import { page, navigating } from '$app/state';
   import { base, resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
+  import { canFilterOwners } from '$lib/v2/permissions.js';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { Download, ChevronLeft, ChevronRight, ChartNoAxesCombined } from '@lucide/svelte';
 
@@ -188,19 +189,22 @@
       >
     </div>
     <div class="secondary-filters">
-      <label
-        ><span class="v2-sr-only">{report.object === 'events' ? ui('Host') : ui('Owner')}</span
-        ><select
-          class="v2-input"
-          value={report.owner}
-          onchange={(e) => update({ owner: e.currentTarget.value })}
-          disabled={busy}
-          ><option value=""
-            >{ui('All accessible')}
-            {report.object === 'events' ? ui('hosts') : ui('owners')}</option
-          >{#each report.owners as item}<option value={item.id}>{item.name}</option>{/each}</select
-        ></label
-      >
+      {#if canFilterOwners(page.data.permissions, 'reports') && canFilterOwners(page.data.permissions, report.object === 'events' ? 'calendar' : report.object)}
+        <label
+          ><span class="v2-sr-only">{report.object === 'events' ? ui('Host') : ui('Owner')}</span
+          ><select
+            class="v2-input"
+            value={report.owner}
+            onchange={(e) => update({ owner: e.currentTarget.value })}
+            disabled={busy}
+            ><option value=""
+              >{ui('All accessible')}
+              {report.object === 'events' ? ui('hosts') : ui('owners')}</option
+            >{#each report.owners as item}<option value={item.id}>{item.name}</option
+              >{/each}</select
+          ></label
+        >
+      {/if}
       <label
         ><span class="v2-sr-only">{report.object === 'events' ? ui('Status') : ui('Stage')}</span
         ><select

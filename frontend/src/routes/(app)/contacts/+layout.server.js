@@ -7,7 +7,7 @@ import { getTags } from '$lib/server/v2/tags.js';
 export async function load({ cookies, locals, depends }) {
   depends('crm:contact-options');
   const [people, tags] = await Promise.all([
-    getOrgPeopleAndTeams(cookies),
+    getOrgPeopleAndTeams(cookies, { module: 'contacts' }),
     getTags({ cookies }, { compact: true }).catch(() => ({ tags: [] }))
   ]);
   return {

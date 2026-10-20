@@ -5,8 +5,8 @@
   import { countryOptions } from '$lib/constants/countries.js';
   import { onMount } from 'svelte';
   import TagPicker from '$lib/v2/components/TagPicker.svelte';
-  /** @type {{field:any,value?:any,required?:boolean}} */
-  let { field, value = $bindable(''), required = true } = $props();
+  /** @type {{field:any,target?:string,value?:any,required?:boolean}} */
+  let { field, target = '', value = $bindable(''), required = true } = $props();
   let options = $state([]),
     search = $state(''),
     error = $state(''),
@@ -22,7 +22,7 @@
     error = '';
     try {
       const response = await fetch(
-        `/api/stage-transition?relation=${encodeURIComponent(field.relation)}&q=${encodeURIComponent(search)}`
+        `/api/stage-transition?target=${encodeURIComponent(target)}&relation=${encodeURIComponent(field.relation)}&q=${encodeURIComponent(search)}`
       );
       const body = await response.json();
       if (current !== sequence) return;

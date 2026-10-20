@@ -1,4 +1,5 @@
 <script>
+  import { canChooseOwner } from '$lib/v2/permissions.js';
   import ConfiguredCreationFields from '$lib/components/creation/ConfiguredCreationFields.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -282,14 +283,16 @@
       >
     </RecordSection>
     <RecordSection title={ui('Ownership & stage')}>
-      <label
-        >{ui('Owner')}<select class="v2-input" name="assigned_to" bind:value={values.assigned_to}
-          ><option value="">{ui('Select user')}</option>{#each data.owners ?? [] as owner}<option
-              value={owner.id}>{owner.name}</option
-            >{/each}</select
-        ></label
-      >
-      <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
+      {#if canChooseOwner(page.data.permissions, 'companies')}
+        <label
+          >{ui('Owner')}<select class="v2-input" name="assigned_to" bind:value={values.assigned_to}
+            ><option value="">{ui('Select user')}</option>{#each data.owners ?? [] as owner}<option
+                value={owner.id}>{owner.name}</option
+              >{/each}</select
+          ></label
+        >
+        <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
+      {/if}
       <label
         >{ui('Stage')}<select class="v2-input" name="stage" bind:value={values.stage}
           >{#each companyStages as stage}<option value={stage.value}>{stage.label}</option

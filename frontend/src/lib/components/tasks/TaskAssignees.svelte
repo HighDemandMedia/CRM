@@ -151,6 +151,7 @@
           {query.trim() ? ui('No matching users.') : ui('No more users available.')}
         </p>{/each}
     </div>{/if}
+  <input type="hidden" name={`${fieldName}_present`} value="1" />
   {#each selected as personId}<input type="hidden" name={fieldName} value={personId} />{/each}
 </div>
 

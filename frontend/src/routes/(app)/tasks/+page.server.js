@@ -26,7 +26,7 @@ export async function load(event) {
 
   const [{ results, totals, owners }, orgPeople] = await Promise.all([
     listTasks(event, params),
-    getOrgPeopleAndTeams(event.cookies)
+    getOrgPeopleAndTeams(event.cookies, { module: 'tasks' })
   ]);
 
   checkListPage(url, { pageSize, offset }, totals.count);

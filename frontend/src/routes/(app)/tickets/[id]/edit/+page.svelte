@@ -1,4 +1,6 @@
 <script>
+  import { page } from '$app/state';
+  import { canChooseOwner } from '$lib/v2/permissions.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -155,27 +157,29 @@
           <p class="v2-hint">{ui('Required once the status is Closed.')}</p>
         {/if}
       </div>
-      <div class="v2-field">
-        <label for="f-owner">{ui('Assignee')}</label>
-        <select id="f-owner" name="assigned_to" class="v2-input" bind:value={form.assigned_to}>
-          <option value="">{ui('Nobody')}</option>
-          {#each data.owners as o (o.id)}
-            <option value={o.id}>{o.name}</option>
-          {/each}
-        </select>
-        <!--
+      {#if canChooseOwner(page.data.permissions, 'tickets')}
+        <div class="v2-field">
+          <label for="f-owner">{ui('Assignee')}</label>
+          <select id="f-owner" name="assigned_to" class="v2-input" bind:value={form.assigned_to}>
+            <option value="">{ui('Nobody')}</option>
+            {#each data.owners as o (o.id)}
+              <option value={o.id}>{o.name}</option>
+            {/each}
+          </select>
+          <!--
           Only sent when it changed. `assigned_to` is many-to-many and this is a
           single select, so an unconditional submit would rewrite the whole list
           from one value and drop every co-assignee.
         -->
-        <input type="hidden" name="assigned_to_original" value={data.form.assigned_to} />
-        {#if data.server.assignee_count > 1}
-          <p class="v2-hint">
-            <span class="v2-num">{data.server.assignee_count}</span>
-            {ui('people are on this ticket. Changing this replaces all of them.')}
-          </p>
-        {/if}
-      </div>
+          <input type="hidden" name="assigned_to_original" value={data.form.assigned_to} />
+          {#if data.server.assignee_count > 1}
+            <p class="v2-hint">
+              <span class="v2-num">{data.server.assignee_count}</span>
+              {ui('people are on this ticket. Changing this replaces all of them.')}
+            </p>
+          {/if}
+        </div>
+      {/if}
     </div>
 
     <div class="v2-field">

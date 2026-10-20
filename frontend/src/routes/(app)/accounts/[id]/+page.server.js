@@ -16,7 +16,7 @@ export async function load({ cookies, params, locals }) {
   const [account, editor, { people }] = await Promise.all([
     getAccount({ cookies }, params.id),
     getAccountForEdit({ cookies }, params.id),
-    getOrgPeopleAndTeams(cookies)
+    getOrgPeopleAndTeams(cookies, { module: 'calendar', action: 'reassign' })
   ]);
   return { ...account, editor, hosts: people, defaultHost: resolveMe(people, locals.user?.email) };
 }

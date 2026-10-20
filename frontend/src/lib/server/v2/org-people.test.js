@@ -17,6 +17,29 @@ describe('getOrgPeopleAndTeams', () => {
     apiRequest.mockReset();
   });
 
+  it.each(['contacts', 'companies', 'deals', 'tasks', 'tickets', 'calendar', 'reports'])(
+    'requests scoped read choices for %s',
+    async (module) => {
+      apiRequest.mockResolvedValue({ profiles: [], teams: [] });
+      await getOrgPeopleAndTeams(cookies, { module });
+      expect(apiRequest).toHaveBeenCalledWith(
+        `/users/get-teams-and-users/?module=${module}`,
+        {},
+        { cookies }
+      );
+    }
+  );
+
+  it('requests assignment scope separately from read access', async () => {
+    apiRequest.mockResolvedValue({});
+    await getOrgPeopleAndTeams(cookies, { module: 'deals', action: 'reassign' });
+    expect(apiRequest).toHaveBeenCalledWith(
+      '/users/get-teams-and-users/?module=deals&action=reassign',
+      {},
+      { cookies }
+    );
+  });
+
   it('labels a person by name when there is one, and carries the email through so @me can be resolved', async () => {
     apiRequest.mockResolvedValue({
       profiles: [{ id: 'p1', user_details: { name: 'Ada Lovelace', email: 'ada@x.io' } }],

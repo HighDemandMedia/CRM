@@ -73,12 +73,13 @@ export async function saveTaskEditor(event) {
     priority: form.get('priority')?.toString() ?? '',
     due_date: form.get('due_date')?.toString() || null,
     reminder_days: form.get('reminder_days') ? Number(form.get('reminder_days')) : null,
-    description: form.get('description')?.toString().trim() ?? '',
-    assigned_to: form
-      .getAll('assigned_to')
-      .map((v) => v.toString())
-      .filter(Boolean)
+    description: form.get('description')?.toString().trim() ?? ''
   };
+
+  // A hidden owner picker must preserve all existing assignees; an explicit empty picker may clear them.
+  if (form.has('assigned_to_present') || form.has('assigned_to')) {
+    values.assigned_to = form.getAll('assigned_to').map(String).filter(Boolean);
+  }
 
   // An absent picker must not clear existing contact associations.
   if (form.has('contacts_present')) {
