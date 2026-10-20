@@ -1751,5 +1751,7 @@
   "Open CRM": "Entrar al CRM",
   "Finish later and sign out": "Continuar después y cerrar sesión",
   "Could not save your setup. Please try again.": "No se pudo guardar la configuración. Inténtalo de nuevo.",
-  "Check your details and try again.": "Revisa tus datos e inténtalo de nuevo."
+  "Check your details and try again.": "Revisa tus datos e inténtalo de nuevo.",
+  "Service temporarily unavailable": "Servicio temporalmente no disponible",
+  "Please try again shortly.": "Inténtalo de nuevo en unos momentos."
 }

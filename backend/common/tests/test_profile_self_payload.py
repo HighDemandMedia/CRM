@@ -14,6 +14,23 @@ URL = "/api/auth/profile/"
 
 
 @pytest.mark.django_db
+def test_member_profile_dependencies_do_not_require_organization_settings(
+    user_client, user_profile, org_a
+):
+    from common.rbac import ensure_default_roles
+
+    member, _ = ensure_default_roles(org_a)
+    user_profile.access_role = member
+    user_profile.save(update_fields=["access_role"])
+    profile = user_client.get("/api/profile/")
+    assert profile.status_code == 200
+    assert profile.data["user_obj"]["id"] == str(user_profile.pk)
+    for endpoint in ("/api/org/", "/api/org/timezones/", "/api/auth/password/change/"):
+        assert user_client.get(endpoint).status_code == 200, endpoint
+    assert user_client.get("/api/org/settings/").status_code == 403
+
+
+@pytest.mark.django_db
 class TestSelfProfilePayload:
     def test_lists_the_teams_you_are_on(self, user_client, user_profile, org_a):
         team = Teams.objects.create(name="Support", org=org_a)

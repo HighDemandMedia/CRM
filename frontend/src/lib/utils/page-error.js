@@ -8,7 +8,8 @@ export function pageError(status) {
     ],
     403: ['Access restricted', 'Ask your organization administrator to review your permissions.'],
     404: ['Page not found', 'This page is unavailable. Check the link or return to Today.'],
-    429: ['Too many requests', 'Please wait a moment before trying again.']
+    429: ['Too many requests', 'Please wait a moment before trying again.'],
+    503: ['Service temporarily unavailable', 'Please try again shortly.']
   };
   const [title, description] =
     descriptions[code] ??

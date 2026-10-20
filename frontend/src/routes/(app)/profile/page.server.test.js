@@ -1,9 +1,48 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('$lib/api-helpers.js', () => ({ apiRequest: vi.fn() }));
 import { apiRequest } from '$lib/api-helpers.js';
-import { actions } from './+page.server.js';
+import { actions, load } from './+page.server.js';
 
 beforeEach(() => vi.clearAllMocks());
+
+it('loads personal settings without requesting organization configuration', async () => {
+  vi.mocked(apiRequest).mockImplementation(async (endpoint) => {
+    switch (endpoint) {
+      case '/profile/':
+        return {
+          user_obj: {
+            id: 'member-id',
+            role: 'USER',
+            setup_step: 'complete',
+            user_details: { name: 'Member Person', email: 'member@example.test' }
+          }
+        };
+      case '/org/':
+        return {
+          profile_org_list: [{ org: { id: 'own-org', name: 'Own organization' }, role: 'USER' }]
+        };
+      case '/org/timezones/':
+        return { timezones: [{ name: 'UTC', offset_minutes: 0 }] };
+      case '/auth/password/change/':
+        return { has_password: true, can_reset_password: false };
+      default:
+        throw new Error('Forbidden organization configuration request');
+    }
+  });
+  const result = await load(
+    /** @type {any} */ ({
+      cookies: { get: () => 'own-org' },
+      url: new URL('https://crm.example.test/profile')
+    })
+  );
+  expect(result).toMatchObject({
+    profile: { user_details: { email: 'member@example.test' } },
+    hasPassword: true,
+    onboarding: false
+  });
+  expect(apiRequest).toHaveBeenCalledTimes(4);
+});
+
 function event(values) {
   const form = new FormData();
   for (const [key, value] of Object.entries(values)) form.set(key, String(value));
@@ -13,7 +52,7 @@ function event(values) {
 describe('profile setup confirmation', () => {
   it.each([
     ['complete', '/'],
-    ['organization', '/settings/organization']
+    ['organization', '/onboarding']
   ])('continues from the API state %s', async (step, destination) => {
     vi.mocked(apiRequest).mockResolvedValue({ setup_step: step });
     await expect(

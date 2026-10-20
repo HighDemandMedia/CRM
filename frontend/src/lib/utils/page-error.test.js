@@ -14,7 +14,7 @@ describe('page error recovery', () => {
   });
   it('distinguishes missing pages from transient failures', () => {
     expect(pageError(404)).toMatchObject({ title: 'Page not found', retry: false });
-    expect(pageError(503)).toMatchObject({ title: 'Unable to load this page', retry: true });
+    expect(pageError(503)).toMatchObject({ title: 'Service temporarily unavailable', retry: true });
     expect(pageError(429)).toMatchObject({ title: 'Too many requests', retry: true });
   });
 });

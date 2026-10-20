@@ -1,6 +1,7 @@
 import { clientIdentityHeaders } from '$lib/server/proxy-identity.js';
 import { attachmentError } from '$lib/v2/attachment-policy.js';
 import { apiOriginFor } from '$lib/server/api-origin.js';
+import { apiFetch } from '$lib/server/api-fetch.js';
 /**
  * API Helper Functions
  *
@@ -91,7 +92,7 @@ export async function apiRequest(endpoint, options = {}, locals) {
   const url = `${apiOriginFor(endpoint)}/api${endpoint}`;
 
   try {
-    const response = await fetch(url, requestOptions);
+    const response = await apiFetch(url, requestOptions);
 
     // Handle error responses
     if (!response.ok) {
