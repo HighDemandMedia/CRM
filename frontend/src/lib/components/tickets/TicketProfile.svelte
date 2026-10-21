@@ -1,4 +1,5 @@
 <script>
+  import { recordValidation } from '$lib/components/creation/validation.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
 
@@ -79,7 +80,12 @@
       <h2>{ui('Properties')}</h2>
       {#if !editing}<button class="v2-btn" onclick={edit}>{ui('Edit')}</button>{/if}
     </div>
-    {#if editing}<form method="POST" action="?/properties" use:enhance={save}>
+    {#if editing}<form
+        method="POST"
+        action="?/properties"
+        use:recordValidation={form?.fieldErrors}
+        use:enhance={save}
+      >
         <TicketFields bind:values options={data.editOptions} />
         <div class="actions">
           <button class="v2-btn v2-btn-primary" disabled={busy}>{ui('Save')}</button><button

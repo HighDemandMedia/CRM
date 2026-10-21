@@ -12,6 +12,13 @@ import { readableError } from './form-errors.js';
 const thrown = (body, message) => Object.assign(new Error(message), { body, status: 400 });
 
 describe('readableError', () => {
+  it('renders nested custom property errors instead of an object string', () => {
+    const err = thrown(
+      { errors: { custom_fields: { work_phone: ['Enter exactly 10 digits.'] } } },
+      'custom_fields: [object Object]'
+    );
+    expect(readableError(err, 'Could not save.')).toBe('work_phone: Enter exactly 10 digits.');
+  });
   it('reads a string `errors` off the response body', () => {
     // The `{error: true, errors: "<sentence>"}` envelope, used in 300-odd
     // places in the backend. `apiRequest` has no branch for it (its checks

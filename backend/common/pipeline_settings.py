@@ -64,7 +64,7 @@ def stages_for(org, target):
 
 def rule_properties(org, target):
     model = target_model(target)
-    from common.property_catalog import LABELS, field_type
+    from common.property_catalog import LABELS, field_constraints, field_type
 
     rows = []
     for name in FIELDS[target]:
@@ -78,6 +78,7 @@ def rule_properties(org, target):
                     name, str(f.verbose_name).replace("_", " ").capitalize()
                 ),
                 "field_type": field_type(f),
+                **field_constraints(f),
                 "multiple": bool(f.many_to_many),
                 "relation": f.related_model.__name__ if f.is_relation else "",
                 "options": [

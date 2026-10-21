@@ -12,7 +12,8 @@ from __future__ import annotations
 import logging
 import math
 import re
-from datetime import date, time
+import unicodedata
+from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -21,6 +22,14 @@ from django.core.validators import URLValidator, validate_email
 from rest_framework import serializers as drf_serializers
 
 logger = logging.getLogger(__name__)
+
+TEXT_LIMITS = {"text": 255, "textarea": 10000}
+PHONE_ERROR = "Enter exactly 10 digits, without a country code or separators."
+
+
+def valid_phone(value):
+    return isinstance(value, str) and re.fullmatch(r"[0-9]{10}", value) is not None
+
 
 # Targets whose entity model has a `custom_fields` JSONField column. Adding a
 # new entity? Drop a column on it (one migration), then add it here.
@@ -86,7 +95,18 @@ def _coerce_value(field_type: str, raw: Any):
         return None, None
 
     if field_type in ("text", "textarea"):
-        return str(raw), None
+        if not isinstance(raw, str):
+            return None, "must be text"
+        value = unicodedata.normalize("NFC", raw).strip()
+        allowed_controls = "\r\n\t" if field_type == "textarea" else ""
+        if any(
+            unicodedata.category(char) == "Cc" and char not in allowed_controls
+            for char in value
+        ):
+            return None, "contains invalid control characters"
+        if len(value) > TEXT_LIMITS[field_type]:
+            return None, f"must contain at most {TEXT_LIMITS[field_type]} characters"
+        return value, None
 
     if field_type in ("email", "url", "phone"):
         if not isinstance(raw, str):
@@ -102,12 +122,8 @@ def _coerce_value(field_type: str, raw: Any):
                     value = "https://" + value
                 URLValidator(schemes=["http", "https"])(value)
             else:
-                if not re.fullmatch(r"\+?[0-9 ()\-.]+", value):
-                    raise ValidationError("Invalid phone")
-                digits = re.sub(r"\D", "", value)
-                if not 7 <= len(digits) <= 15:
-                    raise ValidationError("Invalid phone")
-                value = ("+" if value.startswith("+") else "") + digits
+                if not valid_phone(value):
+                    return None, PHONE_ERROR
         except ValidationError:
             return None, f"must be a valid {field_type}"
         return value, None
@@ -141,6 +157,10 @@ def _coerce_value(field_type: str, raw: Any):
 
     if field_type == "time":
         try:
+            if not isinstance(raw, str) or not re.fullmatch(
+                r"[0-9]{2}:[0-9]{2}(?::[0-9]{2}(?:\.[0-9]{1,6})?)?", raw
+            ):
+                raise ValueError
             value = time.fromisoformat(str(raw))
             if value.tzinfo is not None:
                 raise ValueError
@@ -176,9 +196,9 @@ def _coerce_value(field_type: str, raw: Any):
         return None, "must be a boolean"
 
     if field_type == "date":
-        if isinstance(raw, date):
+        if isinstance(raw, date) and not isinstance(raw, datetime):
             return raw.isoformat(), None
-        if isinstance(raw, str):
+        if isinstance(raw, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", raw):
             try:
                 return date.fromisoformat(raw).isoformat(), None
             except ValueError:
@@ -186,7 +206,9 @@ def _coerce_value(field_type: str, raw: Any):
         return None, "must be a YYYY-MM-DD date"
 
     if field_type == "dropdown":
-        return str(raw), None
+        return (
+            (raw, None) if isinstance(raw, str) else (None, "must be an option value")
+        )
 
     return None, f"unsupported field_type {field_type!r}"
 

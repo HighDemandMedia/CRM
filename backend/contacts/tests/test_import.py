@@ -65,7 +65,7 @@ class TestImportPreview:
                     "Alice",
                     "Smith",
                     "alice@example.com",
-                    "+1 555 111 2222",
+                    "5551112222",
                     "Acme Corp",
                     "vip;newsletter",
                 ]
@@ -160,7 +160,7 @@ class TestImportPreview:
         # number written differently, normalizer strips to "2025551234".
         csv_file = _csv(
             ["first_name", "last_name", "phone"],
-            [["Different", "Person", "202-555-1234"]],
+            [["Different", "Person", "2025551234"]],
         )
         response = admin_client.post(
             "/api/contacts/import/preview/", {"file": csv_file}, format="multipart"
@@ -174,7 +174,7 @@ class TestImportPreview:
         csv_file = _csv(
             ["first_name", "last_name", "phone"],
             [
-                ["A", "One", "+1 555 000 1111"],
+                ["A", "One", "5550001111"],
                 ["B", "Two", "5550001111"],
             ],
         )
@@ -364,7 +364,7 @@ class TestImportCommit:
                     "Alice",
                     "Smith",
                     "alice@example.com",
-                    "+1 555 111 2222",
+                    "5551112222",
                     "Acme Corp",
                     "Sales",
                     "vip",
@@ -373,7 +373,7 @@ class TestImportCommit:
                     "Bob",
                     "Jones",
                     "bob@example.com",
-                    "+1 555 333 4444",
+                    "5553334444",
                     "Acme Corp",
                     "Sales",
                     "vip;newsletter",

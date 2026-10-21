@@ -1,4 +1,5 @@
 <script>
+  import { recordValidation } from '$lib/components/creation/validation.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -86,7 +87,7 @@
       error = '';
     }}
   >
-    <form class="panel-form" onsubmit={save}>
+    <form class="panel-form" use:recordValidation onsubmit={save}>
       <div class="panel-body">
         <StageRuleNotice
           issue={pending.issue}

@@ -1,5 +1,7 @@
 """Read-only catalog of CRM properties, with tenant-scoped usage counts."""
 
+from decimal import Decimal
+
 from django.apps import apps
 from django.db import models
 from django.db.models import Count, Q
@@ -77,6 +79,8 @@ def field_type(field):
         return "relationship"
     if field.choices:
         return "dropdown"
+    if field.name == "phone":
+        return "phone"
     for cls, label in (
         (models.UUIDField, "uuid"),
         (models.EmailField, "email"),
@@ -85,14 +89,30 @@ def field_type(field):
         (models.DateTimeField, "datetime"),
         (models.DateField, "date"),
         (models.TextField, "textarea"),
-        (models.DecimalField, "number"),
-        (models.IntegerField, "number"),
+        (models.DecimalField, "money"),
+        (models.IntegerField, "integer"),
         (models.FloatField, "number"),
         (models.JSONField, "list"),
     ):
         if isinstance(field, cls):
             return label
     return "text"
+
+
+def field_constraints(field):
+    """Expose model bounds to all dynamic editors; serializers remain authoritative."""
+    limits = {"max_length": getattr(field, "max_length", None)}
+    if isinstance(field, models.DecimalField):
+        limits["decimal_places"] = field.decimal_places
+        limits["max"] = str(
+            Decimal(10) ** (field.max_digits - field.decimal_places)
+            - Decimal(10) ** -field.decimal_places
+        )
+        if field.name in {"annual_revenue", "amount"}:
+            limits["min"] = 0
+    elif isinstance(field, models.PositiveIntegerField):
+        limits.update(min=0, max=2147483647)
+    return limits
 
 
 def properties_for(org, target, definitions):
@@ -153,6 +173,7 @@ def properties_for(org, target, definitions):
                 if key == "phone"
                 else field_type(field),
                 "is_system": True,
+                **field_constraints(field),
                 "is_active": True,
                 "is_required": key in REQUIRED.get(target, set())
                 if target in REQUIRED

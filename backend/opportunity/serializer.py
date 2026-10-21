@@ -288,6 +288,11 @@ class OpportunityCreateSerializer(PipelineRulesMixin, serializers.ModelSerialize
         if request_obj:
             self.org = request_obj.profile.org
 
+    def validate_amount(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Amount cannot be negative.")
+        return value
+
     def validate_name(self, name):
         if not name:
             return name

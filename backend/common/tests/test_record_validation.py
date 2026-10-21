@@ -16,6 +16,11 @@ from common.record_validation import clean_record_values
         ("phone", "123456"),
         ("phone", "1234567890123456"),
         ("phone", "1+3055550190"),
+        ("phone", "+13055550190"),
+        ("phone", "305-555-0190"),
+        ("phone", "305555019"),
+        ("phone", "30555501900"),
+        ("phone", 3055550190),
         ("address_line", "Street\nOther"),
     ],
 )
@@ -36,7 +41,6 @@ def test_invalid_formats(field, value):
         ("state", "Île-de-France"),
         ("postcode", "SW1A 1AA"),
         ("postcode", "00901-1234"),
-        ("phone", "+1 (305) 555-0190"),
         ("phone", "3055550190"),
     ],
 )
@@ -79,7 +83,8 @@ def test_api_validates_address_and_preserves_optional_fields(admin_client, route
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "phone,valid", [("", True), ("+1 (305) 555-0190", True), ("-------", False)]
+    "phone,valid",
+    [("", True), ("3055550190", True), ("+13055550190", False), ("-------", False)],
 )
 def test_lead_serializer_uses_same_phone_rules(admin_profile, phone, valid):
     from types import SimpleNamespace

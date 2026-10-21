@@ -1,4 +1,5 @@
 <script>
+  import { recordValidation } from '$lib/components/creation/validation.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -93,10 +94,14 @@
           >{/if}
       </dt>
       <dd>
-        {#if editing === row.key}<form onsubmit={(event) => save(event, row)}>
+        {#if editing === row.key}<form use:recordValidation onsubmit={(event) => save(event, row)}>
             <StageRequirementField
               {target}
-              field={{ ...row.definition, label: row.label }}
+              field={{
+                ...row.definition,
+                name: `custom_fields.${row.definition.key}`,
+                label: row.label
+              }}
               required={row.definition.is_required}
               bind:value={draft}
             />

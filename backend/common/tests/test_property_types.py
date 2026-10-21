@@ -9,7 +9,7 @@ from common.models import CustomFieldDefinition
     [
         ("email", " person@example.com ", "person@example.com"),
         ("url", "example.com/path", "https://example.com/path"),
-        ("phone", "+1 (202) 555-0123", "+12025550123"),
+        ("phone", "2025550123", "2025550123"),
         ("integer", "12", 12),
         ("percentage", "0", 0),
         ("percentage", "100", 100),

@@ -5,6 +5,8 @@ import unicodedata
 
 from rest_framework.exceptions import ValidationError
 
+from common.custom_fields import PHONE_ERROR, valid_phone
+
 CALENDAR_TARGETS = {"Contact", "Account"}
 
 
@@ -30,6 +32,9 @@ def clean_record_values(data, target):
     }
     for key, label in labels.items():
         value = data.get(key)
+        if value is not None and not isinstance(value, str):
+            errors[key] = f"{label} must be text."
+            continue
         if not isinstance(value, str):
             continue
         value = unicodedata.normalize("NFC", value).strip()
@@ -55,14 +60,8 @@ def clean_record_values(data, target):
             or any(not (char.isalnum() or char in " -") for char in value)
         ):
             errors[key] = "Use letters, numbers, spaces or hyphens for the postal code."
-        elif key == "phone" and not re.fullmatch(r"\+?[0-9 ().-]+", value):
-            errors[key] = (
-                "Use digits and phone separators, with an optional + at the start."
-            )
-        elif key == "phone" and not 7 <= sum(char.isdigit() for char in value) <= 15:
-            errors[key] = (
-                "Phone must contain 7 to 15 digits, including the country code if provided."
-            )
+        elif key == "phone" and not valid_phone(value):
+            errors[key] = PHONE_ERROR
     if errors:
         raise ValidationError(errors)
     return data

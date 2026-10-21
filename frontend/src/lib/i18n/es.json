@@ -1762,5 +1762,16 @@
   "Use email and password to sign in with this account.": "Usa email y contraseña para entrar con esta cuenta.",
   "Google sign-in is unavailable. Try again or use email.": "El acceso con Google no está disponible. Inténtalo de nuevo o usa email.",
   "Create account with email": "Crear cuenta con email",
-  "Review and accept the terms before continuing.": "Revisa y acepta los términos antes de continuar."
+  "Review and accept the terms before continuing.": "Revisa y acepta los términos antes de continuar.",
+  "Enter exactly 10 digits, without a country code or separators.": "Introduce exactamente 10 dígitos, sin código de país ni separadores.",
+  "Enter a valid email address.": "Introduce un correo electrónico válido.",
+  "Enter a valid HTTP or HTTPS website URL.": "Introduce una dirección web válida con HTTP o HTTPS.",
+  "Enter a valid number.": "Introduce un número válido.",
+  "Enter a whole number within the safe integer range.": "Introduce un número entero dentro del rango permitido.",
+  "Enter a percentage between 0 and 100.": "Introduce un porcentaje entre 0 y 100.",
+  "Enter an amount with up to 14 integer digits and 2 decimal places.": "Introduce un importe con hasta 14 dígitos enteros y 2 decimales.",
+  "Enter an amount within the allowed range.": "Introduce un importe dentro del rango permitido.",
+  "Enter a valid date.": "Introduce una fecha válida.",
+  "Enter a valid time.": "Introduce una hora válida.",
+  "Remove invalid control characters.": "Elimina los caracteres de control no válidos."
 }

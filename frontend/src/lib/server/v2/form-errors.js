@@ -42,6 +42,10 @@ export function readableError(err, fallback) {
   if (issue) return issue.message;
   const direct = err?.body?.errors;
   if (typeof direct === 'string') return direct.trim() || fallback;
+  if (direct?.custom_fields && typeof direct.custom_fields === 'object') {
+    const first = Object.entries(fieldErrors(err))[0];
+    if (first) return `${first[0].replace(/^custom_fields\./, '')}: ${first[1]}`;
+  }
 
   const message = String(err?.message ?? '');
   const start = message.indexOf('{');
@@ -70,6 +74,11 @@ export function fieldErrors(err) {
   if (!errors || typeof errors !== 'object') return {};
   return Object.fromEntries(
     Object.entries(errors).flatMap(([key, detail]) => {
+      if (key === 'custom_fields' && detail && typeof detail === 'object' && !Array.isArray(detail))
+        return Object.entries(detail).flatMap(([property, issue]) => {
+          const message = Array.isArray(issue) ? issue.join(' ') : issue;
+          return typeof message === 'string' ? [[`custom_fields.${property}`, message]] : [];
+        });
       const text = Array.isArray(detail) ? detail.join(' ') : detail;
       return typeof text === 'string' && key !== 'non_field_errors'
         ? [[key === 'first_name' ? 'name' : key, text]]

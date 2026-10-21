@@ -1,4 +1,9 @@
 <script>
+  import {
+    fieldInputType,
+    fieldInputStep,
+    propertyInputAttributes
+  } from '$lib/v2/custom-field-input.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -49,22 +54,17 @@
         : (field.options || []).map((o) => (typeof o === 'string' ? { value: o, label: o } : o))
   );
   let kind = $derived(
-    {
-      datetime: 'datetime-local',
-      date: 'date',
-      time: 'time',
-      email: 'email',
-      url: 'url',
-      phone: 'tel',
-      number: 'number',
-      integer: 'number',
-      percentage: 'number',
-      money: 'text'
-    }[field.field_type] || 'text'
+    field.field_type === 'datetime' ? 'datetime-local' : fieldInputType(field.field_type)
   );
+  let constraints = $derived({
+    ...propertyInputAttributes(field.field_type),
+    ...(field.max_length != null ? { maxlength: field.max_length } : {}),
+    ...(field.min != null ? { min: field.min } : {}),
+    ...(field.max != null ? { max: field.max } : {})
+  });
 </script>
 
-<div class="requirement-field">
+<div class="requirement-field" data-property-control>
   {#if field.is_read_only === true || field.is_read_only === 'True'}
     <strong>{field.label}</strong>
     <p>
@@ -134,6 +134,8 @@
           {#each choices as option}<label
               ><input
                 type="checkbox"
+                name={field.name ?? field.key}
+                data-property-required={required ? 'true' : undefined}
                 value={String(option.value)}
                 bind:group={value}
               />{option.label}</label
@@ -142,7 +144,7 @@
       {:else}<select
           id={`requirement-${field.key}`}
           class="v2-input"
-          name={field.name}
+          name={field.name ?? field.key}
           bind:value
           {required}
           ><option value="">{ui('Select…')}</option>{#each choices as option}<option
@@ -152,7 +154,7 @@
     {:else if field.field_type === 'checkbox'}<select
         id={`requirement-${field.key}`}
         class="v2-input"
-        name={field.name}
+        name={field.name ?? field.key}
         bind:value
         {required}
         ><option value="">{ui('Select…')}</option><option value="true">{ui('Yes')}</option><option
@@ -162,7 +164,9 @@
     {:else if ['textarea', 'list'].includes(field.field_type)}<textarea
         id={`requirement-${field.key}`}
         class="v2-input"
-        name={field.name}
+        name={field.name ?? field.key}
+        data-property-type={field.field_type}
+        {...constraints}
         bind:value
         {required}
         rows="3"
@@ -171,13 +175,12 @@
         id={`requirement-${field.key}`}
         class="v2-input"
         type={kind}
-        name={field.name}
-        maxlength={field.max_length}
-        min={field.min}
-        max={field.max}
+        name={field.name ?? field.key}
+        data-property-type={field.field_type}
+        {...constraints}
         bind:value
         {required}
-        step={field.field_type === 'integer' ? '1' : 'any'}
+        step={fieldInputStep(field.field_type)}
       />{/if}
     {#if loading}<small>{ui('Loading options…')}</small>{:else if error}<small role="alert"
         >{ui(error)}</small

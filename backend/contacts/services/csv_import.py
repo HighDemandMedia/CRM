@@ -38,6 +38,7 @@ from django.utils.text import slugify
 from rest_framework.exceptions import ValidationError as APIValidationError
 
 from accounts.models import Account
+from common.custom_fields import PHONE_ERROR, valid_phone
 from common.models import Profile, Tags, Teams
 from common.pipeline_settings import validate_entry
 from common.utils import COUNTRIES
@@ -71,7 +72,6 @@ KNOWN_HEADERS = REQUIRED_HEADERS + OPTIONAL_HEADERS
 MAX_ROWS = 5000
 NAME_MAX_LEN = 255
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-PHONE_RE = re.compile(r"^[\d\s\-\(\)\+\.]{7,25}$")
 _url_validator = URLValidator(schemes=("http", "https"))
 TRUTHY = {"1", "true", "yes", "y", "t"}
 FALSY = {"", "0", "false", "no", "n", "f"}
@@ -479,12 +479,12 @@ def _validate_and_build(
     phone = record.get("phone", "")
     normalized_phone: str | None = None
     if phone:
-        if not PHONE_RE.match(phone):
+        if not valid_phone(phone):
             errors.append(
                 RowError(
                     idx,
                     "phone",
-                    "Phone must be 7-25 characters of digits and separators (+ - ( ) . space)",
+                    PHONE_ERROR,
                 )
             )
         else:

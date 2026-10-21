@@ -6,7 +6,13 @@ import json
 from rest_framework.exceptions import ValidationError
 
 from common.models import CustomFieldDefinition
-from common.property_catalog import FIELDS, LABELS, field_type, target_model
+from common.property_catalog import (
+    FIELDS,
+    LABELS,
+    field_constraints,
+    field_type,
+    target_model,
+)
 from common.validators import payload_id_list
 
 IDENTITY = {
@@ -65,7 +71,7 @@ def catalog(org, target):
                     {"value": value, "label": str(label)}
                     for value, label in (f.choices or [])
                 ],
-                "max_length": getattr(f, "max_length", None),
+                **field_constraints(f),
                 "locked": key == IDENTITY[target]
                 or (target in WORK_ITEMS and key == "assigned_to"),
                 "section": section,

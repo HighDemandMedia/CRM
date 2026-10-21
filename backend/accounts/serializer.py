@@ -298,6 +298,18 @@ class AccountCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
             cleaned.append({"name": name, "url": url})
         return cleaned
 
+    def validate_website(self, value):
+        from common.custom_fields import _coerce_value
+
+        if not value:
+            return value
+        cleaned, error = _coerce_value("url", value)
+        if error:
+            raise serializers.ValidationError(
+                "Enter a valid HTTP or HTTPS website URL."
+            )
+        return cleaned
+
     def validate(self, attrs):
         from common.validators import payload_id_list
         from contacts.models import Contact

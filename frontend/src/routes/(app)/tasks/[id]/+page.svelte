@@ -1,4 +1,5 @@
 <script>
+  import { recordValidation } from '$lib/components/creation/validation.js';
   import { canChooseOwner } from '$lib/v2/permissions.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale, longDate } = useI18n();
@@ -182,7 +183,13 @@
   </main>
   <aside class="panel properties">
     <h2>{ui('Properties')}</h2>
-    {#if editing}<form id={formId} method="POST" action="?/properties" use:enhance={save}>
+    {#if editing}<form
+        id={formId}
+        method="POST"
+        action="?/properties"
+        use:recordValidation={form?.fieldErrors}
+        use:enhance={save}
+      >
         <input type="hidden" name="parent_kind_original" value={data.editor.form.parent_kind} />
         <input type="hidden" name="parent_id_original" value={data.editor.form.parent_id} />
         <fieldset disabled={busy}>

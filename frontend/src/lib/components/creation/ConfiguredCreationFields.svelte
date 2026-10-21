@@ -149,9 +149,7 @@
       label: field.custom ? field.label : ui(field.label),
       options,
       name: field.custom ? field.key : inputKey(target, field.key),
-      // The domain accepts example.com as well as full URLs.
-      field_type:
-        field.key === 'website' ? 'text' : field.key === 'country' ? 'dropdown' : field.field_type
+      field_type: field.key === 'country' ? 'dropdown' : field.field_type
     };
   }
   function guard(node) {
