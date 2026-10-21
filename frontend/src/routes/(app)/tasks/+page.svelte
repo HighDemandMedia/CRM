@@ -118,12 +118,6 @@
     {ui('overdue')}
   {/snippet}
   {#snippet actions()}
-    {#if can(page.data.permissions, 'tasks', 'export')}<ExportDialog
-        endpoint={resolve('/tasks/export')}
-        {columns}
-        rows={tasks}
-        filename="tasks.csv"
-      />{/if}
     {#if can(page.data.permissions, 'tasks', 'create')}<a
         class="v2-btn v2-btn-primary"
         href={resolve('/tasks/new')}><Plus />{ui('New task')}</a
@@ -131,7 +125,7 @@
   {/snippet}
 </PageHeader>
 
-<div class="object-workspace">
+<div class="object-workspace crm-list-workspace" class:is-list={!pipeline}>
   <TaskFilters url={page.url} people={data.people}>
     {#snippet columnTools()}
       {#if !pipeline}<ColumnPicker
@@ -140,6 +134,12 @@
           onToggle={(key) => selection.toggle(key)}
           onShowAll={selection.showAll}
           onReset={selection.reset}
+        />{/if}
+      {#if can(page.data.permissions, 'tasks', 'export')}<ExportDialog
+          endpoint={resolve('/tasks/export')}
+          {columns}
+          rows={tasks}
+          filename="tasks.csv"
         />{/if}
     {/snippet}
   </TaskFilters>

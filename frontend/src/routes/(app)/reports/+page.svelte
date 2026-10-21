@@ -135,90 +135,93 @@
         >{/snippet}
     </Notice>
   {:else if report}
-    <div class="filters">
-      <label
-        >{ui('Object')}<select
-          class="v2-input"
-          value={report.object}
-          onchange={(e) => changeObject(e.currentTarget.value)}
-          disabled={busy}
-          >{#each report.objects as item}<option value={item.key}>{item.label}</option
-            >{/each}</select
-        ></label
-      >
-      <label
-        >{ui('Date to use')}<select
-          class="v2-input"
-          value={report.date_field}
-          onchange={(e) => update({ date_field: e.currentTarget.value })}
-          disabled={busy}
-          >{#each chosen.dates as item}<option value={item.key}>{item.label}</option>{/each}</select
-        ></label
-      >
-      <label
-        >{ui('From')}<input
-          class="v2-input"
-          type="date"
-          bind:value={start}
-          max={end || undefined}
-          onchange={datesChanged}
-          disabled={busy}
-        /></label
-      >
-      <label
-        >{ui('To')}<input
-          class="v2-input"
-          type="date"
-          bind:value={end}
-          min={start || undefined}
-          onchange={datesChanged}
-          disabled={busy}
-        /></label
-      >
-      <label
-        ><span class="v2-sr-only">{ui('Quick range')}</span><select
-          class="v2-input"
-          value=""
-          onchange={(e) => preset(e.currentTarget.value)}
-          disabled={busy}
-          ><option value="">{ui('Choose dates')}</option><option value="30"
-            >{ui('Last 30 days')}</option
-          ><option value="month">{ui('This month')}</option><option value="last_month"
-            >{ui('Last month')}</option
-          ><option value="year">{ui('This year')}</option></select
-        ></label
-      >
-    </div>
-    <div class="secondary-filters">
-      {#if canFilterOwners(page.data.permissions, 'reports') && canFilterOwners(page.data.permissions, report.object === 'events' ? 'calendar' : report.object)}
+    <div class="report-controls crm-panel">
+      <div class="filters">
         <label
-          ><span class="v2-sr-only">{report.object === 'events' ? ui('Host') : ui('Owner')}</span
-          ><select
+          >{ui('Object')}<select
             class="v2-input"
-            value={report.owner}
-            onchange={(e) => update({ owner: e.currentTarget.value })}
+            value={report.object}
+            onchange={(e) => changeObject(e.currentTarget.value)}
             disabled={busy}
-            ><option value=""
-              >{ui('All accessible')}
-              {report.object === 'events' ? ui('hosts') : ui('owners')}</option
-            >{#each report.owners as item}<option value={item.id}>{item.name}</option
+            >{#each report.objects as item}<option value={item.key}>{item.label}</option
               >{/each}</select
           ></label
         >
-      {/if}
-      <label
-        ><span class="v2-sr-only">{report.object === 'events' ? ui('Status') : ui('Stage')}</span
-        ><select
-          class="v2-input"
-          value={report.stage}
-          onchange={(e) => update({ stage: e.currentTarget.value })}
-          disabled={busy}
-          ><option value=""
-            >{ui('All')} {report.object === 'events' ? 'statuses' : ui('stages')}</option
-          >{#each report.stages as item}<option value={item.key}>{item.label}</option
-            >{/each}</select
-        ></label
-      >
+        <label
+          >{ui('Date to use')}<select
+            class="v2-input"
+            value={report.date_field}
+            onchange={(e) => update({ date_field: e.currentTarget.value })}
+            disabled={busy}
+            >{#each chosen.dates as item}<option value={item.key}>{item.label}</option
+              >{/each}</select
+          ></label
+        >
+        <label
+          >{ui('From')}<input
+            class="v2-input"
+            type="date"
+            bind:value={start}
+            max={end || undefined}
+            onchange={datesChanged}
+            disabled={busy}
+          /></label
+        >
+        <label
+          >{ui('To')}<input
+            class="v2-input"
+            type="date"
+            bind:value={end}
+            min={start || undefined}
+            onchange={datesChanged}
+            disabled={busy}
+          /></label
+        >
+        <label
+          ><span class="v2-sr-only">{ui('Quick range')}</span><select
+            class="v2-input"
+            value=""
+            onchange={(e) => preset(e.currentTarget.value)}
+            disabled={busy}
+            ><option value="">{ui('Choose dates')}</option><option value="30"
+              >{ui('Last 30 days')}</option
+            ><option value="month">{ui('This month')}</option><option value="last_month"
+              >{ui('Last month')}</option
+            ><option value="year">{ui('This year')}</option></select
+          ></label
+        >
+      </div>
+      <div class="secondary-filters">
+        {#if canFilterOwners(page.data.permissions, 'reports') && canFilterOwners(page.data.permissions, report.object === 'events' ? 'calendar' : report.object)}
+          <label
+            ><span class="v2-sr-only">{report.object === 'events' ? ui('Host') : ui('Owner')}</span
+            ><select
+              class="v2-input"
+              value={report.owner}
+              onchange={(e) => update({ owner: e.currentTarget.value })}
+              disabled={busy}
+              ><option value=""
+                >{ui('All accessible')}
+                {report.object === 'events' ? ui('hosts') : ui('owners')}</option
+              >{#each report.owners as item}<option value={item.id}>{item.name}</option
+                >{/each}</select
+            ></label
+          >
+        {/if}
+        <label
+          ><span class="v2-sr-only">{report.object === 'events' ? ui('Status') : ui('Stage')}</span
+          ><select
+            class="v2-input"
+            value={report.stage}
+            onchange={(e) => update({ stage: e.currentTarget.value })}
+            disabled={busy}
+            ><option value=""
+              >{ui('All')} {report.object === 'events' ? 'statuses' : ui('stages')}</option
+            >{#each report.stages as item}<option value={item.key}>{item.label}</option
+              >{/each}</select
+          ></label
+        >
+      </div>
     </div>
     <div class="period-heading">
       <h2>{report.label}<span>{periodLabel}</span></h2>
@@ -453,6 +456,9 @@
     flex: 1;
     color: var(--crm-text);
   }
+  .report-controls {
+    padding: var(--crm-space-4);
+  }
   .filters,
   .secondary-filters {
     display: flex;
@@ -472,6 +478,8 @@
   }
   .v2-input {
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
     min-height: 38px;
     font-size: var(--crm-text-sm);
     background: var(--v2-surface, var(--crm-surface));
@@ -527,19 +535,23 @@
   }
   .charts {
     display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
     gap: var(--crm-space-4);
     margin: var(--crm-space-5) 0;
   }
   .chart-panel {
-    padding: var(--crm-space-5);
+    padding: 0 var(--crm-space-5) var(--crm-space-5);
+    min-width: 0;
   }
   .panel-heading {
     display: flex;
     gap: var(--crm-space-3);
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 18px;
+    padding: var(--crm-space-4) var(--crm-space-5);
+    min-height: 3.5rem;
+    margin: 0 calc(-1 * var(--crm-space-5)) var(--crm-space-4);
+    border-bottom: 1px solid var(--crm-border-soft);
   }
   .panel-heading h3 {
     font-size: var(--crm-text-sm);
@@ -618,7 +630,7 @@
     position: absolute;
     left: 0;
     right: 0;
-    border-top: 1px solid var(--v2-line);
+    border-top: 1px dashed var(--crm-border-soft);
   }
   .bar-column {
     position: relative;
@@ -645,8 +657,8 @@
     width: 100%;
     max-width: 64px;
     height: var(--bar-height);
-    background: var(--crm-primary);
-    border-radius: var(--crm-radius-sm) 3px 0 0;
+    background: var(--crm-brand-gradient);
+    border-radius: var(--crm-radius-sm) var(--crm-radius-sm) 0 0;
   }
   .bar-column:hover .bar,
   .bar-column:focus-visible .bar {
@@ -768,7 +780,7 @@
   .track > div {
     height: 100%;
     border-radius: var(--crm-radius-sm);
-    background: var(--crm-primary);
+    background: var(--crm-brand-gradient);
   }
   .records-panel {
     overflow: hidden;
@@ -778,10 +790,10 @@
     margin: 0;
   }
   tbody tr:nth-child(even) {
-    background: var(--crm-canvas);
+    background: var(--crm-surface);
   }
   tbody tr:hover {
-    background: var(--crm-surface-selected);
+    background: var(--crm-surface-subtle);
   }
   .metric {
     overflow-wrap: anywhere;
@@ -802,13 +814,13 @@
     color: var(--v2-slate);
     font-weight: 650;
     white-space: nowrap;
-    background: var(--crm-surface-secondary);
+    background: var(--crm-surface-subtle);
     font-size: var(--crm-text-xs);
   }
   th,
   td {
     padding: var(--crm-space-3) var(--crm-space-4);
-    border-top: 1px solid var(--v2-line);
+    border-top: 1px solid var(--crm-border-soft);
   }
   td {
     max-width: 280px;
@@ -888,6 +900,9 @@
     .metrics {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    .metric:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
     .metric strong {
       font-size: var(--crm-text-xl);
     }
@@ -895,8 +910,20 @@
       flex: 1;
       min-width: 120px;
     }
-    .chart-panel {
-      padding: 15px;
+  }
+  .records-panel > .panel-heading {
+    border-bottom: 0;
+  }
+  .records-scroll {
+    position: relative;
+  }
+  .amounts small {
+    border: 0;
+    padding: 0;
+  }
+  @container crm-workspace (max-width: 52rem) {
+    .charts {
+      grid-template-columns: 1fr;
     }
   }
 </style>

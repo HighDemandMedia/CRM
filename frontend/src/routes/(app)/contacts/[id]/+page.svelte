@@ -1,4 +1,6 @@
 <script>
+  import RecordActivityEntry from '$lib/v2/components/RecordActivityEntry.svelte';
+  import RecordDisclosure from '$lib/v2/components/RecordDisclosure.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { onDestroy } from 'svelte';
   import { useI18n } from '$lib/i18n/context.js';
@@ -110,9 +112,8 @@
     {ui('Event scheduled.')} <a href={resolve('/calendar')}>{ui('View calendar')}</a>
   </div>{/if}
 <div class="contact-profile hdm-profile">
-  <section class="properties hdm-panel" aria-label={ui('Contact properties')}>
+  <RecordDisclosure title={ui('Properties')} class="properties">
     <div class="properties-heading">
-      <h2>{ui('Properties')}</h2>
       <ContactActions {contact} disabled={editingProperties || editorBusy} onEdit={openEditor} />
     </div>
 
@@ -160,12 +161,26 @@
           ['Tags', ''],
           ['Last Activity', exactTime(contact.last_activity_at)],
           ['Created', exactTime(contact.created_at)],
-          ['Created by', contact.created_by_email || 'Not recorded']
+          ['Created by', contact.created_by || contact.created_by_email || 'Not recorded']
         ]}
       />
     {/if}
     <DeleteRecord kind="contact" id={contact.id} />
-  </section>
+  </RecordDisclosure>
+  <RecordDisclosure title={ui('Associated Objects')} class="contact-relations hdm-relations">
+    <div class="profile-section">
+      <ContactAssociations contactId={contact.id} kind="company" items={companies} />
+    </div>
+    <div class="profile-section">
+      <ContactAssociations contactId={contact.id} kind="deal" items={data.deals} />
+    </div>
+    <section class="profile-section">
+      <Attachments attachments={data.attachments} action="?/note" />
+    </section>
+    <div class="profile-section">
+      <ContactAssociations contactId={contact.id} kind="ticket" items={data.tickets} />
+    </div>
+  </RecordDisclosure>
   <main class="contact-center hdm-panel">
     <RecordTabs bind:active={recordTab} recordId={contact.id}>
       {#snippet emails()}{#key contact.id}<RecordEmails
@@ -233,10 +248,7 @@
                     mail={event.email}
                     onConversation={showConversation}
                   />
-                {:else}<div class="history-body">{event.body}</div>
-                  <div class="entry-meta">
-                    {event.by || ui('Not recorded')} · {exactTime(event.at)}
-                  </div>
+                {:else}<RecordActivityEntry {event} />
                 {/if}
               </article>
             {:else}<p class="v2-sub">{ui('No activity.')}</p>{/each}
@@ -245,20 +257,6 @@
       {/snippet}
     </RecordTabs>
   </main>
-  <aside class="contact-relations hdm-panel hdm-relations">
-    <div class="profile-section">
-      <ContactAssociations contactId={contact.id} kind="company" items={companies} />
-    </div>
-    <div class="profile-section">
-      <ContactAssociations contactId={contact.id} kind="deal" items={data.deals} />
-    </div>
-    <section class="profile-section">
-      <Attachments attachments={data.attachments} action="?/note" />
-    </section>
-    <div class="profile-section">
-      <ContactAssociations contactId={contact.id} kind="ticket" items={data.tickets} />
-    </div>
-  </aside>
 </div>
 
 <style>
@@ -269,9 +267,6 @@
     justify-content: space-between;
     gap: 10px;
     margin-bottom: var(--crm-space-4);
-  }
-  .properties-heading h2 {
-    margin: 0;
   }
   .scheduled-message {
     padding: var(--crm-space-2) var(--crm-space-6);
@@ -285,11 +280,6 @@
     text-decoration: underline;
   }
 
-  h2 {
-    font-size: var(--crm-text-sm);
-    font-weight: 600;
-    margin: 0 0 var(--crm-space-4);
-  }
   .profile-section {
     margin-bottom: var(--crm-space-6);
   }

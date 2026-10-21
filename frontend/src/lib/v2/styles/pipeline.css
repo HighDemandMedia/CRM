@@ -31,9 +31,9 @@
   min-width: 264px;
   min-height: 0;
   padding: 0;
-  border: 1px solid var(--crm-border);
+  border: 1px solid var(--crm-border-soft);
   border-radius: var(--crm-radius-lg);
-  background: var(--crm-surface-secondary);
+  background: var(--crm-surface-subtle);
   scroll-snap-align: start;
   transition:
     border-color 120ms,
@@ -85,7 +85,7 @@
   height: 23px;
   padding: 0 6px;
   border-radius: var(--crm-radius-sm);
-  background: var(--crm-surface-secondary);
+  background: var(--crm-surface-subtle);
   color: var(--crm-text-muted);
   font-size: var(--crm-text-xs);
   font-weight: 600;
@@ -102,7 +102,7 @@
 }
 .hdm-board.hdm-board .pipeline-card {
   background: var(--v2-bg, white);
-  border: 1px solid var(--crm-border);
+  border: 1px solid var(--crm-border-soft);
   border-radius: var(--crm-radius-md);
   padding: 14px;
   margin: 0 0 9px;
@@ -164,7 +164,7 @@
   font-weight: 600;
   padding: 3px 7px;
   border-radius: var(--crm-radius-sm);
-  background: var(--crm-surface-secondary);
+  background: var(--crm-surface-subtle);
   color: var(--crm-text-muted);
 }
 .hdm-board.hdm-board .card-dates {
@@ -226,7 +226,7 @@
 .hdm-board.hdm-board .priority-badge {
   padding: 3px 6px;
   border-radius: var(--crm-radius-sm);
-  background: var(--crm-surface-secondary);
+  background: var(--crm-surface-subtle);
   color: var(--crm-text-muted);
   font-size: var(--crm-text-xs);
 }

@@ -60,6 +60,8 @@
     flex-wrap: wrap;
     padding: var(--crm-space-2) var(--crm-space-3);
     flex: none;
+    background: var(--crm-surface);
+    color: var(--crm-text-muted);
     font-size: var(--crm-text-xs);
   }
   .page-summary {
@@ -74,9 +76,15 @@
     width: auto;
     min-width: 5rem;
   }
+  /* Leave a clear hit area for the shared mobile quick-create button. */
+  @media (max-width: 768px) {
+    .pagination {
+      padding-bottom: calc(var(--crm-space-2) + 4rem);
+    }
+  }
   @media (max-width: 600px) {
     .pagination {
-      padding: var(--crm-space-2) var(--crm-space-3);
+      padding-inline: var(--crm-space-3);
     }
     .page-summary {
       flex-basis: 100%;

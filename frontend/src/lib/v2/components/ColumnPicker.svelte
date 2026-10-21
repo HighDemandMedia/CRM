@@ -2,10 +2,29 @@
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
-  import { tick } from 'svelte';
+  import { tick, onMount } from 'svelte';
   import { X } from '@lucide/svelte';
   /** @type {{fields: any[], selected: string[], onToggle: (key: string) => void, onShowAll?: () => void, onReset?: () => void}} */
   let { fields, selected, onToggle, onShowAll, onReset } = $props();
+  let compact = $state(false);
+  onMount(() => {
+    try {
+      compact = localStorage.getItem('crm-list-density') === 'compact';
+    } catch {
+      /* Storage may be disabled. */
+    }
+    document.documentElement.dataset.crmDensity = compact ? 'compact' : 'comfortable';
+  });
+  function setDensity(event) {
+    event.stopPropagation();
+    compact = event.currentTarget.checked;
+    document.documentElement.dataset.crmDensity = compact ? 'compact' : 'comfortable';
+    try {
+      localStorage.setItem('crm-list-density', compact ? 'compact' : 'comfortable');
+    } catch {
+      /* The current view still works without persistence. */
+    }
+  }
   let open = $state(false);
   let search = $state('');
   let root;
@@ -60,6 +79,14 @@
         {#if onShowAll}<button type="button" onclick={onShowAll}>{ui('Show all')}</button>{/if}
         {#if onReset}<button type="button" onclick={onReset}>{ui('Reset')}</button>{/if}
       </div>
+      <label class="density-option"
+        ><input
+          type="checkbox"
+          checked={compact}
+          oninput={(event) => event.stopPropagation()}
+          onchange={setDensity}
+        />{ui('Compact rows')}</label
+      >
       <div class="options">
         {#each matches as [key, label] (key)}
           <label
@@ -103,12 +130,15 @@
     background: var(--v2-bg, white);
     box-shadow: var(--crm-shadow-lg);
   }
+  .density-option {
+    border-bottom: 1px solid var(--crm-border);
+  }
   .dropdown > input {
     width: 100%;
     min-width: 0;
   }
   .options {
-    max-height: min(300px, 50vh);
+    max-height: min(18rem, 40dvh);
     overflow-y: auto;
     margin-top: 6px;
   }
@@ -161,6 +191,11 @@
     min-height: 2.75rem;
     padding: 0.375rem;
     text-decoration: underline;
+  }
+  @media (max-width: 700px), (pointer: coarse) {
+    .density-option {
+      display: none;
+    }
   }
   @media (max-width: 700px) {
     .dropdown {

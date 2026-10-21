@@ -292,7 +292,7 @@
     position: sticky;
     top: 0;
     z-index: 3;
-    background: var(--crm-surface-secondary);
+    background: var(--crm-surface-subtle);
     min-height: 50px;
     margin: 0;
     padding: var(--crm-space-2);
@@ -314,7 +314,7 @@
     position: sticky;
     left: 0;
     z-index: 2;
-    background: var(--crm-surface-secondary);
+    background: var(--crm-surface-subtle);
     height: 1440px;
   }
   .hour-label {
@@ -369,7 +369,7 @@
     margin-left: auto;
   }
   .calendar-scroll {
-    margin: var(--crm-space-2) var(--crm-space-6) var(--crm-space-6);
+    margin: var(--crm-space-2) var(--crm-page-gutter) var(--crm-space-6);
     flex: 1;
     min-height: 0;
     overflow: auto;
@@ -490,7 +490,7 @@
     margin-right: var(--crm-space-1);
   }
   .appointment.unlinked {
-    background: var(--crm-surface-secondary);
+    background: var(--crm-surface-subtle);
     border-color: var(--crm-control-border);
     border-left-color: var(--crm-text-muted);
     color: var(--crm-text);

@@ -19,13 +19,13 @@
   .record-section {
     border: 0;
     padding: 0;
-    margin: 0 0 26px;
+    margin: 0 0 var(--crm-space-4);
     min-width: 0;
   }
   legend {
     width: 100%;
     padding: 0 0 10px;
-    margin-bottom: var(--crm-space-4);
+    margin-bottom: var(--crm-space-3);
     border-bottom: 1px solid var(--v2-line);
     font-size: var(--crm-text-sm);
     font-weight: 600;
@@ -39,12 +39,12 @@
     border-bottom: 1px solid var(--v2-line);
   }
   .optional-section[open] summary {
-    margin-bottom: var(--crm-space-4);
+    margin-bottom: var(--crm-space-3);
   }
   .record-fields {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--crm-space-4);
+    gap: var(--crm-space-3);
   }
   .record-fields :global(.v2-field) {
     margin-bottom: 0;

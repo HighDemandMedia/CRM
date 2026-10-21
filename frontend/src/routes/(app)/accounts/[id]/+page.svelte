@@ -1,4 +1,6 @@
 <script>
+  import RecordDisclosure from '$lib/v2/components/RecordDisclosure.svelte';
+  import RecordActivityEntry from '$lib/v2/components/RecordActivityEntry.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { exactTime, ui, money } = useI18n();
 
@@ -72,9 +74,8 @@
   </div>{/if}
 
 <div class="v2-scroll company-layout">
-  <aside class="company-properties" aria-label={ui('Company properties')}>
+  <RecordDisclosure class="company-properties" title={ui('Properties')} collapseBelowRem={48}>
     <div class="properties-heading">
-      <h2>{ui('Properties')}</h2>
       <button
         class="v2-btn"
         type="button"
@@ -146,7 +147,7 @@
         </div>{/if}
     {/if}
     <DeleteRecord kind="company" id={account.id} />
-  </aside>
+  </RecordDisclosure>
   <div class="v2-pad company-content" style="padding-bottom:32px">
     <div class="company-workspace">
       <section class="v2-card" style="padding:16px">
@@ -205,8 +206,7 @@
                       mail={entry.email}
                       onConversation={showConversation}
                     />
-                  {:else}<div class="history-body">{entry.body}</div>
-                    <p class="v2-sub">{entry.by} · {exactTime(entry.at)}</p>{/if}
+                  {:else}<RecordActivityEntry event={entry} />{/if}
                 </div>{:else}<p class="v2-sub">{ui('No activity yet.')}</p>{/each}
             </div>{/snippet}
         </RecordTabs>
@@ -242,11 +242,6 @@
     gap: 10px;
     margin-bottom: var(--crm-space-4);
   }
-  .properties-heading h2 {
-    margin: 0;
-    font-size: var(--crm-text-sm);
-    font-weight: 600;
-  }
   .property-pages {
     display: grid;
     gap: var(--crm-space-2);
@@ -265,7 +260,7 @@
     grid-template-rows: minmax(0, 1fr);
     min-height: 0;
   }
-  .company-properties {
+  .company-layout :global(.company-properties) {
     min-width: 0;
     min-height: 0;
     overflow-y: auto;
@@ -295,9 +290,6 @@
     padding: 10px 0;
     border-bottom: 1px solid var(--v2-line-soft);
     overflow-wrap: anywhere;
-  }
-  .history-body {
-    white-space: pre-wrap;
   }
   .deal-totals {
     display: flex;
@@ -332,7 +324,10 @@
       gap: 14px;
       overflow-y: auto;
     }
-    .company-properties,
+    .company-layout :global(.company-properties) {
+      padding: var(--crm-space-2) var(--crm-space-4);
+    }
+    .company-layout :global(.company-properties),
     .company-content {
       overflow: visible;
     }

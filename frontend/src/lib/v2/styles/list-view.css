@@ -70,13 +70,13 @@
   top: 0;
   z-index: 3;
   height: 45px;
-  background: var(--crm-surface-secondary);
+  background: var(--crm-surface-subtle);
   color: var(--crm-text-muted);
   font-size: var(--crm-text-xs);
-  font-weight: 650;
+  font-weight: 550;
   text-align: left;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--crm-border);
+  border-bottom: 1px solid var(--crm-border-soft);
   border-right: 1px solid transparent;
 }
 .hdm-list.hdm-list th[aria-sort='ascending'],
@@ -93,7 +93,7 @@
 .hdm-list.hdm-list td {
   height: 54px;
   padding: var(--crm-space-3) 14px;
-  border-bottom: 1px solid var(--crm-border);
+  border-bottom: 1px solid var(--crm-border-soft);
   border-right: 1px solid transparent;
   vertical-align: middle;
   color: var(--crm-text-muted);
@@ -101,11 +101,11 @@
   line-height: 1.5;
 }
 .hdm-list.hdm-list tbody tr:nth-child(even) {
-  background: var(--crm-canvas);
+  background: var(--crm-surface);
 }
 .hdm-list.hdm-list tbody tr:hover,
 .hdm-list.hdm-list tbody tr:focus-within {
-  background: var(--crm-surface-selected);
+  background: var(--crm-surface-subtle);
 }
 .hdm-list.hdm-list td:is([data-field='name'], [data-field='title']) a {
   color: var(--crm-text);
@@ -299,5 +299,104 @@
   }
   .object-toolbar > label:has(select) {
     max-width: none;
+  }
+}
+
+/* Density changes presentation only; touch targets stay comfortable. */
+@media (min-width: 701px) and (pointer: fine) {
+  :root[data-crm-density='compact'] .hdm-list.hdm-list td {
+    height: 2.75rem;
+    padding-block: var(--crm-space-1);
+  }
+}
+.object-toolbar .view-actions,
+.object-filters .object-views,
+.task-toolbar .object-views {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--crm-space-2);
+  margin-left: auto;
+}
+@container crm-workspace (max-width: 72rem) {
+  .object-toolbar .view-actions,
+  .object-filters .object-views,
+  .task-toolbar .object-views {
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 700px) {
+  .object-toolbar .view-actions,
+  .object-filters .object-views,
+  .task-toolbar .object-views {
+    justify-content: flex-start;
+  }
+}
+
+.owner-filter {
+  flex: 0 1 10.5rem;
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 600px) {
+  .owner-filter {
+    flex: 1 1 calc(50% - var(--crm-space-2));
+  }
+}
+
+/* A single reusable workspace keeps filters and records visually connected. */
+.crm-list-workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  margin: 0 var(--crm-page-gutter) var(--crm-space-4);
+  padding: 0;
+  gap: 0;
+}
+.crm-list-workspace.is-list {
+  background: var(--crm-surface);
+  border: 1px solid var(--crm-border-soft);
+  border-radius: var(--crm-radius-lg);
+  box-shadow: var(--crm-panel-shadow);
+}
+.crm-list-workspace .object-toolbar,
+.crm-list-workspace .object-filters,
+.crm-list-workspace .task-toolbar {
+  padding: var(--crm-space-3) var(--crm-space-4);
+  margin: 0;
+  border-bottom: 1px solid var(--crm-border-soft);
+  border-radius: var(--crm-radius-lg) var(--crm-radius-lg) 0 0;
+}
+.crm-list-workspace .hdm-list.hdm-list.hdm-list {
+  position: relative;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+.crm-list-workspace .hdm-board.hdm-board.hdm-board {
+  padding-inline: 0;
+}
+.crm-list-workspace .list-scroll {
+  border-radius: 0 0 var(--crm-radius-lg) var(--crm-radius-lg);
+}
+.crm-list-workspace .pagination {
+  border-top: 1px solid var(--crm-border-soft);
+  padding-inline: var(--crm-space-4);
+}
+@media (max-width: 700px) {
+  .crm-list-workspace .object-toolbar,
+  .crm-list-workspace .object-filters,
+  .crm-list-workspace .task-toolbar {
+    padding-inline: var(--crm-space-3);
+  }
+}
+
+/* The scroll region already reserves space for mobile quick-create. */
+@media (max-width: 768px) {
+  .crm-list-workspace .list-scroll > .pagination {
+    padding-bottom: var(--crm-space-2);
   }
 }

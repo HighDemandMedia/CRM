@@ -129,7 +129,7 @@
               onclick={copyRecordId}><Copy size={13} /></button
             >
           </span>
-          <span class="copy-status" role="status">{ui(copyStatus)}</span>
+          {#if copyStatus}<span class="copy-status" role="status">{ui(copyStatus)}</span>{/if}
         {:else if row.definition}{customDisplay(row.value, row.definition)}
         {:else if row.label === 'Stage' && row.value && row.value !== '—'}<span class="stage-value"
             >{row.value}</span
@@ -186,8 +186,8 @@
   dl {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
-    gap: 19px;
-    margin: var(--crm-space-6) 0 0;
+    gap: var(--crm-space-3);
+    margin: var(--crm-space-3) 0 0;
   }
   dl > div {
     min-width: 0;

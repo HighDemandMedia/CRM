@@ -1,5 +1,18 @@
 # CRM Design System: Style Guide
 
+## Active HDM frontend — October 2026
+
+The active Svelte CRM uses `frontend/src/lib/styles/design-tokens.css` as its source of truth. The older reference below is historical; do not introduce its previous palette or component stack into the active CRM.
+
+- Preserve Inter, the #F1F2F4 canvas, #292D30 navigation, existing red/orange action gradient and semantic status colors.
+- Use `--crm-page-gutter`, `--crm-panel-gap`, `--crm-border-soft`, `--crm-surface-subtle` and `--crm-panel-shadow` for the shared workspace rhythm.
+- Reuse `PageHeader`, `crm-panel`, `crm-panel-heading`, `crm-stat-grid` and `crm-list-workspace`. Lists connect filters, scrollable records and pagination in one surface; pipeline lanes remain independently scrollable.
+- Shared presentation lives in `lib/v2/styles/{v2,list-view,module-layout,pipeline,access-list}.css`. Keep field behavior, column sizes/reordering, permissions and API requests in their existing components and services.
+- Keep overflow inside dense tables and boards. At narrow widths, wrap actions and filters, stack panels and use existing record disclosures. Do not hide required actions or force page-wide horizontal scrolling.
+- ReUI and KTUI were consulted as read-only visual references; no library code or dependencies were imported.
+
+## Historical reference
+
 > Version 1.2 | Last Updated: December 2024
 
 A comprehensive design system reference for building consistent, accessible, and modern CRM interfaces.

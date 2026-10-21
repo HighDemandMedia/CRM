@@ -68,7 +68,7 @@
   </div>
   <div class="day-layout">
     <section class="panel agenda crm-panel">
-      <header>
+      <header class="crm-panel-heading">
         <h2>{ui("Today's agenda")} <span>{day.counts.events}</span></h2>
         <a href={resolve('/calendar')}>{ui('View calendar')} <ArrowUpRight size={13} /></a>
       </header>
@@ -93,85 +93,103 @@
           >{ui('View all')} {day.counts.events} {ui('events')}</a
         >{/if}
     </section>
-    <div class="work">
-      {#if day.reminders?.length}<section class="panel crm-panel">
-          <header>
-            <h2>{ui('Task reminders')} <span>{day.counts.reminders}</span></h2>
-            <a href={resolve('/tasks')}>{ui('View all')} <ArrowUpRight size={13} /></a>
-          </header>
-          {#each day.reminders as task}<a class="work-row" href={resolve(`/tasks/${task.id}`)}
-              ><span class="record"
-                ><strong>{task.name}</strong><small>{task.priority} {ui('priority')}</small></span
-              ><span class="due">{ui('Due')} {date(task.due)}</span></a
-            >{/each}
-        </section>{/if}
-      <section class="panel crm-panel">
-        <header>
-          <h2>{ui('Tasks')} <span>{day.counts.tasks}</span></h2>
+    <section class="panel tasks crm-panel">
+      <header class="crm-panel-heading">
+        <h2>{ui('Tasks')} <span>{day.counts.tasks}</span></h2>
+        <a href={resolve('/tasks')}>{ui('View all')} <ArrowUpRight size={13} /></a>
+      </header>
+      {#each day.tasks as task}<div class="work-row">
+          <form
+            method="POST"
+            action="?/complete"
+            use:enhance={() => {
+              saving[task.id] = true;
+              return async ({ update }) => {
+                try {
+                  await update({ reset: false });
+                } finally {
+                  saving[task.id] = false;
+                }
+              };
+            }}
+          >
+            <input type="hidden" name="id" value={task.id} /><button
+              class="complete"
+              aria-label={`Complete ${task.name}`}
+              title={ui('Complete task')}
+              disabled={saving[task.id]}><Circle size={19} /></button
+            >
+          </form>
+          <a class="record" href={resolve(`/tasks/${task.id}`)}
+            ><strong>{task.name}</strong><small>{task.priority} · {task.status}</small></a
+          ><span class="due" class:late={task.overdue}
+            >{task.overdue ? date(task.due) : ui('Today')}</span
+          >
+        </div>{:else}<p class="empty-copy">{ui('No tasks due today or overdue.')}</p>{/each}
+    </section>
+    <section class="panel deals crm-panel">
+      <header class="crm-panel-heading">
+        <h2>{ui('Deals to follow up')} <span>{day.counts.deals}</span></h2>
+        <a href={resolve('/pipeline')}>{ui('View all')} <ArrowUpRight size={13} /></a>
+      </header>
+      <div class="deal-table-scroll">
+        <table class="deal-table">
+          <thead
+            ><tr
+              ><th scope="col">{ui('Name')}</th><th scope="col">{ui('Stage')}</th><th scope="col"
+                >{ui('Amount')}</th
+              ><th scope="col">{ui('Due')}</th></tr
+            ></thead
+          >
+          <tbody
+            >{#each day.deals as deal}<tr>
+                <td
+                  ><a class="record" href={resolve(`/pipeline/${deal.id}`)}
+                    ><strong>{deal.name}</strong></a
+                  ></td
+                >
+                <td><span class="stage-label">{deal.stage}</span></td>
+                <td class="numeric">{money(deal.amount, deal.currency)}</td>
+                <td
+                  ><span class="due" class:late={deal.overdue}
+                    >{deal.overdue ? date(deal.due) : ui('Today')}</span
+                  ></td
+                >
+              </tr>{:else}<tr
+                ><td colspan="4" class="empty-copy"
+                  >{ui('No open deals due to close today or overdue.')}</td
+                ></tr
+              >{/each}</tbody
+          >
+        </table>
+      </div>
+    </section>
+    <section class="panel tickets crm-panel">
+      <header class="crm-panel-heading">
+        <h2>{ui('Tickets')} <span>{day.counts.tickets}</span></h2>
+        <a href={resolve('/tickets')}>{ui('View all')} <ArrowUpRight size={13} /></a>
+      </header>
+      {#each day.tickets as ticket}<a
+          class="work-row record"
+          href={resolve(`/tickets/${ticket.id}`)}
+          ><span
+            ><strong>{ticket.name}</strong><small>{ticket.code} · {ticket.priority}</small></span
+          ><span class="due" class:late={ticket.overdue}
+            >{ticket.overdue ? date(ticket.due) : ui('Today')}</span
+          ></a
+        >{:else}<p class="empty-copy">{ui('No open tickets due today or overdue.')}</p>{/each}
+    </section>
+    {#if day.reminders?.length}<section class="panel reminders crm-panel">
+        <header class="crm-panel-heading">
+          <h2>{ui('Task reminders')} <span>{day.counts.reminders}</span></h2>
           <a href={resolve('/tasks')}>{ui('View all')} <ArrowUpRight size={13} /></a>
         </header>
-        {#each day.tasks as task}<div class="work-row">
-            <form
-              method="POST"
-              action="?/complete"
-              use:enhance={() => {
-                saving[task.id] = true;
-                return async ({ update }) => {
-                  try {
-                    await update({ reset: false });
-                  } finally {
-                    saving[task.id] = false;
-                  }
-                };
-              }}
-            >
-              <input type="hidden" name="id" value={task.id} /><button
-                class="complete"
-                aria-label={`Complete ${task.name}`}
-                title={ui('Complete task')}
-                disabled={saving[task.id]}><Circle size={19} /></button
-              >
-            </form>
-            <a class="record" href={resolve(`/tasks/${task.id}`)}
-              ><strong>{task.name}</strong><small>{task.priority} · {task.status}</small></a
-            ><span class="due" class:late={task.overdue}
-              >{task.overdue ? date(task.due) : ui('Today')}</span
-            >
-          </div>{:else}<p class="empty-copy">{ui('No tasks due today or overdue.')}</p>{/each}
-      </section>
-      <section class="panel crm-panel">
-        <header>
-          <h2>{ui('Deals to follow up')} <span>{day.counts.deals}</span></h2>
-          <a href={resolve('/pipeline')}>{ui('View all')} <ArrowUpRight size={13} /></a>
-        </header>
-        {#each day.deals as deal}<a class="work-row record" href={resolve(`/pipeline/${deal.id}`)}
-            ><span
-              ><strong>{deal.name}</strong><small
-                >{deal.stage} · {money(deal.amount, deal.currency)}</small
-              ></span
-            ><span class="due" class:late={deal.overdue}
-              >{deal.overdue ? date(deal.due) : ui('Today')}</span
-            ></a
-          >{:else}<p class="empty-copy">
-            {ui('No open deals due to close today or overdue.')}
-          </p>{/each}
-      </section>
-      <section class="panel crm-panel">
-        <header>
-          <h2>{ui('Tickets')} <span>{day.counts.tickets}</span></h2>
-          <a href={resolve('/tickets')}>{ui('View all')} <ArrowUpRight size={13} /></a>
-        </header>
-        {#each day.tickets as ticket}<a
-            class="work-row record"
-            href={resolve(`/tickets/${ticket.id}`)}
-            ><span
-              ><strong>{ticket.name}</strong><small>{ticket.code} · {ticket.priority}</small></span
-            ><span class="due" class:late={ticket.overdue}
-              >{ticket.overdue ? date(ticket.due) : ui('Today')}</span
-            ></a
-          >{:else}<p class="empty-copy">{ui('No open tickets due today or overdue.')}</p>{/each}
-      </section>
-    </div>
+        {#each day.reminders as task}<a class="work-row" href={resolve(`/tasks/${task.id}`)}
+            ><span class="record"
+              ><strong>{task.name}</strong><small>{task.priority} {ui('priority')}</small></span
+            ><span class="due">{ui('Due')} {date(task.due)}</span></a
+          >{/each}
+      </section>{/if}
   </div>
 </div>
 
@@ -182,7 +200,16 @@
     overflow: auto;
   }
   .day-counts {
-    margin-bottom: var(--crm-space-5);
+    margin-bottom: var(--crm-space-4);
+  }
+  .day-counts :global(.crm-stat) {
+    padding: var(--crm-space-5);
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--crm-space-4);
+  }
+  .day-counts :global(.crm-stat strong) {
+    font-size: var(--crm-text-2xl);
   }
   .day-counts span {
     display: flex;
@@ -205,23 +232,36 @@
   }
   .day-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-    gap: var(--crm-space-4);
-    align-items: start;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-areas: 'agenda tasks' 'deals tickets';
+    gap: var(--crm-panel-gap);
+    align-items: stretch;
   }
   .panel {
-    padding: var(--crm-space-5);
+    padding: 0;
+    overflow: hidden;
   }
-  .work {
-    display: grid;
-    gap: var(--crm-space-4);
+  .agenda {
+    grid-area: agenda;
+  }
+  .tasks {
+    grid-area: tasks;
+  }
+  .tickets {
+    grid-area: tickets;
+  }
+  .deals {
+    grid-area: deals;
+  }
+  .reminders {
+    grid-column: 1 / -1;
   }
   header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-    margin-bottom: var(--crm-space-3);
+    margin-bottom: 0;
   }
   h2 {
     font-size: var(--crm-text-sm);
@@ -244,7 +284,7 @@
     text-decoration: none;
   }
   .timezone {
-    margin: -4px 0 var(--crm-space-4);
+    margin: var(--crm-space-3) var(--crm-space-5) 0;
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
@@ -254,21 +294,23 @@
     gap: var(--crm-space-4);
     width: 100%;
     border: 0;
-    border-left: 3px solid var(--crm-primary);
-    background: var(--v2-paper);
-    border-radius: var(--crm-radius-md);
-    padding: 14px var(--crm-space-3);
-    margin: var(--crm-space-2) 0;
+    border-bottom: 1px solid var(--crm-border-soft);
+    background: var(--crm-surface);
+    border-radius: 0;
+    padding: var(--crm-space-4) var(--crm-space-5);
+    margin: 0;
     cursor: pointer;
     color: var(--v2-ink);
   }
-  .event.company {
-    border-left-color: var(--crm-success);
+  .event.company .event-time {
+    border-right-color: var(--crm-success);
   }
   .event-time {
     flex-shrink: 0;
     font-size: var(--crm-text-xs);
-    min-width: 72px;
+    min-width: 5.5rem;
+    border-right: 3px solid var(--crm-primary);
+    padding-right: var(--crm-space-3);
   }
   .event strong,
   .record strong {
@@ -286,12 +328,11 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: var(--crm-space-3) 0;
+    padding: var(--crm-space-4) var(--crm-space-5);
     border-bottom: 1px solid var(--v2-line-soft);
   }
   .work-row:last-child {
     border-bottom: 0;
-    padding-bottom: 0;
   }
   .record {
     color: var(--v2-ink);
@@ -345,15 +386,92 @@
   .empty-copy {
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-    margin: var(--crm-space-5) 0 6px;
+    margin: var(--crm-space-5);
   }
   .my-day {
     color: var(--v2-slate);
     font-size: var(--crm-text-sm);
   }
-  @media (max-width: 1050px) {
+  .day-counts span {
+    justify-content: space-between;
+    flex-direction: row-reverse;
+  }
+  .day-counts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .deal-table-scroll {
+    position: relative;
+    overflow: auto;
+  }
+  .deal-table {
+    width: 100%;
+    min-width: 36rem;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: var(--crm-text-sm);
+  }
+  .deal-table th {
+    background: var(--crm-surface-subtle);
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-xs);
+    font-weight: 550;
+  }
+  .deal-table th,
+  .deal-table td {
+    padding: var(--crm-space-3) var(--crm-space-5);
+    border-bottom: 1px solid var(--crm-border-soft);
+  }
+  .deal-table tr:last-child td {
+    border-bottom: 0;
+  }
+  .numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .stage-label {
+    display: inline-block;
+    padding: var(--crm-space-1) var(--crm-space-2);
+    border-radius: var(--crm-radius-sm);
+    background: var(--crm-surface-subtle);
+    font-size: var(--crm-text-xs);
+    white-space: nowrap;
+  }
+  .complete {
+    min-width: var(--crm-target-size);
+    min-height: var(--crm-target-size);
+  }
+  .more {
+    display: block;
+    padding: var(--crm-space-3) var(--crm-space-5);
+  }
+  @container crm-workspace (max-width: 50rem) {
     .day-layout {
       grid-template-columns: 1fr;
+      grid-template-areas: none;
+    }
+    .panel {
+      grid-area: auto;
+    }
+  }
+  @media (max-width: 600px) {
+    .day-counts {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--crm-space-3);
+    }
+    .day-counts :global(.crm-stat:last-child) {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      align-items: center;
+    }
+    .day-counts span {
+      flex-direction: row;
+    }
+    .event,
+    .work-row {
+      padding-inline: var(--crm-space-4);
+    }
+    .work-row {
+      flex-wrap: wrap;
     }
   }
 </style>

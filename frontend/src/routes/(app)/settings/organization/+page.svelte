@@ -192,14 +192,19 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    background: var(--v2-bg, var(--crm-surface));
+    background: var(--crm-canvas);
   }
   .organization-content {
-    padding: 30px var(--crm-space-8);
+    padding: var(--crm-space-5) var(--crm-page-gutter);
     max-width: 820px;
   }
   form {
     max-width: 640px;
+    padding: var(--crm-space-5);
+    background: var(--crm-surface);
+    border: 1px solid var(--crm-border-soft);
+    border-radius: var(--crm-radius-lg);
+    box-shadow: var(--crm-panel-shadow);
   }
   fieldset {
     border: 0;
@@ -263,7 +268,7 @@
   }
   @media (max-width: 600px) {
     .organization-content {
-      padding: var(--crm-space-5) var(--crm-space-4);
+      padding: var(--crm-space-4) var(--crm-page-gutter);
     }
     .fields {
       grid-template-columns: 1fr;

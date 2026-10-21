@@ -98,7 +98,7 @@
     overflow-y: auto;
     padding: 23px 13px;
     border-right: 1px solid var(--v2-line);
-    background: var(--crm-canvas);
+    background: var(--crm-surface);
   }
   .preferences-heading {
     display: flex;

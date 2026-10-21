@@ -34,6 +34,7 @@
     outline-offset: 2px;
   }
   .table-wrap {
+    position: relative;
     overflow-x: auto;
     border: 1px solid var(--v2-line);
     border-radius: var(--crm-radius-lg);
@@ -49,7 +50,7 @@
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     font-weight: 500;
-    background: var(--v2-hover);
+    background: var(--crm-surface-subtle);
     padding: var(--crm-space-3) var(--crm-space-4);
     white-space: nowrap;
   }
@@ -59,7 +60,7 @@
     vertical-align: middle;
   }
   .access-table tr:hover td {
-    background: var(--v2-hover);
+    background: var(--crm-surface-subtle);
   }
   .access-table strong {
     font-weight: 550;
@@ -70,7 +71,7 @@
     align-items: center;
     padding: var(--crm-space-1) var(--crm-space-2);
     border-radius: var(--crm-radius-sm);
-    background: var(--v2-hover);
+    background: var(--crm-surface-subtle);
     color: var(--v2-slate);
     font-size: var(--crm-text-xs);
     white-space: nowrap;
@@ -96,7 +97,7 @@
     width: 36px;
     height: 36px;
     border-radius: var(--crm-radius-md);
-    background: var(--v2-hover);
+    background: var(--crm-surface-subtle);
     color: var(--v2-slate);
     flex-shrink: 0;
   }

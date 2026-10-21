@@ -1,6 +1,5 @@
 <script>
-  import { useI18n } from '$lib/i18n/context.js';
-  const { relativeDays } = useI18n();
+  import RecordActivityEntry from './RecordActivityEntry.svelte';
 
   /**
    * Newest first. The filled dot marks the latest event only. Everything
@@ -14,8 +13,7 @@
 <div class="v2-timeline">
   {#each events as e, i (e.id)}
     <div class="v2-event" class:latest={i === 0}>
-      <div style="font-weight:500">{e.body}</div>
-      <div class="v2-event-meta">{relativeDays(e.at) + (e.by ? ` · ${e.by}` : '')}</div>
+      <RecordActivityEntry event={e} />
     </div>
   {/each}
 </div>

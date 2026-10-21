@@ -465,6 +465,7 @@
     padding-bottom: 10px;
   }
   .table-wrap {
+    position: relative;
     overflow: auto;
     background: var(--v2-card, var(--crm-surface));
     border: 1px solid var(--v2-line);

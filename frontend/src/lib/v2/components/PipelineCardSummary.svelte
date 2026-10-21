@@ -80,7 +80,7 @@
 
   .compact-heading {
     display: flex;
-    align-items: baseline;
+    align-items: flex-start;
     gap: var(--crm-space-2);
     min-width: 0;
   }
@@ -92,8 +92,13 @@
     color: var(--v2-ink);
     line-height: 1.5;
     text-decoration: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
   }
-  .compact-name,
   .compact-value,
   .compact-email,
   .compact-phone {

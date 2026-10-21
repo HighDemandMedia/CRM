@@ -86,6 +86,12 @@
   --crm-target-size: 2.75rem;
   --crm-row-height: 3rem;
   --crm-duration: 140ms;
+  --crm-text-page: 1.75rem;
+  --crm-page-gutter: clamp(0.75rem, 2vw, 1.5rem);
+  --crm-panel-gap: 1.25rem;
+  --crm-border-soft: color-mix(in srgb, var(--crm-border) 65%, var(--crm-surface));
+  --crm-surface-subtle: color-mix(in srgb, var(--crm-canvas) 55%, var(--crm-surface));
+  --crm-panel-shadow: 0 1px 2px rgb(0 0 0 / 3%);
 }
 
 /* Preserve the existing dark-mode contract with the same accessible semantics. */

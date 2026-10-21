@@ -1,6 +1,6 @@
 /* Common workspace surfaces, using the same tokens as object lists. */
 .crm-module-body {
-  padding: var(--crm-space-4) var(--crm-space-6) var(--crm-space-6);
+  padding: 0 var(--crm-page-gutter) var(--crm-space-6);
   min-width: 0;
 }
 .crm-module-toolbar {
@@ -32,13 +32,14 @@
 .crm-panel {
   min-width: 0;
   background: var(--crm-surface);
-  border: 1px solid var(--crm-border);
+  border: 1px solid var(--crm-border-soft);
+  box-shadow: var(--crm-panel-shadow);
   border-radius: var(--crm-radius-lg);
 }
 .crm-stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
-  gap: var(--crm-space-4);
+  gap: var(--crm-panel-gap);
 }
 .crm-stat {
   display: flex;
@@ -71,4 +72,24 @@
   .crm-module-actions {
     margin-left: 0;
   }
+}
+
+.crm-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--crm-space-3);
+  min-height: 3.5rem;
+  padding: var(--crm-space-4) var(--crm-space-5);
+  border-bottom: 1px solid var(--crm-border-soft);
+}
+.crm-panel-body {
+  padding: var(--crm-space-4) var(--crm-space-5);
+  min-width: 0;
+}
+.crm-stat small {
+  padding-top: var(--crm-space-3);
+  margin-top: auto;
+  border-top: 1px solid var(--crm-border-soft);
 }

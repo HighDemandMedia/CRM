@@ -1,4 +1,5 @@
 <script>
+  import SelectFilter from '$lib/components/ui/filter/SelectFilter.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { TICKET_SORT_FIELDS } from '$lib/v2/ticket-sort.js';
   import ListPagination from '$lib/v2/components/ListPagination.svelte';
@@ -182,17 +183,12 @@
         ? ui('ticket')
         : ui(
             'tickets'
-          )}{/snippet}{#snippet actions()}{#if can(page.data.permissions, 'tickets', 'export')}<ExportDialog
-          endpoint={resolve('/tickets/export')}
-          {columns}
-          {rows}
-          filename="tickets.csv"
-        />{/if}{#if can(page.data.permissions, 'tickets', 'create')}<a
+          )}{/snippet}{#snippet actions()}{#if can(page.data.permissions, 'tickets', 'create')}<a
           class="v2-btn v2-btn-primary"
           href={resolve('/tickets/new')}><Plus size={14} />{ui('New ticket')}</a
         >{/if}{/snippet}</PageHeader
   >
-  <div class="object-workspace">
+  <div class="object-workspace crm-list-workspace" class:is-list={view === 'list'}>
     <div class="object-filters">
       <input
         class="v2-input search"
@@ -205,15 +201,16 @@
         }}
       />
       {#if canFilterOwners(page.data.permissions, 'tickets')}
-        <select
-          class="v2-input"
-          aria-label={ui('Assigned to')}
-          value={page.url.searchParams.get('assigned_to') ?? ''}
-          onchange={(e) => filter('assigned_to', e.currentTarget.value)}
-          ><option value="">{ui('Assigned to')}</option>{#each data.people as person}<option
-              value={person.id}>{person.name}</option
-            >{/each}</select
-        >
+        <div class="owner-filter">
+          <SelectFilter
+            searchable
+            label={ui('Assigned to')}
+            allLabel={ui('Assigned to')}
+            value={page.url.searchParams.get('assigned_to') ?? ''}
+            onchange={(value) => filter('assigned_to', String(value))}
+            options={data.people.map((person) => ({ value: person.id, label: person.name }))}
+          />
+        </div>
       {/if}
       <select
         class="v2-input"
@@ -266,6 +263,12 @@
             onToggle={toggle}
             onShowAll={selection.showAll}
             onReset={selection.reset}
+          />{/if}
+        {#if can(page.data.permissions, 'tickets', 'export')}<ExportDialog
+            endpoint={resolve('/tickets/export')}
+            {columns}
+            {rows}
+            filename="tickets.csv"
           />{/if}
       </div>
     </div>

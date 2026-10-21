@@ -1,4 +1,5 @@
 <script>
+  import SelectFilter from '$lib/components/ui/filter/SelectFilter.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -58,18 +59,16 @@
       /></label
     >
     {#if canFilterOwners(page.data.permissions, 'tasks')}
-      <label class="crm-module-field"
-        ><span class="v2-sr-only">{ui('Owner')}</span>
-        <select
-          class="v2-input"
+      <div class="crm-module-field">
+        <SelectFilter
+          searchable
           name="assigned_to"
-          aria-label={ui('Owner')}
+          label={ui('Owner')}
+          allLabel={ui('All owners')}
           value={url.searchParams.get('assigned_to') ?? ''}
-          ><option value="">{ui('All owners')}</option>{#each people as person}<option
-              value={person.id}>{person.name}</option
-            >{/each}</select
-        ></label
-      >
+          options={people.map((person) => ({ value: person.id, label: person.name }))}
+        />
+      </div>
     {/if}
     <label class="crm-module-field"
       ><span class="v2-sr-only">{ui('Status')}</span>

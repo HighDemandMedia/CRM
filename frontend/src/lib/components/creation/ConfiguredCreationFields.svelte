@@ -259,7 +259,7 @@
 <style>
   .configured-fields {
     display: grid;
-    gap: var(--crm-space-4);
+    gap: var(--crm-space-3);
   }
   h3 {
     font-size: var(--crm-text-sm);

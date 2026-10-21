@@ -63,9 +63,10 @@
   .v2-header.is-compact {
     align-items: center;
     gap: var(--crm-space-2);
-    padding: var(--crm-space-3) var(--crm-space-3) 0;
+    padding: var(--crm-space-5) var(--crm-page-gutter) var(--crm-space-4);
   }
   .is-compact .heading {
+    flex: 1 1 8rem;
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;

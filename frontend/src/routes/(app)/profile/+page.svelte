@@ -475,7 +475,7 @@
     flex: 1;
     min-height: 0;
     min-width: 0;
-    background: var(--v2-bg, var(--crm-surface));
+    background: var(--crm-canvas);
   }
   .profile-shell > .v2-scroll {
     flex: 1;
@@ -570,10 +570,17 @@
     border-radius: var(--crm-radius-sm);
   }
   .profile-layout {
-    padding: 30px var(--crm-space-8);
+    padding: var(--crm-space-5) var(--crm-page-gutter);
     max-width: 1000px;
     width: 100%;
     box-sizing: border-box;
+  }
+  .profile-panel {
+    background: var(--crm-surface);
+    border: 1px solid var(--crm-border-soft);
+    border-radius: var(--crm-radius-lg);
+    box-shadow: var(--crm-panel-shadow);
+    padding: var(--crm-space-5);
   }
   .profile-panel[hidden] {
     display: none;

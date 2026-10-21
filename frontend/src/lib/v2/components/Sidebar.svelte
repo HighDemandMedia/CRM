@@ -376,6 +376,12 @@
 </nav>
 
 <style>
+  .v2-nav-search {
+    border: 1px solid var(--crm-nav-border);
+    border-radius: var(--crm-radius-md);
+    margin-block: var(--crm-space-2) var(--crm-space-4);
+  }
+
   .nav-scroll {
     flex: 1;
     min-height: 0;

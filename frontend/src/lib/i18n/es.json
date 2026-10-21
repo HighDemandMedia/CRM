@@ -1801,5 +1801,8 @@
   "Enter a value": "Introduce un valor",
   "Create tags": "Crear etiquetas",
   "Create tags without changing existing tags or Settings access.": "Crear etiquetas sin modificar las existentes ni el acceso a Configuración.",
-  "Your permission set does not allow creating tags.": "Tu conjunto de permisos no permite crear etiquetas."
+  "Your permission set does not allow creating tags.": "Tu conjunto de permisos no permite crear etiquetas.",
+  "Compact rows": "Filas compactas",
+  "View changes": "Ver cambios",
+  "Search options": "Buscar opciones"
 }

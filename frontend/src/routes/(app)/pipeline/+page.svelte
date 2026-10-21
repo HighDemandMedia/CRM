@@ -1,4 +1,5 @@
 <script>
+  import SelectFilter from '$lib/components/ui/filter/SelectFilter.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import ExportDialog from '$lib/v2/components/ExportDialog.svelte';
@@ -498,397 +499,403 @@
   {/snippet}
 </PageHeader>
 
-<form
-  class="contact-filters object-toolbar"
-  method="GET"
-  action={resolve('/pipeline')}
-  oninput={filterInput}
-  onsubmit={(event) => {
-    event.preventDefault();
-    updateFilters();
-  }}
->
-  <input type="hidden" name="view" value={data.view} />
-  {#each ['sort', 'direction', 'inactive', 'page_size'] as key}
-    {#if page.url.searchParams.get(key)}<input
-        type="hidden"
-        name={key}
-        value={page.url.searchParams.get(key)}
-      />{/if}
-  {/each}
-  <label
-    ><span class="v2-sr-only">{ui('Search')}</span><input
-      class="v2-input"
-      type="search"
-      name="search"
-      placeholder={ui('Search deals…')}
-      value={filterValues.search ?? ''}
-    /></label
+<div class="crm-list-workspace" class:is-list={data.view !== 'pipeline'}>
+  <form
+    class="contact-filters object-toolbar"
+    method="GET"
+    action={resolve('/pipeline')}
+    oninput={filterInput}
+    onsubmit={(event) => {
+      event.preventDefault();
+      updateFilters();
+    }}
   >
-  {#if canFilterOwners(page.data.permissions, 'deals')}
+    <input type="hidden" name="view" value={data.view} />
+    {#each ['sort', 'direction', 'inactive', 'page_size'] as key}
+      {#if page.url.searchParams.get(key)}<input
+          type="hidden"
+          name={key}
+          value={page.url.searchParams.get(key)}
+        />{/if}
+    {/each}
     <label
-      ><span class="v2-sr-only">{ui('Deal Owner')}</span><select
+      ><span class="v2-sr-only">{ui('Search')}</span><input
         class="v2-input"
-        name="assigned_to"
-        value={filterValues.assigned_to ?? ''}
-        ><option value="">{ui('All owners')}</option>{#each data.people as person}<option
-            value={person.id}>{person.name}</option
+        type="search"
+        name="search"
+        placeholder={ui('Search deals…')}
+        value={filterValues.search ?? ''}
+      /></label
+    >
+    {#if canFilterOwners(page.data.permissions, 'deals')}
+      <div class="owner-filter">
+        <SelectFilter
+          searchable
+          name="assigned_to"
+          label={ui('Owner')}
+          allLabel={ui('All owners')}
+          value={filterValues.assigned_to ?? ''}
+          options={data.people.map((person) => ({ value: person.id, label: person.name }))}
+        />
+      </div>
+    {/if}
+    <label
+      ><span class="v2-sr-only">{ui('Priority')}</span><select
+        class="v2-input"
+        name="priority"
+        value={filterValues.priority ?? ''}
+        ><option value="">{ui('All priorities')}</option
+        >{#each ['Low', 'Medium', 'High'] as label}<option value={label.toUpperCase()}
+            >{label}</option
           >{/each}</select
       ></label
     >
-  {/if}
-  <label
-    ><span class="v2-sr-only">{ui('Priority')}</span><select
-      class="v2-input"
-      name="priority"
-      value={filterValues.priority ?? ''}
-      ><option value="">{ui('All priorities')}</option
-      >{#each ['Low', 'Medium', 'High'] as label}<option value={label.toUpperCase()}>{label}</option
-        >{/each}</select
-    ></label
-  >
-  <label
-    ><span class="v2-sr-only">{ui('Stage')}</span><select
-      class="v2-input"
-      name="stage"
-      value={filterValues.stage ?? ''}
-    >
-      <option value="">{ui('All stages')}</option>
-      {#each data.stages as stage}<option value={stage.value}>{stage.label}</option>{/each}
-    </select></label
-  >
-  <details class="advanced-filters">
-    <summary class="v2-btn"
-      >{ui('Filters')}{advancedKeys.length ? ` (${advancedKeys.length})` : ''}</summary
-    >
-    <div class="advanced-panel">
-      <label
-        >{ui('Add filter')}<select
-          class="v2-input"
-          aria-label={ui('Add filter')}
-          value=""
-          onchange={(event) => {
-            if (event.currentTarget.value)
-              advancedKeys = [...advancedKeys, event.currentTarget.value];
-            event.currentTarget.value = '';
-          }}
-        >
-          <option value="">{ui('Choose a property')}</option>
-          {#each advancedContactFilters.filter((field) => !advancedKeys.includes(field.key)) as field}
-            <option value={field.key}>{ui(field.label)}</option>
-          {/each}
-        </select></label
+    <label
+      ><span class="v2-sr-only">{ui('Stage')}</span><select
+        class="v2-input"
+        name="stage"
+        value={filterValues.stage ?? ''}
       >
-      {#each advancedKeys as key (key)}
-        {@const field = advancedContactFilters.find((item) => item.key === key)}
-        {#if field}
-          <div class="advanced-row">
-            {#if field.type?.endsWith('range')}
-              <fieldset>
-                <legend>{ui(field.label)}</legend>
+        <option value="">{ui('All stages')}</option>
+        {#each data.stages as stage}<option value={stage.value}>{stage.label}</option>{/each}
+      </select></label
+    >
+    <details class="advanced-filters">
+      <summary class="v2-btn"
+        >{ui('Filters')}{advancedKeys.length ? ` (${advancedKeys.length})` : ''}</summary
+      >
+      <div class="advanced-panel">
+        <label
+          >{ui('Add filter')}<select
+            class="v2-input"
+            aria-label={ui('Add filter')}
+            value=""
+            onchange={(event) => {
+              if (event.currentTarget.value)
+                advancedKeys = [...advancedKeys, event.currentTarget.value];
+              event.currentTarget.value = '';
+            }}
+          >
+            <option value="">{ui('Choose a property')}</option>
+            {#each advancedContactFilters.filter((field) => !advancedKeys.includes(field.key)) as field}
+              <option value={field.key}>{ui(field.label)}</option>
+            {/each}
+          </select></label
+        >
+        {#each advancedKeys as key (key)}
+          {@const field = advancedContactFilters.find((item) => item.key === key)}
+          {#if field}
+            <div class="advanced-row">
+              {#if field.type?.endsWith('range')}
+                <fieldset>
+                  <legend>{ui(field.label)}</legend>
+                  <label
+                    >{ui('From')}<input
+                      class="v2-input"
+                      type={field.type === 'number-range' ? 'number' : 'date'}
+                      name={`${key}__gte`}
+                      aria-label={`${ui(field.label)} from`}
+                      value={filterValues[`${key}__gte`] ?? ''}
+                    /></label
+                  >
+                  <label
+                    >{ui('To')}<input
+                      class="v2-input"
+                      type={field.type === 'number-range' ? 'number' : 'date'}
+                      name={`${key}__lte`}
+                      aria-label={`${ui(field.label)} to`}
+                      value={filterValues[`${key}__lte`] ?? ''}
+                    /></label
+                  >
+                </fieldset>
+              {:else if field.options}
                 <label
-                  >{ui('From')}<input
+                  >{ui(field.label)}<select
                     class="v2-input"
-                    type={field.type === 'number-range' ? 'number' : 'date'}
-                    name={`${key}__gte`}
-                    aria-label={`${ui(field.label)} from`}
-                    value={filterValues[`${key}__gte`] ?? ''}
+                    name={key}
+                    value={filterValues[key] ?? ''}
+                  >
+                    <option value="">{ui('Any')}</option>
+                    {#each field.options as [value, label]}<option {value}>{label}</option>{/each}
+                  </select></label
+                >
+              {:else}
+                <label
+                  >{ui(field.label)}<input
+                    class="v2-input"
+                    name={key}
+                    value={filterValues[key] ?? ''}
                   /></label
                 >
-                <label
-                  >{ui('To')}<input
-                    class="v2-input"
-                    type={field.type === 'number-range' ? 'number' : 'date'}
-                    name={`${key}__lte`}
-                    aria-label={`${ui(field.label)} to`}
-                    value={filterValues[`${key}__lte`] ?? ''}
-                  /></label
-                >
-              </fieldset>
-            {:else if field.options}
-              <label
-                >{ui(field.label)}<select
-                  class="v2-input"
-                  name={key}
-                  value={filterValues[key] ?? ''}
-                >
-                  <option value="">{ui('Any')}</option>
-                  {#each field.options as [value, label]}<option {value}>{label}</option>{/each}
-                </select></label
+              {/if}
+              <button
+                class="v2-btn"
+                type="button"
+                aria-label={`Remove ${ui(field.label)} filter`}
+                onclick={() => removeFilter(key)}>×</button
               >
-            {:else}
-              <label
-                >{ui(field.label)}<input
-                  class="v2-input"
-                  name={key}
-                  value={filterValues[key] ?? ''}
-                /></label
-              >
-            {/if}
-            <button
-              class="v2-btn"
-              type="button"
-              aria-label={`Remove ${ui(field.label)} filter`}
-              onclick={() => removeFilter(key)}>×</button
-            >
-          </div>
-        {/if}
-      {/each}
-    </div>
-  </details>
-  {#if data.view === 'list'}
-    {#if can(page.data.permissions, 'deals', 'export')}<ExportDialog
-        endpoint={resolve('/pipeline/export')}
-        columns={selected}
-        rows={data.deals}
-        filename="deals.csv"
-      />{/if}
-  {/if}
-  <div class="view-actions">
-    <nav class="view-toggle" aria-label={ui('Deal views')}>
-      <a
-        class="v2-btn view-icon"
-        class:v2-btn-primary={data.view === 'list'}
-        aria-label={ui('List view')}
-        title={ui('List view')}
-        aria-current={data.view === 'list' ? 'page' : undefined}
-        href={link({ view: 'list' })}><List size={18} /></a
-      >
-      <a
-        class="v2-btn view-icon"
-        class:v2-btn-primary={data.view === 'pipeline'}
-        aria-label={ui('Pipeline view')}
-        title={ui('Pipeline view')}
-        aria-current={data.view === 'pipeline' ? 'page' : undefined}
-        href={link({ view: 'pipeline' })}><Columns3 size={18} /></a
-      >
-    </nav>
-    {#if data.view === 'list'}
-      <ColumnPicker
-        {fields}
-        {selected}
-        onToggle={toggleColumn}
-        onShowAll={selection.showAll}
-        onReset={selection.reset}
-      />
-    {/if}
-  </div>
-</form>
-
-{#if filterError}<Notice message={filterError} />{/if}
-
-<div
-  class="v2-scroll"
-  class:pipeline-scroll={data.view === 'pipeline'}
-  class:list-scroll={data.view !== 'pipeline'}
->
-  {#if data.view === 'pipeline'}
-    {#if moveError}<Notice message={moveError} />{/if}
-    <p class="table-hint v2-sub" role="status">{moveStatus}</p>
-    <div class="contact-board hdm-board" aria-label={ui('Deals by stage')}>
-      {#each data.board as stage (stage.value)}
-        <section
-          class="stage-column pipeline-column"
-          data-tone={pipelineTone(stage.label)}
-          class:drop-target={dropStage === stage.value}
-          aria-label={stage.label}
-          ondragover={(event) => overStage(event, stage.value)}
-          ondrop={(event) => dropContact(event, stage.value)}
-          ondragleave={(event) => {
-            if (!event.currentTarget.contains(/** @type {Node | null} */ (event.relatedTarget)))
-              dropStage = '';
-          }}
-        >
-          <header class="pipeline-header">
-            <h2>{stage.label}</h2>
-            <div class="pipeline-stage-totals">
-              <PipelineTotal
-                currency={data.org.currency}
-                values={stage.moneyTotals}
-                label={ui('Total deal amount')}
-              /><span class="pipeline-stage-count">{count(stage.count)}</span>
             </div>
-          </header>
-          <div class="pipeline-cards">
-            {#each stage.contacts as contact (contact.id)}
-              <article
-                class="contact-card pipeline-card compact-pipeline-card"
-                class:card-dragging={draggedContact === contact.id}
-                class:card-saving={movingContact === contact.id}
-                aria-busy={movingContact === contact.id}
-                draggable={!movingContact && can(page.data.permissions, 'deals', 'stage')}
-                ondragstart={(event) => startContactDrag(event, contact.id, stage.value)}
-                ondragend={endContactDrag}
-              >
-                <PipelineCardSummary
-                  name={contact.name}
-                  tags={contact.tags}
-                  href={`/pipeline/${contact.id}`}
-                  email={contact.email}
-                  phone={contact.phone}
-                  values={[{ amount: contact.amount, currency: contact.currency }]}
-                  valueLabel="Value"
-                  lastActivity={contact.last_activity_at}
-                  stageEntered={contact.stage_entered_at}
-                  now={clock}
-                />
-              </article>
-            {:else}<p class="pipeline-empty">{ui('No deals')}</p>{/each}
-          </div>
-          <footer>
-            {#if stage.offset > 0}<a
-                class="v2-btn"
-                aria-label={`Previous ${stage.label} page`}
-                href={link({
-                  [`${stage.value}_offset`]: String(Math.max(0, stage.offset - data.pageSize))
-                })}>{ui('Previous')}</a
-              >{/if}
-            {#if stage.offset + data.pageSize < stage.count}<a
-                class="v2-btn"
-                aria-label={`Next ${stage.label} page`}
-                href={link({ [`${stage.value}_offset`]: String(stage.offset + data.pageSize) })}
-                >{ui('Next')}</a
-              >{/if}
-          </footer>
-        </section>
-      {/each}
+          {/if}
+        {/each}
+      </div>
+    </details>
+    <div class="view-actions">
+      <nav class="view-toggle" aria-label={ui('Deal views')}>
+        <a
+          class="v2-btn view-icon"
+          class:v2-btn-primary={data.view === 'list'}
+          aria-label={ui('List view')}
+          title={ui('List view')}
+          aria-current={data.view === 'list' ? 'page' : undefined}
+          href={link({ view: 'list' })}><List size={18} /></a
+        >
+        <a
+          class="v2-btn view-icon"
+          class:v2-btn-primary={data.view === 'pipeline'}
+          aria-label={ui('Pipeline view')}
+          title={ui('Pipeline view')}
+          aria-current={data.view === 'pipeline' ? 'page' : undefined}
+          href={link({ view: 'pipeline' })}><Columns3 size={18} /></a
+        >
+      </nav>
+      {#if data.view === 'list'}
+        <ColumnPicker
+          {fields}
+          {selected}
+          onToggle={toggleColumn}
+          onShowAll={selection.showAll}
+          onReset={selection.reset}
+        />
+      {/if}
+      {#if data.view === 'list'}
+        {#if can(page.data.permissions, 'deals', 'export')}<ExportDialog
+            endpoint={resolve('/pipeline/export')}
+            columns={selected}
+            rows={data.deals}
+            filename="deals.csv"
+          />{/if}
+      {/if}
     </div>
-  {:else}
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this overflow region to scroll the table.) -->
-    <div
-      class="contact-table-scroll hdm-list"
-      ondragover={previewPosition}
-      ondrop={dropColumn}
-      ondragleave={leaveColumns}
-      role="region"
-      aria-label={ui('Deal list, horizontally scrollable')}
-      tabindex="0"
-    >
-      <table class="contact-grid" style:width={`${totalWidth}px`}>
-        <colgroup
-          >{#each orderedFields as [key]}<col style:width={`${widths[key] ?? 160}px`} />{/each}<col
-            style:width="120px"
-          /></colgroup
-        >
-        <thead
-          ><tr>
-            {#each orderedFields as [key, label] (key)}
-              <th
-                scope="col"
-                data-column={key}
-                data-field={key}
-                class:drag-source={dragging === key}
-                class:insert-before={dragging !== '' && insertionIndex === selected.indexOf(key)}
-                class:insert-after={dragging !== '' &&
-                  insertionIndex === selected.length &&
-                  selected.indexOf(key) === selected.length - 1}
-                aria-sort={page.url.searchParams.get('sort') === key
-                  ? page.url.searchParams.get('direction') === 'desc'
-                    ? 'descending'
-                    : 'ascending'
-                  : 'none'}
-              >
-                <button
-                  class="column-heading"
-                  class:dragging={dragging === key}
-                  draggable="true"
-                  title={legacyFields.some(([id]) => id === key)
-                    ? ui('Click to sort; drag to reorder. Alt + arrow keys also move the column.')
-                    : ui('Drag to reorder. Alt + arrow keys also move the column.')}
-                  onclick={() => {
-                    if (legacyFields.some(([id]) => id === key)) sortBy(key);
-                  }}
-                  ondragstart={(event) => startColumnDrag(event, key)}
-                  ondragend={finishDrag}
-                  onkeydown={(event) => {
-                    if (event.altKey && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
-                      event.preventDefault();
-                      moveColumn(key, event.key === 'ArrowLeft' ? -1 : 1);
-                    }
-                  }}
+  </form>
+
+  {#if filterError}<Notice message={filterError} />{/if}
+
+  <div
+    class="v2-scroll"
+    class:pipeline-scroll={data.view === 'pipeline'}
+    class:list-scroll={data.view !== 'pipeline'}
+  >
+    {#if data.view === 'pipeline'}
+      {#if moveError}<Notice message={moveError} />{/if}
+      <p class="table-hint v2-sub" role="status">{moveStatus}</p>
+      <div class="contact-board hdm-board" aria-label={ui('Deals by stage')}>
+        {#each data.board as stage (stage.value)}
+          <section
+            class="stage-column pipeline-column"
+            data-tone={pipelineTone(stage.label)}
+            class:drop-target={dropStage === stage.value}
+            aria-label={stage.label}
+            ondragover={(event) => overStage(event, stage.value)}
+            ondrop={(event) => dropContact(event, stage.value)}
+            ondragleave={(event) => {
+              if (!event.currentTarget.contains(/** @type {Node | null} */ (event.relatedTarget)))
+                dropStage = '';
+            }}
+          >
+            <header class="pipeline-header">
+              <h2>{stage.label}</h2>
+              <div class="pipeline-stage-totals">
+                <PipelineTotal
+                  currency={data.org.currency}
+                  values={stage.moneyTotals}
+                  label={ui('Total deal amount')}
+                /><span class="pipeline-stage-count">{count(stage.count)}</span>
+              </div>
+            </header>
+            <div class="pipeline-cards">
+              {#each stage.contacts as contact (contact.id)}
+                <article
+                  class="contact-card pipeline-card compact-pipeline-card"
+                  class:card-dragging={draggedContact === contact.id}
+                  class:card-saving={movingContact === contact.id}
+                  aria-busy={movingContact === contact.id}
+                  draggable={!movingContact && can(page.data.permissions, 'deals', 'stage')}
+                  ondragstart={(event) => startContactDrag(event, contact.id, stage.value)}
+                  ondragend={endContactDrag}
                 >
-                  {label}{page.url.searchParams.get('sort') === key
-                    ? page.url.searchParams.get('direction') === 'desc'
-                      ? ' ↓'
-                      : ' ↑'
-                    : ''}
-                </button>
-                <button
-                  class="resize-handle"
-                  aria-label={ui('Resize {label}', { label })}
-                  title={ui('Drag to resize; arrow keys adjust width; double-click to fit content')}
-                  onpointerdown={(event) => startResize(event, key)}
-                  ondblclick={() => resizeColumn(key, fitColumn(key))}
-                  onkeydown={(event) => {
-                    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-                      event.preventDefault();
-                      resizeColumn(
-                        key,
-                        (widths[key] ?? 160) + (event.key === 'ArrowRight' ? 10 : -10)
-                      );
-                    }
-                  }}
-                ></button>
-              </th>
-            {/each}<th scope="col">{ui('Actions')}</th>
-          </tr></thead
-        >
-        <tbody>
-          {#each data.deals as contact (contact.id)}
-            <tr>
-              {#each orderedFields as [key] (key)}
-                <td
-                  class="contact-cell"
+                  <PipelineCardSummary
+                    name={contact.name}
+                    tags={contact.tags}
+                    href={`/pipeline/${contact.id}`}
+                    email={contact.email}
+                    phone={contact.phone}
+                    values={[{ amount: contact.amount, currency: contact.currency }]}
+                    valueLabel="Value"
+                    lastActivity={contact.last_activity_at}
+                    stageEntered={contact.stage_entered_at}
+                    now={clock}
+                  />
+                </article>
+              {:else}<p class="pipeline-empty">{ui('No deals')}</p>{/each}
+            </div>
+            <footer>
+              {#if stage.offset > 0}<a
+                  class="v2-btn"
+                  aria-label={`Previous ${stage.label} page`}
+                  href={link({
+                    [`${stage.value}_offset`]: String(Math.max(0, stage.offset - data.pageSize))
+                  })}>{ui('Previous')}</a
+                >{/if}
+              {#if stage.offset + data.pageSize < stage.count}<a
+                  class="v2-btn"
+                  aria-label={`Next ${stage.label} page`}
+                  href={link({ [`${stage.value}_offset`]: String(stage.offset + data.pageSize) })}
+                  >{ui('Next')}</a
+                >{/if}
+            </footer>
+          </section>
+        {/each}
+      </div>
+    {:else}
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this overflow region to scroll the table.) -->
+      <div
+        class="contact-table-scroll hdm-list"
+        ondragover={previewPosition}
+        ondrop={dropColumn}
+        ondragleave={leaveColumns}
+        role="region"
+        aria-label={ui('Deal list, horizontally scrollable')}
+        tabindex="0"
+      >
+        <table class="contact-grid" style:width={`${totalWidth}px`}>
+          <colgroup
+            >{#each orderedFields as [key]}<col
+                style:width={`${widths[key] ?? 160}px`}
+              />{/each}<col style:width="120px" /></colgroup
+          >
+          <thead
+            ><tr>
+              {#each orderedFields as [key, label] (key)}
+                <th
+                  scope="col"
+                  data-column={key}
                   data-field={key}
-                  title={String(cell(contact, key))}
                   class:drag-source={dragging === key}
                   class:insert-before={dragging !== '' && insertionIndex === selected.indexOf(key)}
                   class:insert-after={dragging !== '' &&
                     insertionIndex === selected.length &&
                     selected.indexOf(key) === selected.length - 1}
+                  aria-sort={page.url.searchParams.get('sort') === key
+                    ? page.url.searchParams.get('direction') === 'desc'
+                      ? 'descending'
+                      : 'ascending'
+                    : 'none'}
                 >
-                  {#if key === 'name'}<a
-                      class="v2-row-link v2-table-primary"
-                      href={resolve(`/pipeline/${contact.id}`)}
-                      >{contact.name || `Deal · ${contact.id.slice(0, 8)}`}</a
-                    >
-                  {:else if key === 'stage_label'}<StageProgress
-                      stage={contact.stage}
-                      label={contact.stage_label}
-                      stages={data.stages}
-                    />
-                  {:else if key === 'email' && contact.email}<a href={`mailto:${contact.email}`}
-                      >{contact.email}</a
-                    >
-                  {:else if key === 'priority_label'}<span
-                      class="list-badge"
-                      data-priority={contact.priority_label}>{cell(contact, key)}</span
-                    >
-                  {:else}{cell(contact, key)}{/if}
-                </td>
-              {/each}
-              <td class="list-row-actions"
-                ><a aria-label={`Open ${contact.name}`} href={resolve(`/pipeline/${contact.id}`)}
-                  >{ui('Open')}</a
+                  <button
+                    class="column-heading"
+                    class:dragging={dragging === key}
+                    draggable="true"
+                    title={legacyFields.some(([id]) => id === key)
+                      ? ui('Click to sort; drag to reorder. Alt + arrow keys also move the column.')
+                      : ui('Drag to reorder. Alt + arrow keys also move the column.')}
+                    onclick={() => {
+                      if (legacyFields.some(([id]) => id === key)) sortBy(key);
+                    }}
+                    ondragstart={(event) => startColumnDrag(event, key)}
+                    ondragend={finishDrag}
+                    onkeydown={(event) => {
+                      if (event.altKey && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
+                        event.preventDefault();
+                        moveColumn(key, event.key === 'ArrowLeft' ? -1 : 1);
+                      }
+                    }}
+                  >
+                    {label}{page.url.searchParams.get('sort') === key
+                      ? page.url.searchParams.get('direction') === 'desc'
+                        ? ' ↓'
+                        : ' ↑'
+                      : ''}
+                  </button>
+                  <button
+                    class="resize-handle"
+                    aria-label={ui('Resize {label}', { label })}
+                    title={ui(
+                      'Drag to resize; arrow keys adjust width; double-click to fit content'
+                    )}
+                    onpointerdown={(event) => startResize(event, key)}
+                    ondblclick={() => resizeColumn(key, fitColumn(key))}
+                    onkeydown={(event) => {
+                      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                        event.preventDefault();
+                        resizeColumn(
+                          key,
+                          (widths[key] ?? 160) + (event.key === 'ArrowRight' ? 10 : -10)
+                        );
+                      }
+                    }}
+                  ></button>
+                </th>
+              {/each}<th scope="col">{ui('Actions')}</th>
+            </tr></thead
+          >
+          <tbody>
+            {#each data.deals as contact (contact.id)}
+              <tr>
+                {#each orderedFields as [key] (key)}
+                  <td
+                    class="contact-cell"
+                    data-field={key}
+                    title={String(cell(contact, key))}
+                    class:drag-source={dragging === key}
+                    class:insert-before={dragging !== '' &&
+                      insertionIndex === selected.indexOf(key)}
+                    class:insert-after={dragging !== '' &&
+                      insertionIndex === selected.length &&
+                      selected.indexOf(key) === selected.length - 1}
+                  >
+                    {#if key === 'name'}<a
+                        class="v2-row-link v2-table-primary"
+                        href={resolve(`/pipeline/${contact.id}`)}
+                        >{contact.name || `Deal · ${contact.id.slice(0, 8)}`}</a
+                      >
+                    {:else if key === 'stage_label'}<StageProgress
+                        stage={contact.stage}
+                        label={contact.stage_label}
+                        stages={data.stages}
+                      />
+                    {:else if key === 'email' && contact.email}<a href={`mailto:${contact.email}`}
+                        >{contact.email}</a
+                      >
+                    {:else if key === 'priority_label'}<span
+                        class="list-badge"
+                        data-priority={contact.priority_label}>{cell(contact, key)}</span
+                      >
+                    {:else}{cell(contact, key)}{/if}
+                  </td>
+                {/each}
+                <td class="list-row-actions"
+                  ><a aria-label={`Open ${contact.name}`} href={resolve(`/pipeline/${contact.id}`)}
+                    >{ui('Open')}</a
+                  >
+                  {#if can(page.data.permissions, 'deals', 'edit')}<a
+                      aria-label={`Edit ${contact.name}`}
+                      href={resolve(`/pipeline/${contact.id}/edit`)}>{ui('Edit')}</a
+                    >{/if}</td
                 >
-                {#if can(page.data.permissions, 'deals', 'edit')}<a
-                    aria-label={`Edit ${contact.name}`}
-                    href={resolve(`/pipeline/${contact.id}/edit`)}>{ui('Edit')}</a
-                  >{/if}</td
-              >
-            </tr>
-          {:else}<tr><td colspan={selected.length + 1}>{ui('No deals on this page.')}</td></tr
-            >{/each}
-        </tbody>
-      </table>
-    </div>
-    <ListPagination
-      offset={data.offset}
-      pageSize={data.pageSize}
-      total={data.totals.count}
-      shown={data.deals.length}
-    />
-  {/if}
+              </tr>
+            {:else}<tr><td colspan={selected.length + 1}>{ui('No deals on this page.')}</td></tr
+              >{/each}
+          </tbody>
+        </table>
+      </div>
+      <ListPagination
+        offset={data.offset}
+        pageSize={data.pageSize}
+        total={data.totals.count}
+        shown={data.deals.length}
+      />
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -1012,7 +1019,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    border-right: 1px solid var(--v2-line-soft);
     border-bottom: 1px solid var(--v2-line-soft);
   }
   .contact-grid th {

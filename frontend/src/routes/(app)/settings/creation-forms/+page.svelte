@@ -274,7 +274,8 @@
   }
   .panel {
     background: var(--crm-surface);
-    border: 1px solid var(--crm-border);
+    border: 1px solid var(--crm-border-soft);
+    box-shadow: var(--crm-panel-shadow);
     border-radius: var(--crm-radius-lg);
     padding: var(--crm-space-5);
     min-width: 0;

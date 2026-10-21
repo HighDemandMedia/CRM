@@ -143,6 +143,7 @@
   }
   h2 {
     font-size: var(--crm-text-lg);
+    font-weight: 650;
     margin: 0;
   }
   .body {
