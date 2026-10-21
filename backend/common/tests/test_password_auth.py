@@ -236,6 +236,16 @@ def test_unusable_invitation_cannot_be_previewed_or_registered(
     result = APIClient().post(BASE + "invitation/", {"token": raw}, format="json")
     assert result.status_code == 400
     assert "email" not in result.data and "organization" not in result.data
+    expected = {
+        "expired": "invitation_expired",
+        "revoked": "invitation_cancelled",
+        "accepted": "invitation_accepted",
+        "inactive_org": "invitation_invalid",
+        "wrong_token": "invitation_invalid",
+    }
+    assert result.data["code"] == expected[state]
+    assert result["Cache-Control"] == "no-store"
+    assert "legal" not in result.data and "existing_account" not in result.data
     assert register(invitation=raw).status_code == 400
     assert not User.objects.filter(email=row.email).exists()
 

@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
 
@@ -191,7 +192,7 @@
         )}</label
       >
     {/if}
-    {#if error}<p class="v2-error" role="alert">{ui(error)}</p>
+    {#if error}<Notice message={ui(error)} />
       {#if preview}<button
           class="v2-btn"
           disabled={busy}

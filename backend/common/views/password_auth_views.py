@@ -17,6 +17,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from common.audit_log import audit_log
 from common.invitation_registration import register_invited_user
+from common.invitation_status import invitation_issue
 from common.legal import (
     legal_requirements,
 )
@@ -170,18 +171,15 @@ class InvitationPreviewView(APIView):
                 OrganizationInvitation.objects.select_related("org")
                 .filter(
                     token_hash=digest(raw),
-                    accepted_at__isnull=True,
-                    revoked_at__isnull=True,
-                    expires_at__gt=timezone.now(),
                     org__is_active=True,
                 )
                 .first()
             )
-        if not invitation:
+        issue = invitation_issue(invitation)
+        if issue:
+            code, message = issue
             return Response(
-                {
-                    "error": "This invitation is invalid, expired, cancelled, or already accepted. Ask your administrator for a new invitation."
-                },
+                {"code": code, "error": message},
                 status=400,
                 headers={"Cache-Control": "no-store"},
             )

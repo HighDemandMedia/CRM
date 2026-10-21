@@ -1773,5 +1773,13 @@
   "Enter an amount within the allowed range.": "Introduce un importe dentro del rango permitido.",
   "Enter a valid date.": "Introduce una fecha válida.",
   "Enter a valid time.": "Introduce una hora válida.",
-  "Remove invalid control characters.": "Elimina los caracteres de control no válidos."
+  "Remove invalid control characters.": "Elimina los caracteres de control no válidos.",
+  "Invitation already accepted": "Invitación ya aceptada",
+  "Sign in to access your workspace.": "Inicia sesión para acceder a tu espacio de trabajo.",
+  "Unable to open invitation": "No se pudo abrir la invitación",
+  "Invitation expired": "Invitación vencida",
+  "Invitation cancelled": "Invitación cancelada",
+  "Invitation unavailable": "Invitación no disponible",
+  "Ask your administrator for a new invitation. If you already joined, sign in.": "Pide una nueva invitación a tu administrador. Si ya te uniste, inicia sesión.",
+  "Could not save changes": "No se pudieron guardar los cambios"
 }

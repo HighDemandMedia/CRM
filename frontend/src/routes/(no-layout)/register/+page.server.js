@@ -4,7 +4,7 @@ import { API_ORIGIN } from '$lib/server/api-origin.js';
 import axios from 'axios';
 import { fail, redirect } from '@sveltejs/kit';
 import { passwordError, savePasswordSession } from '$lib/server/password-session.js';
-import { previewInvitation } from '$lib/server/invitation.js';
+import { previewInvitation, invitationFailure } from '$lib/server/invitation.js';
 import { legalFormValues } from '$lib/legal.js';
 
 export async function load({ locals, cookies, getClientAddress, url }) {
@@ -15,8 +15,11 @@ export async function load({ locals, cookies, getClientAddress, url }) {
   try {
     invitation = await previewInvitation(token, getClientAddress);
   } catch (error) {
+    const issue = invitationFailure(error);
+    if (issue.startsWith('invitation_')) cookies.delete('crm_invitation', { path: '/' });
     return {
       invited: true,
+      issue,
       error: passwordError(error, 'Could not open this invitation. Please try again.')
     };
   }

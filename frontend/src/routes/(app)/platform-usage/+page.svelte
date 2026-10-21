@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
   import { useI18n } from '$lib/i18n/context.js';
@@ -54,7 +55,7 @@
 </PageHeader>
 <div class="usage-page" aria-busy={refreshing}>
   {#if data.usageError || refreshError}
-    <p class="error" role="alert">{ui(data.usageError || refreshError)}</p>
+    <Notice message={ui(data.usageError || refreshError)} />
   {/if}
   {#if data.usage}
     {@const usage = data.usage}
@@ -345,9 +346,6 @@
   }
   .infrastructure a {
     margin-top: var(--crm-space-2);
-  }
-  .error {
-    color: var(--crm-danger, #b42318);
   }
   @container crm-workspace (max-width: 900px) {
     .metrics {

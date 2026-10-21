@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { page } from '$app/state';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -90,7 +91,7 @@
         ></label
       >
     </fieldset>
-    {#if message}<p class="v2-error" role="alert">{ui(message)}</p>{/if}
+    {#if message}<Notice message={ui(message)} />{/if}
     <div class="actions">
       <button type="button" class="v2-btn" disabled={busy} onclick={() => (open = false)}
         >{ui('Cancel')}</button

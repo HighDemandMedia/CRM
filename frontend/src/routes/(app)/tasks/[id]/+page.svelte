@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import { canChooseOwner } from '$lib/v2/permissions.js';
   import { useI18n } from '$lib/i18n/context.js';
@@ -98,9 +99,7 @@
   {/snippet}
 </PageHeader>
 <StageRuleNotice issue={form?.stageRequirements} />
-{#if form?.error && !form?.stageRequirements}<p class="v2-error error" role="alert">
-    {ui(form.error)}
-  </p>{/if}
+{#if form?.error && !form?.stageRequirements}<Notice message={ui(form.error)} />{/if}
 <div class="task-profile">
   <main>
     <section class="panel description">
@@ -405,10 +404,6 @@
   .muted {
     color: var(--v2-slate);
     font-size: var(--crm-text-xs);
-  }
-  .error {
-    margin: 0;
-    padding: 10px var(--crm-space-6);
   }
   @container crm-workspace (max-width: 48rem) {
     .task-profile {

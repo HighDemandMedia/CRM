@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -105,7 +106,7 @@
               required={row.definition.is_required}
               bind:value={draft}
             />
-            {#if error}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
+            {#if error}<Notice message={ui(error)} />{/if}
             <button class="v2-btn v2-btn-primary" disabled={busy}>{ui('Save')}</button>
             <button type="button" class="v2-btn" disabled={busy} onclick={() => (editing = '')}
               >{ui('Cancel')}</button

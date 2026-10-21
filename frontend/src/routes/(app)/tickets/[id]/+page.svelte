@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { attachmentError } from '$lib/v2/attachment-policy.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, longDate, relativeTime } = useI18n();
@@ -500,7 +501,7 @@
             </form>
           {:else}
             <p id="ticket-attachment-limit" class="v2-sub">{ui('Up to 25 MB per file.')}</p>
-            {#if fileError}<p class="v2-error" role="alert">{ui(fileError)}</p>{/if}
+            {#if fileError}<Notice message={ui(fileError)} />{/if}
             <p class="v2-sub" style="margin-top:18px;font-size:var(--crm-text-sm)">
               {ui(
                 'You can read this ticket but not reply to it. Ask an admin, or whoever it is assigned to.'

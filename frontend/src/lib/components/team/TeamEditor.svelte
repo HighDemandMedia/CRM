@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -70,7 +71,7 @@
         bind:selected
         disabled={busy}
       />
-      {#if error}<p role="alert" class="panel-error">{ui(error)}</p>{/if}
+      {#if error}<Notice message={ui(error)} />{/if}
     </div>
     <footer class="panel-footer">
       <button class="v2-btn" type="button" disabled={busy} onclick={onclose}>{ui('Cancel')}</button

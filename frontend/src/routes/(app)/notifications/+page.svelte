@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale, relativeTime } = useI18n();
 
@@ -109,9 +110,10 @@
         <button class="v2-btn save" disabled={busy}
           >{busy ? ui('Saving…') : ui('Save preferences')}</button
         >
-        {#if form?.scope === 'preferences'}<p role="status" class:error={form.message}>
-            {form.message || 'Preferences saved.'}
-          </p>{/if}
+        {#if form?.scope === 'preferences'}<Notice
+            tone={form.message ? 'error' : 'success'}
+            message={ui(form.message || 'Preferences saved.')}
+          />{/if}
       </form>
     {:else}
       <nav class="filters" aria-label={ui('Filter notifications')}>
@@ -123,8 +125,8 @@
           >
         {/each}
       </nav>
-      {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
-      {#if form?.error}<p class="error" role="alert">{ui(form.error)}</p>{/if}
+      {#if error}<Notice message={ui(error)} />{/if}
+      {#if form?.error}<Notice message={ui(form.error)} />{/if}
       {#if data.results.length}
         <ul class="feed">
           {#each data.results as n (n.id)}
@@ -364,9 +366,6 @@
   }
   .save {
     margin-top: var(--crm-space-5);
-  }
-  .error {
-    color: var(--v2-rust);
   }
   @media (max-width: 600px) {
     .content {

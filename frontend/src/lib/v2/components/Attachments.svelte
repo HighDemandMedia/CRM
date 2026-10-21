@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { attachmentError } from '$lib/v2/attachment-policy.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -116,7 +117,7 @@
       {fileBusy ? ui('Uploading {name}…', { name: fileName }) : ui(uploadStatus)}
     </p>{/if}
   {#if fileError}
-    <p class="v2-error" role="alert">{ui(fileError)}</p>
+    <Notice message={ui(fileError)} />
     {#if fileName}<button
         type="button"
         class="v2-btn"
@@ -172,7 +173,7 @@
       <strong>{selected.name}</strong>
       {ui('will be permanently removed from this record and file storage. This cannot be undone.')}
     </p>
-    {#if deleteError}<p class="v2-error" role="alert">{ui(deleteError)}</p>{/if}
+    {#if deleteError}<Notice message={ui(deleteError)} />{/if}
     <div class="dialog-actions">
       <button class="v2-btn" type="button" disabled={deleting} onclick={() => (selected = null)}
         >{ui('Cancel')}</button

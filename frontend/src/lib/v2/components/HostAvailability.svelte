@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
 
@@ -63,9 +64,9 @@
       <div class="slots">
         {#each slots as slot}<span>{time(slot.starts_at)} – {time(slot.ends_at)}</span>{/each}
       </div>{:else}<span>{ui('No bookings for this host on this date.')}</span>{/if}
-    {#if conflict}<p role="alert">
-        {ui('This time overlaps another event. Choose a different time.')}
-      </p>{/if}
+    {#if conflict}<Notice
+        message={ui('This time overlaps another event. Choose a different time.')}
+      />{/if}
   {/if}
 </div>
 
@@ -85,9 +86,5 @@
     padding: 3px 7px;
     background: var(--v2-line-soft);
     border-radius: var(--crm-radius-sm);
-  }
-  p {
-    color: var(--crm-danger);
-    margin: var(--crm-space-2) 0 0;
   }
 </style>

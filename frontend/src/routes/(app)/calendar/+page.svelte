@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { googleErrorMessage } from '$lib/utils/google-feedback.js';
   import '$lib/v2/styles/module-layout.css';
@@ -180,9 +181,10 @@
       >{/each}
   </div>
 </div>
-{#if failure}<div class="calendar-message" role="alert">
-    {ui(failure)} <button class="v2-btn" onclick={() => refresh++}>{ui('Retry')}</button>
-  </div>
+{#if failure}<Notice message={ui(failure)}
+    >{#snippet actions()}<button class="v2-btn" onclick={() => refresh++}>{ui('Retry')}</button
+      >{/snippet}</Notice
+  >
 {:else if busy}<div class="calendar-message" role="status">{ui('Loading appointments…')}</div>{/if}
 <div
   class="calendar-scroll crm-panel"

@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -94,7 +95,7 @@
   </p>
   {#if loading}<p>{ui('Checking linked records…')}</p>{:else if impact}
     <p><strong>{impact.name || impact.id}</strong></p>
-    {#if impact.blocked}<p role="alert">{impact.message}</p>{:else}
+    {#if impact.blocked}<Notice message={impact.message} />{:else}
       <p>
         {ui(
           'This permanently deletes the record and the following related data. This cannot be undone in the CRM.'
@@ -127,7 +128,7 @@
       >
     {/if}
   {/if}
-  {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
+  {#if error}<Notice message={ui(error)} />{/if}
   <div class="buttons">
     <button class="v2-btn" type="button" disabled={busy} onclick={() => dialog.close()}
       >{ui('Cancel')}</button
@@ -213,8 +214,5 @@
   }
   .danger:disabled {
     opacity: 0.4;
-  }
-  .error {
-    color: var(--crm-danger);
   }
 </style>

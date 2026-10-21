@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { canChooseOwner } from '$lib/v2/permissions.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -64,9 +65,7 @@
   >
     <StageRuleNotice issue={form?.stageRequirements} />
     {#if form?.error && !form?.stageRequirements}
-      <p style="color:var(--v2-rust);font-size:var(--crm-text-sm);margin:0 0 14px" role="alert">
-        {ui(form.error)}
-      </p>
+      <Notice message={ui(form.error)} />
     {/if}
 
     <input type="hidden" name="parent_kind_original" value={data.form.parent_kind} />

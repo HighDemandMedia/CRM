@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -246,9 +247,9 @@
               >{/each}</select
           ></label
         >
-        {#if !hosts.length}<p role="alert">
-            {ui('No users available. Reload the page to try again.')}
-          </p>{/if}
+        {#if !hosts.length}<Notice
+            message={ui('No users available. Reload the page to try again.')}
+          />{/if}
         <div
           class="attendee-search"
           onfocusout={(event) => {
@@ -300,7 +301,7 @@
           {#if showResults}
             <div class="attendee-results" aria-label={ui('Attendee search results')}>
               {#if loadingAttendees}<p class="v2-sub" role="status">{ui('Searching…')}</p>
-              {:else if attendeeError}<p class="v2-error" role="alert">{attendeeError}</p>
+              {:else if attendeeError}<Notice message={attendeeError} />
               {:else}
                 {#if choices.contacts.length}<h3>{ui('Contacts')}</h3>
                   {#each choices.contacts as contact}<button
@@ -432,7 +433,7 @@
           disabled={busy}
         />{/if}
     </div>
-    {#if error}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
+    {#if error}<Notice message={ui(error)} />{/if}
     <div class="actions">
       <span class="selection-summary">{date} · {start} – {end}</span>
       <button class="v2-btn" type="button" disabled={busy} onclick={() => dialog.close()}
@@ -680,10 +681,6 @@
     align-self: center;
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-  }
-  .v2-error {
-    margin: 0;
-    padding: var(--crm-space-2) var(--crm-space-5);
   }
   @media (max-width: 760px) {
     .schedule-body {

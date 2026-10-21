@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import '$lib/v2/styles/module-layout.css';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale, money } = useI18n();
@@ -49,7 +50,7 @@
       </form>{:else}<span class="my-day">{ui('My day')}</span>{/if}{/snippet}
 </PageHeader>
 <EventDetails bind:this={details} onChanged={() => void invalidateAll()} />
-{#if form?.error}<p class="error" role="alert">{ui(form.error)}</p>{/if}
+{#if form?.error}<Notice message={ui(form.error)} />{/if}
 <div class="today-scroll crm-module-body">
   <div class="day-counts crm-stat-grid">
     <div class="crm-stat crm-panel">
@@ -345,10 +346,6 @@
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin: var(--crm-space-5) 0 6px;
-  }
-  .error {
-    color: var(--v2-rust);
-    padding: 0 var(--crm-space-6);
   }
   .my-day {
     color: var(--v2-slate);

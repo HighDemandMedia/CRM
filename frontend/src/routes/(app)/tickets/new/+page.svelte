@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import ConfiguredCreationFields from '$lib/components/creation/ConfiguredCreationFields.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -46,7 +47,7 @@
       };
     }}
   >
-    {#if form?.error}<p role="alert" class="v2-error">{ui(form.error)}</p>{/if}
+    {#if form?.error}<Notice message={ui(form.error)} />{/if}
     {#if data.creationSchema}<ConfiguredCreationFields
         target="Case"
         {data}

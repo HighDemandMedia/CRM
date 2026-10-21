@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -271,7 +272,7 @@
       </tbody>
     </table>
   </div>
-  {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
+  {#if error}<Notice message={ui(error)} />{/if}
 </div>
 
 {#if selectedStage}
@@ -319,7 +320,7 @@
           </div>
         </fieldset>
       </div>
-      {#if error}<p class="panel-error" role="alert">{ui(error)}</p>{/if}
+      {#if error}<Notice message={ui(error)} />{/if}
       <div class="panel-footer">
         <button
           class="v2-btn"
@@ -402,7 +403,7 @@
             )}
           </p>
         {/if}
-        {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
+        {#if error}<Notice message={ui(error)} />{/if}
       </fieldset>
       <div class="panel-footer">
         <button
@@ -549,15 +550,6 @@
     display: block;
     overflow-wrap: anywhere;
     margin-top: 3px;
-  }
-  .panel-error {
-    margin: 0;
-    padding: var(--crm-space-3) var(--crm-space-6);
-  }
-
-  .error {
-    color: var(--v2-rust);
-    font-size: var(--crm-text-sm);
   }
   @media (max-width: 850px) {
     .rules {

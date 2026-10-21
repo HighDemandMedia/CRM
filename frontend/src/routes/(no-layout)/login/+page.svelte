@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import LegalLinks from '$lib/components/LegalLinks.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
@@ -104,13 +105,10 @@
                   value={form?.email || ''}
                 />
               </label>
-              {#if recoveryTransportError || form?.error}<p
+              {#if recoveryTransportError || form?.error}<Notice
                   id="recovery-error"
-                  class="v2-error auth-error"
-                  role="alert"
-                >
-                  {recoveryTransportError || form.error}
-                </p>{/if}
+                  message={recoveryTransportError || form.error}
+                />{/if}
               <button type="submit" class="v2-btn v2-btn-primary v2-btn-block"
                 >{recoveryBusy ? ui('Sending…') : ui('Send recovery link')}</button
               >
@@ -145,7 +143,7 @@
             </label>
           </form>
           {#if !showEmail && signInError}
-            <p class="v2-error auth-error" role="alert">{ui(signInError)}</p>
+            <Notice message={ui(signInError)} />
           {/if}
           <div class="v2-auth-divider">{ui('or')}</div>
           {#if !showEmail}
@@ -231,9 +229,7 @@
                 />
                 <span>{ui('Remember me for 14 days')}</span>
               </label>
-              {#if signInError}<p id="signin-error" class="v2-error auth-error" role="alert">
-                  {ui(signInError)}
-                </p>{/if}
+              {#if signInError}<Notice id="signin-error" message={ui(signInError)} />{/if}
               <button type="submit" class="v2-btn v2-btn-primary v2-btn-block"
                 >{busy ? ui('Signing in…') : ui('Sign in')}</button
               >
@@ -328,12 +324,6 @@
   .password-toggle:hover:not(:disabled) {
     background: var(--crm-surface-hover);
     color: var(--crm-text);
-  }
-  .auth-error {
-    padding: var(--crm-space-3);
-    background: var(--crm-danger-bg);
-    border-radius: var(--crm-radius-sm);
-    overflow-wrap: anywhere;
   }
   .caps-lock {
     color: var(--crm-warning);

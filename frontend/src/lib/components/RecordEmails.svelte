@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { untrack, onDestroy } from 'svelte';
   import { SvelteURLSearchParams } from 'svelte/reactivity';
   import { resolve } from '$app/paths';
@@ -179,7 +180,7 @@
       </details>
     </form>
   {/if}
-  {#if error}<p class="v2-error" role="alert">{ui(error)}</p>
+  {#if error}<Notice message={ui(error)} />
     <button
       class="v2-btn v2-btn-sm"
       type="button"

@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { untrack } from 'svelte';
   import { enhance } from '$app/forms';
   import { goto } from '$app/navigation';
@@ -126,10 +127,11 @@
         >{/each}
     </select>
   </label>
-  {#if form?.error}<p class="v2-error" role="alert">{ui(form.error)}</p>{/if}
-  {#if form?.saved}<p role="status">
-      {ui('Creation form saved. New records use this configuration.')}
-    </p>{/if}
+  {#if form?.error}<Notice message={ui(form.error)} />{/if}
+  {#if form?.saved}<Notice
+      tone="success"
+      message={ui('Creation form saved. New records use this configuration.')}
+    />{/if}
   {#if !data.can_edit}<p>{ui('Read only')}</p>{/if}
   <div class="panels">
     <section

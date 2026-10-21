@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -103,7 +104,7 @@
           {#if isSuperAdmin}<option value="ADMIN">{ui('Admin')}</option>{/if}
           {#each roles as role}<option value={role.id}>{role.name}</option>{/each}
         </select>
-        {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
+        {#if error}<Notice message={ui(error)} />{/if}
         <div class="access-summary">
           <span>{ui('Record access')}</span><strong
             >{selectedRole === 'ADMIN'
@@ -189,9 +190,5 @@
   .hint {
     font-size: var(--crm-text-xs);
     line-height: 1.5;
-  }
-  .error {
-    font-size: var(--crm-text-sm);
-    color: var(--v2-rust);
   }
 </style>

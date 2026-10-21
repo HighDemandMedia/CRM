@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { exactTime, ui } = useI18n();
 
@@ -40,7 +41,7 @@
     <button type="submit" class="v2-btn add-note" disabled={noteBusy || !note.trim()}
       >{noteBusy ? ui('Saving…') : ui('Add note')}</button
     >
-    {#if noteError}<p class="v2-error" role="alert">{noteError}</p>{/if}
+    {#if noteError}<Notice message={noteError} />{/if}
   </form>
   <div class="notes-list">
     {#each notes as entry (entry.id)}

@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -351,7 +352,7 @@
               : ui('Member')}</span
       >
       {#if switchingOrganization}<small role="status">{ui('Switching organization…')}</small>{/if}
-      {#if organizationError}<p class="organization-error" role="alert">{organizationError}</p>
+      {#if organizationError}<Notice message={organizationError} />
         <button class="account-action" type="button" onclick={loadOrganizations}
           >{ui('Try again')}</button
         >{/if}
@@ -555,11 +556,6 @@
     position: absolute;
     right: var(--crm-control-padding-x);
     pointer-events: none;
-  }
-  .organization-error {
-    color: var(--v2-rust);
-    font-size: var(--crm-text-xs);
-    margin: 0;
   }
   .account-signout {
     border-top: 1px solid var(--crm-border);

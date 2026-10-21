@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
 
@@ -345,7 +346,7 @@
             </div>
           </div>
         {/if}
-        {#if failure}<p class="v2-error" role="alert">{ui(failure)}</p>{/if}
+        {#if failure}<Notice message={ui(failure)} />{/if}
       </div>{/if}
   {/if}
 </div>

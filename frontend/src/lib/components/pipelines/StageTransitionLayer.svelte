@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -96,7 +97,7 @@
             {field}
             target={pending.target}
             bind:value={values[field.key]}
-          />{/each}{#if error}<p class="panel-error" role="alert">{ui(error)}</p>{/if}
+          />{/each}{#if error}<Notice message={ui(error)} />{/if}
       </div>
       <div class="panel-footer">
         <button type="button" class="v2-btn" disabled={busy} onclick={() => (pending = null)}

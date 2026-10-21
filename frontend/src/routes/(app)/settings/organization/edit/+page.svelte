@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -29,7 +30,7 @@
   import SettingsCrumb from '$lib/v2/components/SettingsCrumb.svelte';
   import NextAction from '$lib/v2/components/NextAction.svelte';
   import { CURRENCY_CODES } from '$lib/constants/filters.js';
-  import { ChevronRight, TriangleAlert } from '@lucide/svelte';
+  import { ChevronRight } from '@lucide/svelte';
 
   /** @type {{ data: any, form: any }} */
   let { data, form: result } = $props();
@@ -129,37 +130,16 @@
   <div class="v2-scroll v2-pad" style="padding-top:18px">
     <form class="v2-form" method="POST" action="?/save" use:enhance={check} novalidate>
       {#if result?.error}
-        <div
-          class="v2-next"
-          style="background:color-mix(in srgb, var(--v2-rust) 9%, transparent);border-color:color-mix(in srgb, var(--v2-rust) 28%, transparent);margin-bottom:18px"
-          role="alert"
-        >
-          <TriangleAlert size={17} style="color:var(--v2-rust);flex:none" />
-          <div class="v2-next-body">
-            <div style="font-weight:600">{ui('The server refused this change')}</div>
-            <div class="v2-sub" style="margin-top:2px">{result.error}</div>
-          </div>
-        </div>
+        <Notice title={ui('Could not save changes')} message={result.error} />
       {/if}
 
       {#if submitted && !valid}
-        <div
-          class="v2-next"
-          style="background:color-mix(in srgb, var(--v2-rust) 9%, transparent);border-color:color-mix(in srgb, var(--v2-rust) 28%, transparent);margin-bottom:18px"
-          role="alert"
-        >
-          <TriangleAlert size={17} style="color:var(--v2-rust);flex:none" />
-          <div class="v2-next-body">
-            <!-- Counted, not assumed. Only two fields are checked here, but one
-                 of them failing on its own is the common case. -->
-            <div style="font-weight:600">
-              {Object.keys(errors).length === 1
-                ? ui('One field to check')
-                : ui('Two fields to check')}
-            </div>
-            <div class="v2-sub" style="margin-top:2px">{ui('Nothing has been saved yet.')}</div>
-          </div>
-        </div>
+        <Notice
+          title={Object.keys(errors).length === 1
+            ? ui('One field to check')
+            : ui('Two fields to check')}
+          message={ui('Nothing has been saved yet.')}
+        />
       {/if}
 
       <div class="v2-label" style="margin-bottom:12px">{ui('What customers see')}</div>

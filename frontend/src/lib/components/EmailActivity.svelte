@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import EmailComposer from './EmailComposer.svelte';
   import EmailBody from './EmailBody.svelte';
   import { onDestroy } from 'svelte';
@@ -73,7 +74,7 @@
   </summary>
   <div class="message-content" aria-busy={busy}>
     {#if busy}<p role="status">{ui('Loading email…')}</p>{/if}
-    {#if error}<p class="v2-error" role="alert">{ui(error)}</p>
+    {#if error}<Notice message={ui(error)} />
       <button class="v2-btn v2-btn-sm" type="button" onclick={load}>{ui('Try again')}</button>{/if}
     {#if email}
       <details class="message-details">

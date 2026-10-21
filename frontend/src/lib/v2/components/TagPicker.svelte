@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -165,7 +166,7 @@
           >
         </div>
       {:else if !matches.length}<p>{ui('No matching tags.')}</p>{/if}
-      {#if error}<p role="alert" class="error">{ui(error)}</p>{/if}
+      {#if error}<Notice message={ui(error)} />{/if}
     </div>{/if}
 </div>
 
@@ -280,9 +281,6 @@
     font-size: var(--crm-text-xs);
     padding: var(--crm-space-1);
     margin: 0;
-  }
-  .error {
-    color: var(--crm-danger);
   }
   button:focus-visible {
     outline: 2px solid var(--crm-info);

@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { googleErrorMessage, googleCallbackMessage } from '$lib/utils/google-feedback.js';
   import { useI18n } from '$lib/i18n/context.js';
@@ -238,12 +239,11 @@
                 <span>{ui('Teams')}</span><strong>{p.teams.join(', ')}</strong>
               </div>{/if}
           </fieldset>
-          {#if !form?.scope && form?.message}<p class="feedback failure" role="alert">
-              {ui(form.message)}
-            </p>{/if}
-          {#if !form?.scope && form?.saved && !dirty}<p class="feedback" role="status">
-              {ui('Profile saved.')}
-            </p>{/if}
+          {#if !form?.scope && form?.message}<Notice message={ui(form.message)} />{/if}
+          {#if !form?.scope && form?.saved && !dirty}<Notice
+              tone="success"
+              message={ui('Profile saved.')}
+            />{/if}
           <div class="form-actions detail-actions">
             <button class="v2-btn v2-btn-primary" disabled={saving || (!dirty && !data.onboarding)}
               >{saving
@@ -303,13 +303,10 @@
                 /></label
               >
             </fieldset>
-            {#if form?.scope === 'password'}<p
-                class="feedback"
-                class:failure={form.message}
-                role="status"
-              >
-                {ui(form.message || 'Password saved.')}
-              </p>{/if}
+            {#if form?.scope === 'password'}<Notice
+                tone={form.message ? 'error' : 'success'}
+                message={ui(form.message || 'Password saved.')}
+              />{/if}
             <div class="form-actions">
               <button class="v2-btn v2-btn-primary">{ui('Save password')}</button>
             </div>
@@ -327,21 +324,20 @@
             <h2 id="integration-title"><Link2 size={17} />{ui('Connected accounts')}</h2>
           </div>
           {#if !p.integrations?.gmail?.configured || !p.integrations?.google_calendar?.configured}
-            <p class="setup-note" role="status">
-              {ui('Google setup is required. Contact your CRM administrator.')}
-            </p>
+            <Notice
+              tone="info"
+              message={ui('Google setup is required. Contact your CRM administrator.')}
+            />
           {/if}
           {#if googleCallbackMessage(data.googleResult)}
             <ErrorNotice message={ui(googleCallbackMessage(data.googleResult))} />
           {:else if data.googleResult === 'connected'}
-            <p class="feedback" role="status">
-              {ui('Google connected.')}
-            </p>
+            <Notice tone="success" message={ui('Google connected.')} />
           {/if}
           {#if googleActionError}<ErrorNotice message={ui(googleActionError)} />{/if}
           {#if form?.scope === 'google'}
             {#if form.message}<ErrorNotice message={ui(form.message)} />
-            {:else}<p class="feedback" role="status">{ui(form.googleMessage)}</p>{/if}
+            {:else}<Notice tone="success" message={ui(form.googleMessage)} />{/if}
           {/if}
           {#each [{ key: 'gmail', service: 'gmail', title: 'Gmail' }, { key: 'google_calendar', service: 'calendar', title: 'Google Calendar' }] as item}
             {@const connection = p.integrations?.[item.key]}
@@ -533,8 +529,7 @@
   .section-heading .section-description {
     margin: var(--crm-space-2) 0 0;
   }
-  .integration,
-  .setup-note {
+  .integration {
     max-width: 680px;
   }
 
@@ -733,20 +728,6 @@
     flex-wrap: wrap;
     gap: var(--crm-space-2);
     margin-top: var(--crm-space-3);
-  }
-  .setup-note {
-    margin: 0 0 var(--crm-space-4);
-    font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
-    line-height: 1.6;
-  }
-  .feedback {
-    color: var(--v2-moss);
-    font-size: var(--crm-text-xs);
-    margin: var(--crm-space-3) 0 0;
-  }
-  .feedback.failure {
-    color: var(--v2-rust);
   }
 
   @media (max-width: 600px) {

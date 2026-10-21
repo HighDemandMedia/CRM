@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, shortDate } = useI18n();
 
@@ -251,7 +252,7 @@
         >{ui('Submissions (')}{data.count ?? 0})</button
       >
     </nav>
-    {#if actionError}<p class="error" role="alert">{actionError}</p>{/if}
+    {#if actionError}<Notice message={actionError} />{/if}
     {#if notice}<p role="status">{notice}</p>{/if}
     {#if !activity}
       <nav class="steps" aria-label={ui('Setup steps')}>
@@ -329,7 +330,7 @@
                   <button type="button" class="v2-btn" onclick={inspect}
                     >{ui('Detect fields')}</button
                   >
-                  {#if inspectError}<p class="error" role="alert">{inspectError}</p>{/if}
+                  {#if inspectError}<Notice message={inspectError} />{/if}
                   {#if detected.length}
                     {#if detected.length > 1}<label class="control"
                         >{ui('Choose the form')}<select

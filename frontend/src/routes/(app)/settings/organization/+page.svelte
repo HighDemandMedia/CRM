@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, shortDate } = useI18n();
 
@@ -159,11 +160,12 @@
               >{ui('Cancel')}</button
             >
           </div>{/if}
-        {#if form?.message && form?.scope !== 'lifecycle'}<p class="error" role="alert">
-            {ui(form.message)}
-          </p>{:else if form?.saved}<p class="success" role="status">
-            {ui('Organization details saved.')}
-          </p>{/if}
+        {#if form?.message && form?.scope !== 'lifecycle'}<Notice
+            message={ui(form.message)}
+          />{:else if form?.saved}<Notice
+            tone="success"
+            message={ui('Organization details saved.')}
+          />{/if}
       </form>
       <OrganizationLifecycle {org} {form} />
       <dl class="metadata">
@@ -258,14 +260,6 @@
   dd {
     margin: 0;
     overflow-wrap: anywhere;
-  }
-  .error {
-    color: var(--v2-rust);
-    font-size: var(--crm-text-xs);
-  }
-  .success {
-    color: var(--v2-moss);
-    font-size: var(--crm-text-xs);
   }
   @media (max-width: 600px) {
     .organization-content {

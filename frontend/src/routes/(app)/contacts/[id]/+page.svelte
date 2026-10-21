@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { onDestroy } from 'svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { exactTime, ui } = useI18n();
@@ -116,10 +117,11 @@
     </div>
 
     {#if editorBusy}<p role="status">{ui('Loading…')}</p>{/if}
-    {#if editorError}<p class="v2-error" role="alert">
-        {ui(editorError)}
-        <button type="button" class="v2-btn v2-btn-sm" onclick={openEditor}>{ui('Retry')}</button>
-      </p>{/if}
+    {#if editorError}<Notice message={ui(editorError)}
+        >{#snippet actions()}
+          <button type="button" class="v2-btn v2-btn-sm" onclick={openEditor}>{ui('Retry')}</button>
+        {/snippet}</Notice
+      >{/if}
     {#if editingProperties && editor}
       <ContactForm
         data={editor}
@@ -208,7 +210,7 @@
             <button type="submit" class="v2-btn add-note" disabled={noteBusy || !note.trim()}
               >{noteBusy ? ui('Saving…') : ui('Add note')}</button
             >
-            {#if noteError}<p class="v2-error" role="alert">{noteError}</p>{/if}
+            {#if noteError}<Notice message={noteError} />{/if}
           </form>
           {#each data.notes as entry (entry.id)}
             <article class="history-entry">

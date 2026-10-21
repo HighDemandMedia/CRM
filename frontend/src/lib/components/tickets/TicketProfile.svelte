@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
@@ -73,7 +74,7 @@
         <button class="v2-btn" name="status" value="Closed">{ui('Close')}</button>
       </form>{/if}{/snippet}
 </PageHeader>
-{#if form?.error}<p class="v2-error message" role="alert">{ui(form.error)}</p>{/if}
+{#if form?.error}<Notice message={ui(form.error)} />{/if}
 <div class="hdm-profile">
   <aside class="hdm-panel">
     <div class="heading">
@@ -207,7 +208,7 @@
       <label
         >{ui('Resolution note')}<textarea class="v2-input" name="resolution_note" required rows="4"
         ></textarea></label
-      >{#if form?.error}<p role="alert" class="v2-error">{ui(form.error)}</p>{/if}
+      >{#if form?.error}<Notice message={ui(form.error)} />{/if}
       <div class="actions">
         <button class="v2-btn" type="button" onclick={() => (resolving = false)}
           >{ui('Cancel')}</button
@@ -297,9 +298,6 @@
   }
   .description {
     margin-bottom: var(--crm-space-6);
-  }
-  .message {
-    padding: 0 var(--crm-space-6);
   }
   .dialog::backdrop {
     background: var(--crm-overlay);

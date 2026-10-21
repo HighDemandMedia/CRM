@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { canChooseOwner } from '$lib/v2/permissions.js';
   import ConfiguredCreationFields from '$lib/components/creation/ConfiguredCreationFields.svelte';
   import { useI18n } from '$lib/i18n/context.js';
@@ -219,21 +220,20 @@
   }}
 >
   <StageRuleNotice issue={autoIssue || result?.stageRequirements} />
-  {#if result?.error && !result?.stageRequirements}<p class="v2-error" role="alert">
-      {result.error}
-    </p>{/if}
+  {#if result?.error && !result?.stageRequirements}<Notice message={result.error} />{/if}
   {#if result?.saved}<p role="status">{ui('Saved')}</p>{/if}
   {#if autoSave}<div class="save-status" role="status">{autoStatus}</div>
-    {#if autoError && !autoIssue}<div class="v2-error" role="alert">
-        {autoError}<button
-          type="button"
-          class="v2-btn"
-          onclick={() => {
-            queued = snapshotValues();
-            void flushAutoSave();
-          }}>{ui('Retry')}</button
-        >
-      </div>{/if}{/if}
+    {#if autoError && !autoIssue}<Notice message={autoError}>
+        {#snippet actions()}<button
+            type="button"
+            class="v2-btn"
+            onclick={() => {
+              queued = snapshotValues();
+              void flushAutoSave();
+            }}>{ui('Retry')}</button
+          >
+        {/snippet}</Notice
+      >{/if}{/if}
   {#if !editing && data.creationSchema}
     <ConfiguredCreationFields target="Opportunity" {data} {result} bind:creatingTag />
   {:else}

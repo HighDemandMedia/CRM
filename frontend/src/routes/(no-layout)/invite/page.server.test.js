@@ -61,7 +61,10 @@ describe('invitation onboarding', () => {
       response: { data: { error: 'Invitation expired.' } }
     });
     expect(await load(event())).toMatchObject({ error: 'Invitation expired.' });
-    expect(await registerLoad(event())).toEqual({ invited: true, error: 'Invitation expired.' });
+    expect(await registerLoad(event())).toMatchObject({
+      invited: true,
+      error: 'Invitation expired.'
+    });
   });
   it('does not request invitation details without a token', async () => {
     expect(await registerLoad(event(''))).toEqual({ invited: false });
@@ -208,4 +211,42 @@ it('signs invitation previews so visitors do not share the Web server throttle b
     'X-CRM-Client-IP': '198.51.100.12',
     'X-CRM-Client-Signature': expect.stringMatching(/^[0-9a-f]{64}$/)
   });
+});
+
+it.each([
+  'invitation_accepted',
+  'invitation_expired',
+  'invitation_cancelled',
+  'invitation_invalid'
+])(
+  'clears terminal invitation %s before sign-in, without accepting or exposing account details',
+  async (code) => {
+    vi.mocked(axios.post).mockRejectedValue({
+      response: { status: 400, data: { code, error: 'Unavailable' } }
+    });
+    const input = event();
+    const result = await load(input);
+    expect(result).toMatchObject({ issue: code, invitation: null });
+    expect(input.cookies.delete).toHaveBeenCalledWith('crm_invitation', { path: '/' });
+    expect(apiRequest).not.toHaveBeenCalled();
+  }
+);
+it.each([429, 500, 503, undefined])(
+  'preserves invitation for recoverable failure %s',
+  async (status) => {
+    vi.mocked(axios.post).mockRejectedValue({ response: { status, data: {} } });
+    const input = event();
+    expect(await load(input)).toMatchObject({
+      issue: status === 429 ? 'rate_limited' : 'temporary'
+    });
+    expect(input.cookies.delete).not.toHaveBeenCalled();
+  }
+);
+it('handles an invitation accepted in another tab between preview and submit', async () => {
+  const input = event();
+  vi.mocked(apiRequest).mockRejectedValue({ status: 400, body: { code: 'invitation_accepted' } });
+  expect(await inviteActions.accept(input)).toMatchObject({
+    data: { issue: 'invitation_accepted' }
+  });
+  expect(input.cookies.delete).toHaveBeenCalledWith('crm_invitation', { path: '/' });
 });

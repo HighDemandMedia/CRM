@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
 
@@ -184,10 +185,10 @@
       >{data.record_count} {objectLabel.toLowerCase()}</span
     >
   </div>
-  {#if form?.deactivate?.error || form?.activate?.error}<p class="error" role="alert">
-      {form.deactivate?.error ?? form.activate?.error}
-    </p>{/if}
-  {#if orderError}<p class="v2-error" role="alert">{orderError}</p>{/if}
+  {#if form?.deactivate?.error || form?.activate?.error}<Notice
+      message={form.deactivate?.error ?? form.activate?.error}
+    />{/if}
+  {#if orderError}<Notice message={orderError} />{/if}
   {#if ordering}<p role="status">{ui('Saving order…')}</p>{/if}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex (The scroll region needs focus for keyboard scrolling.) -->
   <div class="table-scroll" role="region" aria-label={ui('Properties list')} tabindex="0">
@@ -319,7 +320,7 @@
         disabled={deleteBusy}
       />
     </label>
-    {#if deleteError}<p class="error" role="alert">{deleteError}</p>{/if}
+    {#if deleteError}<Notice message={deleteError} />{/if}
     <div class="delete-actions">
       <button
         class="v2-btn"
@@ -437,7 +438,7 @@
         {#if editing.new && data.can_edit_creation_form}<label class="choice">
             <input type="checkbox" name="add_to_creation_form" />{ui('Add to creation form')}
           </label>{/if}
-        {#if error}<p class="panel-error" role="alert">{ui(error)}</p>{/if}
+        {#if error}<Notice message={ui(error)} />{/if}
       </div>
       <div class="panel-footer">
         <button type="button" class="v2-btn" disabled={busy} onclick={() => (editing = null)}
@@ -668,9 +669,6 @@
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     overflow-wrap: anywhere;
-  }
-  .error {
-    color: var(--v2-rust);
   }
   @media (max-width: 800px) {
     .catalog {

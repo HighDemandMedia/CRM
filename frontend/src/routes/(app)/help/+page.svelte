@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -303,7 +304,7 @@
                 .organization}</span
             ><span>{ui('Reply email:')} {data.support.reply_to}</span>
           </div>
-          {#if form?.error}<div class="form-error" role="alert">{ui(form.error)}</div>{/if}
+          {#if form?.error}<Notice message={ui(form.error)} />{/if}
           <div class="form-footer">
             <span>{ui('To')} {data.support.recipient}</span><button
               class="v2-btn v2-btn-primary"
@@ -484,14 +485,6 @@
   .form-footer > span {
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
-  }
-  .form-error {
-    padding: var(--crm-space-3);
-    background: var(--crm-danger-bg);
-    color: var(--crm-danger);
-    font-size: var(--crm-text-sm);
-    border-radius: var(--crm-radius-md);
-    margin-top: 18px;
   }
   .success {
     display: flex;

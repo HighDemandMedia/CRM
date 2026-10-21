@@ -1093,3 +1093,28 @@ html {
     font-size: var(--crm-text-base);
   }
 }
+
+/* Feedback uses the same compact hierarchy, including portalled dialogs. */
+[data-sonner-toast] [data-content] {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+[data-sonner-toast] [data-description] {
+  font-size: var(--crm-text-sm);
+  line-height: 1.5;
+}
+[data-slot='alert-dialog-content'] {
+  background: var(--crm-surface);
+  border-color: var(--crm-border);
+  border-radius: var(--crm-radius-lg);
+  color: var(--crm-text);
+}
+[data-slot='alert-dialog-title'] {
+  font-size: var(--crm-text-lg);
+  line-height: 1.3;
+}
+[data-slot='alert-dialog-description'] {
+  color: var(--crm-text-muted);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}

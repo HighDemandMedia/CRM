@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { toast } from 'svelte-sonner';
   import { resolve } from '$app/paths';
   import { onMount } from 'svelte';
@@ -298,7 +299,7 @@
                 </li>{/each}
             </ul>
           {/if}
-          {#if error}<p class="v2-error compose-status" role="alert">{ui(error)}</p>{/if}
+          {#if error}<Notice message={ui(error)} />{/if}
           {#if discard}<div class="discard-prompt" role="alert">
               <span>{ui('Discard this draft?')}</span>
               <button type="button" class="v2-btn v2-btn-sm" onclick={() => (discard = false)}

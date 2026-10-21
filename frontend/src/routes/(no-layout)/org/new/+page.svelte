@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -93,9 +94,7 @@
             )}
           </p>
         </div>
-        {#if form?.data?.invitationWarning}<p class="v2-error" role="alert">
-            {form.data.invitationWarning}
-          </p>
+        {#if form?.data?.invitationWarning}<Notice message={form.data.invitationWarning} />
           <a href={resolve('/org')}>{ui('Open organizations')}</a>{/if}
         <div class="v2-field">
           <label for="org_name">{ui('Organization name')}</label>

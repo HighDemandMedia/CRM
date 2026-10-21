@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import '../../../../app.css';
   import '$lib/v2/styles/v2.css';
   import { base, resolve } from '$app/paths';
@@ -75,9 +76,9 @@
             <label class="show-password"
               ><input type="checkbox" bind:checked={showPassword} />{ui('Show password')}</label
             >
-            {#if transportError || form?.error}<p class="v2-error" role="alert">
-                {ui(transportError || form.error)}
-              </p>{/if}
+            {#if transportError || form?.error}<Notice
+                message={ui(transportError || form.error)}
+              />{/if}
             <button type="submit" class="v2-btn v2-btn-primary v2-btn-block"
               >{ui(busy ? 'Saving…' : 'Save new password')}</button
             >
@@ -85,7 +86,7 @@
         </form>
         <a class="reset-link" href={resolve('/login?recover=1')}>{ui('Request a new link')}</a>
       {:else}
-        <p role="alert">{ui('This reset link is invalid or expired. Request a new one.')}</p>
+        <Notice message={ui('This reset link is invalid or expired. Request a new one.')} />
         <a class="v2-btn v2-btn-primary v2-btn-block" href={resolve('/login?recover=1')}
           >{ui('Request a new link')}</a
         >

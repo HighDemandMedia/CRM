@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import '$lib/v2/styles/access-list.css';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -285,7 +286,7 @@
             {editing.member_count}
             {ui('assigned users on their next request.')}
           </p>{/if}
-        {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
+        {#if error}<Notice message={ui(error)} />{/if}
         <div class="save-actions">
           <button class="v2-btn" type="button" disabled={busy} onclick={() => (editing = null)}
             >{ui('Cancel')}</button
@@ -383,7 +384,7 @@
           </tbody>
         </table>
       </div>
-      {#if form?.saved}<p class="success" role="status">{ui('Permission set saved.')}</p>{/if}
+      {#if form?.saved}<Notice tone="success" message={ui('Permission set saved.')} />{/if}
     {/if}
   </div>
 </div>
@@ -461,12 +462,6 @@
     padding: var(--crm-space-4) 0;
     justify-content: flex-end;
     margin-top: var(--crm-space-5);
-  }
-  .error {
-    color: var(--v2-rust);
-  }
-  .success {
-    color: var(--v2-moss);
   }
   fieldset {
     border: 0;

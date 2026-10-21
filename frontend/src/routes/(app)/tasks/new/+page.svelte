@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { canChooseOwner } from '$lib/v2/permissions.js';
   import ConfiguredCreationFields from '$lib/components/creation/ConfiguredCreationFields.svelte';
   import { useI18n } from '$lib/i18n/context.js';
@@ -62,9 +63,7 @@
     style="padding-top:18px;padding-bottom:36px;max-width:62ch;margin-left:auto;margin-right:auto"
   >
     {#if form?.error}
-      <p style="color:var(--v2-rust);font-size:var(--crm-text-sm);margin:0 0 14px" role="alert">
-        {ui(form.error)}
-      </p>
+      <Notice message={ui(form.error)} />
     {/if}
 
     {#if data.creationSchema}<ConfiguredCreationFields target="Task" {data} result={form} />{:else}

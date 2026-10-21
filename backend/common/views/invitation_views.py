@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from common.invitation_registration import complete_invited_membership
+from common.invitation_status import invitation_issue
 from common.invitations import send_invitation
 from common.legal import (
     legal_requirements,
@@ -191,18 +192,10 @@ class AcceptInvitationView(APIView):
                     },
                     status=403,
                 )
-            if (
-                row.revoked_at
-                or row.expires_at <= timezone.now()
-                or row.accepted_at
-                or not row.org.is_active
-            ):
-                return Response(
-                    {
-                        "error": "This invitation has expired, was cancelled, or has already been accepted."
-                    },
-                    status=400,
-                )
+            issue = invitation_issue(row)
+            if issue:
+                code, message = issue
+                return Response({"code": code, "error": message}, status=400)
             if request.data.get("preview") is True:
                 return Response(
                     {

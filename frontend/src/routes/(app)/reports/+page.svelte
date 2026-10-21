@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import '$lib/v2/styles/module-layout.css';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
@@ -128,11 +129,11 @@
 </PageHeader>
 <div class="reports crm-module-body" aria-busy={busy}>
   {#if data.reportError}
-    <div class="report-error" role="alert">
-      <strong>{ui('Could not open this report')}</strong>
-      <p>{data.reportError}</p>
-      <a class="v2-btn" href={resolve('/reports')}>{ui('Reset report filters')}</a>
-    </div>
+    <Notice title={ui('Could not open this report')} message={data.reportError}>
+      {#snippet actions()}<a class="v2-btn" href={resolve('/reports')}
+          >{ui('Reset report filters')}</a
+        >{/snippet}
+    </Notice>
   {:else if report}
     <div class="filters">
       <label
@@ -851,15 +852,6 @@
   .series-table th {
     position: sticky;
     top: 0;
-  }
-  .report-error {
-    padding: var(--crm-space-6);
-    border: 1px solid var(--v2-line);
-    border-radius: var(--crm-radius-lg);
-    background: var(--crm-surface);
-  }
-  .report-error p {
-    margin: var(--crm-space-3) 0;
   }
   .v2-btn {
     gap: 7px;

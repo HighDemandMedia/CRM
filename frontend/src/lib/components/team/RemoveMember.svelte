@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -110,7 +111,7 @@
       /></label
     >
   {/if}
-  {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
+  {#if error}<Notice message={ui(error)} />{/if}
   <div class="actions">
     <button class="v2-btn" type="button" disabled={busy} onclick={() => dialog.close()}
       >{ui('Cancel')}</button
@@ -169,8 +170,7 @@
     gap: var(--crm-space-2);
     margin-top: var(--crm-space-6);
   }
-  .danger,
-  .error {
+  .danger {
     color: var(--v2-rust, var(--crm-danger));
   }
 </style>

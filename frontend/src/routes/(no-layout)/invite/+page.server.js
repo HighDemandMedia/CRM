@@ -3,7 +3,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { apiRequest } from '$lib/api-helpers.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
-import { previewInvitation } from '$lib/server/invitation.js';
+import { previewInvitation, invitationFailure } from '$lib/server/invitation.js';
 import { passwordError, savePasswordSession } from '$lib/server/password-session.js';
 import { legalFormValues } from '$lib/legal.js';
 export async function load({ url, cookies, locals, getClientAddress }) {
@@ -19,11 +19,14 @@ export async function load({ url, cookies, locals, getClientAddress }) {
     redirect(303, '/invite');
   }
   let invitation = null,
-    error = '';
+    error = '',
+    issue = null;
   if (cookies.get('crm_invitation')) {
     try {
       invitation = await previewInvitation(cookies.get('crm_invitation'), getClientAddress);
     } catch (err) {
+      issue = invitationFailure(err);
+      if (issue.startsWith('invitation_')) cookies.delete('crm_invitation', { path: '/' });
       error = passwordError(err, 'Could not open this invitation. Please try again.');
     }
     if (!locals.user && invitation && !invitation.existing_account) redirect(303, '/register');
@@ -47,6 +50,8 @@ export async function load({ url, cookies, locals, getClientAddress }) {
           differentAccount: true,
           error: ''
         };
+      issue = invitationFailure(err);
+      if (issue.startsWith('invitation_')) cookies.delete('crm_invitation', { path: '/' });
       error = readableError(err, 'Could not open this invitation.');
     }
   }
@@ -55,13 +60,18 @@ export async function load({ url, cookies, locals, getClientAddress }) {
     signedIn: !!locals.user,
     google_available: googleAvailable(),
     invitation,
-    error
+    error,
+    issue
   };
 }
 export const actions = {
   accept: async ({ cookies, request }) => {
     const token = cookies.get('crm_invitation');
-    if (!token) return fail(400, { error: 'Open the link from your invitation email.' });
+    if (!token)
+      return fail(400, {
+        error: 'Open the link from your invitation email.',
+        issue: 'invitation_invalid'
+      });
     const form = await request.formData();
     let accepted;
     try {
@@ -71,7 +81,9 @@ export const actions = {
         { cookies }
       );
     } catch (err) {
-      return fail(400, { error: readableError(err, 'Could not accept this invitation.') });
+      const issue = err?.body?.code?.startsWith('invitation_') ? invitationFailure(err) : null;
+      if (issue) cookies.delete('crm_invitation', { path: '/' });
+      return fail(400, { error: readableError(err, 'Could not accept this invitation.'), issue });
     }
     cookies.delete('crm_invitation', { path: '/' });
     if (accepted.org_id) {
@@ -87,6 +99,7 @@ export const actions = {
         savePasswordSession(cookies, { ...session, current_org: { id: accepted.org_id } });
       } catch {
         return fail(503, {
+          issue: 'invitation_accepted',
           error:
             'Invitation accepted. Sign in and select the invited organization to finish your profile.'
         });

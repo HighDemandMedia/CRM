@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
 
@@ -191,7 +192,7 @@
         >{/each}</select
     >
   </div>
-  {#if error && !panel}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
+  {#if error && !panel}<Notice message={ui(error)} />{/if}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard access to horizontal scrolling.) -->
   <div class="tag-table" role="region" aria-label={ui('Tags list')} tabindex="0">
     <table>
@@ -352,7 +353,7 @@
           </fieldset>
           <div class="tag-example"><TagBadge tag={{ name: name.trim() || 'Tag', color }} /></div>
         {/if}
-        {#if error}<p class="v2-error" role="alert">{ui(error)}</p>{/if}
+        {#if error}<Notice message={ui(error)} />{/if}
       </div>
       <footer class="panel-footer">
         <button

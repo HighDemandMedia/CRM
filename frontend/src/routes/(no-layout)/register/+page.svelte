@@ -1,4 +1,6 @@
 <script>
+  import InvitationNotice from '$lib/components/InvitationNotice.svelte';
+  import Notice from '$lib/components/Notice.svelte';
   import GoogleSignInButton from '$lib/components/GoogleSignInButton.svelte';
   import LegalAcceptance from '$lib/components/LegalAcceptance.svelte';
   import LegalLinks from '$lib/components/LegalLinks.svelte';
@@ -37,113 +39,115 @@
       /><b>High Demand Media CRM</b></a
     >
     <div class="v2-auth-card">
-      <div class="v2-auth-head">
-        <h1>{data.invited ? ui('Set up your account') : ui('Create your account')}</h1>
-        <p>{data.invitation?.organization || ui('Access is by invitation.')}</p>
-      </div>
-      {#if data.error}<p class="v2-error" role="alert">{ui(data.error)}</p>
-      {:else if !data.invited}<p>{ui('Open the invitation link from your email.')}</p>
-      {:else if !usePassword}
-        <p class="invited-email">{data.invitation?.email}</p>
-        <form method="POST" action="?/google" aria-busy={busy} onsubmit={() => (busy = true)}>
-          <LegalAcceptance requirements={data.invitation?.legal} />
-          {#if form?.error || data.googleError}<p class="v2-error" role="alert">
-              {ui(form?.error || data.googleError)}
-            </p>{/if}
-          <GoogleSignInButton {busy} />
-        </form>
-        <div class="v2-auth-divider">{ui('or')}</div>
-        <a class="alternative" href={resolve('/register?method=password')}
-          >{ui('Create account with email')}</a
-        >
-      {:else}
-        {#if data.google_available}<a class="alternative" href={resolve('/register')}
-            >{ui('Back to sign in')}</a
-          >{/if}
-        <form
-          method="POST"
-          action="?/password"
-          use:enhance={() => {
-            busy = true;
-            return async ({ update }) => {
-              try {
-                await update();
-              } finally {
-                busy = false;
-              }
-            };
-          }}
-        >
-          <fieldset disabled={busy}>
-            <label
-              >{ui('Full name')}<input
-                class="v2-input"
-                name="name"
-                required
-                maxlength="255"
-                autocomplete="name"
-                value={form?.values?.name || ''}
-              /></label
-            >
-            <label
-              >{ui('Email')}<input
-                class="v2-input"
-                name="email"
-                type="email"
-                required
-                autocomplete="username"
-                readonly={data.invited}
-                value={data.invitation?.email || form?.values?.email || ''}
-              /></label
-            >
-            {#if !data.invited}<label
-                >{ui('Organization name')}<input
+      {#if data.issue}<InvitationNotice issue={data.issue} retryHref="/register" />{:else}
+        <div class="v2-auth-head">
+          <h1>{data.invited ? ui('Set up your account') : ui('Create your account')}</h1>
+          <p>{data.invitation?.organization || ui('Access is by invitation.')}</p>
+        </div>
+        {#if data.error}<Notice message={ui(data.error)} />
+        {:else if !data.invited}<p>{ui('Open the invitation link from your email.')}</p>
+        {:else if !usePassword}
+          <p class="invited-email">{data.invitation?.email}</p>
+          <form method="POST" action="?/google" aria-busy={busy} onsubmit={() => (busy = true)}>
+            <LegalAcceptance requirements={data.invitation?.legal} />
+            {#if form?.error || data.googleError}<Notice
+                message={ui(form?.error || data.googleError)}
+              />{/if}
+            <GoogleSignInButton {busy} />
+          </form>
+          <div class="v2-auth-divider">{ui('or')}</div>
+          <a class="alternative" href={resolve('/register?method=password')}
+            >{ui('Create account with email')}</a
+          >
+        {:else}
+          {#if data.google_available}<a class="alternative" href={resolve('/register')}
+              >{ui('Back to sign in')}</a
+            >{/if}
+          <form
+            method="POST"
+            action="?/password"
+            use:enhance={() => {
+              busy = true;
+              return async ({ update }) => {
+                try {
+                  await update();
+                } finally {
+                  busy = false;
+                }
+              };
+            }}
+          >
+            <fieldset disabled={busy}>
+              <label
+                >{ui('Full name')}<input
                   class="v2-input"
-                  name="organization"
+                  name="name"
                   required
                   maxlength="255"
-                  autocomplete="organization"
-                  value={form?.values?.organization || ''}
+                  autocomplete="name"
+                  value={form?.values?.name || ''}
                 /></label
-              >{/if}
-            <input type="hidden" name="timezone" value={timezone} />
-            <label
-              >{ui('Password')}<input
-                class="v2-input"
-                name="password"
-                type="password"
-                required
-                minlength="10"
-                maxlength="128"
-                autocomplete="new-password"
-                aria-describedby="password-hint"
-              /></label
-            >
-            <p id="password-hint" class="v2-sub">
-              {ui('At least 10 characters. Avoid common passwords.')}
-            </p>
-            <label
-              >{ui('Confirm password')}<input
-                class="v2-input"
-                name="confirm_password"
-                type="password"
-                required
-                minlength="10"
-                maxlength="128"
-                autocomplete="new-password"
-              /></label
-            >
-            <LegalAcceptance requirements={data.invitation?.legal} />
-            {#if form?.error}<p class="v2-error" role="alert">{ui(form.error)}</p>{/if}
-            <button class="v2-btn v2-btn-primary v2-btn-block"
-              >{busy
-                ? ui('Creating…')
-                : data.invited
-                  ? ui('Create password and join')
-                  : ui('Create account')}</button
-            >
-          </fieldset>
-        </form>{/if}
+              >
+              <label
+                >{ui('Email')}<input
+                  class="v2-input"
+                  name="email"
+                  type="email"
+                  required
+                  autocomplete="username"
+                  readonly={data.invited}
+                  value={data.invitation?.email || form?.values?.email || ''}
+                /></label
+              >
+              {#if !data.invited}<label
+                  >{ui('Organization name')}<input
+                    class="v2-input"
+                    name="organization"
+                    required
+                    maxlength="255"
+                    autocomplete="organization"
+                    value={form?.values?.organization || ''}
+                  /></label
+                >{/if}
+              <input type="hidden" name="timezone" value={timezone} />
+              <label
+                >{ui('Password')}<input
+                  class="v2-input"
+                  name="password"
+                  type="password"
+                  required
+                  minlength="10"
+                  maxlength="128"
+                  autocomplete="new-password"
+                  aria-describedby="password-hint"
+                /></label
+              >
+              <p id="password-hint" class="v2-sub">
+                {ui('At least 10 characters. Avoid common passwords.')}
+              </p>
+              <label
+                >{ui('Confirm password')}<input
+                  class="v2-input"
+                  name="confirm_password"
+                  type="password"
+                  required
+                  minlength="10"
+                  maxlength="128"
+                  autocomplete="new-password"
+                /></label
+              >
+              <LegalAcceptance requirements={data.invitation?.legal} />
+              {#if form?.error}<Notice message={ui(form.error)} />{/if}
+              <button class="v2-btn v2-btn-primary v2-btn-block"
+                >{busy
+                  ? ui('Creating…')
+                  : data.invited
+                    ? ui('Create password and join')
+                    : ui('Create account')}</button
+              >
+            </fieldset>
+          </form>{/if}
+      {/if}
     </div>
     <LegalLinks />
     <p class="v2-sub" style="text-align:center;margin-top:16px">

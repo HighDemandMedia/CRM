@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, money, shortDate } = useI18n();
 
@@ -188,7 +189,7 @@
       {ui('No associated')}
       {label.toLowerCase()}.
     </p>{/each}
-  {#if error}<p class="error" role="alert">{ui(error)}</p>{/if}
+  {#if error}<Notice message={ui(error)} />{/if}
 </section>
 
 <style>
@@ -288,14 +289,10 @@
     cursor: pointer;
   }
   .empty,
-  .error,
   .results p {
     font-size: var(--crm-text-xs);
     margin: var(--crm-space-2) 0;
     color: var(--v2-slate);
-  }
-  .error {
-    color: var(--crm-danger);
   }
   .search-box {
     margin-bottom: 10px;

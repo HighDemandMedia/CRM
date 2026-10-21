@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { page } from '$app/state';
   import { canChooseOwner } from '$lib/v2/permissions.js';
   import { useI18n } from '$lib/i18n/context.js';
@@ -22,7 +23,7 @@
   import { creationEnhance } from '$lib/components/creation/enhance.js';
   const enhance = creationEnhance();
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import { ChevronRight, TriangleAlert } from '@lucide/svelte';
+  import { ChevronRight } from '@lucide/svelte';
 
   /** @type {{ data: any, form: any }} */
   let { data, form: result } = $props();
@@ -85,17 +86,7 @@
   <form class="v2-form" method="POST" action="?/save" use:enhance={check} novalidate>
     <StageRuleNotice issue={result?.stageRequirements} />
     {#if result?.error && !result?.stageRequirements}
-      <div
-        class="v2-next"
-        style="background:color-mix(in srgb, var(--v2-rust) 9%, transparent);border-color:color-mix(in srgb, var(--v2-rust) 28%, transparent);margin-bottom:18px"
-        role="alert"
-      >
-        <TriangleAlert size={17} style="color:var(--v2-rust);flex:none" />
-        <div class="v2-next-body">
-          <div style="font-weight:600">{ui('The server refused this change')}</div>
-          <div class="v2-sub" style="margin-top:2px">{result.error}</div>
-        </div>
-      </div>
+      <Notice title={ui('Could not save changes')} message={result.error} />
     {/if}
 
     <div class="v2-field">

@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import ListPagination from '$lib/v2/components/ListPagination.svelte';
   import ExportDialog from '$lib/v2/components/ExportDialog.svelte';
   import {
@@ -674,7 +675,7 @@
   </div>
 </form>
 
-{#if filterError}<p role="alert">{filterError}</p>{/if}
+{#if filterError}<Notice message={filterError} />{/if}
 
 <div
   class="v2-scroll"
@@ -682,7 +683,7 @@
   class:list-scroll={data.view !== 'pipeline'}
 >
   {#if data.view === 'pipeline'}
-    {#if moveError}<p class="table-hint" role="alert">{moveError}</p>{/if}
+    {#if moveError}<Notice message={moveError} />{/if}
     <p class="table-hint v2-sub" role="status">{moveStatus}</p>
     <div class="contact-board hdm-board" aria-label={ui('Deals by stage')}>
       {#each data.board as stage (stage.value)}

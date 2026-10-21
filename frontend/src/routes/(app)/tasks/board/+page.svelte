@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, count, shortDate } = useI18n();
 
@@ -236,17 +237,14 @@
         </button>
       </form>
       {#if createBoardError}
-        <p class="v2-error" role="status">{createBoardError}</p>
+        <Notice message={createBoardError} />
       {/if}
     </div>
   </div>
 {:else}
   {#if moveError}
     <div class="v2-pad" style="padding-top:12px;flex:none">
-      <div class="v2-move-error" role="status">
-        <TriangleAlert size={13} style="flex:none" />
-        <span>{moveError}</span>
-      </div>
+      <Notice message={moveError} />
     </div>
   {/if}
 
@@ -387,7 +385,7 @@
               {/each}
             </select>
             {#if addCardError}
-              <p class="v2-lane-add-error" role="alert">{addCardError}</p>
+              <Notice message={addCardError} />
             {/if}
             <div class="v2-lane-add-actions">
               <button type="submit" class="v2-btn v2-btn-primary v2-btn-sm" disabled={addCardBusy}>
@@ -467,7 +465,7 @@
               />
             </div>
             {#if addColumnError}
-              <p class="v2-lane-add-error" role="alert">{addColumnError}</p>
+              <Notice message={addColumnError} />
             {/if}
             <div class="v2-lane-add-actions">
               <button
@@ -577,17 +575,6 @@
     color: var(--v2-slate);
     flex: none;
   }
-  .v2-move-error {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--crm-text-xs);
-    color: var(--v2-rust);
-    background: color-mix(in srgb, var(--v2-rust) 8%, transparent);
-    border: 1px solid color-mix(in srgb, var(--v2-rust) 24%, transparent);
-    border-radius: var(--crm-radius-md);
-    padding: 7px 10px;
-  }
   .v2-empty {
     display: flex;
     flex-direction: column;
@@ -686,10 +673,5 @@
   .v2-lane-add-actions {
     display: flex;
     gap: 6px;
-  }
-  .v2-lane-add-error {
-    margin: 0;
-    font-size: var(--crm-text-xs);
-    color: var(--v2-rust);
   }
 </style>

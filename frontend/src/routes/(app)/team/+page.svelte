@@ -1,4 +1,5 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import '$lib/v2/styles/access-list.css';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, relativeDays } = useI18n();
@@ -117,7 +118,7 @@
       {#if form?.invited}<p class="notice" role="status">
           {ui('Invitation sent to')}
           {form.invited}.
-        </p>{:else if form?.error}<p class="error" role="alert">{ui(form.error)}</p>{/if}
+        </p>{:else if form?.error}<Notice message={ui(form.error)} />{/if}
 
       <div class="toolbar">
         <label class="search"
@@ -500,16 +501,12 @@
   .invitation-actions form {
     margin: 0;
   }
-  .notice,
-  .error {
+  .notice {
     font-size: var(--crm-text-sm);
     margin: 0 0 var(--crm-space-4);
     padding: var(--crm-space-3) 14px;
     border-radius: var(--crm-radius-md);
     background: var(--v2-hover);
-  }
-  .error {
-    color: var(--v2-rust);
   }
   @media (max-width: 900px) {
     .access-table {
