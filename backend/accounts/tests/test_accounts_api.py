@@ -66,7 +66,7 @@ class TestAccountListView:
             {
                 "name": "Full Account",
                 "email": "full@example.com",
-                "phone": "+1234567890",
+                "phone": "2125550123",
                 "website": "https://example.com",
                 "industry": "TECHNOLOGY",
                 "description": "A full account description",
@@ -75,18 +75,19 @@ class TestAccountListView:
                 "state": "IL",
                 "postcode": "62701",
                 "country": "US",
-                "tags": [str(tag.id)],
+                "tag_ids": [str(tag.id)],
                 "assigned_to": [str(admin_profile.id)],
             },
             format="json",
         )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.data
         data = response.json()
         assert data["error"] is False
         account = Account.objects.get(name="Full Account")
         assert account.email == "full@example.com"
         assert account.city == "Springfield"
         assert account.tags.count() == 1
+        assert account.tags.get() == tag
         assert account.assigned_to.count() == 1
 
     def test_create_account_duplicate_name(self, admin_client, org_a):

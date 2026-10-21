@@ -339,7 +339,7 @@ async function listChoices(cookies) {
 
   return {
     tagOptions: tagOptions.tags,
-    canCreateTags: tagOptions.can_edit,
+    canCreateTags: tagOptions.can_create,
     sources: (contactsResponse.sources ?? []).map((pair) => ({ value: pair[0], label: pair[1] })),
     stages: (contactsResponse.stages ?? []).map((pair) => ({ value: pair[0], label: pair[1] })),
     communication_channels: (contactsResponse.communication_channels ?? []).map((pair) => ({

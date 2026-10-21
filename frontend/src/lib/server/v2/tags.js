@@ -4,7 +4,7 @@ import { viewerRole } from './organization.js';
 
 /**
  * @param {{ cookies: import('@sveltejs/kit').Cookies }} event
- * @returns {Promise<{ tags: any[], totals: any, can_edit: boolean }>}
+ * @returns {Promise<{ tags: any[], totals: any, can_edit: boolean, can_create: boolean }>}
  */
 export async function getTags({ cookies }, { includeArchived = false, compact = false } = {}) {
   const resp = await apiRequest(
@@ -15,7 +15,8 @@ export async function getTags({ cookies }, { includeArchived = false, compact = 
   return {
     tags: resp.tags ?? [],
     totals: resp.totals ?? { count: 0, active: 0, unused: 0 },
-    can_edit: viewerRole(cookies) === 'ADMIN'
+    can_edit: viewerRole(cookies) === 'ADMIN',
+    can_create: resp.can_create === true
   };
 }
 

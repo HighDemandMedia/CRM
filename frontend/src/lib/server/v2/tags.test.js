@@ -158,3 +158,12 @@ describe('mergeTags', () => {
     expect(apiRequest).not.toHaveBeenCalled();
   });
 });
+
+describe('tag creation affordance', () => {
+  it.each([true, false, undefined])('uses the live API grant: %s', async (grant) => {
+    const { getTags } = await import('./tags.js');
+    apiRequest.mockResolvedValue({ tags: [], can_create: grant });
+    const result = await getTags(event, { compact: true });
+    expect(result.can_create).toBe(grant === true);
+  });
+});

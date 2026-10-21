@@ -159,7 +159,7 @@
 </script>
 
 <PageHeader title={ui('Tags')}>
-  {#snippet actions()}{#if data.can_edit}<button
+  {#snippet actions()}{#if data.can_create}<button
         class="v2-btn v2-btn-primary"
         disabled={busy}
         onclick={() => openEditor()}><Plus size={16} />{ui('New tag')}</button

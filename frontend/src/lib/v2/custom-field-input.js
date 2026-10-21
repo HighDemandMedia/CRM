@@ -77,3 +77,44 @@ export function propertyInputAttributes(type) {
   if (type === 'textarea') return { maxlength: 10000 };
   return {};
 }
+
+/** Examples guide input without replacing labels or becoming saved defaults. */
+export function propertyPlaceholder(field, target = '') {
+  if (!field.custom) {
+    if (['first_name', 'name', 'title'].includes(field.key))
+      return (
+        {
+          Contact: 'e.g. Alex Morgan',
+          Account: 'e.g. Acme Inc.',
+          Opportunity: 'e.g. Website redesign',
+          Task: 'e.g. Follow up on proposal',
+          Case: 'e.g. Unable to sign in'
+        }[target] || 'Enter a name'
+      );
+    const example = {
+      address_line: 'e.g. 123 Main St, Suite 200',
+      city: 'e.g. Miami',
+      state: 'e.g. Florida',
+      postcode: 'e.g. 33101',
+      website: 'https://example.com',
+      description: 'Add relevant details…',
+      waiting_reason: 'What are you waiting for?',
+      resolution_note: 'Describe the resolution…'
+    }[field.key];
+    if (example) return example;
+  }
+  return (
+    {
+      email: 'name@example.com',
+      phone: '2125550123',
+      url: 'https://example.com',
+      number: 'e.g. 100',
+      integer: 'e.g. 10',
+      money: 'e.g. 1000.00',
+      percentage: 'e.g. 25',
+      text: 'Enter a value',
+      textarea: 'Add relevant details…',
+      list: '["Item 1", "Item 2"]'
+    }[field.field_type] || ''
+  );
+}

@@ -121,8 +121,8 @@ export const actions = {
         // from a body field. /api/org/ does not mint new tokens, so the
         // access token we are holding here still carries the PREVIOUS org's
         // claim (or no org claim at all, for a brand-new user's first org).
-        // Mint one scoped to the org we just created, the same way `/org`'s
-        // `selectOrg` action and the shell's own hooks.server.js do it, so
+        // Mint one scoped to the org we just created, as organization entry
+        // and the shell's own hooks.server.js do, so
         // the apply call lands on the right org as its ADMIN.
         //
         // This token is used ONLY as the bearer credential for the one

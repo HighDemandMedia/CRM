@@ -109,6 +109,7 @@
     );
   }
   function hint(module, action) {
+    if (module === 'tags') return 'Create tags without changing existing tags or Settings access.';
     if (['contacts', 'companies'].includes(module) && action === 'edit')
       return 'Change properties and send, reply to or forward email from your connected Gmail. Google send permission is also required.';
     if (['contacts', 'companies'].includes(module) && action === 'notes')
@@ -260,13 +261,17 @@
                   {#each module.actions as action (action.key)}
                     <label
                       class="permission-option"
-                      class:muted={action.key !== 'view' && !editing.enabled[module.key].view}
+                      class:muted={'view' in editing.enabled[module.key] &&
+                        action.key !== 'view' &&
+                        !editing.enabled[module.key].view}
                     >
                       <input
                         type="checkbox"
                         aria-label={`${module.label}: ${action.key}`}
                         checked={editing.enabled[module.key][action.key]}
-                        disabled={action.key !== 'view' && !editing.enabled[module.key].view}
+                        disabled={'view' in editing.enabled[module.key] &&
+                          action.key !== 'view' &&
+                          !editing.enabled[module.key].view}
                         onchange={(event) =>
                           toggle(module.key, action.key, event.currentTarget.checked)}
                       />

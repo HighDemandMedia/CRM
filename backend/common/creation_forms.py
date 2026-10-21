@@ -41,6 +41,10 @@ def catalog(org, target):
         keys.remove("currency")
     if target in WORK_ITEMS:
         keys = [key for key in keys if key not in RELATIONS]
+    # Creation defaults are independent from table/property catalog ordering.
+    if "state" in keys and "address_line" in keys:
+        keys.remove("state")
+        keys.insert(keys.index("address_line"), "state")
     rows = []
     for key in keys:
         f = model._meta.get_field(key)

@@ -95,7 +95,7 @@
           </p>
         </div>
         {#if form?.data?.invitationWarning}<Notice message={form.data.invitationWarning} />
-          <a href={resolve('/org')}>{ui('Open organizations')}</a>{/if}
+          <a href={resolve('/org')}>{ui('Back to Today')}</a>{/if}
         <div class="v2-field">
           <label for="org_name">{ui('Organization name')}</label>
           <input
@@ -217,7 +217,7 @@
     <div class="v2-auth-foot">
       <a href={resolve('/org')} style="display:inline-flex;align-items:center;gap:5px">
         <ArrowLeft size={13} />
-        {ui('Back to organizations')}
+        {ui('Back to Today')}
       </a>
     </div>
   </div>

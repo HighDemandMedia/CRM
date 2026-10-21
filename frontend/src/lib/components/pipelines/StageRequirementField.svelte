@@ -2,7 +2,8 @@
   import {
     fieldInputType,
     fieldInputStep,
-    propertyInputAttributes
+    propertyInputAttributes,
+    propertyPlaceholder
   } from '$lib/v2/custom-field-input.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -170,7 +171,7 @@
         bind:value
         {required}
         rows="3"
-        placeholder={field.field_type === 'list' ? ui('JSON list') : ''}></textarea>
+        placeholder={ui(propertyPlaceholder(field, target))}></textarea>
     {:else}<input
         id={`requirement-${field.key}`}
         class="v2-input"
@@ -180,6 +181,7 @@
         {...constraints}
         bind:value
         {required}
+        placeholder={ui(propertyPlaceholder(field, target))}
         step={fieldInputStep(field.field_type)}
       />{/if}
     {#if loading}<small>{ui('Loading options…')}</small>{:else if error}<small role="alert"

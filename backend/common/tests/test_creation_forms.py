@@ -276,3 +276,21 @@ def test_default_form_with_optional_blanks(
     payload[key] = "Default form test"
     response = admin_client.post(f"/api/{endpoint}/", payload, format="json")
     assert response.status_code in (200, 201), response.data
+
+
+@pytest.mark.parametrize("target", ["Contact", "Account", "Opportunity"])
+def test_default_address_order_and_saved_order(org_a, target):
+    defaults = configuration(org_a, target)
+    keys = [field["key"] for field in defaults["selected"]]
+    assert keys.index("state") + 1 == keys.index("address_line")
+    identity = "first_name" if target == "Contact" else "name"
+    org_a.creation_forms = {
+        target: [row(identity, True), row("address_line"), row("city"), row("state")]
+    }
+    saved = configuration(org_a, target)
+    assert [field["key"] for field in saved["selected"]] == [
+        identity,
+        "address_line",
+        "city",
+        "state",
+    ]

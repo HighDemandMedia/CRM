@@ -16,7 +16,11 @@ from common.lookups import get_scoped_or_404
 from common.models import APISettings, Tags
 from common.permissions import HasOrgContext
 from common.serializer import TagsSerializer
-from common.settings_access import can_access_settings, require_settings
+from common.settings_access import (
+    can_access_settings,
+    can_create_tags,
+    require_settings,
+)
 from contacts.models import Contact
 from leads.models import Lead
 from opportunity.models import Opportunity
@@ -150,7 +154,13 @@ class TagsListView(APIView, LimitOffsetPagination):
         if request.query_params.get("compact") == "true" or not can_access_settings(
             request.profile, "tags"
         ):
-            return Response({"tags_count": len(rows), "tags": rows})
+            return Response(
+                {
+                    "tags_count": len(rows),
+                    "tags": rows,
+                    "can_create": can_create_tags(request.profile),
+                }
+            )
         # Attach usage from the annotations (serializer order matches the qs).
         for row, obj in zip(rows, tags_qs):
             row["usage"] = {key: getattr(obj, f"_u_{key}") for key, _ in _TAGGABLE}
@@ -159,6 +169,7 @@ class TagsListView(APIView, LimitOffsetPagination):
                 "tags_count": len(rows),
                 "tags": rows,
                 "totals": _tag_totals(request.profile.org),
+                "can_create": can_create_tags(request.profile),
             }
         )
 
@@ -179,11 +190,10 @@ class TagsListView(APIView, LimitOffsetPagination):
         },
     )
     def post(self, request, *args, **kwargs):
-        """Create a new tag (requires Tags management)."""
-        # Explicit Settings grant, independent of record-edit permissions.
-        if not can_access_settings(request.profile, "tags", manage=True):
+        """Create a tag with an explicit grant; management remains separate."""
+        if not can_create_tags(request.profile):
             return Response(
-                {"error": True, "errors": "Tags management permission required"},
+                {"error": True, "errors": "Tag creation permission required"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -202,6 +212,7 @@ class TagsListView(APIView, LimitOffsetPagination):
         existing = Tags.objects.filter(slug=slug, org=request.profile.org).first()
         if existing:
             if not existing.is_active:
+                require_settings(request.profile, "tags", manage=True)
                 # Reactivate archived tag with same name
                 existing.is_active = True
                 existing.color = params.get("color", existing.color)

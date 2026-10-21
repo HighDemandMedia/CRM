@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from django.db.models import (
     Case as SortCase,
 )
@@ -560,6 +561,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
         parameters=swagger_params.organization_params,
         request=AccountCreateSerializer,
     )
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         data = request.data
         serializer = AccountCreateSerializer(
@@ -597,7 +599,9 @@ class AccountsListView(APIView, LimitOffsetPagination):
             tags = (
                 Tags.objects.filter(org=request.profile.org, pk__in=data["tag_ids"])
                 if "tag_ids" in data
-                else get_or_create_tags(data.get("tags"), request.profile.org)
+                else get_or_create_tags(
+                    data.get("tags"), request.profile.org, request.profile
+                )
             )
             if tags:
                 account_object.tags.add(*tags)

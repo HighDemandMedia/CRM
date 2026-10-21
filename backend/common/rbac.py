@@ -6,7 +6,7 @@ from django.db.models import Prefetch, Q
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 RECORD_MODULES = ("contacts", "companies", "deals", "tasks", "tickets")
-MODULES = (*RECORD_MODULES, "calendar", "reports")
+MODULES = (*RECORD_MODULES, "calendar", "reports", "tags")
 SCOPES = ("none", "own", "team", "organization")
 ACTIONS = (
     "view",
@@ -33,6 +33,7 @@ SCHEMA.update(
         "export",
     ),
     reports=("view", "export"),
+    tags=("create",),
 )
 BOOLEAN_ACTIONS = ("create", "override_conflicts")
 MODULE_LABELS = dict(
@@ -43,6 +44,7 @@ MODULE_LABELS = dict(
     tickets="Tickets",
     calendar="Calendar",
     reports="Reports",
+    tags="Tags",
 )
 ACTION_LABELS = dict(
     view="View",
@@ -93,7 +95,7 @@ def default_rules(scope="own"):
         "override_conflicts": False,
         "export": "none",
     }
-    rules["reports"] = {"view": scope, "export": "none"}
+    rules["reports"] = {"view": "none", "export": "none"}
     return rules
 
 
@@ -125,11 +127,15 @@ def expanded_rules(rules, scope="own", builtin=False):
                 for action in SCHEMA[module]
             },
         )
+    result.setdefault("tags", {"create": False})
     return result
 
 
 def validate_rules(rules):
-    if not isinstance(rules, dict) or set(rules) != set(MODULES):
+    if not isinstance(rules, dict) or set(rules) not in (
+        set(MODULES),
+        set(MODULES) - {"tags"},
+    ):
         raise ValidationError("Supply permissions for every CRM module.")
     for module, row in rules.items():
         if not isinstance(row, dict) or set(row) != set(SCHEMA[module]):
@@ -140,7 +146,7 @@ def validate_rules(rules):
                     raise ValidationError(
                         f"{module}: {action} must be enabled or disabled."
                     )
-                if value and row["view"] == "none":
+                if value and "view" in row and row["view"] == "none":
                     raise ValidationError(f"{module}: enable View before {action}.")
             else:
                 if value not in SCOPES:

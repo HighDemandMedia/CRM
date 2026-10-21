@@ -61,3 +61,22 @@ class HasSettingsAccess(BasePermission):
             view.settings_section,
             manage=request.method not in SAFE_METHODS,
         )
+
+
+def can_create_tags(profile):
+    """Creation is independent from tag-catalog management and record scope."""
+    if not profile or not profile.is_active or profile.removed_at:
+        return False
+    if is_org_admin(profile):
+        return True
+    role = profile.access_role
+    if not role or role.org_id != profile.org_id:
+        return False
+    if isinstance(role.rules, dict) and "tags" in role.rules:
+        return (
+            role.rules["tags"].get("create") is True
+            if isinstance(role.rules["tags"], dict)
+            else False
+        )
+    # Preserve existing Manager grants until the permission set is edited.
+    return can_access_settings(profile, "tags", manage=True)

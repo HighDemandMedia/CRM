@@ -313,7 +313,7 @@ def test_member_create_defaults_owner_to_self(user_client, regular_user, org_a):
             "/api/contacts/",
             {
                 "first_name": "New member contact",
-                "phone": "15551234567",
+                "phone": "2125550123",
                 "source": "META",
                 "stage": "LEAD",
             },
@@ -355,7 +355,7 @@ def test_replace_contact_preserves_omitted_owner(user_client, regular_user, org_
     contact = Contact.objects.create(
         org=org_a,
         first_name="Keep owner",
-        phone="15551234567",
+        phone="2125550123",
         source="META",
         stage="LEAD",
     )
@@ -364,7 +364,7 @@ def test_replace_contact_preserves_omitted_owner(user_client, regular_user, org_
         f"/api/contacts/{contact.pk}/",
         {
             "first_name": "Still mine",
-            "phone": "15551234567",
+            "phone": "2125550123",
             "source": "META",
             "stage": "LEAD",
         },
@@ -422,3 +422,28 @@ def test_disabled_custom_permissions_retain_selected_scope(admin_client):
     )
     assert response.status_code == 201, response.data
     assert response.data["scope"] == "organization"
+
+
+@pytest.mark.parametrize("name,scope", [("Member", "own"), ("Manager", "team")])
+def test_reports_disabled_by_default_but_explicit_grants_preserved(
+    user_client, user_profile, name, scope
+):
+    from common.rbac import ensure_default_roles, expanded_rules
+
+    member, manager = ensure_default_roles(user_profile.org)
+    role = member if name == "Member" else manager
+    user_profile.access_role = role
+    user_profile.save()
+    assert role.rules["reports"]["view"] == "none"
+    assert user_client.get("/api/reports/crm/").status_code == 403
+    assert (
+        user_client.get("/api/permissions/me/").data["rules"]["reports"]["view"]
+        == "none"
+    )
+    assert expanded_rules({}, scope, builtin=True)["reports"]["view"] == "none"
+    role.rules["reports"]["view"] = scope
+    role.save()
+    ensure_default_roles(user_profile.org)
+    role.refresh_from_db()
+    assert role.rules["reports"]["view"] == scope
+    assert user_client.get("/api/reports/crm/").status_code == 200

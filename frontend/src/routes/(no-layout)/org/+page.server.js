@@ -1,111 +1,47 @@
+import { error, redirect } from '@sveltejs/kit';
+import { apiRequest } from '$lib/api-helpers.js';
 import { savePasswordSession } from '$lib/server/password-session.js';
-import { API_ORIGIN } from '$lib/server/api-origin.js';
-/**
- * Organization Selection Page - API Version
- *
- * Migrated from Prisma to Django REST API
- * Django endpoint: GET /api/auth/me/ (returns user with organizations array)
- *
- * To activate:
- *   mv +page.server.js +page.server.prisma.js
- *   mv +page.server.api.js +page.server.js
- */
-
-import { redirect, fail } from '@sveltejs/kit';
-import axios from 'axios';
 import { describeError } from '$lib/server/log-safe.js';
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * Legacy sign-in destination: enter the current workspace without a chooser.
+ * Organization switching remains in the profile menu. The app layout enforces
+ * onboarding and live permissions after this redirect.
+ * @type {import('./$types').PageServerLoad}
+ */
+export async function load({ cookies, locals, setHeaders }) {
+  setHeaders({ 'Cache-Control': 'private, no-store' });
+  if (!locals.user) redirect(303, '/login');
+  if (cookies.get('crm_invitation')) redirect(303, '/invite');
+  if (locals.org?.id) redirect(303, '/');
 
-/** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies, locals }) {
-  const user = locals.user;
-
-  if (!user) {
-    return { orgs: [] };
-  }
-
+  let result;
   try {
-    const jwtAccess = cookies.get('jwt_access');
-    if (!jwtAccess) {
-      return { orgs: [] };
+    const user = await apiRequest('/auth/me/', {}, { cookies });
+    if (!Array.isArray(user.organizations)) throw new Error('Missing organization list');
+    // Only use API-authorized memberships, never an organization from the URL.
+    const organization = user.organizations[0];
+    if (!organization) return { canCreateOrganization: user.is_platform_owner === true };
+    const refresh = cookies.get('jwt_refresh');
+    result = await apiRequest(
+      '/auth/switch-org/',
+      {
+        method: 'POST',
+        body: { org_id: organization.id, ...(refresh ? { refresh } : {}) }
+      },
+      { cookies }
+    );
+    if (!result?.access_token || !result?.refresh_token || !result?.current_org?.id)
+      throw new Error('Incomplete organization session');
+  } catch (err) {
+    console.error('Organization entry failed:', describeError(err));
+    if (err?.status === 401) {
+      for (const name of ['jwt_access', 'jwt_refresh', 'org']) cookies.delete(name, { path: '/' });
+      redirect(303, '/login');
     }
-
-    const apiUrl = API_ORIGIN;
-
-    // Fetch current user with organization memberships
-    // The /api/auth/me/ endpoint returns user data with organizations array
-    const response = await axios.get(`${apiUrl}/api/auth/me/`, {
-      headers: {
-        Authorization: `Bearer ${jwtAccess}`
-      }
-    });
-
-    // Extract organizations from the user data
-    // Django's MeView returns user with organizations array
-    let orgs = [];
-
-    if (response.data.organizations && Array.isArray(response.data.organizations)) {
-      orgs = response.data.organizations.map((org) => ({
-        id: org.id,
-        name: org.name,
-        logo: org.logo || null,
-        role: org.role || 'USER'
-      }));
-    }
-
-    return { orgs, canCreateOrganization: !!response.data.is_platform_owner };
-  } catch (error) {
-    // Never log the raw error: its axios `config.headers` carries the JWT.
-    console.error('Error fetching organizations:', describeError(error));
-    // Return empty array so user can create a new organization
-    return { orgs: [] };
+    error(err?.status === 403 ? 403 : 503, 'Could not open your organization.');
   }
+
+  savePasswordSession(cookies, result);
+  redirect(303, '/');
 }
-
-/** @type {import('./$types').Actions} */
-export const actions = {
-  selectOrg: async ({ request, cookies }) => {
-    const formData = await request.formData();
-    const orgId = formData.get('org_id')?.toString();
-
-    if (!orgId || !UUID_RE.test(orgId)) {
-      return fail(400, { error: 'Invalid Organization ID' });
-    }
-
-    const jwtAccess = cookies.get('jwt_access');
-    if (!jwtAccess) {
-      throw redirect(307, '/login');
-    }
-
-    const apiUrl = API_ORIGIN;
-    // Sent so the backend retires the token we are about to replace below;
-    // otherwise it stays usable against the previous org until it expires.
-    const outgoingRefresh = cookies.get('jwt_refresh');
-
-    try {
-      // Call switch-org endpoint to get new tokens with org context
-      const response = await axios.post(
-        `${apiUrl}/api/auth/switch-org/`,
-        outgoingRefresh ? { org_id: orgId, refresh: outgoingRefresh } : { org_id: orgId },
-        {
-          headers: {
-            Authorization: `Bearer ${jwtAccess}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      savePasswordSession(cookies, { ...response.data, current_org: { id: orgId } });
-
-      // Redirect to app
-      throw redirect(303, '/');
-    } catch (error) {
-      if (error.status === 303) {
-        throw error; // Re-throw redirect
-      }
-      console.error('Org switch failed:', describeError(error));
-      return fail(500, { error: 'Failed to switch organization' });
-    }
-  }
-};

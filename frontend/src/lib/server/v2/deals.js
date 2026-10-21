@@ -378,7 +378,7 @@ async function listAccounts(cookies) {
         name: [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unnamed contact'
       })),
       tagOptions: tagOptions.tags,
-      canCreateTags: tagOptions.can_edit,
+      canCreateTags: tagOptions.can_create,
       countries: geography.countries ?? []
     };
   } catch {

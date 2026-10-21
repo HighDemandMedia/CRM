@@ -435,20 +435,24 @@ def convert_to_custom_timezone(custom_date, custom_timezone, to_utc=False):
 # =============================================================================
 
 
-def get_or_create_tags(tag_data, org):
+def get_or_create_tags(tag_data, org, profile):
     """
     Handle tag creation/lookup for any CRM model.
 
     Args:
         tag_data: List of tag names or JSON string of tag names
         org: Organization instance
+        profile: Acting member whose permission controls creation of missing tags
 
     Returns:
         List of Tag objects
     """
     import json
 
+    from rest_framework.exceptions import PermissionDenied
+
     from common.models import Tags
+    from common.settings_access import can_create_tags
 
     tags = []
     if not tag_data:
@@ -464,9 +468,15 @@ def get_or_create_tags(tag_data, org):
     for tag_name in tag_data:
         if not tag_name:
             continue
-        tag_obj, _ = Tags.objects.get_or_create(
-            slug=tag_name.lower(), org=org, defaults={"name": tag_name}
-        )
+        tag_obj = Tags.objects.filter(slug=tag_name.lower(), org=org).first()
+        if tag_obj is None:
+            if profile.org_id != org.pk or not can_create_tags(profile):
+                raise PermissionDenied(
+                    "Your permission set does not allow creating tags."
+                )
+            tag_obj, _ = Tags.objects.get_or_create(
+                slug=tag_name.lower(), org=org, defaults={"name": tag_name}
+            )
         tags.append(tag_obj)
     return tags
 

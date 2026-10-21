@@ -103,6 +103,7 @@ class TestCRMReports:
         self, user_client, user_profile, org_a, org_b
     ):
         rules = default_rules("own")
+        rules["reports"]["view"] = "own"
         rules["deals"]["view"] = "none"
         role = CRMRole.objects.create(org=org_a, name="Restricted", rules=rules)
         user_profile.access_role = role
@@ -126,9 +127,9 @@ class TestCRMReports:
     def test_team_scope_totals_not_multiplied(
         self, user_client, user_profile, admin_profile, org_a
     ):
-        role = CRMRole.objects.create(
-            org=org_a, name="Team", rules=default_rules("team")
-        )
+        rules = default_rules("team")
+        rules["reports"]["view"] = "team"
+        role = CRMRole.objects.create(org=org_a, name="Team", rules=rules)
         user_profile.access_role = role
         user_profile.save()
         team = Teams.objects.create(org=org_a, name="Team")

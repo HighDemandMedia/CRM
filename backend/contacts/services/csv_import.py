@@ -35,12 +35,14 @@ from django.core.validators import URLValidator
 from django.db import IntegrityError, transaction
 from django.db.models.functions import Lower
 from django.utils.text import slugify
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError as APIValidationError
 
 from accounts.models import Account
 from common.custom_fields import PHONE_ERROR, valid_phone
 from common.models import Profile, Tags, Teams
 from common.pipeline_settings import validate_entry
+from common.settings_access import can_create_tags
 from common.utils import COUNTRIES
 from common.validators import normalize_phone
 from contacts.models import Contact
@@ -690,6 +692,16 @@ def commit_rows(file_bytes: bytes, org, profile) -> dict[str, Any]:
 def _commit_validated(rows: list[ValidatedRow], org, profile) -> dict[str, Any]:
     created_ids: list[str] = []
     tag_cache: dict[str, Tags] = {}
+    if not can_create_tags(profile):
+        slugs = {
+            slugify(name) or name.lower() for row in rows for name in row.tag_names
+        }
+        tag_cache = {
+            tag.slug: tag
+            for tag in Tags.objects.filter(org=org, slug__in=slugs, is_active=True)
+        }
+        if slugs - tag_cache.keys():
+            raise PermissionDenied("Your permission set does not allow creating tags.")
 
     for vr in rows:
         contact = Contact.objects.create(

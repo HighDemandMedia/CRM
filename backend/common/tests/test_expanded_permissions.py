@@ -65,6 +65,7 @@ def test_catalog_and_non_admin_management(admin_client, user_client, user_profil
         "tickets",
         "calendar",
         "reports",
+        "tags",
     }
     assert user_client.get("/api/roles/").status_code == 403
     data = user_client.get("/api/permissions/me/").data
@@ -134,7 +135,7 @@ def test_permission_dependencies_rejected():
 
 
 def test_read_only_report_does_not_allow_csv(user_client, user_profile, org_a):
-    set_role(user_profile)
+    set_role(user_profile, reports={"view": "own"})
     response = user_client.get("/api/reports/crm/?object=contacts")
     assert response.status_code == 200, response.data
     assert (
@@ -147,6 +148,7 @@ def test_reports_module_and_object_both_required(user_client, user_profile):
     role = set_role(user_profile, reports={"view": "none"})
     assert user_client.get("/api/reports/crm/").status_code == 403
     role.rules = default_rules()
+    role.rules["reports"]["view"] = "own"
     role.rules["reports"]["export"] = "own"
     role.save()
     assert (
@@ -163,6 +165,7 @@ def test_reports_module_and_object_both_required(user_client, user_profile):
 
 def test_no_report_objects_is_forbidden_not_server_error(user_client, user_profile):
     rules = default_rules()
+    rules["reports"]["view"] = "own"
     for key in ("contacts", "companies", "deals", "tasks", "tickets", "calendar"):
         rules[key]["view"] = "none"
     role = set_role(user_profile)

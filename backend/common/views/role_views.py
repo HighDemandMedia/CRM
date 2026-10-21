@@ -22,7 +22,11 @@ from common.rbac import (
     scope_for,
     validate_rules,
 )
-from common.settings_access import settings_access, validate_settings_access
+from common.settings_access import (
+    can_create_tags,
+    settings_access,
+    validate_settings_access,
+)
 
 
 class RoleInput(serializers.Serializer):
@@ -84,15 +88,19 @@ class RoleInput(serializers.Serializer):
 
 
 def role_data(role):
+    rules = expanded_rules(role.rules, role.scope, role.name in ("Member", "Manager"))
+    if "tags" not in (role.rules or {}):
+        rules["tags"] = {
+            "create": role.name == "Manager"
+            and (role.settings_access or {}).get("tags") == "manage"
+        }
     return {
         "id": str(role.pk),
         "name": role.name,
         "scope": role.scope,
         "description": role.description,
         "settings_access": role.settings_access,
-        "rules": expanded_rules(
-            role.rules, role.scope, role.name in ("Member", "Manager")
-        ),
+        "rules": rules,
         "member_count": role.members.filter(removed_at__isnull=True).count(),
     }
 
@@ -119,7 +127,9 @@ class RolesView(APIView):
                             {
                                 "key": action,
                                 "label": (
-                                    "Reschedule"
+                                    "Create tags"
+                                    if key == "tags" and action == "create"
+                                    else "Reschedule"
                                     if key == "calendar" and action == "edit"
                                     else "Choose another host"
                                     if key == "calendar" and action == "reassign"
@@ -279,6 +289,7 @@ def permissions_payload(profile):
         if profile.role == "ADMIN" or configured(profile)
         else default_rules()
     )
+    rules["tags"] = {"create": can_create_tags(profile)}
     if profile.org.closing_at:
         rules = {
             module: {
