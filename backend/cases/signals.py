@@ -543,7 +543,9 @@ def _notify_reopen_assignees(case):
     if not assignee_ids:
         return
     try:
-        send_email_to_assigned_user.delay(assignee_ids, str(case.pk), str(case.org_id))
+        send_email_to_assigned_user.delay_on_commit(
+            assignee_ids, str(case.pk), str(case.org_id)
+        )
     except Exception:  # pragma: no cover - notification failures are non-blocking
         logger.warning(
             "send_email_to_assigned_user failed for reopen of case=%s", case.pk

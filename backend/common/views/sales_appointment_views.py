@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import Account
+from common.appointment_emails import queue_appointment_emails
 from common.models import Activity, Comment, Profile, SalesAppointment
 from common.permissions import HasOrgContext, is_org_admin
 from common.pipeline_settings import validate_entry
@@ -535,6 +536,7 @@ class SalesAppointmentView(APIView):
             org=request.profile.org, created_by=request.user, deal=deal
         )
         sync_attendee(appointment, request, "scheduled")
+        queue_appointment_emails(appointment, "scheduled")
         return Response(serializer.data, status=201)
 
 
@@ -568,6 +570,7 @@ class SalesAppointmentManageView(APIView):
                 {"message": "This event has already been cancelled."}, status=409
             )
         previous_start = record.starts_at
+        previous_end = record.ends_at
         now = timezone.now()
         entry = {
             "action": operation,
@@ -618,4 +621,12 @@ class SalesAppointmentManageView(APIView):
             else "rescheduled",
             previous_start,
         )
+        if operation == "cancel":
+            queue_appointment_emails(record, "cancelled")
+        elif operation == "reschedule" and (
+            record.starts_at != previous_start or record.ends_at != previous_end
+        ):
+            queue_appointment_emails(
+                record, "rescheduled", previous_start, previous_end
+            )
         return Response({"saved": True})

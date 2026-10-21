@@ -24,6 +24,7 @@ from common.google_sync import (
     sync_mirrors,
 )
 from common.models import (
+    AppointmentEmailDelivery,
     GoogleCalendarEvent,
     GoogleCalendarMirror,
     GoogleConnection,
@@ -339,6 +340,10 @@ def test_google_changes_update_crm_notes_and_time(conn):
         and appt.starts_at == new_start
     )
     api.request.assert_not_called()
+    notice = AppointmentEmailDelivery.objects.get(appointment=appt)
+    assert notice.action == "rescheduled"
+    assert notice.payload["starts_at"] == new_start.isoformat()
+    assert "New notes" not in str(notice.payload)
 
 
 def test_calendar_conflict_does_not_overwrite(conn):
@@ -499,6 +504,7 @@ def test_reconnect_recovers_remote_event_without_duplicate(conn):
     appt.refresh_from_db()
     assert appt.title == "Existing meeting"
     assert conn.mirrors.count() == 1
+    assert not AppointmentEmailDelivery.objects.exists()
 
 
 def test_google_cancel_is_idempotent(conn):
@@ -522,6 +528,12 @@ def test_google_cancel_is_idempotent(conn):
     sync_mirrors(conn, api, "calendar/v3/calendars/primary", True)
     appt.refresh_from_db()
     assert len(appt.change_history) == changes
+    assert (
+        AppointmentEmailDelivery.objects.filter(
+            appointment=appt, action="cancelled"
+        ).count()
+        == 1
+    )
 
 
 def test_sync_error_requires_reconnect_without_leaking_secret(conn):

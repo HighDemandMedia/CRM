@@ -1,6 +1,7 @@
 import pytest
 
 from common.models import SalesAppointment
+from common.testing import rls_org
 
 
 @pytest.mark.django_db
@@ -57,7 +58,8 @@ def test_attendee_selection_and_scope(admin_client, admin_profile, org_a, org_b,
     model = Contact if kind == "contact" else Account
     fields = {"first_name": "Attendee"} if kind == "contact" else {"name": "Attendee"}
     local = model.objects.create(org=org_a, **fields)
-    foreign = model.objects.create(org=org_b, **fields)
+    with rls_org(org_b):
+        foreign = model.objects.create(org=org_b, **fields)
     payload = {
         "title": "Event",
         "host": str(admin_profile.pk),
@@ -537,7 +539,8 @@ def test_multiple_attendee_scope_and_inactive_users(
     from common.models import Profile
     from contacts.models import Contact
 
-    foreign = Contact.objects.create(first_name="Other tenant", org=org_b)
+    with rls_org(org_b):
+        foreign = Contact.objects.create(first_name="Other tenant", org=org_b)
     body = {
         "title": "Meeting",
         "host": str(admin_profile.pk),
@@ -552,7 +555,8 @@ def test_multiple_attendee_scope_and_inactive_users(
         ).status_code
         == 400
     )
-    foreign_profile = Profile.objects.filter(org=org_b).first()
+    with rls_org(org_b):
+        foreign_profile = Profile.objects.filter(org=org_b).first()
     if foreign_profile:
         assert (
             admin_client.post(

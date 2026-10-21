@@ -308,7 +308,7 @@ def test_member_create_defaults_owner_to_self(user_client, regular_user, org_a):
 
     member = Profile.objects.get(org=org_a, user=regular_user)
     assign(member)
-    with patch("contacts.views.send_email_to_assigned_user.delay"):
+    with patch("contacts.views.send_email_to_assigned_user.delay_on_commit"):
         response = user_client.post(
             "/api/contacts/",
             {

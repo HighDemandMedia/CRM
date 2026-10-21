@@ -1,7 +1,9 @@
 {% extends "root_email_template_new.html" %}
-{% block preheader %}You are invited to {{ organization }}{% endblock %}
-{% block heading %}You’re invited{% endblock %}
-{% block content_body %}<p>You have been invited to <strong>{{ organization }}</strong> in High Demand Media CRM.</p>
-<p>Accept using <strong>{{ email }}</strong>. Continue with Google or create your own password. If you already have an account, sign in to accept.</p>{% endblock %}
-{% block button_link %}{% include "emails/button.html" with url=link label="Accept invitation" %}{% endblock %}
+{% block preheader %}{% if grants_ownership %}Your specialized CRM is ready. Activate your account to get started.{% else %}You are invited to {{ organization }}{% endif %}{% endblock %}
+{% block heading %}{{ heading|default:"Join your team" }}{% endblock %}
+{% block content_body %}<p>{{ introduction }}</p>
+{% if grants_ownership %}<p><strong>{{ organization }}</strong></p>{% endif %}
+<p>Accept using <strong>{{ email }}</strong>. Continue with Google or create your own password. If you already have an account, sign in to accept.</p>
+{% if setup_message %}<p>{{ setup_message }}</p>{% endif %}{% endblock %}
+{% block button_link %}{% include "emails/button.html" with url=link label=button_label|default:"Accept invitation" %}{% endblock %}
 {% block extra_content %}<p style="color:{{ email_theme.muted }};font-size:13px;line-height:1.5;">This invitation expires in 7 days. If you were not expecting it, you can ignore this email.</p>{% endblock %}

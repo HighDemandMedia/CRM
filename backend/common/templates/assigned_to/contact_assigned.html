@@ -2,10 +2,10 @@
 
 {% block preheader %}A contact has been assigned to you in High Demand Media CRM{% endblock preheader %}
 
-{% block heading %}Hi {{ user.first_name|default:user.get_username }},{% endblock heading %}
+{% block heading %}Hi {{ user.display_name }},{% endblock heading %}
 
 {% block content_body %}
-<p style="margin:0 0 8px 0;">{{ created_by }} assigned a contact to you.</p>
+<p style="margin:0 0 8px 0;">A contact has been assigned to you.</p>
 {% endblock content_body %}
 
 {% block metadata %}
@@ -16,12 +16,6 @@
   </tr>
   <tr>
     <td class="metadata-value" style="padding:0 16px 12px 16px;font-size:15px;color:{{ email_theme.graphite }};">{{ contact }}</td>
-  </tr>
-  <tr>
-    <td class="metadata-label" style="padding:0 16px 4px 16px;font-size:13px;color:{{ email_theme.muted }};font-weight:500;">Assigned by</td>
-  </tr>
-  <tr>
-    <td class="metadata-value" style="padding:0 16px 12px 16px;font-size:15px;color:{{ email_theme.graphite }};">{{ created_by }}</td>
   </tr>
 </table>
 {% endblock metadata %}

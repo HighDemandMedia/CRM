@@ -138,7 +138,7 @@ class TestAssignmentNotifiesOnBothVerbs:
             },
             format="json",
         )
-        assert email.delay.call_args[0][0] == [user_profile.id]
+        assert email.delay_on_commit.call_args[0][0] == [user_profile.id]
 
     @patch("cases.views.send_email_to_assigned_user")
     def test_patch_emails_the_newly_assigned(
@@ -149,7 +149,7 @@ class TestAssignmentNotifiesOnBothVerbs:
         admin_client.patch(
             _url(case), {"assigned_to": [str(user_profile.id)]}, format="json"
         )
-        assert email.delay.call_args[0][0] == [user_profile.id]
+        assert email.delay_on_commit.call_args[0][0] == [user_profile.id]
 
     @patch("cases.views.send_email_to_assigned_user")
     def test_an_edit_that_changes_nobody_emails_nobody(
@@ -163,4 +163,4 @@ class TestAssignmentNotifiesOnBothVerbs:
             {"priority": "High", "assigned_to": [str(user_profile.id)]},
             format="json",
         )
-        assert email.delay.call_count == 0
+        assert email.delay_on_commit.call_count == 0

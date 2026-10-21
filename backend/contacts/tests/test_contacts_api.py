@@ -81,7 +81,7 @@ def contact_b(user_b, org_b):
 class TestContactListView:
     """Tests for GET /api/contacts/ and POST /api/contacts/"""
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_list_contacts(self, mock_email, admin_client, contact_a):
         """Admin can list contacts in their org."""
         response = admin_client.get(CONTACTS_LIST_URL)
@@ -89,7 +89,7 @@ class TestContactListView:
         assert "contact_obj_list" in response.data
         assert response.data["contacts_count"] >= 1
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_contact(self, mock_email, admin_client):
         """Admin can create a new contact via POST."""
         payload = {
@@ -127,7 +127,7 @@ class TestContactListView:
         assert response.status_code in (401, 403)
         assert not Contact.objects.filter(email="nope@example.com").exists()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_org_isolation(
         self, mock_email, admin_client, org_b_client, contact_a, contact_b
     ):
@@ -139,7 +139,7 @@ class TestContactListView:
         assert "alice@example.com" not in emails
         assert "bob@example.com" in emails
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_contact_with_all_fields(self, mock_email, admin_client, org_a):
         """Creating a contact with all optional fields populates them correctly."""
         payload = {
@@ -148,7 +148,7 @@ class TestContactListView:
             "first_name": "Full",
             "last_name": "Contact",
             "email": "full@example.com",
-            "phone": "+1234567890",
+            "phone": "3055550199",
             "organization": "Acme Inc",
             "title": "CTO",
             "department": "Engineering",
@@ -165,6 +165,7 @@ class TestContactListView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["error"] is False
         contact = Contact.objects.get(email="full@example.com")
+        assert contact.phone == "3055550199"
         assert contact.organization == "Acme Inc"
         assert contact.title == "CTO"
         assert contact.department == "Engineering"
@@ -172,7 +173,7 @@ class TestContactListView:
         assert contact.city == "Portland"
         assert contact.description == "A very important contact"
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_contact_with_tags(self, mock_email, admin_client, org_a):
         """Creating a contact with tags associates them properly."""
         _set_rls(org_a)
@@ -191,7 +192,7 @@ class TestContactListView:
         contact = Contact.objects.get(email="tagged@example.com")
         assert tag in contact.tags.all()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_contact_with_assigned_to(
         self, mock_email, admin_client, admin_profile, org_a
     ):
@@ -210,7 +211,7 @@ class TestContactListView:
         contact = Contact.objects.get(email="assignedcontact@example.com")
         assert admin_profile in contact.assigned_to.all()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_contact_with_teams(
         self, mock_email, admin_client, admin_user, org_a
     ):
@@ -332,7 +333,7 @@ class TestContactDetailView:
         assert "contact_obj" in response.data
         assert response.data["contact_obj"]["id"] == str(contact_a.pk)
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_update_contact(self, mock_email, admin_client, contact_a):
         """Admin can update a contact via PUT."""
         payload = {
@@ -365,7 +366,7 @@ class TestContactDetailView:
         assert response.status_code == status.HTTP_200_OK
         assert "comments" in response.data
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_duplicate_email_same_org(self, mock_email, admin_client, contact_a):
         """Creating a contact with a duplicate email in the same org returns 400."""
         payload = {
@@ -391,7 +392,7 @@ class TestContactDetailView:
         assert "users_mention" in data
         assert "countries" in data
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_update_contact_with_tags(self, mock_email, admin_client, contact_a, org_a):
         """PUT with tags clears old tags and sets new ones."""
         _set_rls(org_a)
@@ -414,7 +415,7 @@ class TestContactDetailView:
         assert tag2 in contact_a.tags.all()
         assert tag1 not in contact_a.tags.all()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_update_contact_with_assigned_to(
         self, mock_email, admin_client, contact_a, admin_profile, org_a
     ):
@@ -433,7 +434,7 @@ class TestContactDetailView:
         contact_a.refresh_from_db()
         assert admin_profile in contact_a.assigned_to.all()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_update_contact_with_teams(
         self, mock_email, admin_client, contact_a, admin_user, org_a
     ):
@@ -858,7 +859,7 @@ class TestContactListViewFilters:
 class TestContactCreateM2MHandling:
     """Tests targeting uncovered M2M handling in ContactsListView.post."""
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_contact_with_teams_as_json_string(
         self, mock_email, admin_client, admin_user, org_a
     ):
@@ -881,7 +882,7 @@ class TestContactCreateM2MHandling:
         contact = Contact.objects.get(email="stringteamc@example.com")
         assert team in contact.teams.all()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_contact_with_assigned_to_as_json_string(
         self, mock_email, admin_client, admin_profile, org_a
     ):
@@ -900,7 +901,7 @@ class TestContactCreateM2MHandling:
         contact = Contact.objects.get(email="stringassignc@example.com")
         assert admin_profile in contact.assigned_to.all()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_contact_with_tags_as_json_string(
         self, mock_email, admin_client, org_a
     ):
@@ -921,7 +922,7 @@ class TestContactCreateM2MHandling:
         contact = Contact.objects.get(email="stringtagc@example.com")
         assert tag in contact.tags.all()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_contact_email_notification(
         self, mock_email, admin_client, admin_profile, org_a
     ):
@@ -941,7 +942,7 @@ class TestContactCreateM2MHandling:
         call_args = mock_email.call_args
         assert admin_profile.id in call_args[0][0]
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_contact_with_attachment(self, mock_email, admin_client, org_a):
         """Creating a contact with attachment (lines 208-215)."""
         test_file = SimpleUploadedFile(
@@ -969,7 +970,7 @@ class TestContactCreateM2MHandling:
 class TestContactDetailUpdateM2M:
     """Tests targeting uncovered M2M handling in ContactDetailView.put."""
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_update_contact_with_teams_as_json_string(
         self, mock_email, admin_client, contact_a, admin_user, org_a
     ):
@@ -992,7 +993,7 @@ class TestContactDetailUpdateM2M:
         contact_a.refresh_from_db()
         assert team in contact_a.teams.all()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_update_contact_with_assigned_to_as_json_string(
         self, mock_email, admin_client, contact_a, admin_profile, org_a
     ):
@@ -1011,7 +1012,7 @@ class TestContactDetailUpdateM2M:
         contact_a.refresh_from_db()
         assert admin_profile in contact_a.assigned_to.all()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_update_contact_with_tags_as_json_string(
         self, mock_email, admin_client, contact_a, org_a
     ):
@@ -1032,7 +1033,7 @@ class TestContactDetailUpdateM2M:
         contact_a.refresh_from_db()
         assert tag in contact_a.tags.all()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_update_contact_with_attachment(
         self, mock_email, admin_client, contact_a, org_a
     ):
@@ -1056,7 +1057,7 @@ class TestContactDetailUpdateM2M:
             content_type=ct, object_id=contact_a.id
         ).exists()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_update_contact_non_admin_not_creator_forbidden(
         self, mock_email, user_client, admin_user, org_a, user_profile
     ):
@@ -1083,7 +1084,7 @@ class TestContactDetailUpdateM2M:
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_update_contact_invalid_data(self, mock_email, admin_client, contact_a):
         """PUT with invalid data returns 400 (line 255-258)."""
         response = admin_client.put(

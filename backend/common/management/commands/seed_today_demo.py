@@ -45,7 +45,7 @@ class Command(BaseCommand):
         with (
             timezone.override(ZoneInfo(org.timezone)),
             patch("cases.tasks.notify_portal_contacts.delay"),
-            patch("cases.tasks.send_email_to_assigned_user.delay"),
+            patch("cases.tasks.send_email_to_assigned_user.delay_on_commit"),
         ):
             today = timezone.localdate()
 

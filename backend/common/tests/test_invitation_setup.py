@@ -1,12 +1,13 @@
 """Invitation setup is durable, membership-scoped, and cannot grant permissions."""
 
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from common.models import OrganizationInvitation, Profile
+from common.models import Org, OrganizationInvitation, Profile, User
 from common.views.invitation_views import digest
 
 pytestmark = pytest.mark.django_db
@@ -68,6 +69,92 @@ def test_team_invitation_starts_profile_setup(
     profile = Profile.objects.get(org=org_b, user__email=invitation.email)
     assert profile.setup_step == Profile.SetupStep.PROFILE
     assert profile.role == "USER"
+
+
+@pytest.mark.parametrize("existing_account", [False, True])
+def test_super_admin_invitation_password_profile_and_organization_access(
+    existing_account, admin_client, admin_user, org_a, org_b, regular_user
+):
+    """Exercise real invitation endpoints, including the second-membership case."""
+    Org.objects.filter(pk=org_a.pk).update(owner=admin_user)
+    email = "new-member@example.com"
+    password = "Safe-invitation-password-9832!"
+    if existing_account:
+        # Existing identity belongs only to B before accepting A's invitation.
+        Profile.objects.filter(user=regular_user).delete()
+        Profile.objects.create(user=regular_user, org=org_b, role="USER")
+        regular_user.set_password(password)
+        regular_user.save(update_fields=["password"])
+        email = regular_user.email
+    unrelated = Org.objects.create(name="Unassigned organization")
+    with patch("common.views.invitation_views.send_invitation") as send:
+        invited = admin_client.post(
+            "/api/invitations/", {"email": email, "role": "USER"}, format="json"
+        )
+    assert invited.status_code == 201, invited.data
+    invitation, raw = send.call_args.args
+    assert not invitation.grants_ownership
+    client = APIClient()
+    preview = client.post(
+        "/api/auth/password/invitation/", {"token": raw}, format="json"
+    )
+    assert preview.status_code == 200, preview.data
+    assert preview.data["existing_account"] is existing_account
+    if existing_account:
+        old_password = regular_user.password
+        login = client.post(
+            "/api/auth/password/login/",
+            {"email": email, "password": password},
+            format="json",
+        )
+        assert login.status_code == 200, login.data
+        client.credentials(HTTP_AUTHORIZATION="Bearer " + login.data["access_token"])
+        accepted = client.post(
+            "/api/auth/accept-invitation/", {"token": raw}, format="json"
+        )
+        assert accepted.status_code == 200, accepted.data
+        session = client.post(
+            "/api/auth/switch-org/", {"org_id": str(org_a.pk)}, format="json"
+        )
+        regular_user.refresh_from_db()
+        assert regular_user.password == old_password
+    else:
+        session = client.post(
+            "/api/auth/password/register/",
+            {
+                "email": email,
+                "name": "New Member",
+                "password": password,
+                "invitation": raw,
+            },
+            format="json",
+        )
+    assert session.status_code in (200, 201), session.data
+    client.credentials(HTTP_AUTHORIZATION="Bearer " + session.data["access_token"])
+    member = User.objects.get(email=email)
+    assert member.check_password(password) and not member.is_superuser
+    assert client.get("/api/org/ui-context/").data["setup_step"] == "profile"
+    assert client.get("/api/profile/").status_code == 200
+    assert client.get("/api/org/timezones/").status_code == 200
+    saved = client.patch("/api/profile/", DETAILS, format="json")
+    assert saved.status_code == 200, saved.data
+    assert saved.data["setup_step"] == "complete"
+    expected = {str(org_a.pk), str(org_b.pk)} if existing_account else {str(org_a.pk)}
+    me = client.get("/api/auth/me/").data
+    assert not me["is_platform_owner"]
+    assert {row["id"] for row in me["organizations"]} == expected
+    directory = client.get("/api/org/").data["profile_org_list"]
+    assert {str(row["org"]["id"]) for row in directory} == expected
+    assert (
+        client.post(
+            "/api/auth/switch-org/", {"org_id": str(unrelated.pk)}, format="json"
+        ).status_code
+        == 403
+    )
+    assert (
+        client.patch("/api/org/settings/", ORG_DETAILS, format="json").status_code
+        == 403
+    )
 
 
 def test_profile_confirmation_saves_preferences_and_only_own_membership(

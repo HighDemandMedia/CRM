@@ -431,7 +431,7 @@ class OpportunityListView(APIView, LimitOffsetPagination):
                 opportunity_obj.assigned_to.all().values_list("id", flat=True)
             )
 
-            send_email_to_assigned_user.delay(
+            send_email_to_assigned_user.delay_on_commit(
                 recipients,
                 opportunity_obj.id,
                 str(request.profile.org.id),
@@ -577,7 +577,7 @@ class OpportunityDetailView(APIView):
                 opportunity_object.assigned_to.all().values_list("id", flat=True)
             )
             recipients = list(set(assigned_to_list) - set(previous_assigned_to_users))
-            send_email_to_assigned_user.delay(
+            send_email_to_assigned_user.delay_on_commit(
                 recipients,
                 opportunity_object.id,
                 str(request.profile.org.id),

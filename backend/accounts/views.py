@@ -628,7 +628,7 @@ class AccountsListView(APIView, LimitOffsetPagination):
             recipients = list(
                 account_object.assigned_to.all().values_list("id", flat=True)
             )
-            send_email_to_assigned_user.delay(
+            send_email_to_assigned_user.delay_on_commit(
                 recipients,
                 account_object.id,
                 str(request.profile.org.id),
@@ -775,7 +775,7 @@ class AccountDetailView(APIView):
                 account_object.assigned_to.all().values_list("id", flat=True)
             )
             recipients = list(set(assigned_to_list) - set(previous_assigned_to_users))
-            send_email_to_assigned_user.delay(
+            send_email_to_assigned_user.delay_on_commit(
                 recipients,
                 account_object.id,
                 str(request.profile.org.id),

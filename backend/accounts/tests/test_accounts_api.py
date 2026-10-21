@@ -771,7 +771,7 @@ class TestAccountListFilters:
 class TestAccountCreateWithEmail:
     """Test create path with mocked email notification."""
 
-    @patch("accounts.views.send_email_to_assigned_user.delay")
+    @patch("accounts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_account_sends_email_to_assigned(
         self, mock_email, admin_client, org_a, admin_profile
     ):
@@ -790,7 +790,7 @@ class TestAccountCreateWithEmail:
         args = mock_email.call_args[0]
         assert admin_profile.id in args[0]  # recipients list
 
-    @patch("accounts.views.send_email_to_assigned_user.delay")
+    @patch("accounts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_account_with_contacts(self, mock_email, admin_client, org_a):
         """Creating an account with contacts m2m."""
         contact = Contact.objects.create(first_name="Jane", last_name="Doe", org=org_a)
@@ -806,7 +806,7 @@ class TestAccountCreateWithEmail:
         acct = Account.objects.get(name="Contact Create Acct")
         assert contact in acct.contacts.all()
 
-    @patch("accounts.views.send_email_to_assigned_user.delay")
+    @patch("accounts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_account_no_assigned_to_still_calls_email(
         self, mock_email, admin_client, org_a
     ):
@@ -824,7 +824,7 @@ class TestAccountCreateWithEmail:
 class TestAccountUpdateWithEmail:
     """Test update (PUT) path with mocked email notification."""
 
-    @patch("accounts.views.send_email_to_assigned_user.delay")
+    @patch("accounts.views.send_email_to_assigned_user.delay_on_commit")
     def test_update_account_sends_email_on_new_assignee(
         self, mock_email, admin_client, org_a, admin_profile
     ):
@@ -843,7 +843,7 @@ class TestAccountUpdateWithEmail:
         args = mock_email.call_args[0]
         assert admin_profile.id in args[0]
 
-    @patch("accounts.views.send_email_to_assigned_user.delay")
+    @patch("accounts.views.send_email_to_assigned_user.delay_on_commit")
     def test_update_account_with_contacts_as_json_list(
         self, mock_email, admin_client, org_a
     ):

@@ -46,6 +46,10 @@ app.conf.beat_schedule = {
         "task": "webforms.tasks.retry_pending_webform_emails",
         "schedule": crontab(minute="*/5"),
     },
+    "retry-appointment-emails": {
+        "task": "common.tasks.retry_appointment_emails",
+        "schedule": crontab(minute="*/5"),
+    },
     "sync-personal-google-accounts": {
         "task": "common.tasks.schedule_google_sync",
         "schedule": crontab(minute="*/5"),

@@ -88,7 +88,9 @@ def opp_b(user_b, org_b):
 class TestOpportunityListView:
     """Tests for GET /api/opportunities/ and POST /api/opportunities/"""
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_list_opportunities(self, mock_email, admin_client, opp_a):
         """Admin can list opportunities in their org."""
         response = admin_client.get(OPPORTUNITIES_LIST_URL)
@@ -96,7 +98,9 @@ class TestOpportunityListView:
         assert "opportunities" in response.data
         assert response.data["opportunities_count"] >= 1
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_create_opportunity(self, mock_email, admin_client):
         """Admin can create an opportunity via POST."""
         payload = {
@@ -107,7 +111,9 @@ class TestOpportunityListView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["error"] is False
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_create_opportunity_with_account(
         self, mock_email, admin_client, org_a, admin_user
     ):
@@ -143,7 +149,9 @@ class TestOpportunityListView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert not Opportunity.objects.filter(name="Unauthorized Deal").exists()
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_org_isolation(self, mock_email, admin_client, org_b_client, opp_a, opp_b):
         """Opportunities in org_a must not appear in org_b's list."""
         response = org_b_client.get(OPPORTUNITIES_LIST_URL)
@@ -152,7 +160,9 @@ class TestOpportunityListView:
         assert "Org A Deal" not in names
         assert "Org B Deal" in names
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_create_opportunity_with_all_fields(
         self, mock_email, admin_client, org_a, admin_user
     ):
@@ -176,7 +186,9 @@ class TestOpportunityListView:
         assert opp.currency == "USD"
         assert opp.description == "A large enterprise deal"
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_create_opportunity_with_tags(self, mock_email, admin_client, org_a):
         """Creating an opportunity with tags associates them."""
         _set_rls(org_a)
@@ -191,7 +203,9 @@ class TestOpportunityListView:
         opp = Opportunity.objects.get(name="Tagged Opportunity")
         assert tag in opp.tags.all()
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_create_opportunity_with_contacts(
         self, mock_email, admin_client, org_a, admin_user
     ):
@@ -214,7 +228,9 @@ class TestOpportunityListView:
         opp = Opportunity.objects.get(name="Contact Opportunity")
         assert contact in opp.contacts.all()
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_create_opportunity_with_assigned_to(
         self, mock_email, admin_client, admin_profile, org_a
     ):
@@ -230,7 +246,9 @@ class TestOpportunityListView:
         assert admin_profile in opp.assigned_to.all()
         mock_email.assert_called_once()
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_create_opportunity_with_teams(
         self, mock_email, admin_client, admin_user, org_a
     ):
@@ -247,7 +265,9 @@ class TestOpportunityListView:
         opp = Opportunity.objects.get(name="Teamed Opportunity")
         assert team in opp.teams.all()
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_create_opportunity_with_closed_stage(
         self, mock_email, admin_client, admin_profile, org_a
     ):
@@ -268,7 +288,9 @@ class TestOpportunityListView:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_create_opportunity_duplicate_name(self, mock_email, admin_client, opp_a):
         """Creating an opportunity with a duplicate name returns 400."""
         payload = {
@@ -377,7 +399,9 @@ class TestOpportunityDetailView:
         assert "opportunity_obj" in response.data
         assert response.data["opportunity_obj"]["id"] == str(opportunity.pk)
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_update(self, mock_email, admin_client, opportunity):
         """Admin can update an opportunity via PUT."""
         payload = {
@@ -446,7 +470,9 @@ class TestOpportunityDetailView:
         response = admin_client.get(_detail_url("00000000-0000-0000-0000-000000000001"))
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_update_with_tags(self, mock_email, admin_client, opportunity, org_a):
         """PUT with tags updates tag associations."""
         _set_rls(org_a)
@@ -467,7 +493,9 @@ class TestOpportunityDetailView:
         assert tag2 in opportunity.tags.all()
         assert tag1 not in opportunity.tags.all()
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_update_with_assigned_to(
         self, mock_email, admin_client, opportunity, admin_profile, org_a
     ):
@@ -485,7 +513,9 @@ class TestOpportunityDetailView:
         opportunity.refresh_from_db()
         assert admin_profile in opportunity.assigned_to.all()
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_update_with_contacts(
         self, mock_email, admin_client, opportunity, admin_user, org_a
     ):
@@ -511,7 +541,9 @@ class TestOpportunityDetailView:
         opportunity.refresh_from_db()
         assert contact in opportunity.contacts.all()
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_update_with_teams(
         self, mock_email, admin_client, opportunity, admin_user, org_a
     ):
@@ -1781,7 +1813,9 @@ class TestOpportunityNonAdminAssigned:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["opportunity_obj"]["name"] == "Assigned Detail Opp"
 
-    @patch("opportunity.views.opportunity_views.send_email_to_assigned_user.delay")
+    @patch(
+        "opportunity.views.opportunity_views.send_email_to_assigned_user.delay_on_commit"
+    )
     def test_non_admin_assigned_can_update(
         self, mock_email, user_client, admin_user, org_a, user_profile
     ):

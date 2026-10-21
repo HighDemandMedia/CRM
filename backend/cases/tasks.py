@@ -3,6 +3,7 @@ import logging
 from datetime import timedelta
 
 from celery import shared_task
+from celery.contrib.django.task import DjangoTask
 from django.core.mail import EmailMessage
 from django.core.signing import TimestampSigner
 from django.template.loader import render_to_string
@@ -11,7 +12,6 @@ from django.utils import timezone
 from cases.models import Case, CsatSurvey
 from cases.notifications import case_link
 from common.links import frontend_url
-from common.models import Profile
 from common.organization_lifecycle import organization_job
 from common.tasks import set_rls_context
 
@@ -38,31 +38,21 @@ CSAT_SCALE_LOW_LABEL = "Not good"
 CSAT_SCALE_HIGH_LABEL = "Great"
 
 
-@shared_task
+@shared_task(base=DjangoTask)
 @organization_job
 def send_email_to_assigned_user(recipients, case_id, org_id):
-    """Send Mail To Users When they are assigned to a case"""
-    set_rls_context(org_id)
-    case = Case.objects.get(id=case_id)
-    created_by = case.created_by
-    for profile_id in recipients:
-        recipients_list = []
-        profile = Profile.objects.filter(id=profile_id, is_active=True).first()
-        if profile:
-            recipients_list.append(profile.user.email)
-            context = {}
-            context["url"] = frontend_url(case_link(case.id))
-            context["user"] = profile.user
-            context["case"] = case
-            context["created_by"] = created_by
-            subject = "Assigned to case."
-            html_content = render_to_string(
-                "assigned_to/cases_assigned.html", context=context
-            )
+    from common.assignment_emails import send_assignment_emails
 
-            msg = EmailMessage(subject, html_content, to=recipients_list)
-            msg.content_subtype = "html"
-            msg.send()
+    send_assignment_emails(
+        Case,
+        case_id,
+        org_id,
+        recipients,
+        template="assigned_to/cases_assigned.html",
+        context_key="case",
+        path=case_link(case_id),
+        subject="Ticket assigned · HDM CRM",
+    )
 
 
 # ---------------------------------------------------------------------------

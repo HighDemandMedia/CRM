@@ -1,7 +1,7 @@
 {% extends 'root_email_template_new.html' %}
 
 {% block heading %}
-Hello {{ user.get_username }}
+Hello {{ user.display_name }}
 {% endblock heading %}
 
 {% block content_body %}
@@ -10,19 +10,17 @@ Hello {{ user.get_username }}
 <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;">
   <thead>
     <tr style="background:{{ email_theme.secondary }};">
-      <th style="text-align:left;padding:8px 12px;border-bottom:2px solid {{ email_theme.border }};">Deal</th>
-      <th style="text-align:left;padding:8px 12px;border-bottom:2px solid {{ email_theme.border }};">Stage</th>
-      <th style="text-align:center;padding:8px 12px;border-bottom:2px solid {{ email_theme.border }};">Days in Stage</th>
-      <th style="text-align:center;padding:8px 12px;border-bottom:2px solid {{ email_theme.border }};">Expected</th>
+      <th style="word-break:normal;overflow-wrap:normal;text-align:left;padding:8px 6px;border-bottom:2px solid {{ email_theme.border }};">Deal</th>
+      <th style="word-break:normal;overflow-wrap:normal;text-align:center;padding:8px 6px;border-bottom:2px solid {{ email_theme.border }};">Days in Stage</th>
+      <th style="word-break:normal;overflow-wrap:normal;text-align:center;padding:8px 6px;border-bottom:2px solid {{ email_theme.border }};">Expected</th>
     </tr>
   </thead>
   <tbody>
     {% for deal in deals %}
     <tr>
-      <td style="padding:8px 12px;border-bottom:1px solid {{ email_theme.border }};">{{ deal.name }}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid {{ email_theme.border }};">{{ deal.stage }}</td>
-      <td style="text-align:center;padding:8px 12px;border-bottom:1px solid {{ email_theme.border }};color:#dc2626;font-weight:600;">{{ deal.days_in_stage }}d</td>
-      <td style="text-align:center;padding:8px 12px;border-bottom:1px solid {{ email_theme.border }};">{{ deal.expected_days }}d</td>
+      <td style="padding:8px 6px;border-bottom:1px solid {{ email_theme.border }};">{{ deal.name }}<br><span style="font-size:13px;color:{{ email_theme.muted }};">{{ deal.stage }}</span></td>
+      <td style="text-align:center;padding:8px 6px;border-bottom:1px solid {{ email_theme.border }};color:{{ email_theme.link }};font-weight:600;">{{ deal.days_in_stage }}d</td>
+      <td style="text-align:center;padding:8px 6px;border-bottom:1px solid {{ email_theme.border }};">{{ deal.expected_days }}d</td>
     </tr>
     {% endfor %}
   </tbody>

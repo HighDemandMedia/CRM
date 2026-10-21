@@ -1,13 +1,11 @@
 import logging
 
 from celery import shared_task
+from celery.contrib.django.task import DjangoTask
 from django.core.mail import EmailMessage
 from django.template import Context, Template
-from django.template.loader import render_to_string
 
 from accounts.models import Account, AccountEmail, AccountEmailLog
-from common.links import frontend_url
-from common.models import Profile
 from common.organization_lifecycle import organization_job
 from common.tasks import set_rls_context
 
@@ -66,31 +64,18 @@ def send_email(email_obj_id, org_id):
                     pass
 
 
-@shared_task
+@shared_task(base=DjangoTask)
 @organization_job
 def send_email_to_assigned_user(recipients, account_id, org_id):
-    """Send Mail To Users When they are assigned to an account"""
-    set_rls_context(org_id)
-    account = Account.objects.filter(id=account_id).first()
-    if not account:
-        return
-    created_by = account.created_by
+    from common.assignment_emails import send_assignment_emails
 
-    for profile_id in recipients:
-        recipients_list = []
-        profile = Profile.objects.filter(id=profile_id, is_active=True).first()
-        if profile:
-            recipients_list.append(profile.user.email)
-            context = {}
-            context["url"] = frontend_url(f"/accounts/{account.id}")
-            context["user"] = profile.user
-            context["account"] = account
-            context["created_by"] = created_by
-            subject = "Assigned a account for you."
-            html_content = render_to_string(
-                "assigned_to/account_assigned.html", context=context
-            )
-
-            msg = EmailMessage(subject, html_content, to=recipients_list)
-            msg.content_subtype = "html"
-            msg.send()
+    send_assignment_emails(
+        Account,
+        account_id,
+        org_id,
+        recipients,
+        template="assigned_to/account_assigned.html",
+        context_key="account",
+        path=f"/accounts/{account_id}",
+        subject="Company assigned · HDM CRM",
+    )

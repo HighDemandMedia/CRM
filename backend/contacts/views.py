@@ -424,7 +424,7 @@ class ContactsListView(APIView, LimitOffsetPagination):
             contact_obj.tags.add(*tag_objs)
 
         recipients = list(contact_obj.assigned_to.all().values_list("id", flat=True))
-        send_email_to_assigned_user.delay(
+        send_email_to_assigned_user.delay_on_commit(
             recipients,
             contact_obj.id,
             str(request.profile.org.id),
@@ -558,6 +558,9 @@ class ContactDetailView(APIView):
         data = request.data
         contact_obj = self.get_object(pk=pk)
         self.assert_contact_access(contact_obj)
+        previous_assigned_to_users = list(
+            contact_obj.assigned_to.all().values_list("id", flat=True)
+        )
 
         contact_serializer = CreateContactSerializer(
             data=data, instance=contact_obj, request_obj=request
@@ -624,15 +627,11 @@ class ContactDetailView(APIView):
         else:
             contact_obj.tags.clear()
 
-        previous_assigned_to_users = list(
-            contact_obj.assigned_to.all().values_list("id", flat=True)
-        )
-
         assigned_to_list = list(
             contact_obj.assigned_to.all().values_list("id", flat=True)
         )
         recipients = list(set(assigned_to_list) - set(previous_assigned_to_users))
-        send_email_to_assigned_user.delay(
+        send_email_to_assigned_user.delay_on_commit(
             recipients,
             contact_obj.id,
             str(request.profile.org.id),
@@ -924,6 +923,9 @@ class ContactDetailView(APIView):
         data = request.data
         contact_obj = self.get_object(pk=pk)
         self.assert_contact_access(contact_obj)
+        previous_assigned_to_users = list(
+            contact_obj.assigned_to.all().values_list("id", flat=True)
+        )
 
         contact_serializer = CreateContactSerializer(
             data=data, instance=contact_obj, request_obj=request, partial=True
@@ -994,6 +996,14 @@ class ContactDetailView(APIView):
                 contact_obj.tags.set(tag_objs)
             else:
                 contact_obj.tags.clear()
+
+        if "assigned_to" in data:
+            assigned_ids = set(contact_obj.assigned_to.values_list("id", flat=True))
+            send_email_to_assigned_user.delay_on_commit(
+                list(assigned_ids - set(previous_assigned_to_users)),
+                contact_obj.pk,
+                str(request.profile.org_id),
+            )
 
         return Response(
             {"error": False, "message": "Contact Updated Successfully"},

@@ -1368,6 +1368,7 @@ class OrganizationInvitation(models.Model):
 
 
 # Keep integration models in their own module while registering with this app.
+from common.appointment_email_models import AppointmentEmailDelivery  # noqa: E402, F401
 from common.google_models import (  # noqa: E402, F401
     GoogleCalendarEvent,
     GoogleCalendarMirror,

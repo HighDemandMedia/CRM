@@ -1,27 +1,21 @@
 {% extends 'root_email_template_new.html' %}
 
-{% block preheader %}An account has been assigned to you in High Demand Media CRM{% endblock preheader %}
+{% block preheader %}A company has been assigned to you in High Demand Media CRM{% endblock preheader %}
 
-{% block heading %}Hi {{ user.first_name|default:user.get_username }},{% endblock heading %}
+{% block heading %}Hi {{ user.display_name }},{% endblock heading %}
 
 {% block content_body %}
-<p style="margin:0 0 8px 0;">{{ created_by }} assigned an account to you.</p>
+<p style="margin:0 0 8px 0;">A company has been assigned to you.</p>
 {% endblock content_body %}
 
 {% block metadata %}
 <table class="metadata-table" role="presentation" cellpadding="0" cellspacing="0" border="0"
   style="width:100%;background-color:{{ email_theme.canvas }};border-radius:6px;margin-bottom:24px;">
   <tr>
-    <td class="metadata-label" style="padding:12px 16px 4px 16px;font-size:13px;color:{{ email_theme.muted }};font-weight:500;">Account</td>
+    <td class="metadata-label" style="padding:12px 16px 4px 16px;font-size:13px;color:{{ email_theme.muted }};font-weight:500;">Company</td>
   </tr>
   <tr>
     <td class="metadata-value" style="padding:0 16px 12px 16px;font-size:15px;color:{{ email_theme.graphite }};">{{ account }}</td>
-  </tr>
-  <tr>
-    <td class="metadata-label" style="padding:0 16px 4px 16px;font-size:13px;color:{{ email_theme.muted }};font-weight:500;">Assigned by</td>
-  </tr>
-  <tr>
-    <td class="metadata-value" style="padding:0 16px 12px 16px;font-size:15px;color:{{ email_theme.graphite }};">{{ created_by }}</td>
   </tr>
 </table>
 {% endblock metadata %}
@@ -29,6 +23,6 @@
 {% block button_link %}
 <a class="btn-link" href="{{ url }}"
    style="{{ email_theme.button_style }}">
-  View Account
+  View Company
 </a>
 {% endblock button_link %}

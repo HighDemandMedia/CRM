@@ -429,6 +429,8 @@ def sync_mirrors(conn, api, base, writable):
                         "Your permission set does not allow this Calendar change."
                     )
                 previous = appointment.starts_at
+                previous_end = appointment.ends_at
+                already_cancelled = bool(appointment.cancelled_at)
                 if cancelled:
                     appointment.cancelled_at = timezone.now()
                     appointment.cancelled_by = conn.profile.user
@@ -458,6 +460,17 @@ def sync_mirrors(conn, api, base, writable):
                     "cancelled" if cancelled else "rescheduled",
                     previous,
                 )
+                from common.appointment_emails import queue_appointment_emails
+
+                if cancelled and not already_cancelled:
+                    queue_appointment_emails(appointment, "cancelled")
+                elif not cancelled and (
+                    appointment.starts_at != previous
+                    or appointment.ends_at != previous_end
+                ):
+                    queue_appointment_emails(
+                        appointment, "rescheduled", previous, previous_end
+                    )
             elif not mirror or local_changed:
                 if appointment.cancelled_at:
                     if remote and remote.get("status") != "cancelled":

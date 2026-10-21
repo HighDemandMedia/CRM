@@ -236,7 +236,7 @@ class TestTheVerbsAgree:
         )
         assert Contact.objects.filter(id=contact.id).exists()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_put_refuses_before_it_validates(self, _email, user_client, contact):
         """A rejected payload must not double as a permission oracle.
 
@@ -435,7 +435,7 @@ class TestAccountLink:
         assert contact.account_id is None
         assert list(account_a.contacts.values_list("id", flat=True)) == [contact.id]
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_creating_a_contact_against_an_account_links_both_ways(
         self, _email, admin_client, account_a
     ):
@@ -457,7 +457,7 @@ class TestAccountLink:
         assert created.account_id == account_a.id
         assert created in account_a.contacts.all()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_create_returns_the_id_it_made(self, _email, admin_client):
         response = admin_client.post(
             LIST_URL,
@@ -474,7 +474,7 @@ class TestAccountLink:
         assert response.status_code == status.HTTP_200_OK
         assert Contact.objects.filter(id=response.data["id"]).exists()
 
-    @patch("contacts.views.send_email_to_assigned_user.delay")
+    @patch("contacts.views.send_email_to_assigned_user.delay_on_commit")
     def test_creating_against_another_orgs_account_is_refused(
         self, _email, admin_client, account_b
     ):

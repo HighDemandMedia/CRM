@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 
 from celery import shared_task
+from celery.contrib.django.task import DjangoTask
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.db import connection
@@ -24,31 +25,21 @@ def _set_rls_context_safe(org_id):
         set_rls_context(org_id)
 
 
-@shared_task
+@shared_task(base=DjangoTask)
 @organization_job
 def send_email_to_assigned_user(recipients, opportunity_id, org_id):
-    """Send Mail To Users When they are assigned to an opportunity"""
-    _set_rls_context_safe(org_id)
-    opportunity = Opportunity.objects.get(id=opportunity_id)
-    created_by = opportunity.created_by
-    for user in recipients:
-        recipients_list = []
-        profile = Profile.objects.filter(id=user, is_active=True).first()
-        if profile:
-            recipients_list.append(profile.user.email)
-            context = {}
-            context["url"] = frontend_url(f"/pipeline/{opportunity.id}")
-            context["user"] = profile.user
-            context["opportunity"] = opportunity
-            context["created_by"] = created_by
-            subject = "Assigned an opportunity for you."
-            html_content = render_to_string(
-                "assigned_to/opportunity_assigned.html", context=context
-            )
+    from common.assignment_emails import send_assignment_emails
 
-            msg = EmailMessage(subject, html_content, to=recipients_list)
-            msg.content_subtype = "html"
-            msg.send()
+    send_assignment_emails(
+        Opportunity,
+        opportunity_id,
+        org_id,
+        recipients,
+        template="assigned_to/opportunity_assigned.html",
+        context_key="opportunity",
+        path=f"/pipeline/{opportunity_id}",
+        subject="Deal assigned · HDM CRM",
+    )
 
 
 @shared_task
@@ -132,7 +123,7 @@ def send_stale_deals_alert(org, stale_opps):
             "url": frontend_url("/pipeline?rotten=true"),
             "deal_count": len(deals),
         }
-        subject = f"[BottleCRM] {len(deals)} stale deal{'s' if len(deals) > 1 else ''} need attention"
+        subject = f"{len(deals)} deal{'s' if len(deals) > 1 else ''} need{'s' if len(deals) == 1 else ''} attention · HDM CRM"
         html_content = render_to_string(
             "opportunity/stale_deals_alert.html", context=context
         )

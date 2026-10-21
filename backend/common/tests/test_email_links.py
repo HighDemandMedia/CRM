@@ -75,6 +75,7 @@ class TestAssignmentEmailsLinkToTheRecord:
         with impersonate(admin_user):
             contact = Contact.objects.create(first_name="Dana", org=org_a)
 
+        contact.assigned_to.add(admin_profile)
         send_email_to_assigned_user([admin_profile.id], contact.id, str(org_a.id))
 
         assert len(mail.outbox) == 1
@@ -88,6 +89,7 @@ class TestAssignmentEmailsLinkToTheRecord:
         with impersonate(admin_user):
             account = Account.objects.create(name="Northwind", org=org_a)
 
+        account.assigned_to.add(admin_profile)
         send_email_to_assigned_user([admin_profile.id], account.id, str(org_a.id))
 
         assert len(mail.outbox) == 1
@@ -109,6 +111,7 @@ class TestAssignmentEmailsLinkToTheRecord:
                 name="Boiler down", org=org_a, status="New", priority="Normal"
             )
 
+        case.assigned_to.add(admin_profile)
         send_email_to_assigned_user([admin_profile.id], case.id, str(org_a.id))
 
         assert len(mail.outbox) == 1
@@ -125,6 +128,7 @@ class TestAssignmentEmailsLinkToTheRecord:
                 name="Retrofit", org=org_a, stage="QUALIFICATION"
             )
 
+        deal.assigned_to.add(admin_profile)
         send_email_to_assigned_user([admin_profile.id], deal.id, str(org_a.id))
 
         assert len(mail.outbox) == 1
@@ -165,6 +169,7 @@ def test_a_trailing_slash_on_the_setting_does_not_double_up(
     with impersonate(admin_user):
         account = Account.objects.create(name="Slash", org=org_a)
 
+    account.assigned_to.add(admin_profile)
     send_email_to_assigned_user([admin_profile.id], account.id, str(org_a.id))
 
     assert _button_href(mail.outbox[0]) == f"{FRONTEND}/accounts/{account.id}"

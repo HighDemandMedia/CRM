@@ -586,6 +586,39 @@ def send_due_reminders():
 
 
 @shared_task
+@organization_job
+def send_appointment_email(delivery_id, org_id):
+    from common.appointment_emails import deliver
+
+    set_rls_context(org_id)
+    try:
+        deliver(delivery_id, org_id)
+    finally:
+        clear_rls_context()
+
+
+@shared_task
+def retry_appointment_emails():
+    from common.appointment_emails import enqueue, pending_ids
+
+    for org_id in (
+        Org.objects.filter(is_active=True, closing_at__isnull=True)
+        .values_list("pk", flat=True)
+        .iterator()
+    ):
+        set_rls_context(org_id)
+        try:
+            for pk in pending_ids(org_id):
+                enqueue(pk, org_id)
+        except Exception:
+            logger.exception(
+                "Appointment email retry scan failed for organization %s", org_id
+            )
+        finally:
+            clear_rls_context()
+
+
+@shared_task
 def send_email(
     subject,
     html_content,

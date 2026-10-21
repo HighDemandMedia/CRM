@@ -416,7 +416,7 @@ class CaseListView(APIView, LimitOffsetPagination):
                 )
 
             recipients = list(cases_obj.assigned_to.all().values_list("id", flat=True))
-            send_email_to_assigned_user.delay(
+            send_email_to_assigned_user.delay_on_commit(
                 recipients,
                 cases_obj.id,
                 str(request.profile.org.id),
@@ -449,7 +449,7 @@ def notify_newly_assigned(request, case, previous_assignee_ids):
     recipients = list(current - set(previous_assignee_ids))
     if not recipients:
         return
-    send_email_to_assigned_user.delay(
+    send_email_to_assigned_user.delay_on_commit(
         recipients,
         case.id,
         str(request.profile.org.id),
