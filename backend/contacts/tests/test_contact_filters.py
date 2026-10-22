@@ -24,13 +24,13 @@ def test_search_related_fields_keeps_unique_contacts_and_counts(
         Contact.objects.create(org=org_a, first_name=f"Person {i}", is_active=i == 0)
         for i in range(2)
     ]
-    for contact in contacts:
+    for contact_index, contact in enumerate(contacts):
         contact.assigned_to.add(admin_profile, user_profile)
         for index in range(2):
             contact.tags.add(
                 Tags.objects.create(
                     org=org_a,
-                    name=f"{needle if relation == 'tag' else 'Tag'}-{contact.pk}-{index}",
+                    name=f"{needle if relation == 'tag' else 'Tag'}-{contact_index}-{index}",
                 )
             )
             company = Account.objects.create(

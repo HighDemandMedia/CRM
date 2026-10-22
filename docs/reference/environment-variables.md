@@ -127,6 +127,35 @@ Pooling uses psycopg 3's `psycopg_pool` through Django's PostgreSQL backend. It 
 | `GOOGLE_CLIENT_ID` | *(empty)* | No, leaving it blank disables Google sign-in | OAuth client ID sent to Google's token endpoint and used as the expected audience when verifying a mobile ID token. See [Google OAuth](../self-hosting/google-oauth.md#backend-configuration). |
 | `GOOGLE_CLIENT_SECRET` | *(empty)* | No, leaving it blank disables Google sign-in | OAuth client secret, alongside `GOOGLE_CLIENT_ID` above. |
 
+### Hosted CRM configuration
+
+Keep secret values in the deployment's secret store; do not commit them. These settings
+are read at startup and require restarting the affected services after a change.
+
+| Variable | Default | Required | Purpose |
+| --- | --- | --- | --- |
+| `CRM_DATABASE_CAPACITY_BYTES` | `0` | No | Operator-maintained database allocation in bytes for platform usage. Zero means capacity is unknown; it is not a measured storage limit. |
+| `CRM_LEGAL_VERSION` | *(empty)* | When publishing legal documents | Version of the reviewed legal document bundle used by the CRM. Set only after publishing that bundle. |
+| `CRM_ORG_CLOSURE_ENABLED` | `true` | No | Enables authorized organization closure: writes freeze and the 30-day export period starts. |
+| `CRM_ORG_PURGE_ENABLED` | `true` | No | Enables permanent purge after the closure deadline. Disabling this emergency switch pauses deletion, not the access deadline. |
+| `PASSWORD_REGISTRATION_ENABLED` | `false` | No | Controls public password registration. Keep false for invitation-only deployments; hosted configuration checks reject true. |
+| `DJANGO_TRUSTED_PROXY_CIDRS` | *(empty)* | Only for verified proxy networks | Comma-separated trusted proxy CIDRs for client address resolution. Empty means use the socket peer unless another verified identity mechanism applies. |
+| `DJANGO_TRUSTED_PROXY_HOPS` | `0` | Only for verified fixed-depth ingress | Trusted forwarded-address hop count (0–8). Mutually exclusive with proxy CIDRs; do not infer the count from an untrusted request. |
+| `CRM_PROXY_SIGNING_KEY` | *(empty)* | For signed Web-to-API request identity | Shared secret of exactly 64 hexadecimal characters. Configure the same value on Web and API; never expose it to browser code. |
+| `EMAIL_HOST` | `localhost` | For SMTP | SMTP host when using Django's SMTP email backend. |
+| `EMAIL_PORT` | `25` | For SMTP | SMTP port. |
+| `EMAIL_HOST_USER` | *(empty)* | If SMTP requires authentication | SMTP username. |
+| `EMAIL_HOST_PASSWORD` | *(empty)* | If SMTP requires authentication | SMTP password, stored as a secret. |
+| `EMAIL_USE_TLS` | `false` | No | Enable SMTP STARTTLS when supported by the provider. Do not combine with SSL. |
+| `EMAIL_USE_SSL` | `false` | No | Enable implicit SMTP TLS when supported by the provider. Do not combine with STARTTLS. |
+| `GMAIL_SYSTEM_CLIENT_ID` | *(empty)* | For the Gmail system sender | OAuth client ID for system emails, separate from users' connected mailboxes. |
+| `GMAIL_SYSTEM_CLIENT_SECRET` | *(empty)* | For the Gmail system sender | OAuth client secret for the system sender. |
+| `GMAIL_SYSTEM_REFRESH_TOKEN` | *(empty)* | For the Gmail system sender | Refresh token authorized for the system sender; store as a secret. |
+| `GMAIL_SYSTEM_SENDER` | *(empty)* | For the Gmail system sender | Authorized sender address used for system mail. |
+| `GOOGLE_INTEGRATION_CLIENT_ID` | *(empty)* | For personal Gmail/Calendar connections | OAuth client ID for personal integrations, independent from Google sign-in and system mail. |
+| `GOOGLE_INTEGRATION_CLIENT_SECRET` | *(empty)* | For personal Gmail/Calendar connections | OAuth client secret for personal integrations. |
+| `GOOGLE_INTEGRATION_ENCRYPTION_KEY` | *(empty)* | For personal Gmail/Calendar connections | Fernet key encrypting stored integration tokens. Preserve this secret across deploys; replacing it without re-encrypting existing tokens makes them unreadable. |
+
 ### Docker bootstrap (not read by `crm/settings.py`)
 
 | Variable | Default | Required | Purpose |

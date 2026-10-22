@@ -7,11 +7,12 @@ from accounts.tasks import send_email
 
 
 class SendEmailTaskTest(SimpleTestCase):
+    @patch("common.organization_lifecycle.organization_lock")
     @patch("common.organization_lifecycle.Org.objects.filter")
     @patch("accounts.tasks.set_rls_context")
     @patch("accounts.tasks.AccountEmail.objects.get")
     def test_logs_and_returns_when_account_email_is_missing(
-        self, get_account_email, set_rls_context, org_filter
+        self, get_account_email, set_rls_context, org_filter, organization_lock
     ):
         org_filter.return_value.exists.return_value = True
         get_account_email.side_effect = AccountEmail.DoesNotExist
@@ -20,6 +21,7 @@ class SendEmailTaskTest(SimpleTestCase):
             result = send_email.run("missing-email", "org-id")
 
         self.assertIsNone(result)
+        organization_lock.assert_called_once_with("org-id", transactional=False)
         set_rls_context.assert_called_once_with("org-id")
         get_account_email.assert_called_once_with(id="missing-email")
         self.assertEqual(
