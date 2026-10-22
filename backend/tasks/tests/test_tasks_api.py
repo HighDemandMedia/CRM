@@ -1438,7 +1438,7 @@ class TestTaskDetailCreatedByCoverage:
         """A non-admin assignee gets `users_mention` and a narrowed `users`.
 
         Someone who did not create the task can mention its creator, and is
-        offered the org's admins to reassign to, not the whole org. This
+        offered only their own profile as owner. This
         also used to assert `AttributeError`: the mention list was built from
         `created_by.user.email`, and `created_by` is the `User`.
         """
@@ -1456,7 +1456,9 @@ class TestTaskDetailCreatedByCoverage:
         task = Task.objects.get(title="Non Admin Detail Task")
         body = user_client.get(f"/api/tasks/{task.id}/").json()
         assert body["users_mention"] == [{"username": admin_user.email}]
-        assert [u["user_details"]["email"] for u in body["users"]] == [admin_user.email]
+        assert [u["user_details"]["email"] for u in body["users"]] == [
+            user_profile.user.email
+        ]
 
 
 @pytest.mark.django_db

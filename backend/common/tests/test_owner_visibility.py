@@ -70,8 +70,13 @@ def test_people_and_teams_follow_scope(
         expected.add(str(peer.pk))
     if role == "admin":
         expected.add(str(admin_profile.pk))
+    team_count = {"member": 0, "manager": 1, "admin": 2}[role]
+    if module == "reports" and role != "admin":
+        # Reports are opt-in for Member and Manager roles.
+        expected = set()
+        team_count = 0
     assert {str(p["id"]) for p in response.data["profiles"]} == expected
-    assert len(response.data["teams"]) == {"member": 0, "manager": 1, "admin": 2}[role]
+    assert len(response.data["teams"]) == team_count
     assert str(profile_b.pk) not in str(response.data)
     assert str(hidden.pk) not in str(response.data)
 
@@ -246,6 +251,10 @@ def test_report_owner_choices_exclude_unrelated_coowners(
     if role == "manager":
         user_profile.access_role = manager
         user_profile.save()
+    if role != "admin":
+        access_role = user_profile.access_role
+        access_role.rules["reports"]["view"] = "team" if role == "manager" else "own"
+        access_role.save(update_fields=["rules"])
     contact = Contact.objects.create(org=org_a, first_name="Shared")
     contact.assigned_to.add(user_profile, peer, admin_profile)
     client = admin_client if role == "admin" else user_client

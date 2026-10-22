@@ -218,23 +218,21 @@ class BoardListSerializer(serializers.ModelSerializer):
         return BoardTask.objects.filter(column__board=obj).count()
 
 
-class _MinimalAccountField(serializers.RelatedField):
-    """Account FK rendered as `{id, name}` so list rows can show the parent
-    entity without an extra round-trip. Falls back to id-only when the related
-    object is missing a name."""
-
+class _RecordLabelField(serializers.RelatedField):
     def to_representation(self, value):
         return {"id": str(value.pk), "name": getattr(value, "name", "") or ""}
 
 
-class _MinimalOpportunityField(serializers.RelatedField):
-    def to_representation(self, value):
-        return {"id": str(value.pk), "name": getattr(value, "name", "") or ""}
+class _MinimalAccountField(VisibleCRMSerializerMixin, _RecordLabelField):
+    """Return a parent label only when the viewer can access that record."""
 
 
-class _MinimalCaseField(serializers.RelatedField):
-    def to_representation(self, value):
-        return {"id": str(value.pk), "name": getattr(value, "name", "") or ""}
+class _MinimalOpportunityField(VisibleCRMSerializerMixin, _RecordLabelField):
+    pass
+
+
+class _MinimalCaseField(VisibleCRMSerializerMixin, _RecordLabelField):
+    pass
 
 
 class _MinimalLeadField(serializers.RelatedField):

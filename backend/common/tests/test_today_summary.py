@@ -179,12 +179,13 @@ def test_reminders_follow_owner_and_org(
     assert len(admin_client.get(URL, {"user": "all"}).data["reminders"]) == 1
 
 
-def test_task_reminder_api_validation_and_roundtrip(admin_client):
+def test_task_reminder_api_validation_and_roundtrip(admin_client, admin_profile):
     response = admin_client.post(
         "/api/tasks/",
         {
             "title": "Reminder validation",
             "status": "New",
+            "assigned_to": [str(admin_profile.pk)],
             "priority": "Low",
             "reminder_days": 1,
         },
@@ -196,6 +197,7 @@ def test_task_reminder_api_validation_and_roundtrip(admin_client):
         {
             "title": "Reminder saved",
             "status": "New",
+            "assigned_to": [str(admin_profile.pk)],
             "priority": "Low",
             "due_date": timezone.localdate().isoformat(),
             "reminder_days": 0,

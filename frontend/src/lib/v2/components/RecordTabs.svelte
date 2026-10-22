@@ -6,8 +6,11 @@
   const id = $props.id();
   let buttons = $state([]);
   let emailsVisited = $state(false);
+  let previousRecordId;
   $effect(() => {
-    recordId;
+    // Reloading the same record after a save must preserve the working tab.
+    if (previousRecordId === recordId) return;
+    previousRecordId = recordId;
     emailsVisited = false;
     active = 'activity';
   });

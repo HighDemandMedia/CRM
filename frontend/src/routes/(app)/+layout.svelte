@@ -45,7 +45,7 @@
     }
   }
 
-  // The sidebar is hidden below 768px, and the tab bar only carries four of the
+  // The sidebar is hidden through 768px, and the tab bar only carries four of the
   // ~16 destinations. This drawer is how a phone reaches the rest of the nav and
   // the footer: profile, notifications, help, sign out. It reuses the same
   // <Sidebar>, so the two can never drift apart. Closes itself on navigation.
@@ -122,7 +122,7 @@
     </button>
   </div>
   <div class="v2-main">
-    <!-- Phone top bar. The sidebar is hidden below 768px; this replaces the
+    <!-- Phone top bar. The sidebar is hidden through 768px; this replaces the
          org mark and the search affordance it carried. -->
     <div class="v2-mobile-top">
       <button
@@ -265,7 +265,7 @@
     min-height: 0;
     overflow: hidden;
   }
-  @media (max-width: 767px) {
+  @media (max-width: 768px) {
     .page-workspace {
       flex-direction: column;
     }
@@ -313,7 +313,7 @@
   #desktop-navigation-content :global(.v2-nav) {
     height: 100%;
   }
-  @media (max-width: 767px) {
+  @media (max-width: 768px) {
     .desktop-navigation {
       display: none;
     }

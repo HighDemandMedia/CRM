@@ -374,11 +374,12 @@ def sync_mirrors(conn, api, base, writable):
                 else bool(remote)
             )
             if (
-                local_changed
-                and remote_changed
+                remote_changed
                 and appointment.cancelled_at
                 and (not remote or remote.get("status") == "cancelled")
             ):
+                # Google may change the tombstone etag after our DELETE.
+                # Acknowledging it must not cancel/log the appointment again.
                 local_changed = remote_changed = False
             if (
                 local_changed
@@ -457,7 +458,12 @@ def sync_mirrors(conn, api, base, writable):
                 sync_attendee(
                     appointment,
                     SimpleNamespace(profile=conn.profile, user=conn.profile.user),
-                    "cancelled" if cancelled else "rescheduled",
+                    "cancelled"
+                    if cancelled
+                    else "rescheduled"
+                    if appointment.starts_at != previous
+                    or appointment.ends_at != previous_end
+                    else "updated",
                     previous,
                 )
                 from common.appointment_emails import queue_appointment_emails

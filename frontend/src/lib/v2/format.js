@@ -1,9 +1,14 @@
 /** Formatting helpers for v2. Every number rendered goes through one of these. */
+import { translate } from '$lib/i18n/messages.js';
 
 /** @param {number|string|null|undefined} n */
 export function money(n, currency = 'USD', locale = 'en-US') {
   const v = Number(n ?? 0);
   if (!Number.isFinite(v)) return '—';
+  if (!currency)
+    return translate(locale.startsWith('es') ? 'es' : 'en', '{amount} (currency not set)', {
+      amount: count(v, locale)
+    });
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,

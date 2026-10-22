@@ -617,18 +617,14 @@ class TestTheListPayload:
         assert "task_comments" not in row
         assert "task_attachment" not in row
 
-    def test_a_member_is_only_offered_admins_to_assign_to(
-        self, user_client, admin_user, admin_profile, other_profile, org_a
+    def test_a_member_is_only_offered_their_own_profile(
+        self, user_client, regular_user, admin_profile, other_profile, org_a
     ):
-        """Same narrowing the detail view has always applied.
-
-        `other_profile` is a second plain member, and its absence from the
-        answer is the point. Otherwise this would pass on an empty list.
-        """
+        """Members cannot select an admin or another member as an owner."""
         emails = [
             row["user__email"] for row in user_client.get("/api/tasks/").json()["users"]
         ]
-        assert emails == [admin_user.email]
+        assert emails == [regular_user.email]
 
     def test_the_list_does_not_cost_a_query_per_row(
         self, admin_client, admin_user, org_a, django_assert_num_queries

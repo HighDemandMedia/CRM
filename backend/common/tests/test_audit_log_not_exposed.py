@@ -26,6 +26,7 @@ BACKEND_ROOT = Path(settings.BASE_DIR)
 
 # Modules allowed to name the model. Each is a non-serving use.
 ALLOWED = {
+    "common/organization_purge.py",  # Deletes by org or an unshared user's org-less rows; never serves data.
     "common/views/role_views.py",  # Writes permission changes with request.org; no reads.
     "common/audit_log.py",  # defines it and is the only writer
     "common/models.py",  # re-exports the name for existing imports

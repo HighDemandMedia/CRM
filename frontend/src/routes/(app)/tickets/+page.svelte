@@ -92,7 +92,7 @@
     if (key === 'association')
       return [t.account?.name, ...t.contacts.map((c) => c.name)].filter(Boolean).join(', ');
     if (key === 'due_at') return dueDateLabel(t[key]);
-    if (key === 'last_activity') return date(t[key]);
+    if (['created_at', 'last_activity'].includes(key)) return date(t[key]);
     return columnValue(t, key, catalog);
   }
   const rows = $derived(data.tickets);

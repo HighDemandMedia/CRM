@@ -346,6 +346,60 @@ def test_google_changes_update_crm_notes_and_time(conn):
     assert "New notes" not in str(notice.payload)
 
 
+def test_google_notes_only_change_is_updated_not_rescheduled(conn):
+    conn.service = "calendar"
+    conn.save()
+    appt = appointment(conn)
+    GoogleCalendarMirror.objects.create(
+        org=conn.org,
+        connection=conn,
+        appointment=appt,
+        external_id="g1",
+        etag="v1",
+        fingerprint=fingerprint(appt),
+    )
+    api = Mock()
+    api.get.return_value = {
+        "etag": "v2",
+        "summary": appt.title,
+        "description": "Updated notes",
+        "start": {"dateTime": appt.starts_at.isoformat()},
+        "end": {"dateTime": appt.ends_at.isoformat()},
+    }
+    with patch("common.views.sales_appointment_views.sync_attendee") as sync:
+        sync_mirrors(conn, api, "calendar/v3/calendars/primary", True)
+    appt.refresh_from_db()
+    assert appt.internal_notes == "Updated notes"
+    assert sync.call_args.args[2] == "updated"
+    assert not AppointmentEmailDelivery.objects.filter(appointment=appt).exists()
+
+
+def test_cancelled_google_tombstone_does_not_duplicate_activity(conn):
+    conn.service = "calendar"
+    conn.save()
+    appt = appointment(conn)
+    appt.cancelled_at = timezone.now()
+    appt.save()
+    cancelled_at = appt.cancelled_at
+    GoogleCalendarMirror.objects.create(
+        org=conn.org,
+        connection=conn,
+        appointment=appt,
+        external_id="g1",
+        etag="",
+        fingerprint=fingerprint(appt),
+    )
+    api = Mock()
+    api.get.return_value = {"etag": "cancelled-v2", "status": "cancelled"}
+    with patch("common.views.sales_appointment_views.sync_attendee") as sync:
+        sync_mirrors(conn, api, "calendar/v3/calendars/primary", True)
+    appt.refresh_from_db()
+    assert appt.cancelled_at == cancelled_at
+    sync.assert_not_called()
+    assert not AppointmentEmailDelivery.objects.filter(appointment=appt).exists()
+    assert GoogleCalendarMirror.objects.get(appointment=appt).etag == "cancelled-v2"
+
+
 def test_calendar_conflict_does_not_overwrite(conn):
     conn.service = "calendar"
     conn.save()

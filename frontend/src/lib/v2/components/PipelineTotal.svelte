@@ -1,6 +1,6 @@
 <script>
   import { useI18n } from '$lib/i18n/context.js';
-  const { money, count } = useI18n();
+  const { money, count, ui } = useI18n();
 
   /** @type {{ values?: {amount: string|number, currency?: string}[], label?: string, currency?: string }} */
   let { values = [], label = 'Total value', currency = 'USD' } = $props();
@@ -10,7 +10,7 @@
           .map((value) =>
             value.currency
               ? `${money(Number(value.amount), value.currency)} ${value.currency}`
-              : `${count(Number(value.amount))} (currency not set)`
+              : ui('{amount} (currency not set)', { amount: count(Number(value.amount)) })
           )
           .join(' · ')
       : `${money(0, currency)} ${currency}`

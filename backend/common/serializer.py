@@ -245,7 +245,9 @@ class OrgSettingsSerializer(serializers.ModelSerializer):
     def get_member_count(self, obj):
         # Active members in this org, for the settings header. Naturally
         # org-scoped: obj is always request.profile.org.
-        return obj.profiles.filter(is_active=True).count()
+        return obj.profiles.filter(
+            is_active=True, removed_at__isnull=True, is_platform_access=False
+        ).count()
 
 
 class TagsSerializer(serializers.ModelSerializer):

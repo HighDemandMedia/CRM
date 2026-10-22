@@ -308,7 +308,7 @@ export async function getAccount({ cookies }, id) {
       // Each deal is priced in its own currency; the account's rollups above
       // are sums and take the org's. Dropping this printed every deal on the
       // page as dollars.
-      currency: deal.currency || 'USD',
+      currency: deal.currency || '',
       closed_on: deal.closed_on ?? null,
       // Real fields, from the stage-aging chain the deal module already owns.
       days_in_current_stage: deal.days_in_stage ?? 0,

@@ -78,7 +78,7 @@ function toRow(deal) {
     updated_at: deal.updated_at,
     last_activity_at: deal.last_activity_at ?? deal.created_at ?? null,
     amount: num(deal.amount) ?? 0,
-    currency: deal.currency || 'USD',
+    currency: deal.currency || '',
     probability: deal.probability ?? 0,
     closed_on: deal.closed_on ?? null,
     opportunity_type: deal.opportunity_type ?? 'NEW_BUSINESS',

@@ -15,11 +15,13 @@ OBJECTS = [
 
 
 @pytest.mark.parametrize("target,route,name,stage,default", OBJECTS)
-def test_name_only_records_generate_distinct_ids(
-    admin_client, org_a, target, route, name, stage, default
+def test_minimum_required_records_generate_distinct_ids(
+    admin_client, admin_profile, org_a, target, route, name, stage, default
 ):
     model = target_model(target)
     for payload in ({name: "First"}, {name: "Second", stage: ""}):
+        if target in {"Task", "Case"}:
+            payload["assigned_to"] = [str(admin_profile.pk)]
         result = admin_client.post(f"/api/{route}/", payload, format="json")
         assert result.status_code in (200, 201), result.data
     records = list(model.objects.filter(org=org_a))
@@ -38,7 +40,7 @@ def test_name_only_records_generate_distinct_ids(
 
 @pytest.mark.parametrize("target,route,name,stage,default", OBJECTS)
 def test_stage_requirements_survive_optional_policy(
-    admin_client, org_a, target, route, name, stage, default
+    admin_client, admin_profile, org_a, target, route, name, stage, default
 ):
     assert (
         configure(
@@ -50,12 +52,15 @@ def test_stage_requirements_survive_optional_policy(
         ).status_code
         == 200
     )
-    result = admin_client.post(f"/api/{route}/", {}, format="json")
+    assignment = (
+        {"assigned_to": [str(admin_profile.pk)]} if target in {"Task", "Case"} else {}
+    )
+    result = admin_client.post(f"/api/{route}/", assignment, format="json")
     assert result.status_code == 400, result.data
     assert "stage_requirements" in str(result.data)
     assert not target_model(target).objects.filter(org=org_a).exists()
     result = admin_client.post(
-        f"/api/{route}/", {name: "Stage requirement met"}, format="json"
+        f"/api/{route}/", {name: "Stage requirement met", **assignment}, format="json"
     )
     assert result.status_code in (200, 201), result.data
 
@@ -135,7 +140,7 @@ def test_optional_format_validation_and_id_protection(admin_client, org_a):
 
 @pytest.mark.parametrize("target,route,name,stage,default", OBJECTS)
 def test_forms_can_clear_optional_values(
-    admin_client, org_a, target, route, name, stage, default
+    admin_client, admin_profile, org_a, target, route, name, stage, default
 ):
     public_name = "name" if target == "Contact" else name
     payload = {
@@ -145,6 +150,8 @@ def test_forms_can_clear_optional_values(
         "contacts": [],
         "custom_fields": {},
     }
+    if target in {"Task", "Case"}:
+        payload["assigned_to"] = [str(admin_profile.pk)]
     if target in {"Contact", "Account", "Opportunity"}:
         payload.update(email=None, phone=None, language=None)
     if target == "Account":
@@ -174,19 +181,22 @@ def test_forms_can_clear_optional_values(
 
 @pytest.mark.parametrize("target,route,name,stage,default", OBJECTS)
 def test_names_are_required_on_create_and_edit(
-    admin_client, org_a, target, route, name, stage, default
+    admin_client, admin_profile, org_a, target, route, name, stage, default
 ):
     public_name = "name" if target == "Contact" else name
+    assignment = (
+        {"assigned_to": [str(admin_profile.pk)]} if target in {"Task", "Case"} else {}
+    )
     for value in (None, "", "  "):
         assert (
             admin_client.post(
-                f"/api/{route}/", {public_name: value}, format="json"
+                f"/api/{route}/", {public_name: value, **assignment}, format="json"
             ).status_code
             == 400
         )
     assert admin_client.post(f"/api/{route}/", {}, format="json").status_code == 400
     response = admin_client.post(
-        f"/api/{route}/", {public_name: "Keep name"}, format="json"
+        f"/api/{route}/", {public_name: "Keep name", **assignment}, format="json"
     )
     assert response.status_code == 200, response.data
     obj = target_model(target).objects.get(org=org_a)

@@ -9,7 +9,7 @@ from contacts.models import Contact
 def test_full_name_and_optional_fields_round_trip(admin_client):
     payload = {
         "name": "María del Carmen",
-        "phone": "+1 305 555 0199",
+        "phone": "3055550199",
         "source": "META",
         "stage": "LEAD",
         "address_line": "123 Demo St",

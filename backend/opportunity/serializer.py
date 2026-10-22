@@ -284,6 +284,8 @@ class OpportunityCreateSerializer(PipelineRulesMixin, serializers.ModelSerialize
 
     def __init__(self, *args, **kwargs):
         request_obj = kwargs.pop("request_obj", None)
+        if request_obj:
+            kwargs["context"] = {**kwargs.get("context", {}), "request": request_obj}
         super().__init__(*args, **kwargs)
         if request_obj:
             self.org = request_obj.profile.org

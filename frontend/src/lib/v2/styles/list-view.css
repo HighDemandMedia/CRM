@@ -394,8 +394,11 @@
   }
 }
 
-/* The scroll region already reserves space for mobile quick-create. */
+/* Compact task/ticket workspaces otherwise override the FAB clearance. */
 @media (max-width: 768px) {
+  .crm-list-workspace .list-scroll {
+    padding-bottom: 62px;
+  }
   .crm-list-workspace .list-scroll > .pagination {
     padding-bottom: var(--crm-space-2);
   }

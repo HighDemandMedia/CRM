@@ -211,7 +211,7 @@ class TaskListView(APIView, LimitOffsetPagination):
         profiles = record_people(self.request.profile, "tasks", "reassign").order_by(
             "user__email"
         )
-        context["users"] = list(profiles.values("id", "user__email"))
+        context["users"] = list(profiles.values("id", "user__name", "user__email"))
         # The catalogues are for the parent picker and grow with the org, not
         # with the page, `?slim=true` omits them for callers that only want
         # the list. Default unchanged, so v1 and mobile see what they saw.

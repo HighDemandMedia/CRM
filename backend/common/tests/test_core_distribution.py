@@ -78,6 +78,8 @@ def test_beat_only_schedules_active_workflows():
         "opportunity.tasks.check_stale_opportunities",
         "common.tasks.purge_read_notifications",
         "common.tasks.flush_expired_refresh_tokens",
+        "common.tasks.retry_appointment_emails",
+        "common.tasks.purge_closed_organizations",
     }
 
 

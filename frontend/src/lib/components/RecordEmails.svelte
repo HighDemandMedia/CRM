@@ -240,6 +240,7 @@
   }
   .mail-status {
     display: flex;
+    align-items: flex-start;
     justify-content: space-between;
     gap: var(--crm-space-3);
     flex-wrap: wrap;
