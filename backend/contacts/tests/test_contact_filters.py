@@ -8,6 +8,97 @@ from contacts.models import Contact
 pytestmark = pytest.mark.django_db
 
 
+@pytest.mark.parametrize("relation", ["tag", "owner_name", "owner_email", "company"])
+def test_search_related_fields_keeps_unique_contacts_and_counts(
+    admin_client, admin_profile, user_profile, org_a, relation
+):
+    from accounts.models import Account
+    from common.models import Tags
+
+    needle = "relatedneedle"
+    admin_profile.user.name = needle if relation == "owner_name" else "Owner"
+    if relation == "owner_email":
+        admin_profile.user.email = f"{needle}@example.com"
+    admin_profile.user.save()
+    contacts = [
+        Contact.objects.create(org=org_a, first_name=f"Person {i}", is_active=i == 0)
+        for i in range(2)
+    ]
+    for contact in contacts:
+        contact.assigned_to.add(admin_profile, user_profile)
+        for index in range(2):
+            contact.tags.add(
+                Tags.objects.create(
+                    org=org_a,
+                    name=f"{needle if relation == 'tag' else 'Tag'}-{contact.pk}-{index}",
+                )
+            )
+            company = Account.objects.create(
+                org=org_a,
+                name=f"{needle if relation == 'company' else 'Company'} {contact.pk} {index}",
+            )
+            company.contacts.add(contact)
+
+    params = {"search": needle, "compact": "true", "limit": 1}
+    response = admin_client.get("/api/contacts/", params)
+    assert response.status_code == 200, response.data
+    assert response.data["count"] == 2
+    assert response.data["active_count"] == 1
+    assert response.data["inactive_count"] == 1
+    first_id = response.data["results"][0]["id"]
+    second = admin_client.get("/api/contacts/", {**params, "offset": 1})
+    assert second.status_code == 200, second.data
+    assert {first_id, second.data["results"][0]["id"]} == {
+        str(contact.pk) for contact in contacts
+    }
+    active = admin_client.get("/api/contacts/", {**params, "is_active": "true"})
+    assert active.data["count"] == 1
+    assert active.data["results"][0]["id"] == str(contacts[0].pk)
+
+
+def test_search_does_not_expand_member_or_tenant_visibility(
+    user_client, user_profile, admin_profile, org_a, org_b
+):
+    from common.models import Tags
+    from common.testing import rls_org
+
+    visible = Contact.objects.create(org=org_a, first_name="Visible")
+    visible.assigned_to.add(user_profile)
+    hidden = Contact.objects.create(org=org_a, first_name="Hidden")
+    hidden.assigned_to.add(admin_profile)
+    tag = Tags.objects.create(org=org_a, name="needle")
+    visible.tags.add(tag)
+    hidden.tags.add(tag)
+    with rls_org(org_b):
+        Contact.objects.create(org=org_b, first_name="needle")
+    response = user_client.get(
+        "/api/contacts/", {"search": "needle", "compact": "true"}
+    )
+    assert response.status_code == 200, response.data
+    assert response.data["count"] == 1
+    assert response.data["results"][0]["id"] == str(visible.pk)
+
+
+def test_search_related_records_stays_in_tenant(admin_client, org_a, org_b, profile_b):
+    from accounts.models import Account
+    from common.models import Tags
+    from common.testing import rls_org
+
+    contact = Contact.objects.create(org=org_a, first_name="Local")
+    with rls_org(org_b):
+        tag = Tags.objects.create(org=org_b, name="foreignneedle")
+        company = Account.objects.create(org=org_b, name="foreignneedle")
+    profile_b.user.name = "foreignneedle"
+    profile_b.user.save()
+    # Simulate legacy malformed links; search must retain its related-org guards.
+    Contact.tags.through.objects.create(contact=contact, tags=tag)
+    Contact.assigned_to.through.objects.create(contact=contact, profile=profile_b)
+    Account.contacts.through.objects.create(contact=contact, account=company)
+    response = admin_client.get("/api/contacts/", {"search": "foreignneedle"})
+    assert response.status_code == 200, response.data
+    assert response.data["count"] == 0
+
+
 def test_combined_contact_filters(admin_client, admin_profile, org_a):
     contact = Contact.objects.create(
         first_name="Find me", phone="5550100", stage="LEAD", org=org_a

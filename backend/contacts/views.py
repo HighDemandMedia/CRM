@@ -3,7 +3,7 @@ import json
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import (
@@ -16,6 +16,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.models import Account
 from common.calendar_filters import filter_calendar
 from common.creation_forms import validate_creation
 from common.custom_fields import validate_payload as validate_custom_fields_payload
@@ -60,6 +61,10 @@ from tasks.serializer import TaskSerializer
 class ContactsListView(APIView, LimitOffsetPagination):
     permission_classes = (IsAuthenticated, HasOrgContext)
     model = Contact
+
+    def get_count(self, queryset):
+        # Count identities, not every contact column and its activity annotation.
+        return queryset.order_by().values("pk").distinct().count()
 
     def get_context_data(self, **kwargs):
         params = self.request.query_params
@@ -144,23 +149,40 @@ class ContactsListView(APIView, LimitOffsetPagination):
                 search_query = Q()
                 for field in text_fields:
                     search_query |= Q(**{f"{field}__icontains": search})
+                # Joining all three collections multiplies rows before DISTINCT.
+                # On production PostgreSQL this triggered expensive JIT compilation
+                # even for two contacts. EXISTS keeps each match a boolean and
+                # preserves the explicit tenant checks on related records.
                 search_query |= Q(
-                    tags__name__icontains=search, tags__org=self.request.profile.org
+                    Exists(
+                        Contact.tags.through.objects.filter(
+                            contact_id=OuterRef("pk"),
+                            tags__name__icontains=search,
+                            tags__org=self.request.profile.org,
+                        )
+                    )
                 )
                 search_query |= Q(
-                    assigned_to__user__name__icontains=search,
-                    assigned_to__org=self.request.profile.org,
+                    Exists(
+                        Contact.assigned_to.through.objects.filter(
+                            Q(profile__user__name__icontains=search)
+                            | Q(profile__user__email__icontains=search),
+                            contact_id=OuterRef("pk"),
+                            profile__org=self.request.profile.org,
+                        )
+                    )
                 )
                 search_query |= Q(created_by__name__icontains=search) | Q(
                     created_by__email__icontains=search
                 )
                 search_query |= Q(
-                    assigned_to__user__email__icontains=search,
-                    assigned_to__org=self.request.profile.org,
-                )
-                search_query |= Q(
-                    account_contacts__name__icontains=search,
-                    account_contacts__org=self.request.profile.org,
+                    Exists(
+                        Account.contacts.through.objects.filter(
+                            contact_id=OuterRef("pk"),
+                            account__name__icontains=search,
+                            account__org=self.request.profile.org,
+                        )
+                    )
                 )
                 for field in ("stage", "source", "preferred_communication_channel"):
                     matches = [
@@ -226,8 +248,8 @@ class ContactsListView(APIView, LimitOffsetPagination):
         # either: `is_active` was stored, shown and never filterable, so a page
         # that wanted "people who still work there" had to fetch everyone and
         # discard rows -- which quietly lies as soon as there is a second page.
-        context["active_count"] = queryset.filter(is_active=True).distinct().count()
-        context["inactive_count"] = queryset.filter(is_active=False).distinct().count()
+        context["active_count"] = self.get_count(queryset.filter(is_active=True))
+        context["inactive_count"] = self.get_count(queryset.filter(is_active=False))
         if params.get("is_active") in ("true", "false"):
             queryset = queryset.filter(is_active=params.get("is_active") == "true")
 
@@ -267,7 +289,7 @@ class ContactsListView(APIView, LimitOffsetPagination):
                         enrich=enrich,
                     ),
                     "results": [],
-                    "count": queryset.distinct().count(),
+                    "count": self.get_count(queryset),
                     "stages": [
                         (s["key"], s["label"])
                         for s in stages_for(self.request.profile.org, "Contact")
