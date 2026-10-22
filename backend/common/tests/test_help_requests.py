@@ -127,7 +127,9 @@ class TestHelpRequests:
         assert len(mail.outbox) == 1
 
     def test_zero_send_is_not_success(self, admin_client):
-        with patch("common.views.help_views.EmailMultiAlternatives.send", return_value=0):
+        with patch(
+            "common.views.help_views.EmailMultiAlternatives.send", return_value=0
+        ):
             assert admin_client.post(URL, payload(), format="json").status_code == 503
 
     def test_metadata_and_production_without_mail(self, user_client, user_profile):
@@ -159,7 +161,9 @@ class TestHelpRequests:
         assert unauthenticated_client.post(
             URL, payload(), format="json"
         ).status_code in (401, 403)
-        with patch("common.views.help_views.EmailMultiAlternatives.send", return_value=1):
+        with patch(
+            "common.views.help_views.EmailMultiAlternatives.send", return_value=1
+        ):
             for _ in range(10):
                 assert (
                     admin_client.post(URL, payload(), format="json").status_code == 201
