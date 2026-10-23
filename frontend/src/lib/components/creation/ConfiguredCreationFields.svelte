@@ -7,6 +7,7 @@
   import { configuredStages } from '$lib/v2/pipeline-config.js';
   import AssociationPicker from './AssociationPicker.svelte';
   import ContactDuplicates from '$lib/components/contacts/ContactDuplicates.svelte';
+  import { contactDuplicateNoticeIndex } from '$lib/components/contacts/contact-duplicates.js';
   import TaskAssignees from '$lib/components/tasks/TaskAssignees.svelte';
   import TaskReminder from '$lib/components/tasks/TaskReminder.svelte';
   import TagPicker from '$lib/v2/components/TagPicker.svelte';
@@ -52,6 +53,9 @@
   // Keep the automatic assignment in validation/payload, without rendering a control or section.
   const visibleFields = $derived(
     fields.filter((field) => field.key !== 'assigned_to' || schema.assignment?.mode !== 'self')
+  );
+  const duplicateNoticeIndex = $derived(
+    target === 'Contact' ? contactDuplicateNoticeIndex(visibleFields) : -1
   );
   let payloadError = $state('');
   let submitted = $state(false);
@@ -177,12 +181,21 @@
   }
 </script>
 
+{#snippet duplicateNotice()}
+  <ContactDuplicates
+    name={values.first_name || ''}
+    email={values.email || ''}
+    phone={values.phone || ''}
+  />
+{/snippet}
+
 <div class="configured-fields" use:guard>
   <StageRuleNotice issue={result?.stageRequirements} />
   <input type="hidden" name="_creation_values" value={serialized} />
   {#if payloadError}<p class="v2-error" role="alert">{payloadError}</p>{/if}
   {#each visibleFields as field, index (field.key)}
     {@const key = inputKey(target, field.key)}
+    {#if index === duplicateNoticeIndex}{@render duplicateNotice()}{/if}
     {#if index === 0 || visibleFields[index - 1].section !== field.section}
       <h3>{ui(field.section)}</h3>
     {/if}
@@ -249,11 +262,7 @@
       {/if}
     </div>
   {/each}
-  {#if target === 'Contact'}<ContactDuplicates
-      name={values.first_name || ''}
-      email={values.email || ''}
-      phone={values.phone || ''}
-    />{/if}
+  {#if duplicateNoticeIndex === visibleFields.length}{@render duplicateNotice()}{/if}
 </div>
 
 <style>

@@ -1816,5 +1816,13 @@
   "Availability view": "Vista de disponibilidad",
   "Previous day": "Día anterior",
   "Next day": "Día siguiente",
-  "View {date}": "Ver {date}"
+  "View {date}": "Ver {date}",
+  "This is a different contact": "Es otro contacto",
+  "Review possible matches": "Revisar posibles coincidencias",
+  "Could not check existing contacts.": "No se pudieron comprobar los contactos existentes.",
+  "Same email": "Mismo correo",
+  "Same phone": "Mismo teléfono",
+  "Similar phone — check country code": "Teléfono similar: revisa el código de país",
+  "Same name": "Mismo nombre",
+  "Similar name": "Nombre similar"
 }

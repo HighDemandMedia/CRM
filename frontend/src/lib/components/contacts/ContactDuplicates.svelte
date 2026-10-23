@@ -3,22 +3,28 @@
   const { ui } = useI18n();
 
   import { resolve } from '$app/paths';
-  import { SvelteURLSearchParams } from 'svelte/reactivity';
+  import { tick } from 'svelte';
+  import Notice from '$lib/components/Notice.svelte';
+  import { contactDuplicateQuery } from './contact-duplicates.js';
   /** @type {{name?:string, email?:string, phone?:string, exclude?:string}} */
   let { name = '', email = '', phone = '', exclude = '' } = $props();
   let matches = $state([]),
     checking = $state(false),
     error = $state('');
+  let dismissed = $state(false);
+  let actionButton = $state(null);
+  async function toggleDismissed() {
+    dismissed = !dismissed;
+    await tick();
+    actionButton?.focus();
+  }
+  const query = $derived(contactDuplicateQuery({ name, email, phone, exclude }));
   $effect(() => {
-    const query = new SvelteURLSearchParams({
-      name: name.trim(),
-      email: email.trim(),
-      phone: phone.trim()
-    });
-    if (exclude) query.set('exclude', exclude);
+    const currentQuery = query;
     matches = [];
     error = '';
-    if (name.trim().length < 3 && !email.includes('@') && phone.replace(/\D/g, '').length < 7) {
+    dismissed = false;
+    if (!currentQuery) {
       checking = false;
       return;
     }
@@ -26,7 +32,7 @@
     checking = true;
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/contacts/duplicates?${query}`, {
+        const response = await fetch(`/api/contacts/duplicates?${currentQuery}`, {
           signal: controller.signal
         });
         if (!response.ok) throw new Error('Could not check existing contacts.');
@@ -46,72 +52,126 @@
 </script>
 
 {#if matches.length}
-  <aside class="matches" aria-label={ui('Possible existing contacts')}>
-    <strong>{ui('This contact may already exist')}</strong>
-    {#each matches as contact (contact.id)}
-      <a data-open-record href={resolve(`/contacts/${contact.id}`)}>
-        <span class="match-name"
-          >{contact.name || ui('Contact')}<span class="open">{ui('Open contact →')}</span></span
-        >
-        <span class="details">{[contact.email, contact.phone].filter(Boolean).join(' · ')}</span>
-        <span class="reasons">{contact.reasons.join(' · ')}</span>
-      </a>
-    {/each}
-  </aside>
+  <div class="matches">
+    {#if dismissed}
+      <button
+        bind:this={actionButton}
+        type="button"
+        class="v2-btn v2-btn-quiet v2-btn-sm match-action"
+        aria-expanded="false"
+        onclick={toggleDismissed}>{ui('Review possible matches')}</button
+      >
+    {:else}
+      <Notice tone="warning" title={ui('This contact may already exist')}>
+        <ul class="match-list" aria-label={ui('Possible existing contacts')}>
+          {#each matches as contact (contact.id)}
+            <li>
+              <a data-open-record href={resolve(`/contacts/${contact.id}`)}>
+                <span class="match-name"
+                  >{contact.name || ui('Contact')}<span class="open">{ui('Open contact →')}</span
+                  ></span
+                >
+                {#if contact.email || contact.phone}
+                  <span class="details"
+                    >{[contact.email, contact.phone].filter(Boolean).join(' · ')}</span
+                  >
+                {/if}
+                <span class="reasons">
+                  {#each contact.reasons as reason (reason)}<span class="reason">{ui(reason)}</span
+                    >{/each}
+                </span>
+              </a>
+            </li>
+          {/each}
+        </ul>
+        {#snippet actions()}
+          <button
+            bind:this={actionButton}
+            type="button"
+            class="v2-btn v2-btn-sm match-action"
+            aria-expanded="true"
+            onclick={toggleDismissed}>{ui('This is a different contact')}</button
+          >
+        {/snippet}
+      </Notice>
+    {/if}
+  </div>
 {:else if checking}<p class="lookup-status" role="status">{ui('Checking existing contacts…')}</p>
 {:else if error}<p class="lookup-status" role="status">{ui(error)}</p>{/if}
 
 <style>
   .matches {
     grid-column: 1/-1;
-    border: 1px solid var(--crm-warning);
-    background: var(--crm-warning-bg);
-    border-radius: var(--crm-radius-md);
-    padding: var(--crm-space-3) 14px;
+    min-width: 0;
   }
-  .matches > strong {
-    display: block;
+  .matches :global(.crm-notice) {
+    margin: 0;
+    background: color-mix(in srgb, var(--crm-warning-bg) 45%, var(--v2-card));
+  }
+  .matches :global(.notice-actions) {
+    margin-top: var(--crm-space-3);
+  }
+  .match-action {
     font-size: var(--crm-text-sm);
-    color: var(--crm-warning);
-    margin-bottom: var(--crm-space-1);
+    white-space: normal;
+    text-align: start;
+  }
+  .match-list {
+    display: grid;
+    gap: var(--crm-space-2);
+    list-style: none;
+    margin: var(--crm-space-3) 0 0;
+    padding: 0;
   }
   a {
     display: block;
     color: var(--v2-ink);
     text-decoration: none;
-    padding: 9px 0;
+    padding: var(--crm-space-3);
+    background: var(--v2-card);
+    border: 1px solid var(--crm-border);
+    border-radius: var(--crm-radius-sm);
   }
-  a + a {
-    border-top: 1px solid var(--crm-warning);
+  a:hover {
+    border-color: var(--crm-warning);
   }
   a:hover .match-name {
     text-decoration: underline;
   }
   .match-name {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
-    gap: 10px;
+    gap: var(--crm-space-1) var(--crm-space-2);
     justify-content: space-between;
     font-weight: 600;
     font-size: var(--crm-text-sm);
+    overflow-wrap: anywhere;
   }
   .open {
     font-size: var(--crm-text-xs);
     font-weight: 500;
     white-space: nowrap;
   }
-  .details,
-  .reasons {
+  .details {
     display: block;
     font-size: var(--crm-text-xs);
     overflow-wrap: anywhere;
     margin-top: 3px;
-  }
-  .details {
     color: var(--v2-slate);
   }
   .reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--crm-space-1);
+    margin-top: var(--crm-space-2);
+  }
+  .reason {
+    border-radius: var(--crm-radius-sm);
+    padding: 2px 6px;
+    background: var(--crm-warning-bg);
     color: var(--crm-warning);
+    font-size: var(--crm-text-xs);
   }
   .lookup-status {
     grid-column: 1/-1;
