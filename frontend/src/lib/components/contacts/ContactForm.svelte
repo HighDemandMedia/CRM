@@ -239,7 +239,7 @@
             bind:value={values.assigned_to}
           >
             <option value="">{ui('Unassigned')}</option>
-            {#each data.owners ?? [] as owner}
+            {#each data.owners ?? [] as owner (owner.id)}
               <option value={owner.id}>{owner.name}</option>
             {/each}
           </select>
@@ -259,7 +259,8 @@
         <label for="contact-stage">{ui('Stage')}</label>
         <select id="contact-stage" name="stage" class="v2-input" bind:value={values.stage}>
           <option value="">{ui('Select stage')}</option>
-          {#each data.stages ?? [] as option}<option value={option.value}>{option.label}</option
+          {#each data.stages ?? [] as option (option.value)}<option value={option.value}
+              >{option.label}</option
             >{/each}
         </select>
       </div>
@@ -267,7 +268,8 @@
         <label for="contact-source">{ui('Source')}</label>
         <select id="contact-source" name="source" class="v2-input" bind:value={values.source}>
           <option value="">{ui('Select source')}</option>
-          {#each data.sources ?? [] as option}<option value={option.value}>{option.label}</option
+          {#each data.sources ?? [] as option (option.value)}<option value={option.value}
+              >{option.label}</option
             >{/each}
         </select>
       </div>
@@ -292,8 +294,8 @@
           bind:value={values.preferred_communication_channel}
         >
           <option value="">{ui('Not specified')}</option>
-          {#each data.communication_channels ?? [] as option}<option value={option.value}
-              >{option.label}</option
+          {#each data.communication_channels ?? [] as option (option.value)}<option
+              value={option.value}>{option.label}</option
             >{/each}
         </select>
       </div>
@@ -303,8 +305,8 @@
         <label for="contact-country">{ui('Country')}</label>
         <select id="contact-country" name="country" class="v2-input" bind:value={values.country}>
           <option value="">{ui('Select country')}</option>
-          {#each countryOptions(values.country) as option}<option value={option.value}
-              >{option.label}</option
+          {#each countryOptions(values.country) as option (option.value)}<option
+              value={option.value}>{option.label}</option
             >{/each}
         </select>
       </div>

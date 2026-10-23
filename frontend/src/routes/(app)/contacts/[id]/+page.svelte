@@ -44,7 +44,7 @@
       if (contact.id !== id || controller.signal.aborted) return;
       editor = result;
       editingProperties = true;
-    } catch (error) {
+    } catch {
       if (!controller.signal.aborted && contact.id === id)
         editorError = 'Could not load contact. Please try again.';
     } finally {
@@ -66,12 +66,10 @@
   import { invalidateAll } from '$app/navigation';
   import { enhance } from '$app/forms';
   import CreateAppointment from '$lib/v2/components/CreateAppointment.svelte';
-  import TagBadge from '$lib/v2/components/TagBadge.svelte';
   import ContactActions from '$lib/components/contacts/ContactActions.svelte';
   let scheduled = $state(false);
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
 
-  import { STAGE_LABEL } from '$lib/v2/enums.js';
   /** @type {{data:any, form:any}} */
   let { data, form } = $props();
   let contact = $derived(data.contact);

@@ -104,11 +104,13 @@
       {#if includeAssociated && impact.associated?.length}
         <p>{ui('Associated records to delete:')}</p>
         <ul>
-          {#each impact.associated as record}<li>{record.name} ({record.kind})</li>{/each}
+          {#each impact.associated as record (record)}<li>{record.name} ({record.kind})</li>{/each}
         </ul>
       {/if}
       <ul>
-        {#each impact.counts as item}<li>{item.label}: <strong>{item.count}</strong></li>{/each}
+        {#each impact.counts as item (item)}<li>
+            {item.label}: <strong>{item.count}</strong>
+          </li>{/each}
       </ul>
       <p>
         {ui(

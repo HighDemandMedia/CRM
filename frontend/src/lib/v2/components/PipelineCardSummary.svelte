@@ -61,7 +61,7 @@
 
 {#if tags.length}
   <div class="compact-tags" aria-label={ui('Tags')}>
-    {#each tags as tag}<TagBadge {tag} />{/each}
+    {#each tags as tag (tag.id ?? tag)}<TagBadge {tag} />{/each}
   </div>
 {/if}
 

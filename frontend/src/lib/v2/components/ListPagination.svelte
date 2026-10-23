@@ -1,10 +1,16 @@
 <script>
+  import { asInternalPath, withoutBase } from '$lib/utils/paths.js';
+
+  import { base, resolve } from '$app/paths';
+
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { useI18n } from '$lib/i18n/context.js';
   import { PAGE_SIZES, paginationHref } from '$lib/v2/pagination.js';
   const { ui, count } = useI18n();
   let { offset, pageSize, total, shown } = $props();
+  const pagePath = (changes) =>
+    asInternalPath(withoutBase(paginationHref(page.url, changes), base));
 </script>
 
 <nav class="pagination" aria-label={ui('Record pages')}>
@@ -20,7 +26,7 @@
       class="v2-input"
       value={pageSize}
       onchange={(event) =>
-        goto(paginationHref(page.url, { pageSize: event.currentTarget.value, offset: 0 }), {
+        goto(resolve(pagePath({ pageSize: event.currentTarget.value, offset: 0 })), {
           noScroll: true,
           keepFocus: true
         })}
@@ -31,10 +37,12 @@
   {#if offset > 0}
     <a
       class="v2-btn"
-      href={paginationHref(page.url, {
-        offset: Math.max(0, offset - pageSize),
-        pageSize: undefined
-      })}>{ui('Previous')}</a
+      href={resolve(
+        pagePath({
+          offset: Math.max(0, offset - pageSize),
+          pageSize: undefined
+        })
+      )}>{ui('Previous')}</a
     >
   {:else}<button type="button" class="v2-btn" disabled>{ui('Previous')}</button>{/if}
   <span
@@ -44,9 +52,7 @@
     {count(Math.max(1, Math.ceil(total / pageSize)))}</span
   >
   {#if offset + pageSize < total}
-    <a
-      class="v2-btn"
-      href={paginationHref(page.url, { offset: offset + pageSize, pageSize: undefined })}
+    <a class="v2-btn" href={resolve(pagePath({ offset: offset + pageSize, pageSize: undefined }))}
       >{ui('Next')}</a
     >
   {:else}<button type="button" class="v2-btn" disabled>{ui('Next')}</button>{/if}

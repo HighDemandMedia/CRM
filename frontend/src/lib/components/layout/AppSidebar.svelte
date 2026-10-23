@@ -47,7 +47,6 @@
     ShieldCheck,
     BookOpen,
     Activity,
-    Smartphone,
     KeyRound
   } from '@lucide/svelte';
   import { Bell } from '$lib/components/notifications/index.js';

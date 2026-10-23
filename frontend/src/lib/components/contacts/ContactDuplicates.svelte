@@ -3,13 +3,14 @@
   const { ui } = useI18n();
 
   import { resolve } from '$app/paths';
+  import { SvelteURLSearchParams } from 'svelte/reactivity';
   /** @type {{name?:string, email?:string, phone?:string, exclude?:string}} */
   let { name = '', email = '', phone = '', exclude = '' } = $props();
   let matches = $state([]),
     checking = $state(false),
     error = $state('');
   $effect(() => {
-    const query = new URLSearchParams({
+    const query = new SvelteURLSearchParams({
       name: name.trim(),
       email: email.trim(),
       phone: phone.trim()
@@ -31,7 +32,7 @@
         if (!response.ok) throw new Error('Could not check existing contacts.');
         const data = await response.json();
         if (!controller.signal.aborted) matches = data.results || [];
-      } catch (err) {
+      } catch {
         if (!controller.signal.aborted) error = 'Could not check existing contacts.';
       } finally {
         if (!controller.signal.aborted) checking = false;

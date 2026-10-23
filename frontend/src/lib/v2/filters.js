@@ -33,8 +33,7 @@ import {
   STAGE_LABEL,
   TASK_PRIORITY,
   TASK_STATUS,
-  industryLabel,
-  invoiceStatusLabel
+  industryLabel
 } from './enums.js';
 
 /** @typedef {{ key: string, label: string, params: Record<string, string> }} Preset */

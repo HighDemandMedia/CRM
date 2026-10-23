@@ -11,7 +11,7 @@
   >{ui('Language')}
   <select class="v2-input" name="language" bind:value>
     <option value="">{ui('Select language')}</option>
-    {#each languages as language}<option value={language}>{ui(language)}</option>{/each}
+    {#each languages as language (language)}<option value={language}>{ui(language)}</option>{/each}
   </select>
 </label>
 

@@ -164,7 +164,7 @@
           <fieldset disabled={busy}>
             <legend>{row.label}</legend>
             <div class="values">
-              {#each ['primary', 'secondary'] as side}<label
+              {#each ['primary', 'secondary'] as side (side)}<label
                   class:chosen={choices[row.key] === side}
                   ><input
                     type="radio"

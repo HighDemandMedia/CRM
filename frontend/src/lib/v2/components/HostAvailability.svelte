@@ -1,4 +1,7 @@
 <script>
+  import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
+
+  import { untrack } from 'svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
@@ -18,15 +21,16 @@
     )
   );
   $effect(() => {
-    blocked = loading || !!error || conflict || !host || !date;
+    const nextBlocked = loading || !!error || conflict || !host || !date;
+    if (untrack(() => blocked) !== nextBlocked) blocked = nextBlocked;
   });
   $effect(() => {
     if (!active || !host || !date) return;
     const first = new Date(`${date}T00:00:00`);
     if (!Number.isFinite(first.getTime())) return;
-    const last = new Date(first);
+    const last = new SvelteDate(first);
     last.setDate(last.getDate() + 1);
-    const query = new URLSearchParams({
+    const query = new SvelteURLSearchParams({
       host,
       start: first.toISOString(),
       end: last.toISOString()
@@ -62,7 +66,8 @@
   {:else if host && date}
     {#if slots.length}<strong>{ui('Host busy')}</strong>
       <div class="slots">
-        {#each slots as slot}<span>{time(slot.starts_at)} – {time(slot.ends_at)}</span>{/each}
+        {#each slots as slot (slot)}<span>{time(slot.starts_at)} – {time(slot.ends_at)}</span
+          >{/each}
       </div>{:else}<span>{ui('No bookings for this host on this date.')}</span>{/if}
     {#if conflict}<Notice
         message={ui('This time overlaps another event. Choose a different time.')}

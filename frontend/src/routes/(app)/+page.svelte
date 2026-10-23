@@ -42,8 +42,8 @@
           name="user"
           value={day.selected_user}
           onchange={(event) => event.currentTarget.form?.requestSubmit()}
-          ><option value="all">{ui('Team day')}</option>{#each day.people as person}<option
-              value={person.id}
+          ><option value="all">{ui('Team day')}</option
+          >{#each day.people as person (person.id)}<option value={person.id}
               >{person.id === day.current_user ? ui('My day') : person.name}</option
             >{/each}</select
         >
@@ -73,7 +73,7 @@
         <a href={resolve('/calendar')}>{ui('View calendar')} <ArrowUpRight size={13} /></a>
       </header>
       <p class="timezone">{day.timezone.replaceAll('_', ' ')}</p>
-      {#each day.events as event}<button
+      {#each day.events as event (event.id)}<button
           class="event"
           class:company={event.attendee?.type === 'company'}
           onclick={(click) => details.open(event, click.currentTarget)}
@@ -98,7 +98,7 @@
         <h2>{ui('Tasks')} <span>{day.counts.tasks}</span></h2>
         <a href={resolve('/tasks')}>{ui('View all')} <ArrowUpRight size={13} /></a>
       </header>
-      {#each day.tasks as task}<div class="work-row">
+      {#each day.tasks as task (task.id)}<div class="work-row">
           <form
             method="POST"
             action="?/complete"
@@ -142,7 +142,7 @@
             ></thead
           >
           <tbody
-            >{#each day.deals as deal}<tr>
+            >{#each day.deals as deal (deal.id)}<tr>
                 <td
                   ><a class="record" href={resolve(`/pipeline/${deal.id}`)}
                     ><strong>{deal.name}</strong></a
@@ -169,7 +169,7 @@
         <h2>{ui('Tickets')} <span>{day.counts.tickets}</span></h2>
         <a href={resolve('/tickets')}>{ui('View all')} <ArrowUpRight size={13} /></a>
       </header>
-      {#each day.tickets as ticket}<a
+      {#each day.tickets as ticket (ticket.id)}<a
           class="work-row record"
           href={resolve(`/tickets/${ticket.id}`)}
           ><span
@@ -184,7 +184,9 @@
           <h2>{ui('Task reminders')} <span>{day.counts.reminders}</span></h2>
           <a href={resolve('/tasks')}>{ui('View all')} <ArrowUpRight size={13} /></a>
         </header>
-        {#each day.reminders as task}<a class="work-row" href={resolve(`/tasks/${task.id}`)}
+        {#each day.reminders as task (task.id)}<a
+            class="work-row"
+            href={resolve(`/tasks/${task.id}`)}
             ><span class="record"
               ><strong>{task.name}</strong><small>{task.priority} {ui('priority')}</small></span
             ><span class="due">{ui('Due')} {date(task.due)}</span></a

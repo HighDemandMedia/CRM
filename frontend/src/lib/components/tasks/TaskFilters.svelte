@@ -1,4 +1,8 @@
 <script>
+  import { asInternalPath } from '$lib/utils/paths.js';
+
+  import { SvelteURLSearchParams } from 'svelte/reactivity';
+
   import SelectFilter from '$lib/components/ui/filter/SelectFilter.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -14,21 +18,21 @@
   onDestroy(() => clearTimeout(timer));
   function apply(form) {
     clearTimeout(timer);
-    const params = new URLSearchParams();
+    const params = new SvelteURLSearchParams();
     for (const [key, value] of new FormData(form))
       if (String(value).trim()) params.set(key, String(value).trim());
     if (!params.has('all')) params.set('all', '0');
-    void goto(`${resolve('/tasks')}?${params}`, {
+    void goto(resolve(asInternalPath(`/tasks?${params}`)), {
       keepFocus: true,
       noScroll: true,
       replaceState: true
     });
   }
   function viewHref(view) {
-    const params = new URLSearchParams(url.searchParams);
+    const params = new SvelteURLSearchParams(url.searchParams);
     params.set('view', view);
     params.delete('offset');
-    return `${resolve('/tasks')}?${params}`;
+    return `/tasks?${params}`;
   }
 </script>
 
@@ -78,7 +82,7 @@
         aria-label={ui('Status')}
         value={url.searchParams.get('status') ?? ''}
         ><option value="">{ui('All statuses')}</option
-        >{#each ['New', 'In Progress', 'Completed'] as status}<option>{status}</option
+        >{#each ['New', 'In Progress', 'Completed'] as status (status)}<option>{status}</option
           >{/each}</select
       ></label
     >
@@ -90,7 +94,8 @@
         aria-label={ui('Priority')}
         value={url.searchParams.get('priority') ?? ''}
         ><option value="">{ui('All priorities')}</option
-        >{#each ['Low', 'Medium', 'High'] as priority}<option>{priority}</option>{/each}</select
+        >{#each ['Low', 'Medium', 'High'] as priority (priority)}<option>{priority}</option
+          >{/each}</select
       ></label
     >
     <details>
@@ -128,7 +133,7 @@
       <a
         class="v2-btn v2-btn-icon"
         class:v2-btn-primary={url.searchParams.get('view') !== 'pipeline'}
-        href={viewHref('list')}
+        href={resolve(asInternalPath(viewHref('list')))}
         aria-label={ui('List view')}
         title={ui('List')}
         aria-current={url.searchParams.get('view') !== 'pipeline' ? 'page' : undefined}
@@ -136,7 +141,7 @@
       ><a
         class="v2-btn v2-btn-icon"
         class:v2-btn-primary={url.searchParams.get('view') === 'pipeline'}
-        href={viewHref('pipeline')}
+        href={resolve(asInternalPath(viewHref('pipeline')))}
         aria-label={ui('Pipeline view')}
         title={ui('Pipeline')}
         aria-current={url.searchParams.get('view') === 'pipeline' ? 'page' : undefined}

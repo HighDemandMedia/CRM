@@ -1,4 +1,6 @@
 <script>
+  import { asInternalPath } from '$lib/utils/paths.js';
+
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, money, shortDate } = useI18n();
@@ -117,8 +119,11 @@
         class="add association-icon"
         aria-label={ui('Create ticket')}
         title={ui('Create ticket')}
-        href={`${resolve('/tickets/new')}?${parentKind === 'company' ? 'account' : 'contact'}=${encodeURIComponent(contactId)}`}
-        ><Plus size={16} /></a
+        href={resolve(
+          asInternalPath(
+            `/tickets/new?${parentKind === 'company' ? 'account' : 'contact'}=${encodeURIComponent(contactId)}`
+          )
+        )}><Plus size={16} /></a
       >
     {/if}
   </header>
@@ -132,7 +137,7 @@
         disabled={busy}
       />
       <div class="results">
-        {#if loading}<p>{ui('Searching…')}</p>{:else}{#each results as item}<button
+        {#if loading}<p>{ui('Searching…')}</p>{:else}{#each results as item (item.id)}<button
               type="button"
               disabled={busy}
               onclick={() => change('add', item.id)}>{item.name}<span>+</span></button

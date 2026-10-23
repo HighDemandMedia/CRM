@@ -60,13 +60,13 @@
   <TicketAssociates bind:values {options} />
   <label
     >{ui('Status')}<select class="v2-input" name="status" bind:value={values.status}
-      >{#each statuses as [value, label]}<option {value}>{label}</option>{/each}</select
+      >{#each statuses as [value, label] (value)}<option {value}>{label}</option>{/each}</select
     ></label
   >
   <label
     >{ui('Priority')}<select class="v2-input" name="priority" bind:value={values.priority}
-      ><option value="">{ui('None')}</option>{#each priorities as [value, label]}<option {value}
-          >{label}</option
+      ><option value="">{ui('None')}</option>{#each priorities as [value, label] (value)}<option
+          {value}>{label}</option
         >{/each}</select
     ></label
   >
@@ -99,12 +99,12 @@
 <RecordSection title={ui('Classification')}>
   <label
     >{ui('Category')}<select class="v2-input" name="category" bind:value={values.category}
-      >{#each categories as value}<option>{value}</option>{/each}</select
+      >{#each categories as value (value)}<option>{value}</option>{/each}</select
     ></label
   >
   <label
     >{ui('Source')}<select class="v2-input" name="source" bind:value={values.source}
-      >{#each sources as value}<option>{value}</option>{/each}</select
+      >{#each sources as value (value)}<option>{value}</option>{/each}</select
     ></label
   >
 </RecordSection>

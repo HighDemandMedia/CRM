@@ -64,7 +64,7 @@
       <label class="field"
         >{ui('Permission set')}<select class="v2-input" bind:value={role} disabled={busy}
           ><option value="">{ui('Member')}</option
-          >{#each roles.filter((r) => r.name !== 'Member') as r}<option value={r.id}
+          >{#each roles.filter((r) => r.name !== 'Member') as r (r.id)}<option value={r.id}
               >{r.name}</option
             >{/each}{#if isSuperAdmin}<option value="ADMIN">{ui('Admin')}</option>{/if}</select
         ><small>{ui('Record access:')} {scope}</small></label

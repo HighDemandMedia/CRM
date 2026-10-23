@@ -1,11 +1,18 @@
 <script>
+  import { SvelteDate } from 'svelte/reactivity';
+
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
 
   import { resolve } from '$app/paths';
   import { dateKey } from '$lib/v2/calendar.js';
-  import { tick } from 'svelte';
-  /** @type {{host:string,date:string,start:string,end:string,blocked?:boolean,disabled?:boolean,conflicting?:boolean,refresh?:number}} */
+  import { onMount, tick, untrack } from 'svelte';
+  import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+  let view = $state('week');
+  onMount(() => {
+    if (window.matchMedia('(max-width: 700px)').matches) view = 'day';
+  });
+  /** @type {{host:string,date:string,start:string,end:string,blocked?:boolean,disabled?:boolean,conflicting?:boolean,refresh?:number,visible?:boolean}} */
   let {
     host,
     date = $bindable(''),
@@ -14,7 +21,8 @@
     blocked = $bindable(true),
     conflicting = $bindable(false),
     refresh = 0,
-    disabled = false
+    disabled = false,
+    visible = true
   } = $props();
   let slots = $state(
     /** @type {Array<{starts_at:string,ends_at:string,title?:string|null}>} */ ([])
@@ -22,8 +30,7 @@
   let loading = $state(true),
     error = $state(''),
     retry = $state(0);
-  let scroll;
-  let initialized = false;
+  let scroll = $state();
   const minutes = (value) => {
     const [h, m] = value.split(':').map(Number);
     return h * 60 + m;
@@ -31,18 +38,42 @@
   const time = (value) =>
     `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
   const week = $derived.by(() => {
-    const first = new Date(`${date}T12:00:00`);
+    const first = new SvelteDate(`${date}T12:00:00`);
     if (!Number.isFinite(first.getTime())) return '';
     first.setDate(first.getDate() - first.getDay());
     return dateKey(first);
   });
   const days = $derived.by(() =>
     Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(`${week}T12:00:00`);
+      const d = new SvelteDate(`${week}T12:00:00`);
       d.setDate(d.getDate() + i);
       return d;
     })
   );
+  const visibleDays = $derived(view === 'day' ? days.filter((day) => dateKey(day) === date) : days);
+  let focusedSlot = $state(0);
+  $effect(() => {
+    const dayIndex = Math.max(
+      0,
+      visibleDays.findIndex((day) => dateKey(day) === date)
+    );
+    const minute = minutes(start);
+    focusedSlot =
+      dayIndex * 48 +
+      (Number.isFinite(minute) ? Math.min(47, Math.max(0, Math.floor(minute / 30))) : 18);
+  });
+  function navigateSlot(event, index) {
+    const offsets = { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -48, ArrowRight: 48 };
+    let next;
+    if (event.key === 'Home') next = Math.floor(index / 48) * 48;
+    else if (event.key === 'End') next = Math.floor(index / 48) * 48 + 47;
+    else if (event.key in offsets) next = index + offsets[event.key];
+    else return;
+    event.preventDefault();
+    focusedSlot = Math.max(0, Math.min(visibleDays.length * 48 - 1, next));
+    const grid = event.currentTarget.closest('.calendar-grid');
+    tick().then(() => grid?.querySelector(`[data-slot-index="${focusedSlot}"]`)?.focus());
+  }
   const conflict = $derived(
     slots.some(
       (s) =>
@@ -51,8 +82,9 @@
     )
   );
   $effect(() => {
-    blocked = loading || !!error || !host || !week || !start || !end || end <= start;
-    conflicting = conflict;
+    const nextBlocked = loading || !!error || !host || !week || !start || !end || end <= start;
+    if (untrack(() => blocked) !== nextBlocked) blocked = nextBlocked;
+    if (untrack(() => conflicting) !== conflict) conflicting = conflict;
   });
   $effect(() => {
     const selectedHost = host,
@@ -65,7 +97,7 @@
       return;
     }
     const first = new Date(`${selectedWeek}T00:00:00`),
-      last = new Date(first);
+      last = new SvelteDate(first);
     last.setDate(last.getDate() + 7);
     const controller = new AbortController();
     loading = true;
@@ -89,15 +121,16 @@
     return () => controller.abort();
   });
   $effect(() => {
-    if (scroll && !initialized) {
-      initialized = true;
+    const target = scroll;
+    if (target && visible) {
+      const initialScroll = untrack(() => Math.max(0, minutes(start) - 60));
       tick().then(() => {
-        scroll.scrollTop = Math.max(0, minutes(start) - 60);
+        target.scrollTop = initialScroll;
       });
     }
   });
   function moveWeek(offset) {
-    const d = new Date(`${date}T12:00:00`);
+    const d = new SvelteDate(`${date}T12:00:00`);
     d.setDate(d.getDate() + offset);
     date = dateKey(d);
   }
@@ -112,7 +145,7 @@
   }
   function blocks(day) {
     const from = new Date(`${dateKey(day)}T00:00:00`).getTime(),
-      until = new Date(from);
+      until = new SvelteDate(from);
     until.setDate(until.getDate() + 1);
     return slots
       .filter((s) => Date.parse(s.starts_at) < until.getTime() && Date.parse(s.ends_at) > from)
@@ -122,6 +155,7 @@
         const top = a.getHours() * 60 + a.getMinutes(),
           bottom = b.getTime() === until.getTime() ? 1440 : b.getHours() * 60 + b.getMinutes();
         return {
+          slot: s,
           title: s.title || 'Busy',
           top,
           height: Math.max(4, bottom - top),
@@ -133,99 +167,123 @@
 </script>
 
 <section class="week-picker" aria-label={ui('Host weekly availability')}>
-  <header>
-    <div class="week-nav">
-      <button
-        type="button"
-        class="v2-btn"
-        aria-label={ui('Previous week')}
-        {disabled}
-        onclick={() => moveWeek(-7)}>‹</button
-      ><strong
-        >{days[0]?.toLocaleDateString(locale(), { month: 'short', day: 'numeric' })} – {days[6]?.toLocaleDateString(
-          'en-US',
-          { month: 'short', day: 'numeric', year: 'numeric' }
-        )}</strong
-      ><button
-        type="button"
-        class="v2-btn"
-        aria-label={ui('Next week')}
-        {disabled}
-        onclick={() => moveWeek(7)}>›</button
-      ><button type="button" class="v2-btn" {disabled} onclick={() => (date = dateKey(new Date()))}
-        >{ui('Today')}</button
-      >
-    </div>
-    <div class="legend">
-      <span><i class="busy-key"></i>{ui('Busy')}</span><span
-        ><i class="selected-key"></i>{ui('Selected')}</span
-      ><span>{zone}</span>
-    </div>
-  </header>
-  <div class="status" aria-live="polite">
-    {#if loading}{ui('Checking availability…')}{:else if error}{error}
-      <button type="button" onclick={() => retry++}>{ui('Retry')}</button>{:else if !host}{ui(
-        'Select a Host to see availability.'
-      )}{:else if conflict}<span role="alert"
-        >{ui('This host already has an event at this time.')}</span
-      >{/if}
-  </div>
-  <div class="week-scroll" bind:this={scroll}>
-    <div class="calendar-grid">
-      <div class="day-head">
-        <span></span>{#each days as day}<div class:chosen={dateKey(day) === date}>
-            {day.toLocaleDateString(locale(), { weekday: 'short' })}<b>{day.getDate()}</b>
-          </div>{/each}
+  {#if !week}
+    <p class="status" role="status">{ui('Select a date to see availability.')}</p>
+  {:else}
+    <header>
+      <div class="week-nav">
+        <button
+          type="button"
+          class="v2-btn"
+          aria-label={ui(view === 'day' ? 'Previous day' : 'Previous week')}
+          {disabled}
+          onclick={() => moveWeek(view === 'day' ? -1 : -7)}><ChevronLeft size={16} /></button
+        ><strong
+          >{view === 'day'
+            ? new Date(`${date}T12:00:00`).toLocaleDateString(locale(), {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              })
+            : `${days[0]?.toLocaleDateString(locale(), { month: 'short', day: 'numeric' })} – ${days[6]?.toLocaleDateString(locale(), { month: 'short', day: 'numeric' })}`}</strong
+        ><button
+          type="button"
+          class="v2-btn"
+          aria-label={ui(view === 'day' ? 'Next day' : 'Next week')}
+          {disabled}
+          onclick={() => moveWeek(view === 'day' ? 1 : 7)}><ChevronRight size={16} /></button
+        ><button
+          type="button"
+          class="v2-btn"
+          {disabled}
+          onclick={() => (date = dateKey(new Date()))}>{ui('Today')}</button
+        >
       </div>
-      <div class="hours">
-        <div class="ruler">
-          {#each Array.from({ length: 24 }, (_, i) => i) as h}<span style:top={`${h * 60}px`}
-              >{h % 12 || 12} {h < 12 ? 'AM' : 'PM'}</span
-            >{/each}
+      <div class="availability-views" aria-label={ui('Availability view')}>
+        {#each ['day', 'week'] as mode (mode)}<button
+            type="button"
+            class="v2-btn v2-btn-sm"
+            class:v2-btn-primary={view === mode}
+            aria-pressed={view === mode}
+            onclick={() => (view = mode)}>{ui(mode === 'day' ? 'Day' : 'Week')}</button
+          >{/each}
+      </div>
+      <div class="legend">
+        <span><i class="busy-key"></i>{ui('Busy')}</span><span
+          ><i class="selected-key"></i>{ui('Selected')}</span
+        ><span>{zone}</span>
+      </div>
+    </header>
+    <div class="status" aria-live="polite">
+      {#if loading}{ui('Checking availability…')}{:else if error}{error}
+        <button type="button" onclick={() => retry++}>{ui('Retry')}</button>{:else if !host}{ui(
+          'Select a Host to see availability.'
+        )}{:else if conflict}<span role="alert"
+          >{ui('This host already has an event at this time.')}</span
+        >{/if}
+    </div>
+    <div class="week-scroll" bind:this={scroll}>
+      <div class="calendar-grid" style={`--days:${visibleDays.length}`}>
+        <div class="day-head">
+          <span></span>{#each visibleDays as day, dayIndex (dayIndex)}<div
+              class:chosen={dateKey(day) === date}
+            >
+              {day.toLocaleDateString(locale(), { weekday: 'short' })}<b>{day.getDate()}</b>
+            </div>{/each}
         </div>
-        {#each days as day}
-          <div class="day">
-            {#each Array.from({ length: 48 }, (_, i) => i * 30) as minute}
-              <button
-                class="slot"
-                type="button"
-                disabled={disabled || loading || !!error || !host}
-                aria-label={`Select ${day.toLocaleDateString(locale())} at ${time(minute)}`}
-                style:top={`${minute}px`}
-                onclick={() => choose(day, minute)}
-                ondragover={(e) => e.preventDefault()}
-                ondrop={(e) => {
-                  e.preventDefault();
-                  if (e.dataTransfer?.getData('text/plain') === 'crm-selected-time')
-                    choose(day, minute);
-                }}
-              ></button>
-            {/each}
-            {#each blocks(day) as block}<div
-                class="busy-block"
-                style:top={`${block.top}px`}
-                style:height={`${block.height}px`}
-                title={`${block.title} · ${block.label}`}
-              >
-                {block.title}
-              </div>{/each}
-            {#if dateKey(day) === date && end > start}<div
-                class="selection"
-                class:conflict
-                draggable={!disabled}
-                ondragstart={(e) => e.dataTransfer?.setData('text/plain', 'crm-selected-time')}
-                role="img"
-                aria-label={`Selected ${start} to ${end}`}
-                style:top={`${minutes(start)}px`}
-                style:height={`${minutes(end) - minutes(start)}px`}
-              >
-                <b>{start}</b><span> – {end}</span>
-              </div>{/if}
+        <div class="hours">
+          <div class="ruler">
+            {#each Array.from({ length: 24 }, (_, i) => i) as h (h)}<span style:top={`${h * 60}px`}
+                >{h % 12 || 12} {h < 12 ? 'AM' : 'PM'}</span
+              >{/each}
           </div>
-        {/each}
+          {#each visibleDays as day, dayIndex (dayIndex)}
+            <div class="day">
+              {#each Array.from({ length: 48 }, (_, i) => i * 30) as minute (minute)}
+                <button
+                  class="slot"
+                  data-slot-index={dayIndex * 48 + minute / 30}
+                  tabindex={focusedSlot === dayIndex * 48 + minute / 30 ? 0 : -1}
+                  onkeydown={(event) => navigateSlot(event, dayIndex * 48 + minute / 30)}
+                  type="button"
+                  disabled={disabled || loading || !!error || !host}
+                  aria-label={`Select ${day.toLocaleDateString(locale())} at ${time(minute)}`}
+                  style:top={`${minute}px`}
+                  onclick={() => choose(day, minute)}
+                  ondragover={(e) => e.preventDefault()}
+                  ondrop={(e) => {
+                    e.preventDefault();
+                    if (e.dataTransfer?.getData('text/plain') === 'crm-selected-time')
+                      choose(day, minute);
+                  }}
+                ></button>
+              {/each}
+              {#each blocks(day) as block (block.slot)}<div
+                  class="busy-block"
+                  style:top={`${block.top}px`}
+                  style:height={`${block.height}px`}
+                  title={`${block.title} · ${block.label}`}
+                >
+                  {block.title}
+                </div>{/each}
+              {#if dateKey(day) === date && end > start}<div
+                  class="selection"
+                  class:conflict
+                  draggable={!disabled}
+                  ondragstart={(e) => e.dataTransfer?.setData('text/plain', 'crm-selected-time')}
+                  role="img"
+                  aria-label={`Selected ${start} to ${end}`}
+                  style:top={`${minutes(start)}px`}
+                  style:height={`${minutes(end) - minutes(start)}px`}
+                >
+                  <b>{start}</b><span> – {end}</span>
+                </div>{/if}
+            </div>
+          {/each}
+        </div>
       </div>
     </div>
-  </div>
+  {/if}
 </section>
 
 <style>
@@ -280,6 +338,9 @@
     min-height: 30px;
     padding: 6px var(--crm-space-5);
     font-size: var(--crm-text-xs);
+    color: var(--crm-text-muted);
+  }
+  .status :global([role='alert']) {
     color: var(--crm-danger);
   }
   .week-scroll {
@@ -288,11 +349,11 @@
     min-height: 0;
   }
   .calendar-grid {
-    min-width: 650px;
+    min-width: 0;
   }
   .day-head {
     display: grid;
-    grid-template-columns: 58px repeat(7, minmax(0, 1fr));
+    grid-template-columns: 48px repeat(var(--days), minmax(0, 1fr));
     position: sticky;
     top: 0;
     z-index: 4;
@@ -317,7 +378,7 @@
   }
   .hours {
     display: grid;
-    grid-template-columns: 58px repeat(7, minmax(0, 1fr));
+    grid-template-columns: 48px repeat(var(--days), minmax(0, 1fr));
     height: 1440px;
   }
   .ruler {
@@ -349,7 +410,7 @@
   .slot:hover:not(:disabled),
   .slot:focus-visible {
     background: var(--crm-info-bg);
-    outline: 2px solid var(--crm-info-bg);
+    outline: 2px solid var(--crm-focus);
     outline-offset: -2px;
   }
   .busy-block,
@@ -381,5 +442,51 @@
     background: var(--crm-danger-bg);
     border-color: var(--crm-danger);
     color: var(--crm-danger);
+  }
+  .availability-views {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .week-nav .v2-btn {
+    padding-inline: 8px;
+    min-width: 32px;
+  }
+  header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 12px 14px 8px;
+  }
+  .week-nav {
+    gap: 4px;
+  }
+  .week-nav .v2-btn {
+    min-height: 32px;
+    font-size: var(--crm-text-xs);
+  }
+  .status:empty {
+    display: none;
+  }
+  @media (max-width: 480px) {
+    header {
+      grid-template-columns: 1fr;
+    }
+    .availability-views {
+      grid-row: 2;
+    }
+  }
+  .week-nav strong {
+    text-align: center;
+    font-size: var(--crm-text-xs);
+  }
+  .legend {
+    grid-column: 1 / -1;
+    margin-top: 0;
+    gap: 12px;
+  }
+  .legend span:last-child {
+    display: none;
   }
 </style>

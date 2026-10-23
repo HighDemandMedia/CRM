@@ -1,4 +1,6 @@
 <script>
+  import { SvelteURLSearchParams } from 'svelte/reactivity';
+
   import Notice from '$lib/components/Notice.svelte';
   import { page } from '$app/state';
   import { useI18n } from '$lib/i18n/context.js';
@@ -20,7 +22,7 @@
     busy = true;
     message = '';
     try {
-      const query = new URLSearchParams(page.url.searchParams);
+      const query = new SvelteURLSearchParams(page.url.searchParams);
       query.set('columns', columns.join(','));
       query.set('scope', scope);
       const body = new FormData();

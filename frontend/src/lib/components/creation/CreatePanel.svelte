@@ -1,4 +1,8 @@
 <script>
+  import { asInternalPath, withoutBase } from '$lib/utils/paths.js';
+
+  import { base, resolve } from '$app/paths';
+
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -69,7 +73,13 @@
         close();
         if (destination) {
           await tick();
-          await goto(destination);
+          const target = new URL(destination);
+          if (target.origin !== window.location.origin) return;
+          await goto(
+            resolve(
+              asInternalPath(withoutBase(target.pathname, base) + target.search + target.hash)
+            )
+          );
         }
       }
     };

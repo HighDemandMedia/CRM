@@ -105,7 +105,7 @@
 {#snippet areaField(label)}
   <label
     >{label}<select class="v2-input" name="area" bind:value={draft.area}>
-      {#each data.support.areas as area}<option value={area}>{area}</option>{/each}
+      {#each data.support.areas as area (area)}<option value={area}>{area}</option>{/each}
     </select></label
   >
 {/snippet}
@@ -132,7 +132,9 @@
     {#if spec.options}
       <select class="v2-input" name={key} required={spec.required} bind:value={draft[key]}>
         <option value="">{ui('Select…')}</option>
-        {#each spec.options as option}<option value={option.value}>{option.label}</option>{/each}
+        {#each spec.options as option (option.value)}<option value={option.value}
+            >{option.label}</option
+          >{/each}
       </select>
     {:else if spec.input === 'url'}
       <input
@@ -162,7 +164,7 @@
     <aside class="request-sidebar">
       <h2>{ui('How can we help?')}</h2>
       <div class="request-types" role="group" aria-label={ui('Request type')}>
-        {#each requestTypes as type}{@const Icon = icons[type.key]}<button
+        {#each requestTypes as type (type.key)}{@const Icon = icons[type.key]}<button
             type="button"
             class:active={kind === type.key}
             aria-pressed={kind === type.key}
@@ -280,7 +282,7 @@
                 {#if suggestedGuides.length}
                   <div class="suggested-guides">
                     <h3><BookOpen size={16} /> {ui('These guides may help')}</h3>
-                    {#each suggestedGuides as article}
+                    {#each suggestedGuides as article (article.slug)}
                       <a
                         href={resolve(asInternalPath(`/help/knowledge/${article.slug}`))}
                         target="_blank"

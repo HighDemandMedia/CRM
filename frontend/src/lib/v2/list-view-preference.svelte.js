@@ -1,3 +1,6 @@
+import { asInternalPath, withoutBase } from '$lib/utils/paths.js';
+import { base, resolve } from '$app/paths';
+import { SvelteURLSearchParams } from 'svelte/reactivity';
 import { goto } from '$app/navigation';
 import {
   browserStorage,
@@ -17,9 +20,9 @@ export function listViewPreference(getScope, getUrl) {
       loadedKey = key;
       const saved = readPreference(browserStorage(), key, {});
       if (!url.search && saved && typeof saved === 'object' && !Array.isArray(saved)) {
-        const params = new URLSearchParams(viewPreferences(new URLSearchParams(saved)));
+        const params = new SvelteURLSearchParams(viewPreferences(new SvelteURLSearchParams(saved)));
         if (params.size) {
-          void goto(`${url.pathname}?${params}`, {
+          void goto(resolve(asInternalPath(`${withoutBase(url.pathname, base)}?${params}`)), {
             replaceState: true,
             noScroll: true,
             keepFocus: true

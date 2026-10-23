@@ -98,7 +98,8 @@
           <label class="v2-field" style="flex:1;min-width:150px">
             <span class="v2-label">{ui('Status')}</span>
             <select class="v2-input" name="status" value={values.status ?? 'New'}>
-              {#each statusOptions as option}<option value={option.value}>{option.label}</option
+              {#each statusOptions as option (option.value)}<option value={option.value}
+                  >{option.label}</option
                 >{/each}
             </select>
           </label>

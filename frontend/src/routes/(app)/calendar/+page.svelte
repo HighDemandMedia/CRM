@@ -1,4 +1,6 @@
 <script>
+  import { SvelteMap } from 'svelte/reactivity';
+
   import Notice from '$lib/components/Notice.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { googleErrorMessage } from '$lib/utils/google-feedback.js';
@@ -19,6 +21,8 @@
   import { calendarDays, dateKey, shiftDate, timedCards } from '$lib/v2/calendar.js';
   let selected = $state(new Date());
   let view = $state('month');
+  const periodView = $derived(view === 'agenda' ? 'month' : view);
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll('_', ' ');
   let ready = $state(false);
   /** @type {HTMLDivElement} */
   let scroller;
@@ -27,7 +31,7 @@
     const mode = view;
     if (ready)
       void tick().then(() => {
-        if (scroller) scroller.scrollTop = mode === 'month' ? 0 : 8 * 60;
+        if (scroller) scroller.scrollTop = ['month', 'agenda'].includes(mode) ? 0 : 8 * 60;
       });
   });
   let events = $state(/** @type {any[]} */ ([]));
@@ -35,7 +39,7 @@
   let failure = $state('');
   let googleError = $state('');
   let refresh = $state(0);
-  const days = $derived(calendarDays(selected, view));
+  const days = $derived(calendarDays(selected, periodView));
   const title = $derived(
     view === 'day'
       ? selected.toLocaleDateString(locale(), { month: 'long', day: 'numeric', year: 'numeric' })
@@ -44,8 +48,8 @@
         : selected.toLocaleDateString(locale(), { month: 'long', year: 'numeric' })
   );
   const grouped = $derived.by(() => {
-    const result = new Map();
-    for (const event of events) {
+    const result = new SvelteMap();
+    for (const event of [...events].sort((a, b) => Date.parse(a.start) - Date.parse(b.start))) {
       for (const day of days) {
         const key = dateKey(day);
         const next = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
@@ -66,6 +70,7 @@
     const date = page.url.searchParams.get('date');
     const requested = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? new Date(`${date}T12:00:00`) : null;
     selected = requested && Number.isFinite(requested.getTime()) ? requested : new Date();
+    if (window.matchMedia('(max-width: 700px)').matches) view = 'agenda';
     ready = true;
   });
   $effect(() => {
@@ -91,7 +96,7 @@
           googleError = result.googleError || '';
         }
       })
-      .catch((err) => {
+      .catch(() => {
         if (!controller.signal.aborted) failure = 'Could not load appointments. Please try again.';
       })
       .finally(() => {
@@ -113,7 +118,7 @@
           : 'Event'}
   <button
     type="button"
-    title={`${typeLabel} · ${event.title} · ${event.allDay ? 'All day' : new Date(event.start).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' })}`}
+    title={`${ui(typeLabel)} · ${event.title} · ${event.allDay ? ui('All day') : new Date(event.start).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' })}`}
     class="appointment"
     class:company={attendeeType === 'company'}
     class:unlinked={attendeeType !== 'company' && attendeeType !== 'contact'}
@@ -140,7 +145,7 @@
 {/snippet}
 
 <EventDetails bind:this={details} onChanged={() => refresh++} />
-<PageHeader title={ui('Calendar')}>
+<PageHeader title={ui('Calendar')} compact>
   {#snippet actions()}
     <CreateAppointment
       hosts={data.hosts}
@@ -152,33 +157,54 @@
 </PageHeader>
 {#if googleError}<div class="v2-pad">
     <ErrorNotice message={ui(googleErrorMessage(googleError))} />
-    <a class="v2-btn v2-btn-sm" href="/profile?google=settings">{ui('Manage connection')}</a>
+    <a class="v2-btn v2-btn-sm" href={resolve('/profile?google=settings')}
+      >{ui('Manage connection')}</a
+    >
   </div>{/if}
 <div class="calendar-toolbar crm-module-toolbar">
-  <button class="v2-btn" onclick={() => (selected = new Date())}>{ui('Today')}</button>
-  <button
-    class="v2-btn"
-    aria-label={ui('Previous period')}
-    onclick={() => (selected = shiftDate(selected, view, -1))}><ChevronLeft size={16} /></button
-  >
-  <button
-    class="v2-btn"
-    aria-label={ui('Next period')}
-    onclick={() => (selected = shiftDate(selected, view, 1))}><ChevronRight size={16} /></button
-  >
-  <h2>{title}</h2>
-  <div class="event-legend" aria-label={ui('Event types')}>
-    <span class="contact-key"><UserRound size={13} />{ui('Contacts')}</span><span
-      class="company-key"><Building2 size={13} />{ui('Companies')}</span
+  <div class="period-controls">
+    <button class="v2-btn" onclick={() => (selected = new Date())}>{ui('Today')}</button>
+    <button
+      class="v2-btn"
+      aria-label={ui('Previous period')}
+      onclick={() => (selected = shiftDate(selected, periodView, -1))}
+      ><ChevronLeft size={16} /></button
+    >
+    <button
+      class="v2-btn"
+      aria-label={ui('Next period')}
+      onclick={() => (selected = shiftDate(selected, periodView, 1))}
+      ><ChevronRight size={16} /></button
     >
   </div>
+  <div class="period-heading">
+    <h2 aria-live="polite" aria-atomic="true">{title}</h2>
+    <span class="calendar-zone">{zone}</span>
+  </div>
+  <input
+    class="v2-input jump-date"
+    type="date"
+    aria-label={ui('Go to date')}
+    value={dateKey(selected)}
+    onchange={(event) => {
+      const value = new Date(`${event.currentTarget.value}T12:00:00`);
+      if (Number.isFinite(value.getTime())) selected = value;
+    }}
+  />
   <div class="views crm-view-switch" aria-label={ui('Calendar view')}>
-    {#each ['day', 'week', 'month'] as mode}<button
+    {#each ['day', 'week', 'month', 'agenda'] as mode (mode)}<button
         class="v2-btn"
         class:v2-btn-primary={view === mode}
         aria-pressed={view === mode}
         onclick={() => (view = mode)}>{ui(mode[0].toUpperCase() + mode.slice(1))}</button
       >{/each}
+  </div>
+</div>
+<div class="calendar-meta">
+  <div class="event-legend" aria-label={ui('Event types')}>
+    <span class="contact-key"><UserRound size={13} />{ui('Contacts')}</span><span
+      class="company-key"><Building2 size={13} />{ui('Companies')}</span
+    >
   </div>
 </div>
 {#if failure}<Notice message={ui(failure)}
@@ -192,7 +218,34 @@
   aria-busy={busy}
   onscroll={() => details?.close()}
 >
-  {#if view === 'month'}
+  {#if view === 'agenda'}
+    <div class="agenda">
+      {#each days.filter((day) => day.getMonth() === selected.getMonth() && grouped.get(dateKey(day))?.length) as day (dateKey(day))}
+        <section
+          class="agenda-day"
+          aria-label={day.toLocaleDateString(locale(), { dateStyle: 'full' })}
+        >
+          <div class="agenda-date" class:is-today={dateKey(day) === dateKey(new Date())}>
+            <span>{day.toLocaleDateString(locale(), { weekday: 'short' })}</span><strong
+              >{day.getDate()}</strong
+            >
+          </div>
+          <div class="agenda-events">
+            {#each grouped.get(dateKey(day)) ?? [] as event (event.id)}{@render eventCard(
+                event
+              )}{/each}
+          </div>
+        </section>
+      {:else}
+        {#if !busy && !failure}<p class="agenda-empty">{ui('No appointments this month.')}</p>{/if}
+      {/each}
+    </div>
+  {:else if view === 'month'}
+    <div class="month-weekdays" aria-hidden="true">
+      {#each days.slice(0, 7) as day (dateKey(day))}<span
+          >{day.toLocaleDateString(locale(), { weekday: 'short' })}</span
+        >{/each}
+    </div>
     <div class="calendar-grid month">
       {#each days as day (dateKey(day))}
         <section
@@ -201,9 +254,11 @@
           aria-label={day.toDateString()}
         >
           <header>
-            <span>{day.toLocaleDateString(locale(), { weekday: 'short' })}</span><button
+            <button
               class:today={dateKey(day) === dateKey(new Date())}
-              aria-label={`View ${day.toDateString()}`}
+              aria-label={ui('View {date}', {
+                date: day.toLocaleDateString(locale(), { dateStyle: 'full' })
+              })}
               onclick={() => {
                 selected = day;
                 view = 'day';
@@ -228,7 +283,9 @@
           <span>{day.toLocaleDateString(locale(), { weekday: 'short' })}</span>
           <button
             class:today={dateKey(day) === dateKey(new Date())}
-            aria-label={`View ${day.toDateString()}`}
+            aria-label={ui('View {date}', {
+              date: day.toLocaleDateString(locale(), { dateStyle: 'full' })
+            })}
             onclick={() => {
               selected = day;
               view = 'day';
@@ -243,14 +300,14 @@
             )}{/each}
         </div>{/each}
       <div class="hour-labels">
-        {#each hours as hour}<div class="hour-label" style={`top:${hour * 60}px`}>
+        {#each hours as hour (hour)}<div class="hour-label" style={`top:${hour * 60}px`}>
             {hour % 12 || 12}
             {hour < 12 ? 'AM' : 'PM'}
           </div>{/each}
       </div>
       {#each days as day (dateKey(day))}
         <section class="time-day" aria-label={day.toDateString()}>
-          {#each hours as hour}<div
+          {#each hours as hour (hour)}<div
               class="hour-line"
               style={`top:${hour * 60}px`}
               aria-hidden="true"
@@ -284,7 +341,7 @@
   }
   .time-grid {
     display: grid;
-    grid-template-columns: 64px repeat(var(--day-count), minmax(160px, 1fr));
+    grid-template-columns: 52px repeat(var(--day-count), minmax(90px, 1fr));
     isolation: isolate;
   }
   .time-corner,
@@ -357,9 +414,17 @@
     gap: 1px;
   }
 
+  .timed-card .appointment strong {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--crm-text-xs);
+  }
+
   h2 {
-    font-size: var(--crm-text-sm);
-    margin: 0 var(--crm-space-2);
+    font-size: var(--crm-text-base);
+    margin: 0;
     font-weight: 600;
   }
   .calendar-toolbar {
@@ -376,18 +441,19 @@
   }
   .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, minmax(155px, 1fr));
-    min-height: 100%;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-auto-rows: minmax(96px, auto);
+    align-content: start;
   }
 
   .day {
     min-width: 0;
     border-right: 1px solid var(--v2-line);
     border-bottom: 1px solid var(--v2-line);
-    padding: 10px;
+    padding: 6px;
   }
   .month .day {
-    min-height: 160px;
+    min-height: 96px;
   }
   .outside {
     background: var(--crm-canvas);
@@ -396,7 +462,7 @@
     display: flex;
     align-items: center;
     gap: var(--crm-space-2);
-    margin-bottom: 10px;
+    margin-bottom: 4px;
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
@@ -405,8 +471,8 @@
     background: transparent;
     color: inherit;
     border-radius: 50%;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     cursor: pointer;
   }
   header button.today {
@@ -419,8 +485,7 @@
     gap: var(--crm-space-2);
   }
   .month .appointments {
-    max-height: 210px;
-    overflow-y: auto;
+    min-width: 0;
   }
   .appointment {
     width: 100%;
@@ -522,6 +587,125 @@
     outline: 2px solid var(--crm-focus);
     outline-offset: 2px;
   }
+  .period-controls {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--crm-radius-md);
+    overflow: hidden;
+    background: var(--crm-surface);
+  }
+  .period-controls .v2-btn {
+    min-width: 34px;
+    min-height: 36px;
+    padding-inline: 10px;
+    border: 0;
+    border-radius: 0;
+    font-size: var(--crm-text-xs);
+  }
+  .period-heading {
+    flex: 1;
+    min-width: 160px;
+  }
+  .calendar-zone {
+    font-size: var(--crm-text-xs);
+    color: var(--crm-text-muted);
+  }
+  .jump-date {
+    width: 142px;
+    min-height: 36px;
+    font-size: var(--crm-text-xs);
+  }
+  .calendar-toolbar {
+    gap: 10px;
+    padding-inline: var(--crm-page-gutter);
+    padding-block: 8px;
+  }
+  .views {
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--crm-radius-md);
+    background: var(--crm-surface);
+  }
+  .views .v2-btn {
+    border: 0;
+    min-height: 30px;
+    padding-inline: 10px;
+    font-size: var(--crm-text-xs);
+  }
+  .calendar-meta {
+    padding: 0 var(--crm-page-gutter) 4px;
+  }
+  .month-weekdays {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    background: var(--crm-surface-subtle);
+    height: 36px;
+    align-items: center;
+    text-align: center;
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-xs);
+    border-bottom: 1px solid var(--crm-border);
+  }
+  .agenda-day {
+    display: grid;
+    grid-template-columns: 60px minmax(0, 1fr);
+    gap: 16px;
+    padding: 16px;
+    border-bottom: 1px solid var(--crm-border-soft);
+  }
+  .agenda-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-self: start;
+    gap: 2px;
+    padding: 8px;
+    font-size: var(--crm-text-xs);
+    color: var(--crm-text-muted);
+    border-radius: var(--crm-radius-md);
+  }
+  .agenda-date strong {
+    font-size: var(--crm-text-xl);
+    color: var(--crm-text);
+  }
+  .agenda-date.is-today {
+    background: var(--crm-action-bg);
+    color: var(--crm-primary-text);
+  }
+  .agenda-date.is-today strong {
+    color: inherit;
+  }
+  .agenda-events {
+    display: grid;
+    gap: 8px;
+  }
+  .agenda-events .appointment {
+    padding: 12px;
+  }
+  .agenda-empty {
+    text-align: center;
+    padding: 48px 16px;
+    color: var(--crm-text-muted);
+  }
+  @media (max-width: 1100px) {
+    .month .appointment {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      height: auto;
+      min-height: 44px;
+      padding: 5px;
+    }
+    .month .appointment strong {
+      max-width: 100%;
+    }
+  }
   @media (max-width: 700px) {
     .calendar-scroll {
       margin: var(--crm-space-2) var(--crm-space-3) var(--crm-space-4);
@@ -530,11 +714,37 @@
       order: 3;
       flex-basis: 100%;
     }
+    .period-heading {
+      order: -1;
+      flex-basis: 100%;
+    }
+    .jump-date {
+      flex: 1;
+      min-width: 120px;
+    }
     .views {
       margin-left: 0;
+      width: 100%;
     }
-    h2 {
+    .views .v2-btn {
       flex: 1;
+      min-height: 40px;
+    }
+    .calendar-grid,
+    .month-weekdays {
+      min-width: 560px;
+    }
+    .calendar-meta {
+      padding-inline: 12px;
+    }
+    .calendar-toolbar {
+      padding-inline: 12px;
+      gap: 8px;
+    }
+    .agenda-day {
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 8px;
+      padding: 12px;
     }
   }
 </style>

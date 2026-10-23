@@ -71,7 +71,7 @@
             : ui('The stage has not changed. Complete the highlighted fields, then save again.')}
       </p>
       {#if issue.fields?.length}<ul>
-          {#each issue.fields as field}<li>
+          {#each issue.fields as field (field.key)}<li>
               {field.label}{#if field.is_read_only === true || field.is_read_only === 'True'}
                 {ui(
                   '— managed in Calendar. Schedule the appointment there before entering this stage.'

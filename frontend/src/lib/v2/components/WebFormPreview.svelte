@@ -15,7 +15,7 @@
   {#if appearance.title}<h2>{appearance.title}</h2>{/if}
   {#if appearance.description}<p>{appearance.description}</p>{/if}
   <div class="fields" style:--columns={appearance.columns}>
-    {#each fields as field, i}
+    {#each fields as field, i (field)}
       <div class="field">
         <label for={`preview-${i}`}
           >{field.label || 'Field label'}{field.is_required ? ' *' : ''}</label

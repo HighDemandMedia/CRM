@@ -790,6 +790,7 @@
   "Sections": "Secciones",
   "Select": "Seleccionar",
   "Select a Host to see availability.": "Selecciona un anfitrión para ver su disponibilidad.",
+  "Select a date to see availability.": "Selecciona una fecha para ver la disponibilidad.",
   "Select all loaded": "Seleccionar todos los cargados",
   "Select channel": "Seleccionar canal",
   "Select company": "Seleccionar empresa",
@@ -1804,5 +1805,16 @@
   "Your permission set does not allow creating tags.": "Tu conjunto de permisos no permite crear etiquetas.",
   "Compact rows": "Filas compactas",
   "View changes": "Ver cambios",
-  "Search options": "Buscar opciones"
+  "Search options": "Buscar opciones",
+  "Agenda": "Agenda",
+  "Go to date": "Ir a fecha",
+  "No appointments this month.": "No hay citas este mes.",
+  "e.g. Discovery call": "Ej. Llamada inicial",
+  "Date and time": "Fecha y hora",
+  "Add an agenda or details": "Añade la agenda o los detalles",
+  "Host availability": "Disponibilidad del anfitrión",
+  "Availability view": "Vista de disponibilidad",
+  "Previous day": "Día anterior",
+  "Next day": "Día siguiente",
+  "View {date}": "Ver {date}"
 }

@@ -77,7 +77,7 @@
       )}
     </p>
     <div class="counts">
-      {#each Object.entries(preview.counts) as [label, count]}<span
+      {#each Object.entries(preview.counts) as [label, count] (label)}<span
           >{label}: <strong>{count}</strong></span
         >{/each}
     </div>
@@ -87,7 +87,7 @@
         bind:value={reassign}
         disabled={busy}
         ><option value="">{ui('Remove their assignment only')}</option
-        >{#each preview.candidates as person}<option value={person.id}
+        >{#each preview.candidates as person (person.id)}<option value={person.id}
             >{person.name}{preview.candidates.filter((p) => p.name === person.name).length > 1
               ? ` · ${person.email}`
               : ''}</option

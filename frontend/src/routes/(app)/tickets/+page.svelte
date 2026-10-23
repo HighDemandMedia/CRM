@@ -1,4 +1,6 @@
 <script>
+  import { asInternalPath } from '$lib/utils/paths.js';
+
   import SelectFilter from '$lib/components/ui/filter/SelectFilter.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { TICKET_SORT_FIELDS } from '$lib/v2/ticket-sort.js';
@@ -41,7 +43,7 @@
       defaultStatuses.map(([value, label]) => ({ value, label }))
     ).map((s) => [s.value, s.label])
   );
-  let { data, form } = $props();
+  let { data } = $props();
   let advanced = $state(false),
     search = $state(''),
     timer,
@@ -109,7 +111,10 @@
     if (value) url.searchParams.set(key, value);
     else url.searchParams.delete(key);
     if (key !== 'offset') url.searchParams.delete('offset');
-    goto(url, { keepFocus: true, noScroll: true });
+    goto(resolve(asInternalPath('/tickets' + url.search + url.hash)), {
+      keepFocus: true,
+      noScroll: true
+    });
   }
   async function move(id, status) {
     if (moving) return;
@@ -217,25 +222,23 @@
         aria-label={ui('Status')}
         value={data.status}
         onchange={(e) => filter('status', e.currentTarget.value)}
-        ><option value="">{ui('All statuses')}</option>{#each statuses as [value, label]}<option
-            {value}>{label}</option
-          >{/each}</select
+        ><option value="">{ui('All statuses')}</option
+        >{#each statuses as [value, label] (value)}<option {value}>{label}</option>{/each}</select
       >
       <select
         class="v2-input"
         aria-label={ui('Priority')}
         value={page.url.searchParams.get('priority') ?? ''}
         onchange={(e) => filter('priority', e.currentTarget.value)}
-        ><option value="">{ui('Priority')}</option>{#each priorities as [value, label]}<option
-            {value}>{label}</option
-          >{/each}</select
+        ><option value="">{ui('Priority')}</option
+        >{#each priorities as [value, label] (value)}<option {value}>{label}</option>{/each}</select
       >
       <select
         class="v2-input"
         aria-label={ui('Category')}
         value={page.url.searchParams.get('category') ?? ''}
         onchange={(e) => filter('category', e.currentTarget.value)}
-        ><option value="">{ui('Category')}</option>{#each categories as value}<option
+        ><option value="">{ui('Category')}</option>{#each categories as value (value)}<option
             >{value}</option
           >{/each}</select
       >
@@ -274,7 +277,7 @@
     </div>
     {#if error}<ErrorNotice message={ui(error)} />{/if}
     {#if view === 'pipeline'}<div class="pipeline hdm-board" aria-label={ui('Tickets by status')}>
-        {#each stages as [status, label]}<section
+        {#each stages as [status, label] (status)}<section
             class="pipeline-column"
             data-tone={pipelineTone(label)}
             class:target={target === status}
@@ -295,7 +298,7 @@
               <span>{rows.filter((t) => t.status === status).length}</span>
             </header>
             <div class="pipeline-cards">
-              {#each rows.filter((t) => t.status === status) as ticket}<article
+              {#each rows.filter((t) => t.status === status) as ticket (ticket.id)}<article
                   class="pipeline-card"
                   draggable={!moving && can(page.data.permissions, 'tickets', 'stage')}
                   ondragstart={(e) => {
@@ -331,7 +334,8 @@
                     value={ticket.status}
                     disabled={moving}
                     onchange={(e) => move(ticket.id, e.currentTarget.value)}
-                    >{#each stages as [value, label]}<option {value}>{label}</option>{/each}</select
+                    >{#each stages as [value, label] (value)}<option {value}>{label}</option
+                      >{/each}</select
                   >
                 </article>{:else}<p class="pipeline-empty">{ui('No tickets')}</p>{/each}
             </div>
@@ -368,7 +372,9 @@
                       url.searchParams.delete('offset');
                       url.searchParams.set('sort', key);
                       url.searchParams.set('direction', sort === key && asc ? 'desc' : 'asc');
-                      void goto(resolve('/tickets') + url.search, { noScroll: true });
+                      void goto(resolve(asInternalPath('/tickets' + url.search)), {
+                        noScroll: true
+                      });
                     }}
                     >{fields.find(([id]) => id === key)?.[1]}{sort === key
                       ? asc
@@ -379,7 +385,7 @@
                 >{/each}<th scope="col">{ui('Actions')}</th></tr
             ></thead
           ><tbody
-            >{#each rows as ticket}<tr
+            >{#each rows as ticket (ticket.id)}<tr
                 >{#each columns as key (key)}<td
                     data-field={key}
                     title={String(value(ticket, key))}

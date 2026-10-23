@@ -17,10 +17,10 @@
       ><span class="category">{data.article.category}</span>
       <h1>{data.article.title}</h1>
       <p class="summary">{data.article.summary}</p>
-      {#each data.article.sections as section, index}<section id={`section-${index}`}>
+      {#each data.article.sections as section, index (section)}<section id={`section-${index}`}>
           <h2>{section.title}</h2>
           {#if section.text}<p>{section.text}</p>{/if}{#if section.steps}<ol>
-              {#each section.steps as step}<li>{step}</li>{/each}
+              {#each section.steps as step, stepIndex (stepIndex)}<li>{step}</li>{/each}
             </ol>{/if}
         </section>{/each}
       <div class="support">
@@ -32,12 +32,12 @@
     <aside>
       <h2>{ui('In this guide')}</h2>
       <nav aria-label={ui('In this guide')}>
-        {#each data.article.sections as section, index}<a href={`#section-${index}`}
+        {#each data.article.sections as section, index (section)}<a href={`#section-${index}`}
             >{section.title}</a
           >{/each}
       </nav>
       {#if data.related.length}<h2 class="related">{ui('Related guides')}</h2>
-        {#each data.related as article}<a
+        {#each data.related as article (article.slug)}<a
             class="related-link"
             href={resolve(asInternalPath(`/help/knowledge/${article.slug}`))}
             >{article.title}<ArrowUpRight size={13} /></a

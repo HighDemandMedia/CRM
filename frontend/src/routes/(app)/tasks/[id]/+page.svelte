@@ -8,14 +8,7 @@
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
   import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
   import { page } from '$app/state';
-  import { configuredStages, configuredLabel } from '$lib/v2/pipeline-config.js';
-  const statusOptions = $derived(
-    configuredStages(
-      page.data.pipelineConfig,
-      'Task',
-      ['New', 'In Progress', 'Completed'].map((value) => ({ value, label: value }))
-    )
-  );
+  import { configuredLabel } from '$lib/v2/pipeline-config.js';
   import TaskReminder from '$lib/components/tasks/TaskReminder.svelte';
   import { asInternalPath } from '$lib/utils/paths.js';
   import { resolve } from '$app/paths';
@@ -25,9 +18,7 @@
   import Attachments from '$lib/v2/components/Attachments.svelte';
   import TaskAssignees from '$lib/components/tasks/TaskAssignees.svelte';
   import TaskParent from '$lib/components/tasks/TaskParent.svelte';
-  import Pill from '$lib/v2/components/Pill.svelte';
   import { daysSince } from '$lib/v2/format.js';
-  import { TASK_PRIORITY_TONE, TASK_STATUS_TONE } from '$lib/v2/enums.js';
   import { CircleCheck, RotateCcw, Pencil } from '@lucide/svelte';
   let { data, form } = $props();
   let task = $derived(data.task);
@@ -194,14 +185,15 @@
         <fieldset disabled={busy}>
           <label
             >{ui('Status')}<select class="v2-input" name="status" bind:value={draft.status}
-              >{#each ['New', 'In Progress', 'Completed'] as status}<option>{status}</option
+              >{#each ['New', 'In Progress', 'Completed'] as status (status)}<option
+                  >{status}</option
                 >{/each}</select
             ></label
           >
           <label
             >{ui('Priority')}<select class="v2-input" name="priority" bind:value={draft.priority}
               ><option value="">{ui('None')}</option
-              >{#each ['Low', 'Medium', 'High'] as priority}<option>{priority}</option
+              >{#each ['Low', 'Medium', 'High'] as priority (priority)}<option>{priority}</option
                 >{/each}</select
             ></label
           >

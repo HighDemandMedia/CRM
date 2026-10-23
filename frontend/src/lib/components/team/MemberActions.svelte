@@ -102,7 +102,7 @@
         >
           {#if !selectedRole}<option value="" disabled>{ui('Choose role')}</option>{/if}
           {#if isSuperAdmin}<option value="ADMIN">{ui('Admin')}</option>{/if}
-          {#each roles as role}<option value={role.id}>{role.name}</option>{/each}
+          {#each roles as role (role.id)}<option value={role.id}>{role.name}</option>{/each}
         </select>
         {#if error}<Notice message={ui(error)} />{/if}
         <div class="access-summary">

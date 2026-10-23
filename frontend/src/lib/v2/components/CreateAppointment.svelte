@@ -1,7 +1,10 @@
 <script>
+  import { CalendarDays, Clock3, X, ChevronDown, Plus } from '@lucide/svelte';
+  const id = $props.id();
+  let showAvailability = $state(true);
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
-  const { ui } = useI18n();
+  const { ui, locale } = useI18n();
 
   import WeekAvailability from '$lib/v2/components/WeekAvailability.svelte';
   let unavailable = $state(true);
@@ -42,6 +45,8 @@
   );
   /** @type {HTMLDialogElement} */
   let dialog;
+  /** @type {HTMLInputElement} */
+  let titleInput;
   /** @type {HTMLDialogElement} */
   let overlapDialog;
   /** @type {((confirmed:boolean)=>void)|null} */
@@ -82,6 +87,12 @@
     const d = new Date(`${date}T${time}`);
     return Number.isFinite(d.getTime()) ? d.toISOString() : '';
   };
+
+  const summary = $derived(
+    date && iso(start) && iso(end)
+      ? `${new Date(`${date}T12:00:00`).toLocaleDateString(locale(), { month: 'short', day: 'numeric' })} · ${start} – ${end}`
+      : ''
+  );
 
   let attendees = $state(/** @type {any[]} */ ([]));
   let search = $state('');
@@ -164,12 +175,16 @@
       createDeal = canCreateDeal;
       dealName = external ? `${external.name} - Deal` : '';
       dealSource = '';
+      showAvailability = window.matchMedia('(min-width: 900px)').matches;
       open = true;
       dialog.showModal();
-    }}>{ui('Schedule event')}</button
+      titleInput?.focus();
+    }}><Plus size={16} />{ui('Schedule event')}</button
   >
 {/if}
 <dialog
+  class="schedule-dialog"
+  aria-labelledby={`${id}-title`}
   onclose={() => {
     open = false;
     showResults = false;
@@ -179,7 +194,19 @@
     if (busy) event.preventDefault();
   }}
 >
-  <h2>{ui('Schedule event')}</h2>
+  <div class="dialog-heading">
+    <div class="dialog-title">
+      <span class="title-icon"><CalendarDays size={20} /></span>
+      <h2 id={`${id}-title`}>{ui('Schedule event')}</h2>
+    </div>
+    <button
+      class="v2-btn close-button"
+      type="button"
+      aria-label={ui('Close form')}
+      disabled={busy}
+      onclick={() => dialog.close()}><X size={18} /></button
+    >
+  </div>
   <form
     method="POST"
     {action}
@@ -235,14 +262,16 @@
           >{ui('Title *')}<input
             class="v2-input"
             name="title"
+            bind:this={titleInput}
             required
             maxlength="255"
+            placeholder={ui('e.g. Discovery call')}
             bind:value={title}
           /></label
         >
         <label
           >{ui('Host *')}<select class="v2-input" name="host" required bind:value={host}
-            ><option value="">{ui('Select user')}</option>{#each hosts as user}<option
+            ><option value="">{ui('Select user')}</option>{#each hosts as user (user.id)}<option
                 value={user.id}>{user.name}</option
               >{/each}</select
           ></label
@@ -250,6 +279,60 @@
         {#if !hosts.length}<Notice
             message={ui('No users available. Reload the page to try again.')}
           />{/if}
+        <div class="schedule-section">
+          <h3><Clock3 size={15} />{ui('Date and time')}</h3>
+          <div class="times">
+            <label
+              >{ui('Date *')}<input
+                class="v2-input"
+                type="date"
+                required
+                bind:value={date}
+              /></label
+            >
+            <label
+              >{ui('Duration')}<select
+                class="v2-input"
+                value={durationMinutes()}
+                onchange={(e) => setDuration(e.currentTarget.value)}
+              >
+                {#if ![15, 30, 45, 60, 90, 120].includes(durationMinutes())}<option
+                    value={durationMinutes()}>{ui('Custom')}</option
+                  >{/if}
+                {#each [15, 30, 45, 60, 90, 120] as duration (duration)}<option value={duration}
+                    >{duration} min</option
+                  >{/each}
+              </select></label
+            >
+          </div>
+          <div class="times">
+            <label
+              >{ui('Start time *')}<input
+                class="v2-input"
+                type="time"
+                required
+                bind:value={start}
+              /></label
+            >
+            <label
+              >{ui('End time *')}<input
+                class="v2-input"
+                type="time"
+                required
+                bind:value={end}
+              /></label
+            >
+          </div>
+
+          <input type="hidden" name="starts_at" value={iso(start)} /><input
+            type="hidden"
+            name="ends_at"
+            value={iso(end)}
+          />
+          <span class="time-zone"
+            >{Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll('_', ' ')}</span
+          >
+        </div>
         <div
           class="attendee-search"
           onfocusout={(event) => {
@@ -304,7 +387,7 @@
               {:else if attendeeError}<Notice message={attendeeError} />
               {:else}
                 {#if choices.contacts.length}<h3>{ui('Contacts')}</h3>
-                  {#each choices.contacts as contact}<button
+                  {#each choices.contacts as contact (contact.id)}<button
                       type="button"
                       class="attendee-result"
                       disabled={attendees.some((a) => a.type === 'contact' && a.id === contact.id)}
@@ -312,7 +395,7 @@
                     >{/each}
                 {/if}
                 {#if choices.companies.length}<h3>{ui('Companies')}</h3>
-                  {#each choices.companies as company}<button
+                  {#each choices.companies as company (company.id)}<button
                       type="button"
                       class="attendee-result"
                       disabled={attendees.some((a) => a.type === 'company' && a.id === company.id)}
@@ -320,7 +403,7 @@
                     >{/each}
                 {/if}
                 {#if choices.users.length}<h3>{ui('Users')}</h3>
-                  {#each choices.users as user}<button
+                  {#each choices.users as user (user.id)}<button
                       type="button"
                       class="attendee-result"
                       disabled={attendees.some((a) => a.type === 'user' && a.id === user.id)}
@@ -339,60 +422,21 @@
             </div>
           {/if}
         </div>
-        <label
-          >{ui('Date *')}<input class="v2-input" type="date" required bind:value={date} /></label
-        >
-        <div class="times">
-          <label
-            >{ui('Start time *')}<input
+        <details class="optional-notes">
+          <summary>{ui('Meeting notes')}<ChevronDown size={15} /></summary>
+          <label class="notes-field"
+            ><span class="sr-only">{ui('Meeting notes')}</span><textarea
               class="v2-input"
-              type="time"
-              required
-              bind:value={start}
-            /></label
+              name="internal_notes"
+              rows="3"
+              maxlength="10000"
+              bind:value={notes}
+              placeholder={ui('Add an agenda or details')}></textarea></label
           >
-          <label
-            >{ui('End time *')}<input
-              class="v2-input"
-              type="time"
-              required
-              bind:value={end}
-            /></label
-          >
-        </div>
-
-        <input type="hidden" name="starts_at" value={iso(start)} /><input
-          type="hidden"
-          name="ends_at"
-          value={iso(end)}
-        />
-        <label
-          >{ui('Duration')}<select
-            class="v2-input"
-            value={durationMinutes()}
-            onchange={(e) => setDuration(e.currentTarget.value)}
-          >
-            {#if ![15, 30, 45, 60, 90, 120].includes(durationMinutes())}<option
-                value={durationMinutes()}>{ui('Custom')}</option
-              >{/if}
-            {#each [15, 30, 45, 60, 90, 120] as duration}<option value={duration}
-                >{duration} min</option
-              >{/each}
-          </select></label
-        >
-        <label
-          >{ui('Meeting notes')}<textarea
-            class="v2-input"
-            name="internal_notes"
-            rows="4"
-            maxlength="10000"
-            bind:value={notes}></textarea></label
-        >
-        <p class="v2-sub">
-          {ui(
-            'These notes also appear in the Google Calendar description when the host connects a calendar.'
-          )}
-        </p>
+          <p class="v2-sub">
+            {ui('Meeting notes are shared as the Google Calendar description when connected.')}
+          </p>
+        </details>
         {#if external}<label class="create-deal-toggle"
             ><input
               type="checkbox"
@@ -416,26 +460,41 @@
           <label
             >{ui('Deal source')}<select class="v2-input" name="deal_source" bind:value={dealSource}
               ><option value="">{ui('Use attendee source')}</option
-              >{#each dealSources as [value, label]}<option {value}>{label}</option>{/each}</select
+              >{#each dealSources as [value, label] (value)}<option {value}>{label}</option
+                >{/each}</select
             ></label
           >
           <p class="deal-defaults">{ui('Owner: selected Host · Prospecting · Medium priority')}</p>
         {/if}
       </fieldset>
-      {#if open}<WeekAvailability
-          {host}
-          bind:date
-          bind:start
-          bind:end
-          bind:blocked={unavailable}
-          bind:conflicting
-          refresh={availabilityRefresh}
-          disabled={busy}
-        />{/if}
+      <div class="availability-pane" class:is-collapsed={!showAvailability}>
+        <button
+          class="availability-toggle"
+          type="button"
+          aria-expanded={showAvailability}
+          aria-controls={`${id}-availability`}
+          onclick={() => (showAvailability = !showAvailability)}
+        >
+          <span><CalendarDays size={16} />{ui('Host availability')}</span><ChevronDown size={17} />
+        </button>
+        <div class="availability-content" id={`${id}-availability`} hidden={!showAvailability}>
+          {#if open}<WeekAvailability
+              {host}
+              visible={showAvailability}
+              bind:date
+              bind:start
+              bind:end
+              bind:blocked={unavailable}
+              bind:conflicting
+              refresh={availabilityRefresh}
+              disabled={busy}
+            />{/if}
+        </div>
+      </div>
     </div>
     {#if error}<Notice message={ui(error)} />{/if}
     <div class="actions">
-      <span class="selection-summary">{date} · {start} – {end}</span>
+      <span class="selection-summary">{summary}</span>
       <button class="v2-btn" type="button" disabled={busy} onclick={() => dialog.close()}
         >{ui('Cancel')}</button
       ><button class="v2-btn v2-btn-primary" disabled={busy || !hosts.length || unavailable}
@@ -609,10 +668,10 @@
 
   dialog {
     margin: auto;
-    width: min(1240px, calc(100vw - 32px));
-    height: min(820px, 94vh);
+    width: min(1160px, calc(100vw - 32px));
+    height: min(780px, 92dvh);
     box-sizing: border-box;
-    max-height: 94vh;
+    max-height: 92dvh;
     overflow: hidden;
     padding: 0;
     border: 1px solid var(--v2-line);
@@ -625,15 +684,14 @@
   }
   h2 {
     margin: 0;
-    padding: 18px var(--crm-space-6);
-    border-bottom: 1px solid var(--v2-line);
+    padding: 0;
     font-size: var(--crm-text-lg);
   }
   fieldset {
     border: 0;
     padding: 0;
     display: grid;
-    gap: 14px;
+    gap: 16px;
     min-width: 0;
     padding: var(--crm-space-5);
     overflow-y: auto;
@@ -666,12 +724,12 @@
   form {
     display: flex;
     flex-direction: column;
-    height: calc(100% - 61px);
+    flex: 1;
     min-height: 0;
   }
   .schedule-body {
     display: grid;
-    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-columns: minmax(340px, 0.85fr) minmax(0, 1.15fr);
     flex: 1;
     min-height: 0;
     overflow: hidden;
@@ -682,7 +740,126 @@
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
-  @media (max-width: 760px) {
+  .schedule-dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+  .dialog-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--crm-border);
+    flex: none;
+  }
+  .dialog-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .title-icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--crm-radius-md);
+    background: var(--crm-surface-subtle);
+    color: var(--crm-text-muted);
+  }
+  .close-button {
+    border: 0;
+    padding: 8px;
+    min-width: 36px;
+  }
+  .schedule-section {
+    display: grid;
+    gap: 12px;
+    border-block: 1px solid var(--crm-border-soft);
+    padding-block: 16px;
+  }
+  .schedule-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--crm-text-sm);
+    font-weight: 600;
+    margin: 0;
+  }
+  .time-zone {
+    font-size: var(--crm-text-xs);
+    color: var(--crm-text-muted);
+  }
+  .optional-notes {
+    border-bottom: 1px solid var(--crm-border-soft);
+    padding-bottom: 12px;
+  }
+  .optional-notes summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: var(--crm-text-sm);
+    padding-block: 4px;
+  }
+  .optional-notes summary::-webkit-details-marker {
+    display: none;
+  }
+  .notes-field {
+    margin-top: 12px;
+  }
+  .optional-notes p {
+    margin: 8px 0 0;
+    font-size: var(--crm-text-xs);
+  }
+  .availability-pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+  .availability-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 0;
+    border-bottom: 1px solid var(--crm-border-soft);
+    background: var(--crm-surface-subtle);
+    color: var(--crm-text);
+    font: inherit;
+    font-size: var(--crm-text-sm);
+    font-weight: 600;
+    padding: 16px;
+    cursor: pointer;
+  }
+  .availability-toggle span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .availability-content {
+    flex: 1;
+    min-height: 0;
+  }
+  .availability-content[hidden] {
+    display: none;
+  }
+  .actions {
+    flex: none;
+    background: var(--crm-surface);
+    align-items: center;
+  }
+  .attendee-chip button {
+    min-width: 28px;
+    min-height: 28px;
+  }
+  @media (min-width: 900px) {
+    .schedule-body:has(.is-collapsed) {
+      grid-template-columns: minmax(340px, 1fr) 230px;
+    }
+  }
+  @media (max-width: 899px) {
     .schedule-body {
       display: flex;
       flex-direction: column;
@@ -693,12 +870,47 @@
       overflow: visible;
       border-right: 0;
     }
-    .schedule-body :global(.week-picker) {
-      min-height: 460px;
+    .availability-pane {
       flex-shrink: 0;
+      border-top: 1px solid var(--crm-border);
+    }
+    .availability-content:not([hidden]) {
+      height: 380px;
+      flex: none;
+    }
+    .schedule-dialog {
+      width: min(620px, calc(100vw - 24px));
+    }
+    .dialog-heading {
+      padding: 12px 16px;
+    }
+    fieldset {
+      padding: 16px;
+    }
+    .actions {
+      padding: 12px 16px;
+    }
+    .actions .v2-btn {
+      min-height: 44px;
     }
     .selection-summary {
       display: none;
+    }
+  }
+  @media (max-width: 480px) {
+    .schedule-dialog {
+      width: 100%;
+      max-width: 100%;
+      height: 100dvh;
+      max-height: 100dvh;
+      border-radius: 0;
+      border: 0;
+    }
+    .actions {
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+    .actions .v2-btn-primary {
+      flex: 1;
     }
   }
 </style>

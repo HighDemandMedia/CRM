@@ -260,7 +260,8 @@
       >
       <label
         >{ui('Stage')}<select class="v2-input" name="stage" bind:value={values.stage}
-          >{#each stageOptions as stage}<option value={stage.value}>{stage.label}</option
+          >{#each stageOptions as stage (stage.value)}<option value={stage.value}
+              >{stage.label}</option
             >{/each}</select
         ></label
       >
@@ -276,8 +277,9 @@
     <RecordSection title={ui('Associated records')}>
       <label
         >{ui('Company')}<select class="v2-input" name="account" bind:value={values.account}
-          ><option value="">{ui('Select company')}</option>{#each data.accounts as company}<option
-              value={company.id}>{company.name}</option
+          ><option value="">{ui('Select company')}</option
+          >{#each data.accounts as company (company.id)}<option value={company.id}
+              >{company.name}</option
             >{/each}</select
         ></label
       >
@@ -288,7 +290,7 @@
             >{contacts.length ? `${contacts.length} selected` : ui('Select contacts')}</summary
           >
           <div class="options">
-            {#each data.contacts as contact}<label class="choice"
+            {#each data.contacts as contact (contact.id)}<label class="choice"
                 ><input
                   type="checkbox"
                   checked={contacts.includes(String(contact.id))}
@@ -306,7 +308,7 @@
         name="contacts_original"
         value={JSON.stringify([...(data.form?.contacts ?? [])].sort())}
       />
-      {#each contacts as id}<input type="hidden" name="contacts" value={id} />{/each}
+      {#each contacts as id (id)}<input type="hidden" name="contacts" value={id} />{/each}
     </RecordSection>
     <RecordSection title={ui('Ownership & classification')}>
       {#if canChooseOwner(page.data.permissions, 'deals')}
@@ -315,8 +317,8 @@
             class="v2-input"
             name="assigned_to"
             bind:value={values.assigned_to}
-            ><option value="">{ui('Select user')}</option>{#each data.owners as owner}<option
-                value={owner.id}>{owner.name}</option
+            ><option value="">{ui('Select user')}</option
+            >{#each data.owners as owner (owner.id)}<option value={owner.id}>{owner.name}</option
               >{/each}</select
           ></label
         >
@@ -325,16 +327,15 @@
       <label
         >{ui('Priority')}<select class="v2-input" name="priority" bind:value={values.priority}
           ><option value="">{ui('Select priority')}</option
-          >{#each ['Low', 'Medium', 'High'] as label}<option value={label.toUpperCase()}
+          >{#each ['Low', 'Medium', 'High'] as label (label)}<option value={label.toUpperCase()}
               >{ui(label)}</option
             >{/each}</select
         ></label
       >
       <label
         >{ui('Source')}<select class="v2-input" name="lead_source" bind:value={values.lead_source}
-          ><option value="">{ui('Select source')}</option>{#each sources as [value, label]}<option
-              {value}>{label}</option
-            >{/each}</select
+          ><option value="">{ui('Select source')}</option
+          >{#each sources as [value, label] (value)}<option {value}>{label}</option>{/each}</select
         ></label
       >
       <div class="v2-field">
@@ -372,11 +373,12 @@
       <label
         >{ui('Country')}<select class="v2-input" name="country" bind:value={values.country}
           ><option value="">{ui('Select country')}</option
-          >{#each countryOptions(values.country) as { value, label }}<option {value}>{label}</option
+          >{#each countryOptions(values.country) as { value, label } (value)}<option {value}
+              >{label}</option
             >{/each}</select
         ></label
       >
-      {#each addressFields as [key, label]}<label
+      {#each addressFields as [key, label] (key)}<label
           >{ui(label)}<input
             class="v2-input"
             name={key}

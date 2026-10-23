@@ -166,7 +166,9 @@
           error = '';
         }}
       >
-        {#each data.objects as object}<option value={object.value}>{object.label}</option>{/each}
+        {#each data.objects as object (object.value)}<option value={object.value}
+            >{object.label}</option
+          >{/each}
       </select></label
     >
     {#if data.can_edit}<button
@@ -291,7 +293,7 @@
           <legend>{ui('Required properties')}</legend>
           <p>{ui('Must have a value before entering this stage.')}</p>
           <div class="choices">
-            {#each properties as property}
+            {#each properties as property (property.key)}
               <label
                 ><input
                   type="checkbox"
@@ -307,7 +309,7 @@
           <legend>{ui('Allowed source stages')}</legend>
           <p>{ui('Leave empty to allow entry from any stage, including new records.')}</p>
           <div class="choices">
-            {#each stages.filter((stage) => stage.key !== expanded) as source}
+            {#each stages.filter((stage) => stage.key !== expanded) as source (source.key)}
               <label
                 ><input
                   type="checkbox"
@@ -392,7 +394,7 @@
                   ? ui('Select a destination')
                   : ui('No records to move')}</option
               >
-              {#each stages.filter((stage) => stage.key !== removing.key) as stage}<option
+              {#each stages.filter((stage) => stage.key !== removing.key) as stage (stage.key)}<option
                   value={stage.key}>{stage.label}</option
                 >{/each}
             </select></label

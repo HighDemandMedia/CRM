@@ -32,7 +32,6 @@
   import SectionTabs from '$lib/v2/components/SectionTabs.svelte';
   import Pill from '$lib/v2/components/Pill.svelte';
   import Avatar from '$lib/v2/components/Avatar.svelte';
-  import StatCard from '$lib/v2/components/StatCard.svelte';
   import { daysSince } from '$lib/v2/format.js';
   import { BOARD_PRIORITY_LABEL, BOARD_PRIORITY_TONE } from '$lib/v2/enums.js';
   import { Plus, ChevronDown, TriangleAlert } from '@lucide/svelte';

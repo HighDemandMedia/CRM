@@ -122,7 +122,7 @@
       if (!data.onboarding && formData.get(key) === previous) formData.delete(key);
     }
     saving = true;
-    return async (/** @type {any} */ { result, update }) => {
+    return async (/** @type {any} */ { update }) => {
       saving = false;
       await update({ reset: false });
     };
@@ -141,7 +141,7 @@
       role="tablist"
       aria-label={ui('Profile sections')}
     >
-      {#each tabs as tab, index}
+      {#each tabs as tab, index (tab.id)}
         <button
           id={`profile-tab-${tab.id}`}
           role="tab"
@@ -230,7 +230,8 @@
                     >{ui('Organization default ·')}
                     {p.organization_timezone.replaceAll('_', ' ')}</option
                   >
-                  {#each data.timezones as zone}<option value={zone.name}>{zone.label}</option
+                  {#each data.timezones as zone (zone.name)}<option value={zone.name}
+                      >{zone.label}</option
                     >{/each}
                 </select></label
               >
@@ -339,7 +340,7 @@
             {#if form.message}<ErrorNotice message={ui(form.message)} />
             {:else}<Notice tone="success" message={ui(form.googleMessage)} />{/if}
           {/if}
-          {#each [{ key: 'gmail', service: 'gmail', title: 'Gmail' }, { key: 'google_calendar', service: 'calendar', title: 'Google Calendar' }] as item}
+          {#each [{ key: 'gmail', service: 'gmail', title: 'Gmail' }, { key: 'google_calendar', service: 'calendar', title: 'Google Calendar' }] as item (item.key)}
             {@const connection = p.integrations?.[item.key]}
             <section class="integration" aria-labelledby={`integration-${item.key}`}>
               <div class="integration-heading">
@@ -445,7 +446,7 @@
                           class="v2-input"
                           name="calendar_id"
                           bind:value={selectedCalendar}
-                          >{#each calendars as calendar}<option value={calendar.id}
+                          >{#each calendars as calendar (calendar.id)}<option value={calendar.id}
                               >{calendar.name}{calendar.writable ? '' : ui(' (read only)')}</option
                             >{/each}</select
                         ></label

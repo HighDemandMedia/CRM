@@ -1,4 +1,6 @@
 <script>
+  import { resolve } from '$app/paths';
+
   import {
     fieldInputType,
     fieldInputStep,
@@ -69,7 +71,7 @@
   {#if field.is_read_only === true || field.is_read_only === 'True'}
     <strong>{field.label}</strong>
     <p>
-      {ui('Schedule the appointment in')} <a href="/calendar">{ui('Calendar')}</a>{ui(
+      {ui('Schedule the appointment in')} <a href={resolve('/calendar')}>{ui('Calendar')}</a>{ui(
         ', then return to change the stage.'
       )}
     </p>
@@ -104,7 +106,7 @@
         }}
       />
     {:else if field.key === 'pages'}
-      {#each value || [] as entry, index}<div class="page-link">
+      {#each value || [] as entry, index (entry)}<div class="page-link">
           <input
             class="v2-input"
             aria-label={ui('Page name')}
@@ -132,7 +134,7 @@
       >
     {:else if field.relation || ['dropdown', 'multi_select'].includes(field.field_type)}
       {#if multiple}<div class="options">
-          {#each choices as option}<label
+          {#each choices as option (option.value)}<label
               ><input
                 type="checkbox"
                 name={field.name ?? field.key}
@@ -148,7 +150,7 @@
           name={field.name ?? field.key}
           bind:value
           {required}
-          ><option value="">{ui('Select…')}</option>{#each choices as option}<option
+          ><option value="">{ui('Select…')}</option>{#each choices as option (option.value)}<option
               value={String(option.value)}>{option.label}</option
             >{/each}</select
         >{/if}

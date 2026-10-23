@@ -81,11 +81,11 @@
       <form method="POST" action="?/save" use:enhance={save}>
         {#if data.onboarding}<input type="hidden" name="onboarding" value="1" />{/if}
         <fieldset disabled={!data.can_edit || busy}>
-          {#each sections as section}
+          {#each sections as section (section)}
             <section>
               <h2>{section.title}</h2>
               <div class="fields">
-                {#each section.fields as [key, label, type]}
+                {#each section.fields as [key, label, type] (key)}
                   <label
                     >{label}{key === 'name' ? ' *' : ''}<input
                       class="v2-input"
@@ -103,8 +103,8 @@
                       name="country"
                       bind:value={draft.country}
                       ><option value="">{ui('Select country')}</option
-                      >{#each countryOptions(draft.country) as country}<option value={country.value}
-                          >{country.label}</option
+                      >{#each countryOptions(draft.country) as country (country.value)}<option
+                          value={country.value}>{country.label}</option
                         >{/each}</select
                     ></label
                   >
@@ -120,7 +120,7 @@
                   class="v2-input"
                   name="default_currency"
                   bind:value={draft.default_currency}
-                  >{#each CURRENCY_CODES.filter((c) => c.value) as currency}<option
+                  >{#each CURRENCY_CODES.filter((c) => c.value) as currency (currency.value)}<option
                       value={currency.value}>{currency.label}</option
                     >{/each}</select
                 ></label
@@ -131,7 +131,7 @@
                   name="default_country"
                   bind:value={draft.default_country}
                   ><option value="">{ui('Select country')}</option
-                  >{#each countryOptions(draft.default_country) as country}<option
+                  >{#each countryOptions(draft.default_country) as country (country.value)}<option
                       value={country.value}>{country.label}</option
                     >{/each}</select
                 ></label
@@ -141,7 +141,7 @@
                   class="v2-input"
                   name="timezone"
                   bind:value={draft.timezone}
-                  >{#each data.timezones as timezone}<option value={timezone.name}
+                  >{#each data.timezones as timezone (timezone.name)}<option value={timezone.name}
                       >{timezone.label}</option
                     >{/each}</select
                 ></label

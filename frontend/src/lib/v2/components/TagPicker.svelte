@@ -100,7 +100,7 @@
 >
   <input type="hidden" name="tags_present" value="1" />
   <input type="hidden" name="tags_original" value={originalValue} />
-  {#each selected as id}<input type="hidden" name="tags" value={id} />{/each}
+  {#each selected as id (id)}<input type="hidden" name="tags" value={id} />{/each}
   <div class="input-shell">
     {#each picked as tag (tag.id)}<span class="chip"
         ><TagBadge {tag} /><button
@@ -149,7 +149,7 @@
       {#if search.trim() && !exact && canCreate}
         <div class="create">
           <div class="colors" role="group" aria-label={ui('Tag color')}>
-            {#each Object.entries(tagColors) as [name, hex]}<button
+            {#each Object.entries(tagColors) as [name, hex] (name)}<button
                 type="button"
                 class="swatch"
                 style:background={hex}

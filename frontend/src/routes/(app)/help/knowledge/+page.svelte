@@ -47,14 +47,14 @@
       >
     </div>
     <div class="categories" role="group" aria-label={ui('Guide categories')}>
-      {#each ['All', ...categories] as item}<button
+      {#each ['All', ...categories] as item (item)}<button
           class:active={category === item}
           aria-pressed={category === item}
           onclick={() => (category = item)}>{item}</button
         >{/each}
     </div>
     <div class="articles">
-      {#each filtered as article}<a
+      {#each filtered as article (article.slug)}<a
           class="article-card"
           href={resolve(asInternalPath(`/help/knowledge/${article.slug}`))}
           ><span class="category">{article.category}</span>

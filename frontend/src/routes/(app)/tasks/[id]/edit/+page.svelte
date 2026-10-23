@@ -42,7 +42,6 @@
   let contacts = $state(untrack(() => [...(form?.values?.contacts ?? data.form.contacts ?? [])]));
   let kind = $state(untrack(() => form?.values?.parent_kind ?? data.form.parent_kind ?? ''));
   let selected = $state(untrack(() => form?.values?.parent_id ?? data.form.parent_id ?? ''));
-  let currentId = $derived(form?.values?.parent_id ?? data.form.parent_id ?? '');
 </script>
 
 <PageHeader title={ui('Edit task')} record center width="62ch">
@@ -89,7 +88,9 @@
       <label class="v2-field" style="flex:1;min-width:150px">
         <span class="v2-label">{ui('Status')}</span>
         <select class="v2-input" name="status" value={values.status ?? 'New'}>
-          {#each statusOptions as option}<option value={option.value}>{option.label}</option>{/each}
+          {#each statusOptions as option (option.value)}<option value={option.value}
+              >{option.label}</option
+            >{/each}
         </select>
       </label>
       <label class="v2-field" style="flex:1;min-width:150px">

@@ -256,7 +256,7 @@
     {#if notice}<p role="status">{notice}</p>{/if}
     {#if !activity}
       <nav class="steps" aria-label={ui('Setup steps')}>
-        {#each ['Start', 'Prepare', 'Configure', 'Install & test'] as title, i}
+        {#each ['Start', 'Prepare', 'Configure', 'Install & test'] as title, i (title)}
           <button
             class:current={step === i + 1}
             aria-current={step === i + 1 ? 'step' : undefined}
@@ -337,20 +337,21 @@
                           class="v2-input"
                           bind:value={selectedForm}
                           onchange={selectDetected}
-                          >{#each detected as item, i}<option value={i}>{item.label}</option
+                          >{#each detected as item, i (item)}<option value={i}>{item.label}</option
                             >{/each}</select
                         ></label
                       >{/if}
-                    {#each mappings as mapping}
+                    {#each mappings as mapping (mapping.name)}
                       <label class="mapping"
                         ><code>{mapping.name}</code><select
                           class="v2-input"
                           bind:value={mapping.property}
                           ><option value="">{ui('Choose a CRM property')}</option><option
                             value="skip">{ui('Skip this field')}</option
-                          >{#each options as opt}<option value={opt.value}>{opt.label}</option
-                            >{/each}{#each data.customFields as f}<option value={`custom:${f.id}`}
-                              >{f.label}</option
+                          >{#each options as opt (opt.value)}<option value={opt.value}
+                              >{opt.label}</option
+                            >{/each}{#each data.customFields as f (f.id)}<option
+                              value={`custom:${f.id}`}>{f.label}</option
                             >{/each}</select
                         ></label
                       >
@@ -389,7 +390,7 @@
               <div>
                 <section class="v2-card panel" hidden={!existing && editorTab !== 'fields'}>
                   <h2>{existing ? ui('Fields to send to the CRM') : ui('Contact form fields')}</h2>
-                  {#each config.fields as row, i}
+                  {#each config.fields as row, i (row)}
                     <div class="field-row">
                       <div class="row-head">
                         <strong>{row.label || `Field ${i + 1}`}</strong>
@@ -429,9 +430,10 @@
                               : row.lead_field}
                             onchange={(e) => chooseField(row, e.currentTarget.value)}
                             ><option value="">{ui('Select property')}</option
-                            >{#each options as opt}<option value={opt.value}>{opt.label}</option
-                              >{/each}{#each data.customFields as f}<option value={`custom:${f.id}`}
-                                >{f.label}</option
+                            >{#each options as opt (opt.value)}<option value={opt.value}
+                                >{opt.label}</option
+                              >{/each}{#each data.customFields as f (f.id)}<option
+                                value={`custom:${f.id}`}>{f.label}</option
                               >{/each}</select
                           ></label
                         >
@@ -491,7 +493,7 @@
                       /></label
                     >
                     <div class="two">
-                      {#each [['button_color', 'Button color'], ['text_color', 'Text color'], ['background_color', 'Background']] as color}<label
+                      {#each [['button_color', 'Button color'], ['text_color', 'Text color'], ['background_color', 'Background']] as color (color[0])}<label
                           class="control"
                           >{color[1]}<input
                             type="color"
@@ -567,8 +569,8 @@
               <h2>{ui('Assign and notify')}</h2>
               <label class="control"
                 >{ui('Responsible user')}<select class="v2-input" bind:value={config.assign_to}
-                  ><option value={null}>{ui('Unassigned')}</option>{#each data.profiles as p}<option
-                      value={p.id}>{p.name}</option
+                  ><option value={null}>{ui('Unassigned')}</option
+                  >{#each data.profiles as p (p.id)}<option value={p.id}>{p.name}</option
                     >{/each}</select
                 ></label
               >
@@ -583,8 +585,8 @@
                 )}</label
               >
               <details>
-                <summary>{ui('Additional recipients')}</summary>{#each data.profiles as p}<label
-                    class="check"
+                <summary>{ui('Additional recipients')}</summary
+                >{#each data.profiles as p (p.id)}<label class="check"
                     ><input
                       type="checkbox"
                       value={p.id}
@@ -627,14 +629,14 @@
                   bind:value={
                     config[config.target_model === 'Contact' ? 'contact_source' : 'lead_source']
                   }
-                  >{#each config.target_model === 'Contact' ? ['META', 'GOOGLE', 'TIKTOK', 'ORGANIC', 'CALL', 'CUSTOMER_REFERAL', 'EMPLOYER_REFERAL', 'WALK_IN'] : LEAD_SOURCES as source}<option
+                  >{#each config.target_model === 'Contact' ? ['META', 'GOOGLE', 'TIKTOK', 'ORGANIC', 'CALL', 'CUSTOMER_REFERAL', 'EMPLOYER_REFERAL', 'WALK_IN'] : LEAD_SOURCES as source (source)}<option
                       value={source}
                       >{LEAD_SOURCE_LABEL[source] ?? source.replaceAll('_', ' ')}</option
                     >{/each}</select
                 ></label
               >
               <details>
-                <summary>{ui('Tags')}</summary>{#each data.tags as tag}<label class="check"
+                <summary>{ui('Tags')}</summary>{#each data.tags as tag (tag.id)}<label class="check"
                     ><input
                       type="checkbox"
                       value={tag.id}
@@ -738,7 +740,7 @@
             {#if !existing}<a
                 class="v2-btn"
                 target="_blank"
-                rel="noreferrer"
+                rel="external noopener noreferrer"
                 href={previewUrl(data.form.submit_url)}>{ui('Open published form')}</a
               >{/if}
           {/if}
@@ -795,7 +797,7 @@
               <thead
                 ><tr><th>{ui('Date')}</th><th>{ui('Status')}</th><th>{ui('Record')}</th></tr></thead
               ><tbody
-                >{#each data.submissions as entry}<tr
+                >{#each data.submissions as entry (entry.id)}<tr
                     ><td>{shortDate(entry.created_at)}</td><td
                       ><Pill
                         tone={['accepted', 'accepted_duplicate'].includes(entry.status)

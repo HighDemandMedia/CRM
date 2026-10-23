@@ -104,7 +104,7 @@
     {/snippet}
   </PageHeader>
   <nav class="team-tabs" aria-label={ui('Users and teams sections')}>
-    {#each [['users', 'Users', members.length], ['teams', 'Teams', data.teams.length], ['invitations', 'Invitations', invitations.length]] as [id, label, total]}
+    {#each [['users', 'Users', members.length], ['teams', 'Teams', data.teams.length], ['invitations', 'Invitations', invitations.length]] as [id, label, total] (id)}
       <button
         class:active={activeTab === id}
         aria-pressed={activeTab === id}
@@ -144,15 +144,16 @@
           >
           <select class="v2-input filter" aria-label={ui('Filter users by role')} bind:value={role}
             ><option value="">{ui('All roles')}</option
-            >{#each [...new Set(members.map(roleName))] as name}<option value={name}>{name}</option
+            >{#each [...new Set(members.map(roleName))] as name (name)}<option value={name}
+                >{name}</option
               >{/each}</select
           >
           <select
             class="v2-input filter"
             aria-label={ui('Filter users by team')}
             bind:value={teamFilter}
-            ><option value="">{ui('All teams')}</option>{#each data.teams as t}<option value={t.id}
-                >{t.name}</option
+            ><option value="">{ui('All teams')}</option>{#each data.teams as t (t.id)}<option
+                value={t.id}>{t.name}</option
               >{/each}</select
           >
         {/if}
@@ -187,7 +188,7 @@
                   >
                   <td
                     ><div class="team-chips">
-                      {#each data.teams.filter((t) => t.members.includes(m.id)) as t}<button
+                      {#each data.teams.filter((t) => t.members.includes(m.id)) as t (t.id)}<button
                           onclick={() => (editingTeam = t)}>{t.name}</button
                         >{:else}<span class="muted">—</span>{/each}
                     </div></td
@@ -250,7 +251,8 @@
                     ><div class="member-preview">
                       {#each members
                         .filter((m) => t.members.includes(m.id))
-                        .slice(0, 3) as person}<span class="member-chip">{person.name}</span
+                        .slice(0, 3) as person (person.id)}<span class="member-chip"
+                          >{person.name}</span
                         >{/each}{#if t.member_count > 3}<span class="muted"
                           >+{t.member_count - 3}</span
                         >{/if}{#if !t.member_count}<span class="muted">{ui('No members')}</span
@@ -296,7 +298,7 @@
               ></thead
             >
             <tbody
-              >{#each invitations.filter((i) => matches(i.email)) as invite}<tr>
+              >{#each invitations.filter((i) => matches(i.email)) as invite (invite.id)}<tr>
                   <td><strong>{invite.email}</strong></td><td
                     ><span class="role-badge"
                       >{invite.role === 'ADMIN'

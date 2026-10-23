@@ -17,7 +17,8 @@
   import { dueDateLabel, statusLabel as defaultStatusLabel, priorityLabel } from './options.js';
   const statusLabel = (key) =>
     configuredLabel(page.data.pipelineConfig, 'Case', key, defaultStatusLabel(key));
-  let { data, form, onadvanced } = $props();
+  /** @type {{data:any, form:any, onadvanced?:()=>void}} */
+  let { data, form } = $props();
   let ticket = $derived(data.ticket);
   let editing = $state(false),
     resolving = $state(false),
@@ -126,7 +127,8 @@
     </section>
     <RecordTabs>
       {#snippet notes()}<div class="notes">
-          {#each data.conversation.filter((entry) => entry.kind === 'note') as entry}<article>
+          {#each data.conversation.filter((entry) => entry.kind === 'note') as entry (entry.id)}<article
+            >
               <p class="body">{entry.body}</p>
               <small>{entry.author} · {date(entry.at)}</small>
             </article>{:else}<p class="muted">{ui('No notes yet.')}</p>{/each}
@@ -144,11 +146,11 @@
             >
           </form>{/if}{/snippet}
       {#snippet activity()}<div class="activity">
-          {#each data.activity.filter( (entry) => ['CREATE', 'UPDATE', 'STATUS_CHANGED', 'PRIORITY_CHANGED', 'ASSIGN'].includes(entry.action) ) as entry}<article
+          {#each data.activity.filter( (entry) => ['CREATE', 'UPDATE', 'STATUS_CHANGED', 'PRIORITY_CHANGED', 'ASSIGN'].includes(entry.action) ) as entry (entry.id)}<article
             >
               <strong>{entry.label}</strong><small
                 >{entry.by || ui('System')} · {date(entry.at)}</small
-              >{#each Object.entries(entry.changes?.changes ?? {}) as [key, change]}<p
+              >{#each Object.entries(entry.changes?.changes ?? {}) as [key, change] (key)}<p
                   class="muted"
                 >
                   {key.replaceAll('_', ' ')}: {String(change.before ?? '—')} → {String(
@@ -164,7 +166,7 @@
   <aside class="hdm-panel hdm-relations">
     {#if !editing}
       <h2>{ui('Associations')}</h2>
-      {#each ticket.contacts as contact}<a
+      {#each ticket.contacts as contact (contact.id)}<a
           class="association"
           href={resolve(`/contacts/${contact.id}`)}
           ><small>{ui('Contact')}</small><strong>{contact.name}</strong></a

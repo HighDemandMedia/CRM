@@ -172,7 +172,7 @@
           <UserRound size={18} />
           <div><span class="field-label">{ui('Host')}</span><strong>{event.host}</strong></div>
         </div>{/if}
-      {#each attendees as person}
+      {#each attendees as person (person)}
         <div class="person-row">
           <Users size={18} />
           <div>
@@ -212,7 +212,7 @@
         class="v2-btn"
         href={event.href}
         target="_blank"
-        rel="noopener noreferrer">{ui('Open in Google Calendar')}</a
+        rel="external noopener noreferrer">{ui('Open in Google Calendar')}</a
       >{/if}
     {#if event.canManage !== false}<div class="event-actions">
         {#if mode === 'details'}

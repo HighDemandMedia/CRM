@@ -139,10 +139,10 @@
         ]}
       />
       {#if account.pages?.length}<div class="property-pages">
-          <span>{ui('Pages')}</span>{#each account.pages as page}<a
+          <span>{ui('Pages')}</span>{#each account.pages as page (page)}<a
               href={page.url}
               target="_blank"
-              rel="noopener noreferrer">{page.name || page.url}</a
+              rel="external noopener noreferrer">{page.name || page.url}</a
             >{/each}
         </div>{/if}
     {/if}

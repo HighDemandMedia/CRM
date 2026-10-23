@@ -1,4 +1,8 @@
 <script>
+  import { asInternalPath } from '$lib/utils/paths.js';
+
+  import { SvelteURL } from 'svelte/reactivity';
+
   import SelectFilter from '$lib/components/ui/filter/SelectFilter.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import ListPagination from '$lib/v2/components/ListPagination.svelte';
@@ -152,7 +156,7 @@
     const version = ++filterVersion;
     filtersUpdating = true;
     filterTimer = setTimeout(async () => {
-      const url = new URL(page.url);
+      const url = new SvelteURL(page.url);
       url.search = '';
       for (const key of ['view', 'sort', 'direction', 'inactive', 'page_size']) {
         const value = page.url.searchParams.get(key);
@@ -163,7 +167,7 @@
       }
       filterError = '';
       try {
-        await goto(resolve('/pipeline') + url.search, {
+        await goto(resolve(asInternalPath('/pipeline' + url.search)), {
           replaceState: true,
           keepFocus: true,
           noScroll: true
@@ -386,7 +390,7 @@
       page.url.searchParams.get('sort') === key && page.url.searchParams.get('direction') !== 'desc'
         ? 'desc'
         : 'asc';
-    goto(link({ sort: key, direction, offset: null }));
+    goto(resolve(asInternalPath(link({ sort: key, direction, offset: null }))));
   }
   function saveWidths() {
     writePreference(browserStorage(), widthKey, widths);
@@ -425,10 +429,6 @@
     }
     if (changed) saveWidths();
   });
-  function fitVisible() {
-    for (const key of selected) widths[key] = fitColumn(key);
-    saveWidths();
-  }
   /** @param {PointerEvent} event @param {string} key */
   function startResize(event, key) {
     if (event.button !== 0) return;
@@ -459,7 +459,7 @@
       if (value === null) url.searchParams.delete(key);
       else url.searchParams.set(key, value);
     }
-    return resolve('/pipeline') + url.search;
+    return '/pipeline' + url.search;
   }
   /** @param {any} contact @param {string} key */
   function cell(contact, key) {
@@ -511,7 +511,7 @@
     }}
   >
     <input type="hidden" name="view" value={data.view} />
-    {#each ['sort', 'direction', 'inactive', 'page_size'] as key}
+    {#each ['sort', 'direction', 'inactive', 'page_size'] as key (key)}
       {#if page.url.searchParams.get(key)}<input
           type="hidden"
           name={key}
@@ -545,7 +545,7 @@
         name="priority"
         value={filterValues.priority ?? ''}
         ><option value="">{ui('All priorities')}</option
-        >{#each ['Low', 'Medium', 'High'] as label}<option value={label.toUpperCase()}
+        >{#each ['Low', 'Medium', 'High'] as label (label)}<option value={label.toUpperCase()}
             >{label}</option
           >{/each}</select
       ></label
@@ -557,7 +557,8 @@
         value={filterValues.stage ?? ''}
       >
         <option value="">{ui('All stages')}</option>
-        {#each data.stages as stage}<option value={stage.value}>{stage.label}</option>{/each}
+        {#each data.stages as stage (stage.value)}<option value={stage.value}>{stage.label}</option
+          >{/each}
       </select></label
     >
     <details class="advanced-filters">
@@ -577,7 +578,7 @@
             }}
           >
             <option value="">{ui('Choose a property')}</option>
-            {#each advancedContactFilters.filter((field) => !advancedKeys.includes(field.key)) as field}
+            {#each advancedContactFilters.filter((field) => !advancedKeys.includes(field.key)) as field (field.key)}
               <option value={field.key}>{ui(field.label)}</option>
             {/each}
           </select></label
@@ -616,7 +617,8 @@
                     value={filterValues[key] ?? ''}
                   >
                     <option value="">{ui('Any')}</option>
-                    {#each field.options as [value, label]}<option {value}>{label}</option>{/each}
+                    {#each field.options as [value, label] (value)}<option {value}>{label}</option
+                      >{/each}
                   </select></label
                 >
               {:else}
@@ -647,7 +649,7 @@
           aria-label={ui('List view')}
           title={ui('List view')}
           aria-current={data.view === 'list' ? 'page' : undefined}
-          href={link({ view: 'list' })}><List size={18} /></a
+          href={resolve(asInternalPath(link({ view: 'list' })))}><List size={18} /></a
         >
         <a
           class="v2-btn view-icon"
@@ -655,7 +657,7 @@
           aria-label={ui('Pipeline view')}
           title={ui('Pipeline view')}
           aria-current={data.view === 'pipeline' ? 'page' : undefined}
-          href={link({ view: 'pipeline' })}><Columns3 size={18} /></a
+          href={resolve(asInternalPath(link({ view: 'pipeline' })))}><Columns3 size={18} /></a
         >
       </nav>
       {#if data.view === 'list'}
@@ -742,15 +744,22 @@
               {#if stage.offset > 0}<a
                   class="v2-btn"
                   aria-label={`Previous ${stage.label} page`}
-                  href={link({
-                    [`${stage.value}_offset`]: String(Math.max(0, stage.offset - data.pageSize))
-                  })}>{ui('Previous')}</a
+                  href={resolve(
+                    asInternalPath(
+                      link({
+                        [`${stage.value}_offset`]: String(Math.max(0, stage.offset - data.pageSize))
+                      })
+                    )
+                  )}>{ui('Previous')}</a
                 >{/if}
               {#if stage.offset + data.pageSize < stage.count}<a
                   class="v2-btn"
                   aria-label={`Next ${stage.label} page`}
-                  href={link({ [`${stage.value}_offset`]: String(stage.offset + data.pageSize) })}
-                  >{ui('Next')}</a
+                  href={resolve(
+                    asInternalPath(
+                      link({ [`${stage.value}_offset`]: String(stage.offset + data.pageSize) })
+                    )
+                  )}>{ui('Next')}</a
                 >{/if}
             </footer>
           </section>
@@ -769,7 +778,7 @@
       >
         <table class="contact-grid" style:width={`${totalWidth}px`}>
           <colgroup
-            >{#each orderedFields as [key]}<col
+            >{#each orderedFields as [key] (key)}<col
                 style:width={`${widths[key] ?? 160}px`}
               />{/each}<col style:width="120px" /></colgroup
           >

@@ -23,7 +23,7 @@
   } from '@lucide/svelte';
 
   /** @type {{data:any, form:any}} */
-  let { data, form } = $props();
+  let { data } = $props();
   let query = $state(''),
     status = $state('active'),
     object = $state('');
@@ -167,7 +167,7 @@
 </PageHeader>
 <div class="tag-settings">
   <div class="status-filters" role="group" aria-label={ui('Tag status')}>
-    {#each filters as filter}<button
+    {#each filters as filter (filter.key)}<button
         type="button"
         class:chosen={status === filter.key}
         aria-pressed={status === filter.key}
@@ -187,8 +187,8 @@
       class="v2-input object-filter"
       aria-label={ui('Filter tags by object')}
       bind:value={object}
-      ><option value="">{ui('All objects')}</option>{#each objectOptions as [key, label]}<option
-          value={key}>{label}</option
+      ><option value="">{ui('All objects')}</option
+      >{#each objectOptions as [key, label] (key)}<option value={key}>{label}</option
         >{/each}</select
     >
   </div>
@@ -269,7 +269,7 @@
           {#if expanded === tag.id}<tr id={`usage-${tag.id}`} class="usage-row"
               ><td colspan={data.can_edit ? 4 : 3}
                 ><div class="usage-details">
-                  {#each usage(tag) as [key, total]}<span
+                  {#each usage(tag) as [key, total] (key)}<span
                       >{labelFor(key)}
                       <strong>{Number(total).toLocaleString(locale())}</strong></span
                     >{/each}
@@ -305,7 +305,8 @@
           <label class="field"
             >{ui('Into')}<select class="v2-input" bind:value={destination} required disabled={busy}
               ><option value="">{ui('Select the tag to keep')}</option
-              >{#each mergeTargets as target}<option value={target.id}>{target.name}</option
+              >{#each mergeTargets as target (target.id)}<option value={target.id}
+                  >{target.name}</option
                 >{/each}</select
             ></label
           >
@@ -336,7 +337,7 @@
           <fieldset disabled={busy} class="color-field">
             <legend>{ui('Color')}</legend>
             <div class="colors">
-              {#each Object.entries(tagColors) as [key, hex]}<label
+              {#each Object.entries(tagColors) as [key, hex] (key)}<label
                   class="swatch"
                   class:selected={color === key}
                   style:--swatch={hex}

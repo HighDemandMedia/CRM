@@ -1,4 +1,8 @@
 <script>
+  import { asInternalPath } from '$lib/utils/paths.js';
+
+  import { resolve } from '$app/paths';
+
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
@@ -130,7 +134,10 @@
     const url = new URL(page.url);
     url.searchParams.set('object', event.currentTarget.value);
     query = '';
-    goto(url, { keepFocus: true, noScroll: true });
+    goto(resolve(asInternalPath('/settings/custom-fields' + url.search + url.hash)), {
+      keepFocus: true,
+      noScroll: true
+    });
   }
   function submit() {
     busy = true;
@@ -163,7 +170,9 @@
     <label class="object-field"
       >{ui('Object')}
       <select class="v2-input" value={data.target_model} onchange={switchObject}>
-        {#each data.objects as object}<option value={object.value}>{object.label}</option>{/each}
+        {#each data.objects as object (object.value)}<option value={object.value}
+            >{object.label}</option
+          >{/each}
       </select>
     </label>
     <div class="search">
@@ -394,7 +403,8 @@
         <label class="field"
           >{ui('Field type')}
           <select class="v2-input" bind:value={fieldType} disabled={!editing.new}>
-            {#each Object.entries(FIELD_TYPE_LABEL) as [value, name]}<option {value}>{name}</option
+            {#each Object.entries(FIELD_TYPE_LABEL) as [value, name] (value)}<option {value}
+                >{name}</option
               >{/each}
           </select>
           {#if !editing.new}<small>{ui('The type stays fixed to protect existing values.')}</small
@@ -409,7 +419,7 @@
         {#if ['dropdown', 'multi_select'].includes(fieldType)}
           <fieldset>
             <legend>{ui('Options')}</legend>
-            {#each options as option, index}
+            {#each options as option, index (option)}
               <div class="option-row">
                 <input type="hidden" name="option_value" value={option.value} /><input
                   class="v2-input"

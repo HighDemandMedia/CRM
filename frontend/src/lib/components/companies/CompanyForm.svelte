@@ -286,8 +286,9 @@
       {#if canChooseOwner(page.data.permissions, 'companies')}
         <label
           >{ui('Owner')}<select class="v2-input" name="assigned_to" bind:value={values.assigned_to}
-            ><option value="">{ui('Select user')}</option>{#each data.owners ?? [] as owner}<option
-                value={owner.id}>{owner.name}</option
+            ><option value="">{ui('Select user')}</option
+            >{#each data.owners ?? [] as owner (owner.id)}<option value={owner.id}
+                >{owner.name}</option
               >{/each}</select
           ></label
         >
@@ -295,15 +296,15 @@
       {/if}
       <label
         >{ui('Stage')}<select class="v2-input" name="stage" bind:value={values.stage}
-          >{#each companyStages as stage}<option value={stage.value}>{stage.label}</option
+          >{#each companyStages as stage (stage.value)}<option value={stage.value}
+              >{stage.label}</option
             >{/each}</select
         ></label
       >
       <label
         >{ui('Source')}<select class="v2-input" name="source" bind:value={values.source}
-          ><option value="">{ui('Select source')}</option>{#each sources as [value, label]}<option
-              {value}>{label}</option
-            >{/each}</select
+          ><option value="">{ui('Select source')}</option
+          >{#each sources as [value, label] (value)}<option {value}>{label}</option>{/each}</select
         ></label
       >
       <div class="v2-field">
@@ -343,7 +344,7 @@
               name="contacts_original"
               value={JSON.stringify([...(data.form?.contacts ?? [])].sort())}
             />
-            {#each contacts as id}<input type="hidden" name="contacts" value={id} />{/each}
+            {#each contacts as id (id)}<input type="hidden" name="contacts" value={id} />{/each}
             <input
               class="v2-input"
               type="search"
@@ -354,7 +355,7 @@
             <div class="contact-options">
               {#each (data.contacts ?? []).filter((c) => (c.name ?? c.first_name ?? '')
                   .toLowerCase()
-                  .includes(contactSearch.toLowerCase())) as c}
+                  .includes(contactSearch.toLowerCase())) as c (c.id)}
                 <label class="choice"
                   ><input
                     type="checkbox"
@@ -375,7 +376,7 @@
       <label
         >{ui('Industry')}<select class="v2-input" name="industry" bind:value={values.industry}
           ><option value="">{ui('Select industry')}</option
-          >{#each data.industries ?? [] as option}<option value={option.value}
+          >{#each data.industries ?? [] as option (option.value)}<option value={option.value}
               >{option.label}</option
             >{/each}</select
         ></label
@@ -426,12 +427,12 @@
       <label
         >{ui('Country')}<select class="v2-input" name="country" bind:value={values.country}
           ><option value="">{ui('Select country')}</option
-          >{#each countryOptions(values.country) as option}<option value={option.value}
-              >{option.label}</option
+          >{#each countryOptions(values.country) as option (option.value)}<option
+              value={option.value}>{option.label}</option
             >{/each}</select
         ></label
       >
-      {#each addresses as [key, label]}<label
+      {#each addresses as [key, label] (key)}<label
           >{ui(label)}<input
             class="v2-input"
             name={key}
@@ -442,7 +443,7 @@
     </RecordSection>
     <fieldset>
       <legend>{ui('Pages')}</legend>
-      {#each pages as page, index}<div class="page-row">
+      {#each pages as page, index (page)}<div class="page-row">
           <input
             class="v2-input"
             aria-label={`Page ${index + 1} name`}

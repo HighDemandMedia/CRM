@@ -98,7 +98,7 @@
         action="?/preferences&tab=preferences"
         use:enhance={submit}
       >
-        {#each [['notify_in_app', 'In-app notifications', 'Task reminders, upcoming events and other updates inside the CRM.'], ['notify_mentions', 'Mentions', 'When someone mentions you in a ticket.'], ['notify_comments', 'Ticket comments', 'New comments on tickets you follow.']] as [key, label, description]}
+        {#each [['notify_in_app', 'In-app notifications', 'Task reminders, upcoming events and other updates inside the CRM.'], ['notify_mentions', 'Mentions', 'When someone mentions you in a ticket.'], ['notify_comments', 'Ticket comments', 'New comments on tickets you follow.']] as [key, label, description] (key)}
           <label class="preference"
             ><span><strong>{label}</strong><small>{description}</small></span><input
               type="checkbox"
@@ -117,7 +117,7 @@
       </form>
     {:else}
       <nav class="filters" aria-label={ui('Filter notifications')}>
-        {#each [['all', 'All'], ['unread', 'Unread'], ['read', 'Read']] as [value, label]}
+        {#each [['all', 'All'], ['unread', 'Unread'], ['read', 'Read']] as [value, label] (value)}
           <a
             href={resolve(historyLink(value))}
             class:selected={data.pagination.status === value}

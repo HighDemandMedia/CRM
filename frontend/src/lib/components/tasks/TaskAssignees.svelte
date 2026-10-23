@@ -152,7 +152,11 @@
         </p>{/each}
     </div>{/if}
   <input type="hidden" name={`${fieldName}_present`} value="1" />
-  {#each selected as personId}<input type="hidden" name={fieldName} value={personId} />{/each}
+  {#each selected as personId (personId)}<input
+      type="hidden"
+      name={fieldName}
+      value={personId}
+    />{/each}
 </div>
 
 <style>

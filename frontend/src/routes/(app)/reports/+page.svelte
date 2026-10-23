@@ -1,4 +1,6 @@
 <script>
+  import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
+
   import Notice from '$lib/components/Notice.svelte';
   import '$lib/v2/styles/module-layout.css';
   import { useI18n } from '$lib/i18n/context.js';
@@ -6,7 +8,7 @@
 
   import { goto } from '$app/navigation';
   import { page, navigating } from '$app/state';
-  import { base, resolve } from '$app/paths';
+  import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import { canFilterOwners } from '$lib/v2/permissions.js';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
@@ -50,7 +52,7 @@
   }
   let maxGroup = $derived(Math.max(1, ...(report?.breakdown || []).map((item) => item.count)));
   let periodLabel = $derived(report ? `${shortDate(report.start)} – ${shortDate(report.end)}` : '');
-  let exportUrl = $derived(`${base}/api/reports/export?${page.url.searchParams}`);
+  let exportUrl = $derived(`/api/reports/export?${page.url.searchParams}`);
   let chartTable = $state(false);
   const number = (value) => new Intl.NumberFormat('en-US').format(value);
   function money(value, currency) {
@@ -86,12 +88,12 @@
       : shortDate(value);
   }
   function update(values) {
-    const params = new URLSearchParams(page.url.searchParams);
+    const params = new SvelteURLSearchParams(page.url.searchParams);
     params.delete('page');
     Object.entries(values).forEach(([key, value]) =>
       value ? params.set(key, String(value)) : params.delete(key)
     );
-    void goto(`${resolve('/reports')}?${params}`, { keepFocus: true, noScroll: true });
+    void goto(resolve(asInternalPath(`/reports?${params}`)), { keepFocus: true, noScroll: true });
   }
   function changeObject(value) {
     update({ object: value, date_field: '', group_by: '', owner: '', stage: '' });
@@ -102,8 +104,8 @@
   function preset(value) {
     if (!value) return;
     const today = new Date(`${report.today}T12:00:00Z`);
-    let first = new Date(today),
-      last = new Date(today);
+    let first = new SvelteDate(today),
+      last = new SvelteDate(today);
     if (value === '30') first.setUTCDate(first.getUTCDate() - 29);
     if (value === 'month') first.setUTCDate(1);
     if (value === 'last_month') {
@@ -123,8 +125,10 @@
 </script>
 
 <PageHeader title={ui('Reports')}>
-  {#snippet actions()}{#if report?.can_export}<a class="v2-btn" href={exportUrl} download
-        ><Download size={15} />{ui('Export report')}</a
+  {#snippet actions()}{#if report?.can_export}<a
+        class="v2-btn"
+        href={resolve(asInternalPath(exportUrl))}
+        download><Download size={15} />{ui('Export report')}</a
       >{/if}{/snippet}
 </PageHeader>
 <div class="reports crm-module-body" aria-busy={busy}>
@@ -143,7 +147,7 @@
             value={report.object}
             onchange={(e) => changeObject(e.currentTarget.value)}
             disabled={busy}
-            >{#each report.objects as item}<option value={item.key}>{item.label}</option
+            >{#each report.objects as item (item.key)}<option value={item.key}>{item.label}</option
               >{/each}</select
           ></label
         >
@@ -153,7 +157,7 @@
             value={report.date_field}
             onchange={(e) => update({ date_field: e.currentTarget.value })}
             disabled={busy}
-            >{#each chosen.dates as item}<option value={item.key}>{item.label}</option
+            >{#each chosen.dates as item (item.key)}<option value={item.key}>{item.label}</option
               >{/each}</select
           ></label
         >
@@ -203,7 +207,7 @@
               ><option value=""
                 >{ui('All accessible')}
                 {report.object === 'events' ? ui('hosts') : ui('owners')}</option
-              >{#each report.owners as item}<option value={item.id}>{item.name}</option
+              >{#each report.owners as item (item.id)}<option value={item.id}>{item.name}</option
                 >{/each}</select
             ></label
           >
@@ -217,7 +221,7 @@
             disabled={busy}
             ><option value=""
               >{ui('All')} {report.object === 'events' ? 'statuses' : ui('stages')}</option
-            >{#each report.stages as item}<option value={item.key}>{item.label}</option
+            >{#each report.stages as item (item.key)}<option value={item.key}>{item.label}</option
               >{/each}</select
           ></label
         >
@@ -252,7 +256,7 @@
         <section class="metric crm-stat crm-panel">
           <span>{ui('Deal value in period')}</span>
           <div class="amounts">
-            {#each report.summary.amounts as item}<strong
+            {#each report.summary.amounts as item (item.currency)}<strong
                 >{money(item.amount, item.currency)} <small>{item.currency}</small></strong
               >{:else}<strong>—</strong>{/each}
           </div>
@@ -262,7 +266,7 @@
     </div>
     {#if report.object === 'deals' && report.summary.won_amounts.length}<div class="won-value">
         <span>{ui('Currently won in this selection')}</span
-        >{#each report.summary.won_amounts as item}<b
+        >{#each report.summary.won_amounts as item (item.currency)}<b
             >{money(item.amount, item.currency)} {item.currency}</b
           >{/each}
       </div>{/if}
@@ -301,7 +305,7 @@
             <div class="y-axis-title">{ui('Records')}</div>
             <div class="chart-frame">
               <div class="y-axis" aria-hidden="true">
-                {#each yTicks as value}<span style={`bottom:${(value / axisMax) * 100}%`}
+                {#each yTicks as value (value)}<span style={`bottom:${(value / axisMax) * 100}%`}
                     >{number(value)}</span
                   >{/each}
               </div>
@@ -309,10 +313,11 @@
                 <div class="plot-area" style={`--points:${report.series.length}`}>
                   <div class="bars">
                     <div class="grid-lines" aria-hidden="true">
-                      {#each yTicks as value}<span style={`bottom:${(value / axisMax) * 100}%`}
+                      {#each yTicks as value (value)}<span
+                          style={`bottom:${(value / axisMax) * 100}%`}
                         ></span>{/each}
                     </div>
-                    {#each report.series as item, index}
+                    {#each report.series as item, index (item.date)}
                       <button
                         type="button"
                         class="bar-column"
@@ -335,7 +340,7 @@
                     {/each}
                   </div>
                   <div class="x-axis" aria-hidden="true">
-                    {#each xTicks as item, index}<span
+                    {#each xTicks as item, index (item.date)}<span
                         class:first-tick={index === 0}
                         class:last-tick={index === xTicks.length - 1 && index > 0}
                         style={`left:${item.position}%`}
@@ -364,7 +369,7 @@
                 ><tr><th>{report.interval} {ui('beginning')}</th><th>{ui('Records')}</th></tr
                 ></thead
               ><tbody
-                >{#each report.series as item}<tr
+                >{#each report.series as item (item.date)}<tr
                     ><td>{shortDate(item.date)}</td><td>{number(item.count)}</td></tr
                   >{/each}</tbody
               >
@@ -380,12 +385,12 @@
             value={report.group_by}
             onchange={(e) => update({ group_by: e.currentTarget.value })}
             disabled={busy}
-            >{#each chosen.groups as item}<option value={item.key}>{item.label}</option
+            >{#each chosen.groups as item (item.key)}<option value={item.key}>{item.label}</option
               >{/each}</select
           >
         </div>
         <div class="breakdown-list">
-          {#each report.breakdown as item}<div class="group-row">
+          {#each report.breakdown as item (item.key)}<div class="group-row">
               <div>
                 <span title={item.label}>{item.label}</span><strong
                   >{number(item.count)}
@@ -414,7 +419,7 @@
               ></tr
             ></thead
           ><tbody
-            >{#each report.records as item}<tr
+            >{#each report.records as item (item.id)}<tr
                 ><td
                   ><a class="record-link" href={resolve(asInternalPath(item.url))}
                     >{item.name || 'Unnamed record'}</a
