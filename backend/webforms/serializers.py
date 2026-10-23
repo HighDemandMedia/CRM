@@ -143,6 +143,7 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
             "contact_source",
             "notify_in_app",
             "notify_email",
+            "send_confirmation_email",
             "tags",
             "captcha_provider",
             "captcha_site_key",
@@ -337,7 +338,12 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
                     key in dict(ALL_FIELD_CHOICES)
                     or hasattr(serializers.Serializer, key)
                     or key
-                    in ("company_website_url", "cf-turnstile-response", "request_id")
+                    in (
+                        "company_website_url",
+                        "cf-turnstile-response",
+                        "request_id",
+                        "submission_language",
+                    )
                 ):
                     raise serializers.ValidationError(
                         {
@@ -362,6 +368,7 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
                     "company_website_url",
                     "cf-turnstile-response",
                     "request_id",
+                    "submission_language",
                 ):
                     raise serializers.ValidationError(
                         {"fields": "Use a valid, non-reserved website input name."}

@@ -183,6 +183,15 @@ def change_lifecycle(org_id, actor, action, *, confirmation=None):
             WebFormSubmission.objects.filter(
                 org=org, email_completed_at__isnull=True
             ).update(email_completed_at=now)
+            WebFormSubmission.objects.filter(
+                org=org,
+                confirmation_requested=True,
+                confirmation_completed_at__isnull=True,
+            ).update(
+                confirmation_completed_at=now,
+                confirmation_claim_id=None,
+                confirmation_claimed_at=None,
+            )
         else:
             if not org.closing_at:
                 return org

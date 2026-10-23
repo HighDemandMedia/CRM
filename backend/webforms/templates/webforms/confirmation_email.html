@@ -1,0 +1,7 @@
+{% extends "root_email_template_new.html" %}
+{% block preheader %}{{ introduction }}{% endblock %}
+{% block heading %}{{ heading }}{% endblock %}
+{% block content_body %}
+  <p style="margin:0 0 16px;">{{ introduction }}</p>
+  <p style="margin:0;">{{ next_step }}</p>
+{% endblock %}

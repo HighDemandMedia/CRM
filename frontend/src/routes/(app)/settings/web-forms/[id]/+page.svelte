@@ -25,6 +25,7 @@
   function seed(row) {
     return {
       ...row,
+      send_confirmation_email: row.send_confirmation_email ?? false,
       appearance: { ...appearanceDefaults, ...row.appearance },
       fields: (row.fields ?? []).map((f) => ({ ...f })),
       captcha_secret: '',
@@ -596,10 +597,18 @@
               </details>
               <p class="v2-hint">{ui('The responsible user is included automatically.')}</p>
             </section>
-            {#if !existing}<section class="v2-card panel">
-                <h2>{ui('After submission')}</h2>
+            <section class="v2-card panel">
+              <h2>{ui('After submission')}</h2>
+              <label class="check"
+                ><input type="checkbox" bind:checked={config.send_confirmation_email} />{ui(
+                  'Email a confirmation to the visitor'
+                )}</label
+              >
+              {#if !existing}
                 <label class="control"
-                  >{ui('Confirmation')}<select class="v2-input" bind:value={config.success_mode}
+                  >{ui('On-screen confirmation')}<select
+                    class="v2-input"
+                    bind:value={config.success_mode}
                     ><option value="message">{ui('Show a message')}</option><option value="redirect"
                       >{ui('Open a thank-you page')}</option
                     ></select
@@ -618,9 +627,10 @@
                       rows="3"
                       bind:value={config.success_message}></textarea></label
                   >{/if}
-              </section>{:else}<p class="v2-hint">
-                {ui('Your website keeps its confirmation page and existing email delivery.')}
-              </p>{/if}
+              {:else}<p class="v2-hint">
+                  {ui('Your website keeps its confirmation page.')}
+                </p>{/if}
+            </section>
             <details class="v2-card panel">
               <summary>{ui('More settings')}</summary>
               <label class="control"

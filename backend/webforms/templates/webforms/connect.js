@@ -87,6 +87,8 @@
         if (copyOnly) console.error('CRM copy skipped: Turnstile token is required.');
         return;
       }
+      var languageElement = form.closest('[lang]') || document.documentElement;
+      payload.submission_language = /^es(?:[-_]|$)/i.test((languageElement.lang || '').trim()) ? 'es' : 'en';
       var fingerprint = JSON.stringify(payload);
       if (fingerprint !== previousPayload || !requestId) requestId = crypto.randomUUID();
       previousPayload = fingerprint;

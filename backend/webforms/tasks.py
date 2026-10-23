@@ -5,16 +5,18 @@ from datetime import timedelta
 from uuid import uuid4
 
 from celery import shared_task
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import transaction
-from django.template.loader import render_to_string
+from django.db.models import Q
 from django.utils import timezone
 
-from common.links import frontend_url
 from common.models import Org
 from common.organization_lifecycle import organization_job
 from common.tasks import clear_rls_context, send_email, set_rls_context
+from webforms.email_content import confirmation_email, internal_email
 from webforms.models import WebFormSubmission
-from webforms.notifications import recipients, record_link
+from webforms.notifications import recipients
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,21 @@ def send_webform_submission_email(submission_id, org_id):
     set_rls_context(org_id)
     try:
         if Org.objects.filter(pk=org_id, is_active=True).exists():
-            _deliver(submission_id, org_id)
+            error = None
+            # One failed internal recipient must not prevent acknowledging the
+            # visitor. Each delivery has its own claim and completion state.
+            for deliver in (_deliver, _deliver_confirmation):
+                try:
+                    deliver(submission_id, org_id)
+                except Exception as exc:
+                    logger.warning(
+                        "Web form email delivery failed: %s (%s)",
+                        submission_id,
+                        type(exc).__name__,
+                    )
+                    error = error or exc
+            if error is not None:
+                raise error
     finally:
         clear_rls_context()
 
@@ -70,25 +86,14 @@ def _deliver(submission_id, org_id):
                 submission.save(update_fields=["email_completed_at"])
                 return
             profile = pending[0]
-            html = render_to_string(
-                "webforms/submission_email.html",
-                {
-                    "form": form,
-                    "submission": submission,
-                    "record": submission.contact or submission.lead,
-                    "record_url": frontend_url(record_link(submission)),
-                    "is_duplicate": submission.status
-                    == WebFormSubmission.ACCEPTED_DUPLICATE,
-                },
-            )
+            message = internal_email(submission, profile)
             claim = uuid4()
             submission.email_claim_id = claim
             submission.email_claimed_at = timezone.now()
             submission.save(update_fields=["email_claim_id", "email_claimed_at"])
         try:
             send_email(
-                subject=f"New submission: {form.name}",
-                html_content=html,
+                **message,
                 recipients=[profile.user.email],
             )
         except Exception:
@@ -116,6 +121,61 @@ def _deliver(submission_id, org_id):
             )
 
 
+def _deliver_confirmation(submission_id, org_id):
+    with transaction.atomic():
+        submission = (
+            WebFormSubmission.objects.select_for_update()
+            .filter(pk=submission_id, org_id=org_id)
+            .first()
+        )
+        if (
+            not submission
+            or submission.status not in WebFormSubmission.ACCEPTED_STATUSES
+            or not submission.confirmation_requested
+            or submission.confirmation_completed_at
+        ):
+            return
+        if (
+            submission.confirmation_claimed_at
+            and submission.confirmation_claimed_at
+            > timezone.now() - timedelta(minutes=5)
+        ):
+            return
+        # Never fall back to a record owner, a notification recipient or a
+        # changed contact email. Only the accepted, validated submission email.
+        recipient = submission.payload.get("email", "")
+        recipient = recipient.strip() if isinstance(recipient, str) else ""
+        try:
+            validate_email(recipient)
+        except ValidationError:
+            recipient = ""
+        if not submission.form.send_confirmation_email or not recipient:
+            submission.confirmation_completed_at = timezone.now()
+            submission.save(update_fields=["confirmation_completed_at"])
+            return
+        message = confirmation_email(submission)
+        claim = uuid4()
+        submission.confirmation_claim_id = claim
+        submission.confirmation_claimed_at = timezone.now()
+        submission.save(
+            update_fields=["confirmation_claim_id", "confirmation_claimed_at"]
+        )
+    try:
+        send_email(**message, recipients=[recipient])
+    except Exception:
+        WebFormSubmission.objects.filter(
+            pk=submission_id, org_id=org_id, confirmation_claim_id=claim
+        ).update(confirmation_claim_id=None, confirmation_claimed_at=None)
+        raise
+    WebFormSubmission.objects.filter(
+        pk=submission_id, org_id=org_id, confirmation_claim_id=claim
+    ).update(
+        confirmation_completed_at=timezone.now(),
+        confirmation_claim_id=None,
+        confirmation_claimed_at=None,
+    )
+
+
 def queue_notification(submission_id, org_id):
     try:
         send_webform_submission_email.delay(str(submission_id), str(org_id))
@@ -135,8 +195,12 @@ def retry_pending_webform_emails():
         try:
             ids = (
                 WebFormSubmission.objects.filter(
+                    Q(email_completed_at__isnull=True)
+                    | Q(
+                        confirmation_requested=True,
+                        confirmation_completed_at__isnull=True,
+                    ),
                     org_id=org_id,
-                    email_completed_at__isnull=True,
                     status__in=WebFormSubmission.ACCEPTED_STATUSES,
                 )
                 .order_by("created_at")

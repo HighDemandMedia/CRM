@@ -173,6 +173,8 @@ public, and there is a test that says so.
 
       var payload = {};
       new FormData(form).forEach(function (value, key) { payload[key] = value; });
+      var languageElement = form.closest('[lang]') || document.documentElement;
+      payload.submission_language = /^es(?:[-_]|$)/i.test((languageElement.lang || '').trim()) ? 'es' : 'en';
 
       // Retries of the same entries reuse the submission ID, even after a timeout.
       var fingerprint = JSON.stringify(Object.keys(payload).filter(function (key) {

@@ -17,6 +17,7 @@ from common.models import User
         "portal/login_email.html",
         "portal/case_update_email.html",
         "webforms/submission_email.html",
+        "webforms/confirmation_email.html",
         "magic_link_email.html",
         "magic_link_code_email.html",
         "welcome_email.html",
@@ -67,7 +68,9 @@ def test_webform_email_escapes_submitted_content():
         "webforms/submission_email.html",
         {
             "form": {"name": "Contact"},
-            "submission": {"payload": {"<script>": "<img src=x onerror=alert(1)>"}},
+            "submission_rows": [
+                {"label": "<script>", "value": "<img src=x onerror=alert(1)>"}
+            ],
         },
     )
     assert "<img src=x" not in html and "&lt;img src=x" in html

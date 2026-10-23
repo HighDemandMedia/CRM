@@ -60,7 +60,9 @@ def build_serializer(form):
     custom_rows = [
         r
         for r in rows
-        if r.source == WebFormField.SOURCE_CUSTOM and r.custom_field_id is not None
+        if r.source == WebFormField.SOURCE_CUSTOM
+        and r.custom_field_id is not None
+        and r.custom_field.key != "submission_language"
     ]
 
     lead_keys = [r.lead_field for r in lead_rows]
@@ -68,7 +70,12 @@ def build_serializer(form):
     required_custom_keys = {r.custom_field.key for r in custom_rows if r.is_required}
     org = form.org
 
-    attrs = {HONEYPOT_FIELD: serializers.CharField(required=False, allow_blank=True)}
+    attrs = {
+        HONEYPOT_FIELD: serializers.CharField(required=False, allow_blank=True),
+        "submission_language": serializers.ChoiceField(
+            choices=["en", "es"], required=False, default="en"
+        ),
+    }
     for row in lead_rows:
         attrs[row.lead_field] = _field_for(row)
     for row in custom_rows:

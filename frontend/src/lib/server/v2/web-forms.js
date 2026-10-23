@@ -173,6 +173,7 @@ const WRITABLE_FIELDS = [
   'contact_source',
   'notify_in_app',
   'notify_email',
+  'send_confirmation_email',
   'allowed_origins',
   'submit_button_label',
   'success_mode',

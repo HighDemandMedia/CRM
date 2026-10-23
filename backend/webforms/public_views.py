@@ -207,6 +207,7 @@ class WebFormSubmitView(PublicWebFormMixin, APIView):
             form,
             serializer.lead_values(),
             custom_fields=serializer.custom_values(),
+            submission_language=serializer.validated_data["submission_language"],
             request_id=request_id,
             ip=ip,
             referer=ref,
@@ -241,6 +242,9 @@ class EmbedViewMixin(PublicWebFormMixin):
 
         return {
             "appearance": form_appearance(form),
+            "submission_language": "es"
+            if request.query_params.get("lang") == "es"
+            else "en",
             "form": form,
             "fields": list(form.fields.select_related("custom_field").all()),
             "submit_url": request.build_absolute_uri(

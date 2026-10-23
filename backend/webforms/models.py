@@ -66,6 +66,7 @@ class WebForm(BaseOrgModel):
     )
     notify_in_app = models.BooleanField(default=True)
     notify_email = models.BooleanField(default=True)
+    send_confirmation_email = models.BooleanField(default=False)
     name = models.CharField(max_length=255)
     is_published = models.BooleanField(
         default=False,
@@ -266,6 +267,15 @@ class WebFormSubmission(BaseOrgModel):
     email_claim_id = models.UUIDField(null=True, blank=True)
     email_claimed_at = models.DateTimeField(null=True, blank=True)
     email_delivered_to = models.JSONField(default=list, blank=True)
+    # Snapshot eligibility at acceptance. Enabling a form later must never
+    # turn historical submissions into an unsolicited confirmation campaign.
+    confirmation_requested = models.BooleanField(default=False)
+    submission_language = models.CharField(
+        max_length=2, choices=[("en", "English"), ("es", "Spanish")], default="en"
+    )
+    confirmation_completed_at = models.DateTimeField(null=True, blank=True)
+    confirmation_claim_id = models.UUIDField(null=True, blank=True)
+    confirmation_claimed_at = models.DateTimeField(null=True, blank=True)
     # The VALIDATED dict, never raw request.data. Persisting the raw body would
     # let a submitter store an arbitrary blob of keys that later renders in an
     # admin's browser.

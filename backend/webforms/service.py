@@ -165,6 +165,7 @@ def submit_form(
     rejected=None,
     reason="",
     request_id=None,
+    submission_language="en",
 ):
     """Record one submission and create or merge its lead.
 
@@ -195,7 +196,7 @@ def submit_form(
 
     # Serialize retries for this form. The Contact unique-email constraint
     # also resolves concurrent submissions through two different forms.
-    WebForm.objects.select_for_update().get(pk=form.pk, org_id=form.org_id)
+    form = WebForm.objects.select_for_update().get(pk=form.pk, org_id=form.org_id)
     if request_id:
         previous = WebFormSubmission.objects.filter(
             form=form, org=form.org, request_id=request_id
@@ -203,7 +204,9 @@ def submit_form(
         if previous:
             return previous
     if form.target_model == "Contact":
-        return _submit_contact(form, values, custom_fields, ip, referer, request_id)
+        return _submit_contact(
+            form, values, custom_fields, ip, referer, request_id, submission_language
+        )
     email = values.get("email")
     existing = _existing_lead(form, email)
     if existing is not None:
@@ -222,6 +225,8 @@ def submit_form(
         form=form,
         lead=lead,
         request_id=request_id,
+        confirmation_requested=form.send_confirmation_email,
+        submission_language="es" if submission_language == "es" else "en",
         payload=payload,
         status=status,
         submitted_ip=ip,
@@ -233,7 +238,9 @@ def submit_form(
     return submission
 
 
-def _submit_contact(form, values, custom_fields, ip, referer, request_id):
+def _submit_contact(
+    form, values, custom_fields, ip, referer, request_id, submission_language
+):
     email = values["email"].strip().lower()
     existing = Contact.objects.filter(org_id=form.org_id, email__iexact=email).first()
     contact = existing
@@ -287,6 +294,8 @@ def _submit_contact(form, values, custom_fields, ip, referer, request_id):
         form=form,
         contact=contact,
         request_id=request_id,
+        confirmation_requested=form.send_confirmation_email,
+        submission_language="es" if submission_language == "es" else "en",
         payload=payload,
         submitted_ip=ip,
         referer=referer,

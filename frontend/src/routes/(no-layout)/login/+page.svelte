@@ -2,6 +2,7 @@
   import Notice from '$lib/components/Notice.svelte';
   import LegalLinks from '$lib/components/LegalLinks.svelte';
   import { useI18n } from '$lib/i18n/context.js';
+  import { untrack } from 'svelte';
   const { ui, locale } = useI18n();
 
   import { resolve, base } from '$app/paths';
@@ -18,6 +19,12 @@
   let recoveryTransportError = $state('');
   let showPassword = $state(false);
   let capsLock = $state(false);
+  let rememberMe = $state(untrack(() => Boolean(form?.remember_me)));
+
+  // Keep the user's choice when switching methods, and restore it after a failed POST.
+  $effect(() => {
+    if (typeof form?.remember_me === 'boolean') rememberMe = form.remember_me;
+  });
   const websiteUrl = $derived(
     `https://highdemandmedia.com/${locale().startsWith('es') ? 'crm-es.html' : 'crm.html'}`
   );
@@ -120,14 +127,14 @@
           <a href={resolve('/login')} class="back-link">
             <ArrowLeft size={16} />{ui('Back to sign in')}
           </a>
-        {:else}
-          <a href={websiteUrl} rel="external" class="back-link">
-            <ArrowLeft size={16} />{ui('Visit our website')}
-          </a>
         {/if}
         <div class="v2-auth-head">
-          <h1 id="login-title">{ui('Sign in')}</h1>
-          <p>{ui('Welcome back. Use the email associated with your account.')}</p>
+          <h1 id="login-title">{showEmail ? ui('Sign in with email') : ui('Sign in')}</h1>
+          <p>
+            {showEmail
+              ? ui('Welcome back. Use the email associated with your account.')
+              : ui('Sign in to access your workspace.')}
+          </p>
         </div>
         {#if data['google_available'] && !showEmail}
           <form
@@ -136,11 +143,16 @@
             aria-busy={googleBusy}
             onsubmit={() => (googleBusy = true)}
           >
-            <GoogleSignInButton busy={googleBusy} />
             <label class="remember-choice" for="google-remember-me">
-              <input id="google-remember-me" type="checkbox" name="remember_me" />
+              <input
+                id="google-remember-me"
+                type="checkbox"
+                name="remember_me"
+                bind:checked={rememberMe}
+              />
               <span>{ui('Remember me for 14 days')}</span>
             </label>
+            <GoogleSignInButton busy={googleBusy} />
           </form>
           {#if !showEmail && signInError}
             <Notice message={ui(signInError)} />
@@ -225,7 +237,7 @@
                   id="remember-me"
                   type="checkbox"
                   name="remember_me"
-                  checked={form?.remember_me || false}
+                  bind:checked={rememberMe}
                 />
                 <span>{ui('Remember me for 14 days')}</span>
               </label>
@@ -241,55 +253,68 @@
     {#if !isRecovery}<p class="access-help">
         {ui('New here? Open the invitation sent to your email.')}
       </p>{/if}
+    <a href={websiteUrl} rel="external" class="website-link">
+      <ArrowLeft size={16} aria-hidden="true" />{ui('Visit our website')}
+    </a>
     <LegalLinks />
     <p class="v2-sr-only" role="status">
       {busy
         ? ui('Signing in. Please wait.')
-        : recoveryBusy
-          ? ui('Sending your recovery link.')
-          : ''}
+        : googleBusy
+          ? ui('Connecting…')
+          : recoveryBusy
+            ? ui('Sending your recovery link.')
+            : ''}
     </p>
   </div>
 </main>
 
 <style>
   .email-alternative {
-    display: block;
-    padding: var(--crm-space-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    padding-inline: var(--crm-space-3);
+    border-radius: var(--crm-radius-md);
     text-align: center;
     color: var(--crm-link);
     font-size: var(--crm-text-sm);
     font-weight: 600;
   }
   .email-alternative:hover {
+    background: var(--crm-surface-hover);
     text-decoration: underline;
   }
   .remember-choice {
     display: flex;
     align-items: center;
     gap: 0.625rem;
+    min-height: 2.75rem;
     font-weight: 400;
+    cursor: pointer;
   }
   .remember-choice input {
     width: 1.125rem;
     height: 1.125rem;
     flex-shrink: 0;
+    accent-color: var(--crm-primary);
   }
 
   .login-page .v2-auth-box {
-    max-width: 30rem;
+    max-width: 28rem;
   }
   .login-page .v2-auth-card {
     padding: clamp(1.25rem, 4vw, 2rem);
     border-radius: var(--crm-radius-xl);
-    box-shadow: var(--crm-shadow-md);
+    box-shadow: var(--crm-shadow-sm);
   }
   .login-page .v2-auth-head {
     text-align: left;
-    margin-bottom: var(--crm-space-8);
+    margin-bottom: var(--crm-space-5);
   }
   .login-page h1 {
-    font-size: var(--crm-text-2xl);
+    font-size: var(--crm-text-xl);
     line-height: var(--crm-leading-title);
   }
   .login-page .v2-input {
@@ -337,6 +362,20 @@
     color: var(--crm-text-muted);
     margin: var(--crm-space-6) var(--crm-space-3) 0;
   }
+  .website-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--crm-space-2);
+    width: fit-content;
+    min-height: 2.75rem;
+    margin: var(--crm-space-2) auto 0;
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-xs);
+  }
+  .website-link:hover {
+    text-decoration: underline;
+  }
   @media (max-width: 480px), (max-height: 680px) {
     .login-page {
       justify-content: flex-start;
@@ -346,7 +385,7 @@
   form,
   fieldset {
     display: grid;
-    gap: var(--crm-space-5);
+    gap: var(--crm-space-4);
   }
   fieldset {
     border: 0;
@@ -386,7 +425,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 28px;
+    min-height: 2.75rem;
+    margin: calc(-1 * var(--crm-space-2)) 0 var(--crm-space-4);
   }
   .recovery-confirmation {
     display: flex;

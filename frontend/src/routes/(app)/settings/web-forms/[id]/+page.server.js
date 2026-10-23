@@ -121,6 +121,7 @@ function readValues(form) {
     ...(form.has('contact_source') ? { contact_source: String(form.get('contact_source')) } : {}),
     notify_in_app: form.get('notify_in_app') === 'on',
     notify_email: form.get('notify_email') === 'on',
+    send_confirmation_email: form.get('send_confirmation_email') === 'on',
     allowed_origins: readOrigins(form),
     // An unchecked checkbox sends nothing at all, so absence is `false`.
     // Reading it any other way would make the box impossible to turn off.

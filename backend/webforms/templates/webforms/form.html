@@ -12,7 +12,7 @@ put template output inside a script block, which is where escaping bugs live.
 
 NEVER reference `form.captcha_secret` here. Only `captcha_site_key` is public.
 {% endcomment %}<!doctype html>
-<html lang="en">
+<html lang="{{ submission_language }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -164,6 +164,7 @@ NEVER reference `form.captcha_secret` here. Only `captcha_site_key` is public.
 
     var payload = {};
     new FormData(form).forEach(function (value, key) { payload[key] = value; });
+    payload.submission_language = document.documentElement.lang === "es" ? "es" : "en";
 
     // Retries of the same entries reuse the submission ID, even after a timeout.
     var fingerprint = JSON.stringify(Object.keys(payload).filter(function (key) {

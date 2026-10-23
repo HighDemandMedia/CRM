@@ -1824,5 +1824,9 @@
   "Same phone": "Mismo teléfono",
   "Similar phone — check country code": "Teléfono similar: revisa el código de país",
   "Same name": "Mismo nombre",
-  "Similar name": "Nombre similar"
+  "Similar name": "Nombre similar",
+  "Email a confirmation to the visitor": "Enviar una confirmación al visitante",
+  "On-screen confirmation": "Confirmación en pantalla",
+  "Your website keeps its confirmation page.": "Tu sitio web conserva su página de confirmación.",
+  "Connecting…": "Conectando…"
 }
