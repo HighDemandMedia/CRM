@@ -36,6 +36,22 @@ def available_organizations(user):
     ).order_by("name")
 
 
+def support_context(profile):
+    """Identify a support visit without borrowing a customer's user identity."""
+    if not profile.is_platform_access or not is_platform_owner(profile.user):
+        return None
+    homes = accessible_profiles(profile.user).filter(is_platform_access=False)
+    # Prefer the owner's workspace, never another transient support membership.
+    home = homes.filter(org__owner=profile.user).order_by("created_at", "pk").first()
+    if home is None:
+        home = homes.order_by("created_at", "pk").first()
+    return {
+        "return_organization": (
+            {"id": str(home.org_id), "name": home.org.name} if home else None
+        )
+    }
+
+
 @transaction.atomic
 def select_organization(user, org_id):
     if is_platform_owner(user):

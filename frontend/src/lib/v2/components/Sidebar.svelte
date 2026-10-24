@@ -5,7 +5,6 @@
 
   import NotificationBell from '$lib/v2/components/NotificationBell.svelte';
   import { afterNavigate } from '$app/navigation';
-  import { onMount } from 'svelte';
   import { ChevronDown } from '@lucide/svelte';
   import { resolve, base } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
@@ -99,53 +98,24 @@
     panelBottom = window.innerHeight - rect.top + 8;
   }
 
-  let folded = $state(/** @type {string[]} */ ([]));
-  onMount(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('crm.nav.groups') || '[]');
-      if (Array.isArray(saved)) folded = saved.filter((x) => typeof x === 'string');
-    } catch {
-      /* Keep navigation usable when browser storage is unavailable. */
-    }
-  });
-  function toggleGroup(label) {
-    folded = folded.includes(label) ? folded.filter((x) => x !== label) : [...folded, label];
-    try {
-      localStorage.setItem('crm.nav.groups', JSON.stringify(folded));
-    } catch {
-      /* Keep navigation usable when browser storage is unavailable. */
-    }
-  }
   /** @type {{label: string, items: {href: string, label: string, icon: typeof Sun, exact?: boolean, termKey?: string, count?: string}[]}[]} */
   const GROUPS = [
     {
-      label: 'Platform',
-      items: [{ href: '/platform-usage', label: 'Usage', icon: ChartNoAxesCombined }]
-    },
-    {
-      label: 'Sell',
+      label: 'Workspace',
       items: [
         { href: '/', label: 'Today', icon: Sun, exact: true },
-        { href: '/contacts', label: 'Contacts', icon: Users, termKey: 'contact.plural' },
-        { href: '/accounts', label: 'Companies', icon: Building2, termKey: 'account.plural' },
-        {
-          href: '/pipeline',
-          label: 'Deals',
-          icon: Columns3,
-          termKey: 'opportunity.plural'
-        },
         { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-        { href: '/reports', label: 'Reports', icon: ChartNoAxesCombined }
+        { href: '/tasks', label: 'Tasks', icon: CircleCheck }
       ]
     },
     {
-      label: 'Serve',
+      label: 'CRM',
       items: [
-        { href: '/tasks', label: 'Tasks', icon: CircleCheck },
-        // Approvals and Analytics live under Tickets as section tabs. They are
-        // not separate destinations, so they do not get separate nav entries,
-        // one level of navigation, and the tab strip carries the rest.
-        { href: '/tickets', label: 'Tickets', icon: LifeBuoy }
+        { href: '/contacts', label: 'Contacts', icon: Users, termKey: 'contact.plural' },
+        { href: '/accounts', label: 'Companies', icon: Building2, termKey: 'account.plural' },
+        { href: '/pipeline', label: 'Deals', icon: Columns3, termKey: 'opportunity.plural' },
+        { href: '/tickets', label: 'Tickets', icon: LifeBuoy },
+        { href: '/reports', label: 'Reports', icon: ChartNoAxesCombined }
       ]
     }
   ];
@@ -156,7 +126,6 @@
       ...group,
       items: group.items
         .filter((item) => {
-          if (item.href === '/platform-usage') return page.data.isPlatformOwner === true;
           const module = {
             '/contacts': 'contacts',
             '/accounts': 'companies',
@@ -215,23 +184,13 @@
       <span class="v2-count">⌘K</span>
     </button>
 
-    <!--
-    No entry appears here without a route behind it. v1's "Deals" pointed at
-    /opportunities while /deals 404'd; an Inbox link with nothing behind it
-    would be the same mistake.
-  -->
     {#each groups as group (group.label)}
-      {#if collapsed}<div class="nav-divider"></div>{:else}<button
-          class="v2-nav-group v2-label group-toggle"
-          type="button"
-          aria-expanded={!folded.includes(group.label)}
-          onclick={() => toggleGroup(group.label)}
-          >{ui(group.label)}<ChevronDown
-            size={12}
-            style={folded.includes(group.label) ? 'transform:rotate(-90deg)' : ''}
-          /></button
-        >{/if}
-      {#if collapsed || !folded.includes(group.label)}
+      <section class="nav-section" aria-label={ui(group.label)}>
+        {#if collapsed}
+          <div class="nav-divider"></div>
+        {:else}
+          <h2 class="nav-section-title">{ui(group.label)}</h2>
+        {/if}
         {#each group.items as item (item.href)}
           <a
             class="v2-link"
@@ -251,10 +210,21 @@
             {/if}
           </a>
         {/each}
-      {/if}
+      </section>
     {/each}
   </div>
   <div class="account-footer">
+    {#if page.data.isPlatformOwner === true}
+      <a
+        class="v2-link"
+        href={resolve('/platform-usage')}
+        aria-label={ui('Usage')}
+        title={collapsed ? ui('Usage') : undefined}
+        aria-current={isActive('/platform-usage', false) ? 'page' : undefined}
+      >
+        <ChartNoAxesCombined /><span class="nav-text">{ui('Usage')}</span>
+      </a>
+    {/if}
     <a
       class="v2-link"
       href={resolve('/help')}
@@ -577,15 +547,15 @@
     outline-offset: 3px;
     border-radius: var(--crm-radius-sm);
   }
-  .group-toggle {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border: 0;
-    background: none;
-    cursor: pointer;
-    font-family: inherit;
+  .nav-section-title {
+    margin: 18px 0 5px;
+    padding: 0 var(--crm-space-2);
+    color: var(--crm-nav-muted);
+    font-size: var(--crm-text-xs);
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-transform: none;
   }
   .nav-divider {
     margin: var(--crm-space-2) 6px;
@@ -632,9 +602,6 @@
   }
   .v2-link[aria-current='page'] :global(svg) {
     color: var(--crm-primary-text);
-  }
-  .v2-nav-group {
-    color: var(--crm-nav-muted);
   }
   .v2-link .v2-count {
     color: var(--crm-nav-muted);

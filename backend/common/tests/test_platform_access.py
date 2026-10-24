@@ -4,13 +4,15 @@ from unittest.mock import patch
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from common.models import Org, Profile, User
-from common.platform_access import accessible_profiles
+from common.platform_access import accessible_profiles, support_context
 from common.serializer import OrgAwareRefreshToken
 from common.testing import _make_authenticated_client, rls_org
 from contacts.models import Contact
+from tasks.models import Task
 
 pytestmark = pytest.mark.django_db
 
@@ -106,6 +108,95 @@ def test_customer_cannot_switch_or_enumerate_others(admin_client, org_b):
         admin_client.post("/api/org/", {"name": "Extra"}, format="json").status_code
         == 403
     )
+
+
+def test_platform_visit_loads_customer_context_and_team_day(owner, org_b, profile_b):
+    user, home_profile, client = owner
+    with rls_org(org_b):
+        task = Task.objects.create(
+            org=org_b,
+            created_by=profile_b.user,
+            title="Customer follow-up",
+            due_date=timezone.localdate(),
+            status="New",
+        )
+        task.assigned_to.add(profile_b)
+    with rls_org(home_profile.org):
+        Task.objects.create(
+            org=home_profile.org,
+            created_by=user,
+            title="Platform private task",
+            due_date=timezone.localdate(),
+            status="New",
+        )
+    response = client.post(
+        "/api/auth/switch-org/", {"org_id": str(org_b.pk)}, format="json"
+    )
+    assert response.status_code == 200
+    client.credentials(HTTP_AUTHORIZATION="Bearer " + response.data["access_token"])
+    # The current configuration wins even if the switch token predates an edit.
+    Org.objects.filter(pk=org_b.pk).update(
+        name="Customer workspace", default_currency="GBP"
+    )
+    context = client.get("/api/org/ui-context/").data
+    assert context["organization"] == {
+        "id": str(org_b.pk),
+        "name": "Customer workspace",
+        "currency": "GBP",
+    }
+    assert context["is_platform_owner"] and context["permissions"]["is_admin"]
+    assert context["platform_access"]["return_organization"] == {
+        "id": str(home_profile.org_id),
+        "name": home_profile.org.name,
+    }
+    support = Profile.objects.get(org=org_b, user=user)
+    day = client.get("/api/dashboard/day-summary/").data
+    assert day["selected_user"] == "all"
+    assert day["current_user"] == str(support.pk)
+    assert [row["id"] for row in day["tasks"]] == [str(task.pk)]
+    assert (
+        client.get("/api/dashboard/day-summary/", {"user": str(support.pk)}).data[
+            "tasks"
+        ]
+        == []
+    )
+    # Switching back restores the owner's own membership and personal day.
+    response = client.post(
+        "/api/auth/switch-org/", {"org_id": str(home_profile.org_id)}, format="json"
+    )
+    assert response.status_code == 200
+    client.credentials(HTTP_AUTHORIZATION="Bearer " + response.data["access_token"])
+    assert client.get("/api/org/ui-context/").data["platform_access"] is None
+    day = client.get("/api/dashboard/day-summary/").data
+    assert day["selected_user"] == str(home_profile.pk)
+    assert [row["name"] for row in day["tasks"]] == ["Platform private task"]
+
+
+def test_customer_has_no_support_context(admin_client):
+    assert admin_client.get("/api/org/ui-context/").data["platform_access"] is None
+
+
+def test_support_return_excludes_disabled_and_support_memberships(owner, org_b):
+    user, home, client = owner
+    client.post("/api/auth/switch-org/", {"org_id": str(org_b.pk)}, format="json")
+    support = Profile.objects.get(user=user, org=org_b)
+    home.is_active = False
+    home.save()
+    assert support_context(support) == {"return_organization": None}
+    user.is_superuser = False
+    user.save()
+    support.refresh_from_db()
+    assert support_context(support) is None
+
+
+def test_support_return_prefers_owned_workspace(owner, org_b):
+    user, home, client = owner
+    Org.objects.filter(pk=home.org_id).update(owner=user)
+    alternative = Org.objects.create(name="Another membership")
+    Profile.objects.create(user=user, org=alternative)
+    client.post("/api/auth/switch-org/", {"org_id": str(org_b.pk)}, format="json")
+    support = Profile.objects.get(user=user, org=org_b)
+    assert support_context(support)["return_organization"]["id"] == str(home.org_id)
 
 
 def test_revoked_platform_access_fails_with_old_access_and_refresh_tokens(owner, org_b):

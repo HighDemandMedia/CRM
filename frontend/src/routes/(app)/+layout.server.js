@@ -64,6 +64,13 @@ export async function load(event) {
   };
 
   const context = await apiRequest('/org/ui-context/', {}, { cookies: event.cookies });
+  // Refresh account identity/settings with the same tenant-scoped response as
+  // permissions; JWT display claims can predate an organization settings change.
+  if (context.organization) {
+    shell.accountId = context.organization.id;
+    shell.org.name = context.organization.name;
+    shell.org.currency = context.organization.currency;
+  }
   const destination = setupDestination(context.setup_step);
   // Reading pathname makes this gate run again on module navigation, including client-side links.
   const pathname = event.url?.pathname;
@@ -101,6 +108,7 @@ export async function load(event) {
   });
   return {
     ...shell,
+    platformAccess: shell.isPlatformOwner ? (context.platform_access ?? null) : null,
     uiLocale,
     counts,
     permissions: context.permissions,

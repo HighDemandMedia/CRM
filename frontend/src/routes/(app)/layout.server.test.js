@@ -22,6 +22,39 @@ function event(canPreview) {
 }
 
 describe('CRM shell critical path', () => {
+  it('shows support context only for the current platform owner and clears it on return', async () => {
+    const input = event(false);
+    input.url = new URL('https://crm.example.com/');
+    const platform_access = { return_organization: { id: 'home', name: 'High Demand Media' } };
+    for (const [is_platform_owner, access, expected] of [
+      [true, platform_access, platform_access],
+      [true, null, null],
+      [false, platform_access, null]
+    ]) {
+      vi.mocked(apiRequest).mockResolvedValue({
+        ...context,
+        is_platform_owner,
+        platform_access: access
+      });
+      expect(await load(input)).toHaveProperty('platformAccess', expected);
+    }
+  });
+  it('loads the selected account identity and settings from the current context', async () => {
+    const input = event(false);
+    input.url = new URL('https://crm.example.com/');
+    input.locals.org_settings = { default_currency: 'USD' };
+    for (const organization of [
+      { id: 'customer', name: 'Customer workspace', currency: 'GBP' },
+      { id: 'home', name: 'High Demand Media', currency: 'EUR' }
+    ]) {
+      vi.mocked(apiRequest).mockResolvedValue({ ...context, organization });
+      const shell = await load(input);
+      expect(shell).toMatchObject({
+        accountId: organization.id,
+        org: { name: organization.name, currency: organization.currency }
+      });
+    }
+  });
   it.each([
     [true, 1],
     [false, 1]

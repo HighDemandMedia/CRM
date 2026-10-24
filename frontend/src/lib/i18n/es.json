@@ -1,4 +1,5 @@
 {
+  "Workspace": "Espacio de trabajo",
   "+ Association": "+ Asociación",
   "1 day before": "1 día antes",
   "2 days before": "2 días antes",
@@ -865,6 +866,9 @@
   "Survey links stay open for a limited time after a ticket is closed. If there is still something you want the team to know, reply to the email this link came from and it will reach them.": "Las encuestas están disponibles durante un tiempo limitado tras cerrar el ticket. Si quieres añadir algo, responde al correo que contenía este enlace.",
   "Switch primary contact": "Cambiar contacto principal",
   "Switching organization…": "Cambiando de organización…",
+  "Support view": "Vista de soporte",
+  "Viewing account: {name}": "Viendo cuenta: {name}",
+  "Return to my account": "Volver a mi cuenta",
   "Sync now": "Sincronizar ahora",
   "System": "Sistema",
   "System properties": "Propiedades del sistema",

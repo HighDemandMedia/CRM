@@ -20,6 +20,7 @@ from rest_framework.views import APIView
 from cases.models import Case
 from common.models import Profile, SalesAppointment
 from common.permissions import HasOrgContext, is_org_admin
+from common.platform_access import is_platform_owner
 from common.rbac import calendar_scoped, permitted
 from opportunity.models import Opportunity
 from tasks.models import Task
@@ -31,7 +32,14 @@ class TodaySummaryView(APIView):
     def get(self, request):
         org = request.profile.org
         admin = is_org_admin(request.profile)
-        chosen = request.query_params.get("user") or str(request.profile.pk)
+        # Support profiles have no personal workload in the customer's account.
+        # Open its organization-wide day while retaining the real actor identity.
+        platform_visit = request.profile.is_platform_access and is_platform_owner(
+            request.user
+        )
+        chosen = request.query_params.get("user") or (
+            "all" if platform_visit and admin else str(request.profile.pk)
+        )
         people = Profile.objects.filter(
             org=org, is_active=True, user__is_active=True
         ).select_related("user")
