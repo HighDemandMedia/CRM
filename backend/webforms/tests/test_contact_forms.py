@@ -48,6 +48,21 @@ def post(client, form, **payload):
     )
 
 
+def test_contact_quota_returns_clear_failure_without_false_confirmation(
+    form, unauthenticated_client
+):
+    from common.models import Org
+
+    Org.objects.filter(pk=form.org_id).update(usage_limits={"contacts": 0})
+    with patch("webforms.public_views.queue_notification") as queue:
+        response = post(unauthenticated_client, form)
+    assert response.status_code == 409, response.data
+    assert response.data["code"] == "organization_limit_reached"
+    assert not Contact.objects.filter(org_id=form.org_id).exists()
+    assert not WebFormSubmission.objects.filter(org_id=form.org_id).exists()
+    queue.assert_not_called()
+
+
 def test_creates_contact_and_notification_not_a_lead(
     form, unauthenticated_client, admin_profile
 ):

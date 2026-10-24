@@ -8,7 +8,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from common.invitations import accept_ownership
 from common.legal import record_legal_acceptance, validate_legal_acceptance
-from common.models import OrganizationInvitation, Profile, User
+from common.models import Org, OrganizationInvitation, Profile, User
 from common.rbac import ensure_default_roles
 from common.rls.context import org_context
 
@@ -21,11 +21,20 @@ def register_invited_user(
         raise ValidationError(
             {"error": "Invitation is invalid, expired, or belongs to another email."}
         )
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    org_id = (
+        OrganizationInvitation.objects.filter(token_hash=token_hash)
+        .values_list("org_id", flat=True)
+        .first()
+    )
+    if org_id:
+        # Match invitation creation's org -> invitation lock order.
+        Org.objects.select_for_update().get(pk=org_id)
     invitation = (
         OrganizationInvitation.objects.select_for_update()
         .select_related("org")
         .filter(
-            token_hash=hashlib.sha256(token.encode()).hexdigest(),
+            token_hash=token_hash,
             email__iexact=email,
             accepted_at__isnull=True,
             revoked_at__isnull=True,

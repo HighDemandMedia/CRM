@@ -60,7 +60,7 @@ from common.views.password_reset_views import (
     PasswordResetRequestView,
 )
 from common.views.pipeline_settings_views import PipelineSettingsView
-from common.views.platform_usage_views import PlatformUsageView
+from common.views.platform_usage_views import OrganizationLimitsView, PlatformUsageView
 from common.views.profile_photo_views import ProfilePhotoView
 from common.views.property_layout_views import PropertyLayoutView
 from common.views.record_association_views import RecordAssociationView
@@ -116,6 +116,7 @@ urlpatterns = [
     ),
     path("org/ui-context/", UIContextView.as_view()),
     path("platform/usage/", PlatformUsageView.as_view()),
+    path("platform/organizations/<uuid:pk>/limits/", OrganizationLimitsView.as_view()),
     path("auth/password/login/", PasswordLoginView.as_view()),
     path("auth/password/reset/request/", PasswordResetRequestView.as_view()),
     path("auth/password/reset/confirm/", PasswordResetConfirmView.as_view()),

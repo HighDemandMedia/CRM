@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 vi.mock('$lib/api-helpers.js', () => ({ apiRequest: vi.fn() }));
 import { apiRequest } from '$lib/api-helpers.js';
-import { load } from './+page.server.js';
+import { actions, load } from './+page.server.js';
 const event = (isPlatformOwner) =>
   /** @type {any} */ ({
     parent: async () => ({ isPlatformOwner }),
@@ -31,5 +31,55 @@ it('returns a recoverable error without fabricated metrics', async () => {
   expect(await load(event(true))).toMatchObject({
     usage: null,
     usageError: 'Could not load usage.'
+  });
+});
+
+function limitEvent(values = {}) {
+  const form = new FormData();
+  form.set('organization_id', '12345678-1234-1234-1234-123456789012');
+  for (const [key, value] of Object.entries(values)) form.set(key, value);
+  return /** @type {any} */ ({ request: { formData: async () => form }, cookies: {} });
+}
+
+it('saves zero and unlimited as distinct choices', async () => {
+  expect(await actions.limits(limitEvent({ users: '5', contacts: '0', tasks: '' }))).toEqual({
+    limitsSaved: true
+  });
+  expect(apiRequest).toHaveBeenCalledWith(
+    '/platform/organizations/12345678-1234-1234-1234-123456789012/limits/',
+    {
+      method: 'PATCH',
+      body: {
+        limits: {
+          users: 5,
+          contacts: 0,
+          companies: null,
+          deals: null,
+          tasks: null,
+          tickets: null,
+          appointments: null
+        }
+      }
+    },
+    { cookies: {} }
+  );
+});
+
+it.each(['-1', '1.5', 'Infinity', '2147483648', '5e3'])(
+  'rejects invalid quotas: %s',
+  async (users) => {
+    const result = await actions.limits(limitEvent({ users }));
+    expect(result).toMatchObject({ status: 400 });
+    expect(apiRequest).not.toHaveBeenCalled();
+  }
+);
+
+it('keeps the dialog error when the server denies owner access', async () => {
+  vi.mocked(apiRequest).mockRejectedValue(
+    Object.assign(new Error('Access denied.'), { status: 403 })
+  );
+  expect(await actions.limits(limitEvent())).toMatchObject({
+    status: 403,
+    data: { limitsError: 'Access denied.' }
   });
 });

@@ -5,8 +5,10 @@
   import { useI18n } from '$lib/i18n/context.js';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import ListPagination from '$lib/v2/components/ListPagination.svelte';
+  import OrganizationLimitsDialog from '$lib/v2/components/OrganizationLimitsDialog.svelte';
   const { ui, count, locale } = useI18n();
-  let { data } = $props();
+  let { data, form } = $props();
+  let editingLimits = $state(null);
   const capacityMessages = {
     unknown: 'Configure database capacity to enable alerts.',
     normal: 'Database below the planning threshold.',
@@ -17,7 +19,7 @@
   let refreshing = $state(false);
   let refreshError = $state('');
   const columns = [
-    ['users', 'Active members'],
+    ['users', 'Users & invitations'],
     ['contacts', 'Contacts'],
     ['companies', 'Companies'],
     ['deals', 'Deals'],
@@ -32,6 +34,15 @@
     const divisor = unit === 'GB' ? 1000000000 : 1000000;
     return `${new Intl.NumberFormat(locale(), { maximumFractionDigits: 2 }).format(value / divisor)} ${unit}`;
   };
+  function used(org, key) {
+    return key === 'users' ? org.reserved_users : org[key];
+  }
+  function limitStatus(org, key) {
+    const maximum = org.limits[key];
+    if (maximum == null) return '';
+    if (used(org, key) >= maximum) return 'full';
+    return used(org, key) >= maximum * 0.8 ? 'warning' : '';
+  }
   async function refresh() {
     refreshing = true;
     refreshError = '';
@@ -54,6 +65,7 @@
   {/snippet}
 </PageHeader>
 <div class="usage-page" aria-busy={refreshing}>
+  {#if form?.limitsSaved}<Notice tone="success" message={ui('Limits saved.')} />{/if}
   {#if data.usageError || refreshError}
     <Notice message={ui(data.usageError || refreshError)} />
   {/if}
@@ -126,17 +138,31 @@
             ><tr
               ><th scope="col">{ui('Organization')}</th><th scope="col">{ui('Status')}</th
               >{#each columns as [key, label] (key)}<th scope="col" class="number">{ui(label)}</th
-                >{/each}</tr
+                >{/each}<th scope="col">{ui('Limits')}</th></tr
             ></thead
           >
           <tbody>
             {#each usage.results as org (org.id)}
               <tr
                 ><th scope="row">{org.name}</th><td>{ui(org.status)}</td
-                >{#each columns as [key] (key)}<td class="number">{count(org[key])}</td>{/each}</tr
+                >{#each columns as [key] (key)}<td
+                    class="number"
+                    data-limit={limitStatus(org, key)}
+                  >
+                    {count(used(org, key))}{#if org.limits[key] != null}<span class="maximum">
+                        / {count(org.limits[key])}</span
+                      >{/if}
+                  </td>{/each}<td
+                  ><button
+                    type="button"
+                    class="v2-btn"
+                    aria-label={`${ui('Edit limits')}: ${org.name}`}
+                    onclick={() => (editingLimits = org)}>{ui('Edit limits')}</button
+                  ></td
+                ></tr
               >
             {:else}<tr
-                ><td colspan={columns.length + 2} class="empty">{ui('No organizations found.')}</td
+                ><td colspan={columns.length + 3} class="empty">{ui('No organizations found.')}</td
                 ></tr
               >{/each}
           </tbody>
@@ -183,6 +209,9 @@
     </section>
   {/if}
 </div>
+{#if editingLimits}
+  <OrganizationLimitsDialog organization={editingLimits} onclose={() => (editingLimits = null)} />
+{/if}
 
 <style>
   .usage-page {
@@ -335,6 +364,18 @@
   .number {
     text-align: right;
     font-variant-numeric: tabular-nums;
+  }
+  .number[data-limit='full'] {
+    color: var(--crm-danger);
+    background: var(--crm-danger-bg);
+    font-weight: 600;
+  }
+  .number[data-limit='warning'] {
+    color: var(--crm-warning);
+    background: var(--crm-warning-bg);
+  }
+  .maximum {
+    white-space: nowrap;
   }
   .empty {
     padding: var(--crm-space-6);

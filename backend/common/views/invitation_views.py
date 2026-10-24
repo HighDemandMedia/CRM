@@ -148,6 +148,7 @@ class InvitationDetailView(APIView):
 
     @transaction.atomic
     def delete(self, request, pk):
+        Org.objects.select_for_update().get(pk=request.profile.org_id)
         row = get_object_or_404(
             OrganizationInvitation.objects.select_for_update(),
             pk=pk,
@@ -179,6 +180,10 @@ class AcceptInvitationView(APIView):
         if not isinstance(raw, str) or not 20 <= len(raw) <= 128:
             return Response({"error": "Invalid invitation."}, status=400)
         with transaction.atomic():
+            org_id = get_object_or_404(
+                OrganizationInvitation, token_hash=digest(raw)
+            ).org_id
+            Org.objects.select_for_update().get(pk=org_id)
             row = get_object_or_404(
                 OrganizationInvitation.objects.select_for_update().select_related(
                     "org"

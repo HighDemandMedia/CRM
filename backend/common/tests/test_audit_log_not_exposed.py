@@ -28,6 +28,7 @@ BACKEND_ROOT = Path(settings.BASE_DIR)
 ALLOWED = {
     "common/organization_purge.py",  # Deletes by org or an unshared user's org-less rows; never serves data.
     "common/views/role_views.py",  # Writes permission changes with request.org; no reads.
+    "common/views/platform_usage_views.py",  # Owner-only limit changes; writes audit rows, never serves them.
     "common/audit_log.py",  # defines it and is the only writer
     "common/models.py",  # re-exports the name for existing imports
     "common/migrations",  # schema history

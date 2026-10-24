@@ -8,6 +8,7 @@ from django.db import models
 
 # Module imports
 from common.mixins import AuditModel
+from common.usage_limits import QuotaModelMixin
 
 # Help text shared by every `is_sample` column. One string, because the rule it
 # states is a security invariant rather than documentation: the flag is the sole
@@ -66,7 +67,7 @@ class AssignableMixin(models.Model):
         return Profile.objects.filter(id__in=list(user_ids))
 
 
-class BaseModel(AuditModel):
+class BaseModel(QuotaModelMixin, AuditModel):
     id = models.UUIDField(
         default=uuid.uuid4, unique=True, editable=False, db_index=True, primary_key=True
     )

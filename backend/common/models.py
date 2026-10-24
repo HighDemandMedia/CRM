@@ -15,6 +15,7 @@ from django.utils.timesince import timesince
 from django.utils.translation import gettext_lazy as _
 
 from common.base import BaseModel, BaseOrgModel
+from common.usage_limits import QuotaManager, QuotaModelMixin
 from common.utils import (
     COUNTRIES,
     CURRENCY_CODES,
@@ -108,6 +109,7 @@ def generate_unique_key():
 
 
 class Org(BaseModel):
+    usage_limits = models.JSONField(default=dict, blank=True, editable=False)
     property_order = models.JSONField(default=dict, blank=True)
     creation_forms = models.JSONField(default=dict, blank=True)
     pipeline_settings = models.JSONField(default=dict, blank=True)
@@ -295,6 +297,8 @@ class CRMRole(BaseModel):
 
 
 class Profile(BaseModel):
+    objects = QuotaManager()
+
     class SetupStep(models.TextChoices):
         COMPLETE = "complete", "Complete"
         PROFILE = "profile", "Profile"
@@ -1281,7 +1285,9 @@ class PackApplication(BaseOrgModel):
         return f"{self.pack_id} v{self.pack_version} → {self.org.name}"
 
 
-class SalesAppointment(models.Model):
+class SalesAppointment(QuotaModelMixin):
+    objects = QuotaManager()
+
     contacts = models.ManyToManyField(
         "contacts.Contact", blank=True, related_name="attended_sales_events"
     )
@@ -1338,7 +1344,9 @@ class SalesAppointment(models.Model):
         ]
 
 
-class OrganizationInvitation(models.Model):
+class OrganizationInvitation(QuotaModelMixin):
+    objects = QuotaManager()
+
     access_role = models.ForeignKey(
         CRMRole,
         null=True,

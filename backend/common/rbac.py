@@ -5,6 +5,8 @@ from django.db import models
 from django.db.models import Prefetch, Q
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from common.usage_limits import QuotaQuerySet
+
 RECORD_MODULES = ("contacts", "companies", "deals", "tasks", "tickets")
 MODULES = (*RECORD_MODULES, "calendar", "reports", "tags")
 SCOPES = ("none", "own", "team", "organization")
@@ -240,7 +242,7 @@ def require(profile, module, action):
 # request middleware and is cleaned up when each request finishes.
 
 
-class CRMRecordQuerySet(models.QuerySet):
+class CRMRecordQuerySet(QuotaQuerySet):
     def _check_write(self, action):
         request = get_current_request()
         profile = getattr(request, "profile", None)

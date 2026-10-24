@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 
 from accounts.models import Account
 from common.appointment_emails import queue_appointment_emails
-from common.models import Activity, Comment, Profile, SalesAppointment
+from common.models import Activity, Comment, Org, Profile, SalesAppointment
 from common.permissions import HasOrgContext, is_org_admin
 from common.pipeline_settings import validate_entry
 from common.rbac import (
@@ -458,6 +458,9 @@ class SalesAppointmentView(APIView):
         allow_overlap = serializers.BooleanField().run_validation(
             request.data.get("allow_overlap", False)
         )
+        # Quota writes and member management lock org -> profile. Keep that
+        # order before booking the host to avoid a concurrent-invitation deadlock.
+        Org.objects.select_for_update().get(pk=request.profile.org_id)
         lock_host_and_check(
             request,
             values["host"].pk,

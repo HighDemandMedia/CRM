@@ -10,6 +10,7 @@ from accounts.models import Account
 from cases.models import Case
 from common.models import Attachments, Profile, SalesAppointment
 from common.rls.context import org_context
+from common.usage_limits import LIMIT_KEYS, seat_emails
 from contacts.models import Contact
 from opportunity.models import Opportunity
 from tasks.models import Task
@@ -29,7 +30,7 @@ RECORD_MODELS = {
 def organization_usage(org):
     # One minute cache per tenant bounds repeated COUNT scans. No record content,
     # email addresses or credentials are collected or returned.
-    key = f"platform-usage:v1:org:{org.pk}"
+    key = f"platform-usage:v2:org:{org.pk}"
     result = cache.get(key)
     if result is None:
         with org_context(org.pk):
@@ -59,9 +60,11 @@ def organization_usage(org):
                 dict(counters[0].union(*counters[1:], all=True).order_by("metric"))
             )
         result["measured_at"] = timezone.now().isoformat()
+        result["reserved_users"] = len(seat_emails(org.pk))
         cache.set(key, result, CACHE_SECONDS)
     return {
         **result,
+        "limits": {key: org.usage_limits.get(key) for key in LIMIT_KEYS},
         "id": str(org.pk),
         "name": org.name,
         "status": "Closing"
