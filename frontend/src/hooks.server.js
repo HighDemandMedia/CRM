@@ -190,6 +190,11 @@ export const handle = async (input) => {
   }
   // Fetch responses can have immutable headers; preserve the streaming body.
   const headers = new Headers(response.headers);
+  // Keep authentication pages crawlable so search engines can read this directive.
+  const pathname = input.event.url.pathname;
+  if (pathname === '/login' || pathname.startsWith('/login/')) {
+    headers.set('x-robots-tag', 'noindex');
+  }
   headers.set('x-frame-options', 'DENY');
   headers.set('x-content-type-options', 'nosniff');
   headers.set(

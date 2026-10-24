@@ -150,3 +150,64 @@ it('preserves status and headers on error responses', async () => {
   expect(response.headers.get('x-frame-options')).toBe('DENY');
   expect(await response.text()).toBe('Unavailable');
 });
+
+describe('authentication search indexing', () => {
+  it.each([
+    '/login',
+    '/login?lang=es',
+    '/login?method=password',
+    '/login?recover=1',
+    '/login?code=example&state=example',
+    '/login/reset?token=example',
+    '/login/verify?token=example'
+  ])('excludes %s without changing the response or session', async (path) => {
+    const request = input({}, path);
+    const response = await handle(request);
+    expect(response.headers.get('x-robots-tag')).toBe('noindex');
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('page');
+    expect(request.resolve).toHaveBeenCalledOnce();
+    expect(axios.post).not.toHaveBeenCalled();
+    expect(request.event.cookies.set).not.toHaveBeenCalled();
+    expect(request.event.cookies.delete).not.toHaveBeenCalled();
+  });
+
+  it('preserves OAuth redirect status, location and cookies', async () => {
+    const request = input({}, '/login?code=example&state=example');
+    request.resolve.mockResolvedValue(
+      new Response(null, {
+        status: 303,
+        headers: { location: '/org', 'set-cookie': 'test=example; HttpOnly; Path=/' }
+      })
+    );
+    const response = await handle(request);
+    expect(response.headers.get('x-robots-tag')).toBe('noindex');
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe('/org');
+    expect(response.headers.get('set-cookie')).toBe('test=example; HttpOnly; Path=/');
+  });
+
+  it('keeps errors non-indexable without changing their retry behavior', async () => {
+    const request = input({}, '/login');
+    request.resolve.mockResolvedValue(
+      new Response('Unavailable', { status: 503, headers: { 'retry-after': '60' } })
+    );
+    const response = await handle(request);
+    expect(response.headers.get('x-robots-tag')).toBe('noindex');
+    expect(response.status).toBe(503);
+    expect(response.headers.get('retry-after')).toBe('60');
+    expect(await response.text()).toBe('Unavailable');
+  });
+
+  it.each(['/legal/terms', '/contacts', '/login-other'])(
+    'does not broaden the noindex rule to %s',
+    async (path) => {
+      const response = await handle(input({}, path));
+      expect(response.headers.has('x-robots-tag')).toBe(false);
+      if (path !== '/legal/terms') {
+        expect(response.status).toBe(307);
+        expect(response.headers.get('location')).toBe('/login');
+      }
+    }
+  );
+});
