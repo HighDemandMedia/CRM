@@ -8,8 +8,16 @@ const template = readFileSync(
   new URL('../../../../backend/webforms/templates/webforms/connect.js', import.meta.url),
   'utf8'
 );
-/** @param {{mode?: string | null, status?: number, fields?: any, captcha?: string, late?: boolean}} options */
-function host({ mode = 'copy', status = 200, fields, captcha = '', late = false } = {}) {
+/** @param {{mode?: string | null, status?: number, fields?: any, captcha?: string, late?: boolean, documentLanguage?: string, formLanguage?: string | null}} options */
+function host({
+  mode = 'copy',
+  status = 200,
+  fields,
+  captcha = '',
+  late = false,
+  documentLanguage = 'en',
+  formLanguage = null
+} = {}) {
   const controls = fields || [{ name: 'visitor-email', type: 'email', value: 'test@example.test' }];
   controls.namedItem = (name) => controls.find((c) => c.name === name);
   const button = { disabled: false };
@@ -25,6 +33,8 @@ function host({ mode = 'copy', status = 200, fields, captcha = '', late = false 
       children.push(node);
     },
     checkValidity: () => true,
+    closest: (selector) =>
+      selector === '[lang]' && formLanguage !== null ? { lang: formLanguage } : null,
     querySelectorAll: () => [button],
     addEventListener: vi.fn((_, fn) => {
       handler = fn;
@@ -52,6 +62,7 @@ function host({ mode = 'copy', status = 200, fields, captcha = '', late = false 
   const document = {
     readyState: 'complete',
     body: {},
+    documentElement: { lang: documentLanguage },
     currentScript: { getAttribute: (key) => (key === 'data-mode' ? mode : '#existing') },
     querySelectorAll: () => (present ? [form] : []),
     createElement: () => ({ value: '', style: {}, setAttribute() {} })
@@ -100,6 +111,23 @@ function host({ mode = 'copy', status = 200, fields, captcha = '', late = false 
 }
 
 describe('existing HTML form connector', () => {
+  it.each([
+    ['es', null, 'es'],
+    ['en', 'es', 'es'],
+    ['es', 'en', 'en'],
+    ['en', ' ES-MX ', 'es'],
+    ['es_US', null, 'es'],
+    ['es', '', 'en'],
+    ['', null, 'en'],
+    ['fr', null, 'en']
+  ])(
+    'uses the nearest supported language (document=%s, form=%s)',
+    async (documentLanguage, formLanguage, expected) => {
+      const h = host({ documentLanguage, formLanguage });
+      await h.submit();
+      expect(JSON.parse(h.fetch.mock.calls[0][1].body).submission_language).toBe(expected);
+    }
+  );
   it('connects a form inserted later and does not duplicate its handler on DOM updates', async () => {
     const h = host({ late: true });
     expect(h.form.addEventListener).not.toHaveBeenCalled();
