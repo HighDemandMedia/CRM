@@ -15,7 +15,11 @@ from django.utils.timesince import timesince
 from django.utils.translation import gettext_lazy as _
 
 from common.base import BaseModel, BaseOrgModel
-from common.usage_limits import QuotaManager, QuotaModelMixin
+from common.usage_limits import (
+    QuotaManager,
+    QuotaModelMixin,
+    default_organization_limits,
+)
 from common.utils import (
     COUNTRIES,
     CURRENCY_CODES,
@@ -109,7 +113,9 @@ def generate_unique_key():
 
 
 class Org(BaseModel):
-    usage_limits = models.JSONField(default=dict, blank=True, editable=False)
+    usage_limits = models.JSONField(
+        default=default_organization_limits, blank=True, editable=False
+    )
     property_order = models.JSONField(default=dict, blank=True)
     creation_forms = models.JSONField(default=dict, blank=True)
     pipeline_settings = models.JSONField(default=dict, blank=True)

@@ -37,10 +37,36 @@ def invite(org, email="pending@example.com", **kwargs):
     )
 
 
+def test_new_organization_starts_with_agreed_limits():
+    org = Org.objects.create(name="New account")
+    org.refresh_from_db()
+    assert org.usage_limits == {
+        "users": 5,
+        "contacts": 2500,
+        "companies": 500,
+        "deals": 500,
+    }
+    usage = organization_usage(org)
+    for resource in ("tasks", "tickets", "appointments"):
+        assert usage["limits"].get(resource) is None
+    org.usage_limits["users"] = 10
+    assert Org(name="Another account").usage_limits["users"] == 5
+
+
+def test_existing_unlimited_and_custom_accounts_keep_their_limits():
+    for limits in ({}, {"users": 2, "contacts": 100}):
+        org = Org.objects.create(name="Existing account", usage_limits=limits)
+        org.name = "Renamed account"
+        org.save()
+        org.refresh_from_db()
+        assert org.usage_limits == limits
+
+
 def test_only_platform_owner_can_change_limits(
     admin_user, admin_profile, admin_client, user_client, org_b
 ):
     url = f"/api/platform/organizations/{org_b.pk}/limits/"
+    before = dict(org_b.usage_limits)
     payload = {"limits": {"users": 5, "contacts": 100, "tasks": 0}}
     for client in (APIClient(), admin_client, user_client):
         assert client.patch(url, payload, format="json").status_code == 403
@@ -51,10 +77,10 @@ def test_only_platform_owner_can_change_limits(
     assert response.status_code == 200, response.data
     assert response.data["limits"]["contacts"] == 100
     org_b.refresh_from_db()
-    assert org_b.usage_limits == payload["limits"]
+    assert org_b.usage_limits == {**before, **payload["limits"]}
     audit = SecurityAuditLog.objects.get(event_type="ORGANIZATION_LIMITS_CHANGED")
     assert audit.user == admin_user and audit.org == org_b
-    assert audit.metadata["after"] == payload["limits"]
+    assert audit.metadata["after"] == org_b.usage_limits
     assert (
         client.patch(url, {"limits": {"contacts": None}}, format="json").status_code
         == 200

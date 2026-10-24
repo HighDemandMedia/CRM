@@ -22,6 +22,13 @@ RECORD_RESOURCES = {
     "common.salesappointment": "appointments",
 }
 LIMIT_KEYS = ("users", *RECORD_RESOURCES.values())
+
+
+def default_organization_limits():
+    """Initial allowance for new accounts; existing quotas remain owner-managed."""
+    return {"users": 5, "contacts": 2500, "companies": 500, "deals": 500}
+
+
 SEAT_MODELS = {"common.profile", "common.organizationinvitation"}
 SEAT_FIELDS = {
     "common.profile": {"is_active", "removed_at", "is_platform_access", "user_id"},
