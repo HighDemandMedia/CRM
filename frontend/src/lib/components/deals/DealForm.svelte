@@ -1,11 +1,12 @@
 <script>
+  import PhoneInput from '$lib/components/PhoneInput.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { canChooseOwner } from '$lib/v2/permissions.js';
   import ConfiguredCreationFields from '$lib/components/creation/ConfiguredCreationFields.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
-  import { countryOptions } from '$lib/constants/countries.js';
+  import CountrySelect from '$lib/components/CountrySelect.svelte';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import RecordSection from '$lib/components/creation/RecordSection.svelte';
   import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
@@ -358,26 +359,17 @@
           bind:value={values.email}
         /></label
       >
-      <label
-        >{ui('Phone')}<input
-          class="v2-input"
-          type="tel"
+      <div class="v2-field">
+        <label for="record-phone">{ui('Phone')}</label><PhoneInput
+          id="record-phone"
           name="phone"
-          maxlength="25"
           bind:value={values.phone}
-        /></label
-      >
+        />
+      </div>
       <LanguageSelect bind:value={values.language} />
     </RecordSection>
     <RecordSection title={ui('Address')} collapsible={!editing}>
-      <label
-        >{ui('Country')}<select class="v2-input" name="country" bind:value={values.country}
-          ><option value="">{ui('Select country')}</option
-          >{#each countryOptions(values.country) as { value, label } (value)}<option {value}
-              >{label}</option
-            >{/each}</select
-        ></label
-      >
+      <label>{ui('Country')}<CountrySelect name="country" bind:value={values.country} /></label>
       {#each addressFields as [key, label] (key)}<label
           >{ui(label)}<input
             class="v2-input"

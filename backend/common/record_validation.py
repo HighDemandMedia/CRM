@@ -5,7 +5,7 @@ import unicodedata
 
 from rest_framework.exceptions import ValidationError
 
-from common.custom_fields import PHONE_ERROR, valid_phone
+from common.phone_numbers import PHONE_ERROR, phone_e164
 
 CALENDAR_TARGETS = {"Contact", "Account"}
 
@@ -60,8 +60,11 @@ def clean_record_values(data, target):
             or any(not (char.isalnum() or char in " -") for char in value)
         ):
             errors[key] = "Use letters, numbers, spaces or hyphens for the postal code."
-        elif key == "phone" and not valid_phone(value):
-            errors[key] = PHONE_ERROR
+        elif key == "phone":
+            try:
+                data[key] = phone_e164(value)
+            except ValueError:
+                errors[key] = PHONE_ERROR
     if errors:
         raise ValidationError(errors)
     return data

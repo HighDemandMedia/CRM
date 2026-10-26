@@ -25,23 +25,23 @@ class TestNormalizePhone:
         assert DuplicateDetector.normalize_phone(None) == ""
 
     def test_digits_only(self):
-        assert DuplicateDetector.normalize_phone("1234567890") == "1234567890"
+        assert DuplicateDetector.normalize_phone("1234567890") == "11234567890"
 
     def test_strips_non_digits(self):
-        assert DuplicateDetector.normalize_phone("+1 (555) 123-4567") == "5551234567"
+        assert DuplicateDetector.normalize_phone("+1 (555) 123-4567") == "15551234567"
 
-    def test_returns_last_10_digits_for_long_numbers(self):
-        # Country code + 10-digit number: only last 10 returned
-        assert DuplicateDetector.normalize_phone("15551234567") == "5551234567"
+    def test_preserves_country_code_for_long_numbers(self):
+        # Country code remains part of the identity
+        assert DuplicateDetector.normalize_phone("15551234567") == "15551234567"
 
     def test_short_number_returned_as_is(self):
         assert DuplicateDetector.normalize_phone("12345") == "12345"
 
     def test_exactly_10_digits(self):
-        assert DuplicateDetector.normalize_phone("5551234567") == "5551234567"
+        assert DuplicateDetector.normalize_phone("5551234567") == "15551234567"
 
     def test_strips_dashes_and_spaces(self):
-        assert DuplicateDetector.normalize_phone("555-123-4567") == "5551234567"
+        assert DuplicateDetector.normalize_phone("555-123-4567") == "15551234567"
 
 
 class TestNormalizeDomain:

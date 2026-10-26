@@ -3,11 +3,12 @@
 
   import { SvelteURLSearchParams } from 'svelte/reactivity';
 
+  import { ViewToggle } from '$lib/components/ui/view-toggle';
   import SelectFilter from '$lib/components/ui/filter/SelectFilter.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
-  import { List, Columns3, CalendarDays } from '@lucide/svelte';
+  import { CalendarDays } from '@lucide/svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { onDestroy } from 'svelte';
@@ -74,30 +75,24 @@
         />
       </div>
     {/if}
-    <label class="crm-module-field"
-      ><span class="v2-sr-only">{ui('Status')}</span>
-      <select
-        class="v2-input"
+    <div class="crm-module-field">
+      <SelectFilter
         name="status"
-        aria-label={ui('Status')}
+        label={ui('Status')}
+        allLabel={ui('All statuses')}
         value={url.searchParams.get('status') ?? ''}
-        ><option value="">{ui('All statuses')}</option
-        >{#each ['New', 'In Progress', 'Completed'] as status (status)}<option>{status}</option
-          >{/each}</select
-      ></label
-    >
-    <label class="crm-module-field"
-      ><span class="v2-sr-only">{ui('Priority')}</span>
-      <select
-        class="v2-input"
+        options={['New', 'In Progress', 'Completed'].map((value) => ({ value, label: ui(value) }))}
+      />
+    </div>
+    <div class="crm-module-field">
+      <SelectFilter
         name="priority"
-        aria-label={ui('Priority')}
+        label={ui('Priority')}
+        allLabel={ui('All priorities')}
         value={url.searchParams.get('priority') ?? ''}
-        ><option value="">{ui('All priorities')}</option
-        >{#each ['Low', 'Medium', 'High'] as priority (priority)}<option>{priority}</option
-          >{/each}</select
-      ></label
-    >
+        options={['Low', 'Medium', 'High'].map((value) => ({ value, label: ui(value) }))}
+      />
+    </div>
     <details>
       <summary class="v2-btn">{ui('Filters')}</summary>
       <div class="extra">
@@ -129,25 +124,11 @@
     >
   </form>
   <div class="object-views">
-    <nav class="views" aria-label={ui('Task view')}>
-      <a
-        class="v2-btn v2-btn-icon"
-        class:v2-btn-primary={url.searchParams.get('view') !== 'pipeline'}
-        href={resolve(asInternalPath(viewHref('list')))}
-        aria-label={ui('List view')}
-        title={ui('List')}
-        aria-current={url.searchParams.get('view') !== 'pipeline' ? 'page' : undefined}
-        ><List size={17} /></a
-      ><a
-        class="v2-btn v2-btn-icon"
-        class:v2-btn-primary={url.searchParams.get('view') === 'pipeline'}
-        href={resolve(asInternalPath(viewHref('pipeline')))}
-        aria-label={ui('Pipeline view')}
-        title={ui('Pipeline')}
-        aria-current={url.searchParams.get('view') === 'pipeline' ? 'page' : undefined}
-        ><Columns3 size={17} /></a
-      >
-    </nav>
+    <ViewToggle
+      view={url.searchParams.get('view') ?? 'list'}
+      onchange={(view) =>
+        goto(resolve(asInternalPath(viewHref(view))), { keepFocus: true, noScroll: true })}
+    />
     <a
       class="v2-btn v2-btn-icon"
       href={resolve('/tasks/calendar')}
@@ -170,10 +151,6 @@
     display: block;
     min-width: 0;
     flex: 0 1 10rem;
-  }
-  .views {
-    display: flex;
-    gap: var(--crm-space-1);
   }
   .search-field {
     flex: 1 1 12rem;

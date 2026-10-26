@@ -34,6 +34,8 @@ export async function load({ cookies, url, parent, depends }) {
 
   return {
     view,
+    tags: shell.tags ?? [],
+    people: shell.people ?? [],
     companies: response.results,
     totals: response.totals,
     stages: companyStages,

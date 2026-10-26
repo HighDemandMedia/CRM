@@ -5,7 +5,6 @@ Provides methods to find potential duplicate records based on
 email, phone, name, and other identifying fields.
 """
 
-import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -19,14 +18,9 @@ class DuplicateDetector:
 
     @staticmethod
     def normalize_phone(phone: str) -> str:
-        """
-        Normalize a phone number by removing all non-digit characters.
-        Returns the last 10 digits for comparison purposes.
-        """
-        if not phone:
-            return ""
-        digits_only = re.sub(r"[^\d]", "", phone)
-        return digits_only[-10:] if len(digits_only) >= 10 else digits_only
+        from common.validators import normalize_phone
+
+        return normalize_phone(phone)
 
     @staticmethod
     def normalize_domain(website: str) -> str:

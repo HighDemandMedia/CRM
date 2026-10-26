@@ -38,6 +38,7 @@ export async function load({ cookies, url, parent, depends }) {
 
   return {
     view,
+    tags: shell.tags ?? [],
     deals: response.results,
     totals: response.totals,
     contacts: response.contacts,

@@ -40,9 +40,17 @@
   let assignees = $state(untrack(() => [...(form?.values?.assigned_to ?? [])]));
   let reminder = $state(untrack(() => String(form?.values?.reminder_days ?? '')));
   let values = $derived(form?.values ?? {});
-  let contacts = $state(untrack(() => [...(form?.values?.contacts ?? [])]));
-  let kind = $state(untrack(() => form?.values?.parent_kind ?? ''));
-  let selected = $state(untrack(() => form?.values?.[form?.values?.parent_kind] ?? ''));
+  let contacts = $state(
+    untrack(() => [...(form?.values?.contacts ?? data.defaults?.contacts ?? [])])
+  );
+  let kind = $state(
+    untrack(() => form?.values?.parent_kind ?? (data.defaults?.account ? 'account' : ''))
+  );
+  let selected = $state(
+    untrack(() =>
+      form?.values ? (form.values[form.values.parent_kind] ?? '') : (data.defaults?.account ?? '')
+    )
+  );
 </script>
 
 <PageHeader title={ui('New task')} record center width="62ch">

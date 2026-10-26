@@ -8,6 +8,10 @@ describe('customer demo routes', () => {
       '/contacts',
       '/contacts/123/edit',
       '/accounts/new',
+      '/record-delete/contact/123',
+      '/record-delete/company/123',
+      '/record-delete/deal/123',
+      '/record-associations/company/123',
       '/pipeline/123',
       '/calendar',
       '/tasks',
@@ -34,7 +38,11 @@ describe('customer demo routes', () => {
       '/solutions',
       '/goals',
       '/settings/api-tokens',
-      '/contacts-other'
+      '/contacts-other',
+      '/record-delete',
+      '/record-delete/user/123',
+      '/record-delete/contact/123/extra',
+      '/record-delete-other/contact/123'
     ]) {
       expect(demoPageAllowed(route), route).toBe(false);
     }

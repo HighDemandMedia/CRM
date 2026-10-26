@@ -1,3 +1,4 @@
+import { getCreationSchema } from '$lib/server/v2/creation-forms.js';
 import { apiRequest } from '$lib/api-helpers.js';
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
 import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
@@ -10,10 +11,15 @@ import {
 } from '$lib/server/v2/contacts.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies, params, parent }) {
-  const [contact, options] = await Promise.all([getContact({ cookies }, params.id), parent()]);
+export async function load({ cookies, params, parent, depends }) {
+  depends(`crm:record:Contact:${params.id}`);
+  const [contact, options, propertySchema] = await Promise.all([
+    getContact({ cookies }, params.id),
+    parent(),
+    getCreationSchema({ cookies }, 'Contact')
+  ]);
   if (contact.contact.id !== params.id) redirect(303, `/contacts/${contact.contact.id}`);
-  return { ...contact, hosts: options.people, defaultHost: options.meId };
+  return { ...contact, propertySchema, hosts: options.people, defaultHost: options.meId };
 }
 
 const FLAGS = ['is_active'];

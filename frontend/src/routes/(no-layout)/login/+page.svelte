@@ -276,7 +276,7 @@
     justify-content: center;
     min-height: 3rem;
     padding-inline: var(--crm-space-3);
-    border-radius: var(--crm-radius-md);
+    border-radius: var(--crm-button-radius);
     text-align: center;
     color: var(--crm-link);
     font-size: var(--crm-text-sm);

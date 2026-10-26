@@ -21,10 +21,26 @@ from contacts.models import Contact
 # - Removed 'contact_values' property (unused)
 
 
+class ActiveAccountManager(CRMRecordManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(merged_at__isnull=True)
+
+
 class Account(AssignableMixin, BaseModel):
     file_attachments = GenericRelation("common.Attachments")
 
-    objects = CRMRecordManager()
+    objects = ActiveAccountManager()
+    all_objects = CRMRecordManager()
+    merged_into = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        editable=False,
+        on_delete=models.SET_NULL,
+        related_name="merged_companies",
+    )
+    merged_at = models.DateTimeField(null=True, editable=False)
+    merge_snapshot = models.JSONField(default=dict, editable=False)
     """
     Account model for CRM - Streamlined for modern sales workflow
     Based on Twenty CRM and Salesforce patterns
@@ -125,7 +141,7 @@ class Account(AssignableMixin, BaseModel):
                 Lower("name"),
                 "org",
                 name="unique_account_name_per_org",
-                condition=~Q(name=""),
+                condition=~Q(name="") & Q(merged_at__isnull=True),
             ),
             # Annual revenue must be non-negative
             models.CheckConstraint(

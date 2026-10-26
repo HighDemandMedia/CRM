@@ -21,137 +21,123 @@
   import NotesEditor from '$lib/components/deals/DealNotes.svelte';
   import CreateAppointment from '$lib/v2/components/CreateAppointment.svelte';
   let scheduled = $state(false);
-  import DeleteRecord from '$lib/v2/components/DeleteRecord.svelte';
   import ContactAssociations from '$lib/v2/components/ContactAssociations.svelte';
   import PropertySummary from '$lib/v2/components/PropertySummary.svelte';
-  import { Pencil } from '@lucide/svelte';
   let editingProperties = $state(false);
   import Attachments from '$lib/v2/components/Attachments.svelte';
-  import CompanyForm from '$lib/components/companies/CompanyForm.svelte';
+  import CompanyActions from '$lib/components/companies/CompanyActions.svelte';
   import { invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import PageHeader from '$lib/v2/components/PageHeader.svelte';
-
-  import { ChevronRight, Mail } from '@lucide/svelte';
+  import RecordIdentity from '$lib/v2/components/RecordIdentity.svelte';
+  import { can } from '$lib/v2/permissions.js';
+  let composeRequest = $state(0);
+  function composeEmail() {
+    composeRequest++;
+    recordTab = 'emails';
+  }
 
   /** @type {{ data: any, form?:any }} */
-  let { data, form } = $props();
+  let { data } = $props();
 
   let { account, deals, contacts, tickets } = $derived(data);
+  let editorAccountId = '';
+  $effect(() => {
+    if (editorAccountId === account.id) return;
+    editorAccountId = account.id;
+    editingProperties = false;
+    composeRequest = 0;
+  });
 
   let overdueDeals = $derived(account.overdue_deal_count ?? 0);
 </script>
 
-<PageHeader title={account.name || `Company · ${account.id.slice(0, 8)}`} record>
-  {#snippet crumb()}
-    <a href={resolve('/accounts')}>{ui('Companies')}</a>
-    <ChevronRight size={12} />
-    <span>{account.industry || 'No industry'}</span>
-  {/snippet}
-  {#snippet sub()}
-    {[account.website, account.industry].filter(Boolean).join(' · ')}
-  {/snippet}
-
-  {#snippet actions()}
-    {#if account.email}<a class="v2-btn" href={`mailto:${account.email}`}
-        ><Mail size={15} />{ui('Email')}</a
-      >{/if}
-    <CreateAppointment
-      hosts={data.hosts}
-      defaultHost={data.defaultHost}
-      selected={new Date()}
-      defaultAttendee={{ id: account.id, name: account.name, type: 'company' }}
-      action={`${resolve('/calendar')}?/create`}
-      onCreated={() => {
-        scheduled = true;
-        void invalidateAll();
-      }}
-    />
-  {/snippet}
-</PageHeader>
 {#if scheduled}<div class="scheduled-message" role="status">
     {ui('Event scheduled.')} <a href={resolve('/calendar')}>{ui('View calendar')}</a>
   </div>{/if}
 
 <div class="v2-scroll company-layout">
   <RecordDisclosure class="company-properties" title={ui('Properties')} collapseBelowRem={48}>
-    <div class="properties-heading">
-      <button
-        class="v2-btn"
-        type="button"
-        disabled={editingProperties}
-        onclick={() => (editingProperties = true)}><Pencil size={13} />{ui('Edit')}</button
-      >
-    </div>
-    {#if editingProperties}
-      <CompanyForm
-        data={{ ...data.editor, org: data.org }}
-        result={form}
-        editing
-        inline
-        onCancel={() => (editingProperties = false)}
-        onSaved={async () => {
-          await invalidateAll();
-          editingProperties = false;
-        }}
-      />
-    {:else}
-      <PropertySummary
+    {#snippet header()}
+      <RecordIdentity
+        name={account.name || `Company · ${account.id.slice(0, 8)}`}
+        email={account.email || ''}
+        phone={account.phone || ''}
+        backHref="/accounts"
+        backLabel="Companies"
+        onedit={can(page.data.permissions, 'companies', 'edit')
+          ? () => (editingProperties = true)
+          : undefined}
+        editing={editingProperties}
+        onclose={() => (editingProperties = false)}
         target="Account"
         record={account}
-        tags={account.tags}
-        entries={[
-          ['Name', account.name],
-          ['Last Activity', exactTime(account.last_activity_at)],
-          ['Owner', data.owners?.join(', ') || '—'],
-          ['Phone', account.phone || '—'],
-          ['Email', account.email || '—'],
-          [
-            'Preferred Communication Channel',
-            { SMS: 'SMS', CALL: 'Call', EMAIL: 'Email' }[account.preferred_communication_channel] ||
-              '—'
-          ],
-          ['Tags', data.tags?.join(', ') || '—'],
-          ['Domain', account.website || '—'],
-          ['Language', account.language || '—'],
-          ['Industry', account.industry || '—'],
-          ['Number of employees', account.number_of_employees],
-          [
-            'Annual revenue',
-            account.annual_revenue != null ? money(account.annual_revenue, account.currency) : '—'
-          ],
-          ['Source', account.source_label || '—'],
-          [
-            'Stage',
-            configuredLabel(
-              page.data.pipelineConfig,
-              'Account',
-              account.stage,
-              account.stage_label
-            ) || '—'
-          ],
-          ['Appointment', account.appointment_at ? exactTime(account.appointment_at) : '—'],
-          ['Address', data.editor.form.address_line || '—'],
-          ['City', account.city || '—'],
-          ['State', data.editor.form.state || '—'],
-          ['Zip Code', data.editor.form.postcode || '—'],
-          ['Country', account.country_display || '—']
-        ]}
-      />
-      {#if account.pages?.length}<div class="property-pages">
-          <span>{ui('Pages')}</span>{#each account.pages as page (page)}<a
-              href={page.url}
-              target="_blank"
-              rel="external noopener noreferrer">{page.name || page.url}</a
-            >{/each}
-        </div>{/if}
-    {/if}
-    <DeleteRecord kind="company" id={account.id} />
+        schema={data.propertySchema}
+        onemail={composeEmail}
+      >
+        {#snippet actions()}
+          <CompanyActions company={account} disabled={editingProperties} />
+          <CreateAppointment
+            hosts={data.hosts}
+            defaultHost={data.defaultHost}
+            selected={new Date()}
+            defaultAttendee={{ id: account.id, name: account.name, type: 'company' }}
+            action={`${resolve('/calendar')}?/create`}
+            onCreated={() => {
+              scheduled = true;
+              void invalidateAll();
+            }}
+          />
+        {/snippet}
+      </RecordIdentity>
+    {/snippet}
+    <PropertySummary
+      schema={data.propertySchema}
+      target="Account"
+      record={account}
+      tags={account.tags}
+      entries={[
+        ['Last Activity', exactTime(account.last_activity_at)],
+        ['Owner', data.owners?.join(', ') || '—'],
+        [
+          'Preferred Communication Channel',
+          { SMS: 'SMS', CALL: 'Call', EMAIL: 'Email' }[account.preferred_communication_channel] ||
+            '—'
+        ],
+        ['Tags', data.tags?.join(', ') || '—'],
+        ['Domain', account.website || '—', 'website'],
+        ['Language', account.language || '—'],
+        ['Industry', account.industry || '—'],
+        ['Number of employees', account.number_of_employees],
+        [
+          'Annual revenue',
+          account.annual_revenue != null ? money(account.annual_revenue, account.currency) : '—'
+        ],
+        ['Source', account.source_label || '—'],
+        [
+          'Stage',
+          configuredLabel(
+            page.data.pipelineConfig,
+            'Account',
+            account.stage,
+            account.stage_label
+          ) || '—'
+        ],
+        ['Appointment', account.appointment_at ? exactTime(account.appointment_at) : '—'],
+        ['Address', account.address_line || '—'],
+        ['City', account.city || '—'],
+        ['State', account.state || '—'],
+        ['Zip Code', account.postcode || '—'],
+        ['Country', account.country_display || '—'],
+        ['Currency', account.currency],
+        ['Pages', account.pages?.map((p) => p.name || p.url).join(', ') || '—']
+      ]}
+    />
   </RecordDisclosure>
   <div class="v2-pad company-content" style="padding-bottom:32px">
     <div class="company-workspace">
       <section class="v2-card" style="padding:16px">
         <ContactAssociations
+          collapsible
           contactId={account.id}
           parentKind="company"
           kind="contact"
@@ -164,6 +150,7 @@
       </section>
       <section class="v2-card" style="padding:16px">
         <ContactAssociations
+          collapsible
           contactId={account.id}
           parentKind="company"
           kind="deal"
@@ -188,10 +175,12 @@
           {#snippet emails()}{#key account.id}<RecordEmails
                 active={recordTab === 'emails'}
                 kind="company"
+                recipient={account.email || ''}
                 id={account.id}
                 {contacts}
                 initialThread={selectedThread}
                 initialRequest={conversationRequest}
+                {composeRequest}
               />{/key}{/snippet}
           {#snippet notes()}{#key account.id}<NotesEditor
                 notes={data.activity ?? []}
@@ -211,21 +200,18 @@
             </div>{/snippet}
         </RecordTabs>
       </section>
-      <details class="v2-card company-secondary">
-        <summary>{ui('Attachments')} <span>{data.attachments.length}</span></summary>
-        <div class="secondary-content"><Attachments attachments={data.attachments} /></div>
-      </details>
-      <details class="v2-card company-secondary">
-        <summary>{ui('Tickets')} <span>{tickets.length}</span></summary>
-        <div class="secondary-content">
-          <ContactAssociations
-            contactId={account.id}
-            parentKind="company"
-            kind="ticket"
-            items={tickets}
-          />
-        </div>
-      </details>
+      <section class="v2-card company-secondary">
+        <Attachments attachments={data.attachments} collapsible />
+      </section>
+      <section class="v2-card company-secondary">
+        <ContactAssociations
+          collapsible
+          contactId={account.id}
+          parentKind="company"
+          kind="ticket"
+          items={tickets}
+        />
+      </section>
     </div>
   </div>
 </div>
@@ -234,23 +220,6 @@
   .scheduled-message {
     padding: var(--crm-space-2) var(--crm-space-6);
     font-size: var(--crm-text-sm);
-  }
-  .properties-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: var(--crm-space-4);
-  }
-  .property-pages {
-    display: grid;
-    gap: var(--crm-space-2);
-    font-size: var(--crm-text-sm);
-    overflow-wrap: anywhere;
-  }
-  .property-pages > span {
-    font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
   }
 
   .company-layout {
@@ -301,20 +270,8 @@
   .deal-totals .overdue {
     color: var(--crm-danger);
   }
-  .company-secondary > summary {
-    cursor: pointer;
-    padding: 14px var(--crm-space-4);
-    font-size: var(--crm-text-sm);
-    font-weight: 600;
-  }
-  .company-secondary > summary span {
-    margin-left: var(--crm-space-2);
-    font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
-    font-weight: 400;
-  }
-  .secondary-content {
-    padding: 0 var(--crm-space-4) var(--crm-space-4);
+  .company-secondary {
+    padding: 16px;
   }
   @container crm-workspace (max-width: 48rem) {
     .company-layout {

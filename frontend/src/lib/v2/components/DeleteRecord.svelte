@@ -7,8 +7,8 @@
   import { can } from '$lib/v2/permissions.js';
   import { resolve } from '$app/paths';
   import { goto } from '$app/navigation';
-  /** @type {{kind:'contact'|'company'|'deal',id:string}} */
-  let { kind, id } = $props();
+  /** @type {{kind:'contact'|'company'|'deal',id:string,showTrigger?:boolean}} */
+  let { kind, id, showTrigger = true } = $props();
   let dialog;
   let loading = $state(false),
     busy = $state(false),
@@ -17,7 +17,15 @@
   let includeAssociated = $state(false);
   let impact = $state(/** @type {any} */ (null));
   const endpoint = $derived(resolve(`/record-delete/${kind}/${id}`));
-  async function open() {
+  export async function open() {
+    if (
+      !can(
+        page.data.permissions,
+        { contact: 'contacts', company: 'companies', deal: 'deals' }[kind],
+        'delete'
+      )
+    )
+      return;
     includeAssociated = false;
     dialog.showModal();
     await preview();
@@ -29,7 +37,9 @@
     loading = true;
     try {
       const response = await fetch(`${endpoint}?include_associated=${includeAssociated}`);
-      const data = await response.json();
+      const data = await response.json().catch(() => {
+        throw new Error('Could not load deletion details.');
+      });
       if (!response.ok) throw new Error(data.message);
       impact = data;
     } catch (err) {
@@ -49,7 +59,9 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: impact.token, confirmation })
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => {
+        throw new Error('Could not delete this record.');
+      });
       if (!response.ok) throw new Error(data.message);
       dialog.close();
       await goto(
@@ -64,7 +76,7 @@
   }
 </script>
 
-{#if can(page.data.permissions, { contact: 'contacts', company: 'companies', deal: 'deals' }[kind], 'delete')}<button
+{#if showTrigger && can(page.data.permissions, { contact: 'contacts', company: 'companies', deal: 'deals' }[kind], 'delete')}<button
     class="v2-btn delete-trigger"
     type="button"
     onclick={open}>{ui('Delete')}</button

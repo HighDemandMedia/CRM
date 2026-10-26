@@ -1,4 +1,6 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
+  import PhoneInput from '$lib/components/PhoneInput.svelte';
   import { resolve } from '$app/paths';
 
   import {
@@ -8,13 +10,22 @@
     propertyPlaceholder
   } from '$lib/v2/custom-field-input.js';
   import { useI18n } from '$lib/i18n/context.js';
-  const { ui } = useI18n();
+  const { ui, locale } = useI18n();
 
   import { countryOptions } from '$lib/constants/countries.js';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
+  import ChoiceList from '$lib/v2/components/ChoiceList.svelte';
   import TagPicker from '$lib/v2/components/TagPicker.svelte';
-  /** @type {{field:any,target?:string,value?:any,required?:boolean}} */
-  let { field, target = '', value = $bindable(''), required = true } = $props();
+  /** @type {{field:any,target?:string,value?:any,required?:boolean,compact?:boolean,onbusy?:(busy:boolean)=>void,oncommit?:()=>void}} */
+  let {
+    field,
+    target = '',
+    value = $bindable(''),
+    required = true,
+    compact = false,
+    onbusy = () => {},
+    oncommit = () => {}
+  } = $props();
   let options = $state([]),
     search = $state(''),
     error = $state(''),
@@ -22,6 +33,12 @@
   let multiple = $derived(
     field.multiple === true || field.multiple === 'True' || field.field_type === 'multi_select'
   );
+  let canCreateTags = $state(false),
+    creatingTag = $state(false);
+  $effect(() => {
+    const active = creatingTag;
+    untrack(() => onbusy(active));
+  });
   let sequence = 0,
     timer;
   async function load() {
@@ -36,6 +53,7 @@
       if (current !== sequence) return;
       if (!response.ok) throw new Error(body.error);
       options = body.options;
+      canCreateTags = body.canCreateTags === true;
     } catch (e) {
       if (current === sequence) error = e.message;
     } finally {
@@ -50,11 +68,16 @@
     };
   });
   let choices = $derived(
-    field.key === 'country'
-      ? countryOptions(value)
-      : field.relation
-        ? options
-        : (field.options || []).map((o) => (typeof o === 'string' ? { value: o, label: o } : o))
+    field.field_type === 'checkbox'
+      ? [
+          { value: 'true', label: ui('Yes') },
+          { value: 'false', label: ui('No') }
+        ]
+      : field.key === 'country'
+        ? countryOptions(value, locale())
+        : field.relation
+          ? options
+          : (field.options || []).map((o) => (typeof o === 'string' ? { value: o, label: o } : o))
   );
   let kind = $derived(
     field.field_type === 'datetime' ? 'datetime-local' : fieldInputType(field.field_type)
@@ -67,7 +90,7 @@
   });
 </script>
 
-<div class="requirement-field" data-property-control>
+<div class="requirement-field" class:compact data-property-control>
   {#if field.is_read_only === true || field.is_read_only === 'True'}
     <strong>{field.label}</strong>
     <p>
@@ -76,11 +99,11 @@
       )}
     </p>
   {:else}
-    <label for={`requirement-${field.key}`}
+    <label class:sr-only={compact} for={`requirement-${field.key}`}
       >{field.label}
       {#if required}<span>*</span>{/if}</label
     >
-    {#if field.relation && field.relation !== 'Tags'}<input
+    {#if !compact && field.relation && field.relation !== 'Tags'}<input
         class="v2-input"
         aria-label={`Search ${field.label}`}
         placeholder={ui('Search by name…')}
@@ -98,6 +121,8 @@
           name: option.label,
           color: option.color
         }))}
+        canCreate={compact && canCreateTags}
+        bind:creating={creatingTag}
         bind:selected={value}
         onSearch={(query) => {
           search = query;
@@ -132,6 +157,36 @@
         class="v2-btn"
         onclick={() => (value = [...(value || []), { name: '', url: '' }])}>{ui('Add page')}</button
       >
+    {:else if !compact && !field.custom && ['country', 'currency'].includes(field.key)}
+      <SearchableSelect
+        id={`requirement-${field.key}`}
+        name={field.name ?? field.key}
+        bind:value
+        {required}
+        label={field.label}
+        options={choices}
+        placeholder={ui('Select…')}
+      />
+    {:else if compact && (field.relation || ['dropdown', 'multi_select', 'checkbox'].includes(field.field_type))}
+      <ChoiceList
+        options={multiple ? choices : [{ value: '', label: ui('Select…') }, ...choices]}
+        {value}
+        {multiple}
+        label={field.label}
+        bind:query={search}
+        {loading}
+        {error}
+        onsearch={() => {
+          if (field.relation) {
+            clearTimeout(timer);
+            timer = setTimeout(load, 250);
+          }
+        }}
+        onchange={(next) => {
+          value = next;
+          if (!multiple) oncommit();
+        }}
+      />
     {:else if field.relation || ['dropdown', 'multi_select'].includes(field.field_type)}
       {#if multiple}<div class="options">
           {#each choices as option (option.value)}<label
@@ -164,6 +219,13 @@
           value="false">{ui('No')}</option
         ></select
       >
+    {:else if field.field_type === 'phone'}
+      <PhoneInput
+        id={`requirement-${field.key}`}
+        name={field.name ?? field.key}
+        bind:value
+        {required}
+      />
     {:else if ['textarea', 'list'].includes(field.field_type)}<textarea
         id={`requirement-${field.key}`}
         class="v2-input"
@@ -186,13 +248,25 @@
         placeholder={ui(propertyPlaceholder(field, target))}
         step={fieldInputStep(field.field_type)}
       />{/if}
-    {#if loading}<small>{ui('Loading options…')}</small>{:else if error}<small role="alert"
+    {#if loading && (!compact || field.relation === 'Tags')}<small>{ui('Loading options…')}</small
+      >{:else if error && (!compact || field.relation === 'Tags')}<small role="alert"
         >{ui(error)}</small
       >{/if}
   {/if}
 </div>
 
 <style>
+  .requirement-field.compact {
+    margin-bottom: 0;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
   .page-link {
     display: grid;
     grid-template-columns: 1fr auto;

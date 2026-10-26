@@ -6,7 +6,7 @@
   import { useI18n } from '$lib/i18n/context.js';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { CURRENCY_CODES } from '$lib/constants/filters.js';
-  import { countryOptions } from '$lib/constants/countries.js';
+  import CountrySelect from '$lib/components/CountrySelect.svelte';
   const { ui } = useI18n();
   let { data, form } = $props();
   let busy = $state(false);
@@ -116,17 +116,12 @@
                 >{/each}
             </select>
             <label for="setup-country">{ui('Country')} ({ui('Optional')})</label>
-            <select
+            <CountrySelect
               id="setup-country"
               name="default_country"
-              class="v2-input"
+              label="Default country"
               value={values.default_country || ''}
-            >
-              <option value="">{ui('Select country')}</option>
-              {#each countryOptions(values.default_country) as country (country.value)}<option
-                  value={country.value}>{country.label}</option
-                >{/each}
-            </select>
+            />
           {:else}
             <label for="setup-language">{ui('CRM language')}</label>
             <select

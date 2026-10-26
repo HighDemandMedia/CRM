@@ -241,10 +241,10 @@
     background-color var(--crm-duration),
     border-color var(--crm-duration),
     color var(--crm-duration);
-  border: 1px solid var(--crm-control-border);
-  background: var(--v2-card);
+  border: 1px solid var(--crm-border);
+  background: var(--crm-surface-subtle);
   color: var(--v2-ink);
-  border-radius: var(--crm-radius-md);
+  border-radius: var(--crm-button-radius);
   padding: var(--crm-control-padding-y) var(--crm-control-padding-x);
   font-family: inherit;
   font-size: var(--crm-text-sm);
@@ -263,8 +263,11 @@
   flex-shrink: 0;
   stroke-width: 2;
 }
-.v2-btn:hover {
-  border-color: var(--v2-slate);
+.v2-btn:hover:not(:disabled) {
+  border-color: var(--crm-control-border);
+}
+.v2-btn:not(.v2-btn-primary):not(.v2-btn-quiet):hover:not(:disabled) {
+  background: var(--crm-surface-secondary);
 }
 /* The only ember button. One per view. */
 .v2-btn-primary {
@@ -291,7 +294,7 @@
   min-height: 2rem;
   padding: var(--crm-space-1) var(--crm-space-3);
   font-size: var(--crm-text-xs);
-  border-radius: var(--crm-radius-md);
+  border-radius: var(--crm-button-radius);
 }
 .v2-btn:disabled {
   opacity: 0.65;
@@ -1932,6 +1935,9 @@ select.v2-input[size='1']:not([multiple]):dir(rtl) {
 }
 
 @container crm-workspace (min-width: 72rem) {
+  .v2-root .contact-profile {
+    grid-template-columns: minmax(16rem, 18rem) minmax(0, 1fr) minmax(16rem, 18rem);
+  }
   .v2-root .contact-profile > .properties {
     grid-column: 1;
     grid-row: 1;
@@ -2060,5 +2066,115 @@ select.v2-input[size='1']:not([multiple]):dir(rtl) {
   .v2-root .v2-input {
     min-height: var(--crm-target-size);
     font-size: var(--crm-text-base);
+  }
+}
+
+/* Keep record editor actions available within the scrolling properties panel. */
+.v2-root .v2-form > .record-form-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* These menus are portalled outside .v2-root; keep the compact record sizing. */
+.record-actions-menu[data-slot='dropdown-menu-content'] {
+  width: var(--bits-dropdown-menu-anchor-width);
+  min-width: max-content;
+  padding: 3px;
+}
+.record-actions-menu [data-slot='dropdown-menu-item'] {
+  min-height: 30px;
+  padding: 5px 7px;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 18px;
+}
+.record-actions-menu [data-slot='dropdown-menu-item'] svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Side panels follow their content instead of leaving a full-height empty card. */
+.v2-root .contact-profile > .contact-relations {
+  align-self: start;
+  max-height: 100%;
+}
+.v2-root .contact-relations > .profile-section {
+  margin-bottom: var(--crm-space-3);
+  padding-bottom: var(--crm-space-3);
+  border-bottom: 1px solid var(--v2-line-soft);
+}
+.v2-root .contact-relations > .profile-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+@container crm-workspace (max-width: 72rem) {
+  .v2-root .contact-profile > .contact-relations {
+    flex: none;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    padding: var(--crm-space-2) var(--crm-space-4);
+  }
+  .v2-root .contact-profile > .record-disclosure {
+    max-height: none;
+  }
+}
+
+/* Settings and reports use the same capsule controls as object toolbars. */
+.crm-pill-controls .v2-input:where(input, select):not([multiple]) {
+  border-radius: var(--crm-button-radius);
+}
+
+.crm-settings-content {
+  width: 100%;
+  max-width: 1000px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* A shared, compact form surface for personal and organization settings. */
+.v2-root .crm-settings-fields .v2-input {
+  min-height: 42px;
+  border: 1px solid var(--crm-control-border);
+  border-radius: var(--crm-radius-md);
+  padding: var(--crm-control-padding-y) var(--crm-control-padding-x);
+  background-color: var(--crm-surface-subtle);
+  box-shadow: none;
+}
+.v2-root .crm-settings-fields .v2-input:focus {
+  outline: 2px solid var(--crm-focus);
+  outline-offset: 1px;
+  border-color: var(--crm-focus);
+  background-color: var(--crm-surface);
+}
+.v2-root .crm-settings-fields .v2-input:is(.v2-input-invalid, [aria-invalid='true']) {
+  border-color: var(--crm-danger);
+}
+.v2-root .crm-settings-fields .v2-input:is([readonly], :disabled) {
+  color: var(--crm-text-muted);
+  background-color: var(--crm-canvas);
+}
+.crm-settings-fields {
+  container-type: inline-size;
+}
+.crm-settings-fields .crm-settings-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--crm-space-2);
+  margin-top: var(--crm-space-4);
+  padding-block: var(--crm-space-3);
+  border-top: 1px solid var(--crm-border-soft);
+  background: var(--crm-surface);
+  box-shadow: 0 -8px 12px -12px var(--crm-text-muted);
+}
+@media (max-width: 767px), (pointer: coarse) {
+  .v2-root .crm-settings-fields .v2-input {
+    min-height: var(--crm-target-size);
   }
 }

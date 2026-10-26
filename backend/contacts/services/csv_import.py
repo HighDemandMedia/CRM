@@ -11,8 +11,8 @@ Duplicate policy (per org):
                 row-level message instead of an IntegrityError at commit).
   * phone: hard error. There is no DB constraint, but most callers
                 consider phone a unique identifier in practice. We normalize
-                using `common.validators.normalize_phone` (digits-only, last
-                10) so "+1 (202) 555-1234" matches "2025551234".
+                using `common.validators.normalize_phone` (country-aware, all
+                digits) so "+1 (202) 555-1234" matches "2025551234".
   * full name. Hard error ONLY when the row has neither email nor phone to
                 disambiguate from an existing same-named contact. Two people
                 can legitimately share a name when other identifiers differ.
@@ -39,8 +39,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError as APIValidationError
 
 from accounts.models import Account
-from common.custom_fields import PHONE_ERROR, valid_phone
 from common.models import Profile, Tags, Teams
+from common.phone_numbers import PHONE_ERROR, phone_e164, valid_phone
 from common.pipeline_settings import validate_entry
 from common.settings_access import can_create_tags
 from common.utils import COUNTRIES
@@ -490,6 +490,7 @@ def _validate_and_build(
                 )
             )
         else:
+            phone = phone_e164(phone)
             normalized_phone = normalize_phone(phone)
             if normalized_phone:
                 prior = seen_phones.get(normalized_phone)

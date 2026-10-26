@@ -6,9 +6,43 @@
   import * as Dialog from '$lib/components/ui/dialog/index.js';
   import { goto, invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
+  import { asInternalPath } from '$lib/utils/paths.js';
   import { ArrowLeftRight, Search } from '@lucide/svelte';
-  /** @type {{contact:any, onClose:()=>void}} */
-  let { contact, onClose } = $props();
+  /** @type {{record:any, kind?:'contact'|'company', onClose:()=>void}} */
+  let { record, kind = 'contact', onClose } = $props();
+  const config = {
+    contact: {
+      path: 'contacts',
+      title: 'Merge contacts',
+      description: 'Choose which values to keep in the surviving contact.',
+      search: 'Find contact to merge',
+      empty: 'No matching contacts.',
+      keep: 'Keep this contact and its ID',
+      swap: 'Switch primary contact',
+      same: 'Both contacts have the same properties.',
+      consequences:
+        'Notes, files, activity, tags, owners and associations will be combined. The secondary contact will be archived and its old links will open the primary. Its portal access will end. There is no automatic undo.',
+      confirm: 'I confirm these records represent the same contact.',
+      another: 'Choose another contact',
+      find: 'Find the contact to merge with {name}.'
+    },
+    company: {
+      path: 'accounts',
+      title: 'Merge companies',
+      description: 'Choose which values to keep in the surviving company.',
+      search: 'Find company to merge',
+      empty: 'No matching companies.',
+      keep: 'Keep this company and its ID',
+      swap: 'Switch primary company',
+      same: 'Both companies have the same properties.',
+      consequences:
+        'Notes, files, activity, tags, owners and associations will be combined. The secondary company will be archived and its old links will open the primary. There is no automatic undo.',
+      confirm: 'I confirm these records represent the same company.',
+      another: 'Choose another company',
+      find: 'Find the company to merge with {name}.'
+    }
+  };
+  let labels = $derived(config[kind]);
   let open = $state(true),
     query = $state(''),
     results = $state(/** @type {any[]} */ ([]));
@@ -31,14 +65,14 @@
     const timer = setTimeout(async () => {
       try {
         const response = await fetch(
-          `/api/contacts/${contact.id}/merge/?q=${encodeURIComponent(text)}`,
+          `/api/${labels.path}/${record.id}/merge/?q=${encodeURIComponent(text)}`,
           { signal: controller.signal }
         );
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
         if (!controller.signal.aborted) results = data.results;
       } catch (err) {
-        if (!controller.signal.aborted) error = err.message || 'Could not find contacts.';
+        if (!controller.signal.aborted) error = err.message || 'Could not find records.';
       } finally {
         if (!controller.signal.aborted) searching = false;
       }
@@ -48,19 +82,19 @@
       controller.abort();
     };
   });
-  async function compare(secondary, primary = contact.id) {
+  async function compare(secondary, primary = record.id) {
     busy = true;
     error = '';
     confirmed = false;
     try {
-      const response = await fetch(`/api/contacts/${primary}/merge/?secondary=${secondary}`);
+      const response = await fetch(`/api/${labels.path}/${primary}/merge/?secondary=${secondary}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       primaryId = primary;
       preview = data;
       choices = Object.fromEntries(data.properties.map((row) => [row.key, row.default]));
     } catch (err) {
-      error = err.message || 'Could not compare contacts.';
+      error = err.message || 'Could not compare records.';
     } finally {
       busy = false;
     }
@@ -70,7 +104,7 @@
     busy = true;
     error = '';
     try {
-      const response = await fetch(`/api/contacts/${primaryId}/merge/`, {
+      const response = await fetch(`/api/${labels.path}/${primaryId}/merge/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: preview.token, choices, confirm: true })
@@ -79,10 +113,10 @@
       if (!response.ok) throw new Error(data.error);
       open = false;
       onClose();
-      await goto(resolve(`/contacts/${data.id}`));
+      await goto(resolve(asInternalPath(`/${labels.path}/${data.id}`)));
       await invalidateAll();
     } catch (err) {
-      error = err.message || 'Could not merge contacts.';
+      error = err.message || 'Could not merge records.';
     } finally {
       busy = false;
     }
@@ -114,18 +148,18 @@
     }}
   >
     <Dialog.Header>
-      <Dialog.Title>{ui('Merge contacts')}</Dialog.Title>
+      <Dialog.Title>{ui(labels.title)}</Dialog.Title>
       <Dialog.Description
         >{preview
-          ? ui('Choose which values to keep in the surviving contact.')
-          : `Find the contact to merge with ${contact.name}.`}</Dialog.Description
+          ? ui(labels.description)
+          : ui(labels.find).replace('{name}', record.name)}</Dialog.Description
       >
     </Dialog.Header>
     {#if !preview}
       <label class="search"
         ><Search size={16} /><input
           class="v2-input"
-          aria-label={ui('Find contact to merge')}
+          aria-label={ui(labels.search)}
           placeholder={ui('Search name, email or phone…')}
           bind:value={query}
           disabled={busy}
@@ -138,19 +172,20 @@
                 >{[result.email, result.phone].filter(Boolean).join(' · ') || result.id}</span
               ></button
             >
-          {:else}{#if query.trim().length >= 2}<p>{ui('No matching contacts.')}</p>{/if}{/each}{/if}
+          {:else}{#if query.trim().length >= 2}<p>{ui(labels.empty)}</p>{/if}{/each}{/if}
       </div>
     {:else}
       <div class="records">
         <div>
-          <small>{ui('Keep this contact and its ID')}</small><strong>{preview.primary.name}</strong
-          ><span>{preview.primary.id.slice(0, 8)}…{preview.primary.id.slice(-4)}</span>
+          <small>{ui(labels.keep)}</small><strong>{preview.primary.name}</strong><span
+            >{preview.primary.id.slice(0, 8)}…{preview.primary.id.slice(-4)}</span
+          >
         </div>
         <button
           class="v2-btn"
           disabled={busy}
-          aria-label={ui('Switch primary contact')}
-          title={ui('Switch primary contact')}
+          aria-label={ui(labels.swap)}
+          title={ui(labels.swap)}
           onclick={() => compare(preview.primary.id, preview.secondary.id)}
           ><ArrowLeftRight size={16} /></button
         >
@@ -179,16 +214,14 @@
                 >{/each}
             </div>
           </fieldset>
-        {:else}<p>{ui('Both contacts have the same properties.')}</p>{/each}
+        {:else}<p>{ui(labels.same)}</p>{/each}
       </div>
       <div class="consequences">
-        {ui(
-          'Notes, files, activity, tags, owners and associations will be combined. The secondary contact will be archived and its old links will open the primary. Its portal access will end. There is no automatic undo.'
-        )}
+        {ui(labels.consequences)}
       </div>
       <label class="confirmation"
         ><input type="checkbox" bind:checked={confirmed} disabled={busy} />{ui(
-          'I confirm these records represent the same contact.'
+          labels.confirm
         )}</label
       >
     {/if}
@@ -215,9 +248,9 @@
             preview = null;
             confirmed = false;
             error = '';
-          }}>{ui('Choose another contact')}</button
+          }}>{ui(labels.another)}</button
         ><button class="v2-btn v2-btn-primary" disabled={busy || !confirmed} onclick={merge}
-          >{busy ? ui('Merging…') : ui('Merge contacts')}</button
+          >{busy ? ui('Merging…') : ui(labels.title)}</button
         >{/if}
     </Dialog.Footer>
   </Dialog.Content>

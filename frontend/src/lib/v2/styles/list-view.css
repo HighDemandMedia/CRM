@@ -147,7 +147,10 @@
   text-decoration: underline;
 }
 .hdm-list.hdm-list .list-row-actions {
+  width: 100px;
+  padding-inline: 8px;
   white-space: nowrap;
+  text-overflow: clip;
 }
 .hdm-list.hdm-list .list-row-actions a {
   display: inline-flex;
@@ -319,13 +322,6 @@
   gap: var(--crm-space-2);
   margin-left: auto;
 }
-@container crm-workspace (max-width: 72rem) {
-  .object-toolbar .view-actions,
-  .object-filters .object-views,
-  .task-toolbar .object-views {
-    flex-basis: 100%;
-  }
-}
 @media (max-width: 700px) {
   .object-toolbar .view-actions,
   .object-filters .object-views,
@@ -356,7 +352,7 @@
   padding: 0;
   gap: 0;
 }
-.crm-list-workspace.is-list {
+.crm-list-workspace {
   background: var(--crm-surface);
   border: 1px solid var(--crm-border-soft);
   border-radius: var(--crm-radius-lg);
@@ -402,4 +398,121 @@
   .crm-list-workspace .list-scroll > .pagination {
     padding-bottom: var(--crm-space-2);
   }
+}
+
+/* Compact shared toolbar, with touch targets retained on mobile. */
+.crm-list-workspace :is(.object-toolbar, .object-filters, .task-toolbar) {
+  align-items: center;
+  gap: 6px;
+  padding-block: 8px;
+}
+.crm-list-workspace .owner-filter,
+.crm-list-workspace .task-toolbar .crm-module-field:not(.search-field) {
+  flex: 0 1 8.5rem;
+  max-width: 9rem;
+  min-width: 0;
+}
+.crm-list-workspace :is(.object-toolbar, .object-filters, .task-toolbar) .searchable-filter {
+  gap: 6px;
+  padding-inline: 10px;
+}
+.crm-list-workspace .object-filters > .search,
+.crm-list-workspace .task-toolbar .search-field {
+  flex: 0 1 12rem;
+  min-width: 0;
+}
+.crm-list-workspace :is(.object-toolbar, .object-filters, .task-toolbar) :is(.v2-btn, .v2-input) {
+  min-height: 34px;
+  height: 34px;
+  font-size: var(--crm-text-sm);
+}
+.hdm-list.hdm-list th.column-tools-heading {
+  overflow: visible;
+  position: sticky;
+  right: 0;
+  z-index: 5;
+  width: 100px;
+  min-width: 100px;
+  padding-inline: 8px;
+  background: var(--crm-surface-subtle);
+  box-shadow: -1px 0 var(--crm-border-soft);
+}
+.hdm-list.hdm-list tbody td:last-child:not([colspan]) {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: var(--crm-surface);
+  box-shadow: -1px 0 var(--crm-border-soft);
+}
+.hdm-list.hdm-list tbody tr:hover td:last-child:not([colspan]) {
+  background: var(--crm-surface-subtle);
+}
+.column-tools {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 2px;
+}
+/* The collapsed action rail has no row controls. Place settings in that white
+   space without increasing the height of every property heading. */
+.actions-hidden .column-tools .column-picker-settings {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 6px;
+  background: var(--crm-surface);
+}
+@media (max-width: 700px), (pointer: coarse) {
+  .crm-list-workspace :is(.object-toolbar, .object-filters, .task-toolbar) :is(.v2-btn, .v2-input) {
+    min-height: 40px;
+    height: 40px;
+  }
+  .crm-list-workspace .owner-filter,
+  .crm-list-workspace .task-toolbar .crm-module-field:not(.search-field) {
+    flex: 0 1 auto;
+    max-width: none;
+  }
+}
+
+/* Filter pills distinguish criteria from primary actions without heavy boxes. */
+.crm-list-workspace :is(.object-toolbar, .object-filters, .task-toolbar) .searchable-filter,
+.crm-list-workspace .object-toolbar > label > input[type='search'],
+.crm-list-workspace .object-filters > .search,
+.crm-list-workspace .task-toolbar .search-field input,
+.crm-list-workspace :is(.object-toolbar, .task-toolbar) details > summary {
+  border-radius: 999px;
+  border-color: transparent;
+  background: var(--crm-surface-subtle);
+  padding-inline: 12px;
+  box-shadow: none;
+}
+.crm-list-workspace :is(.object-toolbar, .object-filters, .task-toolbar) .searchable-filter:hover,
+.crm-list-workspace
+  :is(.object-toolbar, .object-filters, .task-toolbar)
+  .searchable-filter[aria-expanded='true'],
+.crm-list-workspace :is(.object-toolbar, .task-toolbar) details[open] > summary {
+  background: var(--crm-surface-secondary);
+  border-color: var(--crm-control-border);
+}
+
+/* Keep column settings reachable when row actions are hidden. */
+.hdm-list.hdm-list th.column-tools-heading.actions-hidden,
+.hdm-list.hdm-list td.list-row-actions.actions-hidden {
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  padding-inline: 6px;
+}
+
+/* Auto-layout task/ticket tables give spare width to data, not action cells. */
+.object-table.hdm-list.hdm-list th.column-tools-heading,
+.object-table.hdm-list.hdm-list td.list-row-actions {
+  width: 1%;
+  min-width: 100px;
+  max-width: 100px;
+}
+.object-table.hdm-list.hdm-list th.column-tools-heading.actions-hidden,
+.object-table.hdm-list.hdm-list td.list-row-actions.actions-hidden {
+  min-width: 44px;
+  max-width: 44px;
 }

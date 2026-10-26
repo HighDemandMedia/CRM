@@ -128,13 +128,6 @@
 <div class="object-workspace crm-list-workspace" class:is-list={!pipeline}>
   <TaskFilters url={page.url} people={data.people}>
     {#snippet columnTools()}
-      {#if !pipeline}<ColumnPicker
-          {fields}
-          selected={columns}
-          onToggle={(key) => selection.toggle(key)}
-          onShowAll={selection.showAll}
-          onReset={selection.reset}
-        />{/if}
       {#if can(page.data.permissions, 'tasks', 'export')}<ExportDialog
           endpoint={resolve('/tasks/export')}
           {columns}
@@ -258,7 +251,23 @@
                     >{fields.find(([id]) => id === key)?.[1]}</button
                   ></th
                 >{/each}
-              <th>{ui('Actions')}</th>
+              <th
+                scope="col"
+                class="column-tools-heading"
+                aria-label={ui('Actions')}
+                class:actions-hidden={!selection.actionsVisible}
+                ><div class="column-tools">
+                  <ColumnPicker
+                    actionsVisible={selection.actionsVisible}
+                    onActionsChange={selection.setActions}
+                    {fields}
+                    selected={columns}
+                    onToggle={(key) => selection.toggle(key)}
+                    onShowAll={selection.showAll}
+                    onReset={selection.reset}
+                  />
+                </div></th
+              >
             </tr>
           </thead>
           <tbody>
@@ -340,11 +349,11 @@
                     {/if}
                   </td>
                 {/each}
-                <td class="list-row-actions"
-                  >{#if can(page.data.permissions, 'tasks', 'edit')}<a
-                      aria-label={`Edit ${t.title}`}
-                      href={resolve(`/tasks/${t.id}/edit`)}>{ui('Edit')}</a
-                    >{/if}</td
+                <td class="list-row-actions" class:actions-hidden={!selection.actionsVisible}
+                  >{#if selection.actionsVisible}{#if can(page.data.permissions, 'tasks', 'edit')}<a
+                        aria-label={`Edit ${t.title}`}
+                        href={resolve(`/tasks/${t.id}/edit`)}>{ui('Edit')}</a
+                      >{/if}{/if}</td
                 >
               </tr>
             {/each}

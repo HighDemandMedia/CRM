@@ -135,6 +135,7 @@ function toRollups(rollups) {
 function toRow(account) {
   return {
     id: account.id,
+    assigned_to: (account.assigned_to ?? []).map((owner) => String(owner.id)),
     created_by: userName(account.created_by, ''),
     name: account.name ?? '',
     industry: industryLabel(account.industry),
@@ -514,10 +515,14 @@ function toBody(values) {
   if ('annual_revenue' in body && body.annual_revenue !== null) {
     body.annual_revenue = Number(body.annual_revenue);
   }
-  // Single-select owner, so the list is empty or one long. Only present when
-  // the form decided it changed. See the action for why that matters.
+  // Preserve every assignee in the inline editor while supporting legacy single-select forms.
+  // Absent means unchanged; unrelated edits must not rewrite ownership.
   if ('assigned_to' in values) {
-    body.assigned_to = values.assigned_to ? [values.assigned_to] : [];
+    body.assigned_to = Array.isArray(values.assigned_to)
+      ? values.assigned_to
+      : values.assigned_to
+        ? [values.assigned_to]
+        : [];
   }
   return body;
 }

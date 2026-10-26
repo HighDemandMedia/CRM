@@ -1,11 +1,20 @@
 <script>
   import { useI18n } from '$lib/i18n/context.js';
+  import * as Popover from '$lib/components/ui/popover/index.js';
   const { ui } = useI18n();
 
-  import { tick, onMount } from 'svelte';
-  import { X } from '@lucide/svelte';
-  /** @type {{fields: any[], selected: string[], onToggle: (key: string) => void, onShowAll?: () => void, onReset?: () => void}} */
-  let { fields, selected, onToggle, onShowAll, onReset } = $props();
+  import { onMount } from 'svelte';
+  import { X, SlidersHorizontal, PanelLeft, PanelLeftClose } from '@lucide/svelte';
+  /** @type {{fields: any[], selected: string[], onToggle: (key: string) => void, onShowAll?: () => void, onReset?: () => void, actionsVisible?: boolean, onActionsChange?: (visible: boolean) => void}} */
+  let {
+    fields,
+    selected,
+    onToggle,
+    onShowAll,
+    onReset,
+    actionsVisible = true,
+    onActionsChange
+  } = $props();
   let compact = $state(false);
   onMount(() => {
     try {
@@ -27,113 +36,120 @@
   }
   let open = $state(false);
   let search = $state('');
-  let root;
-  let trigger;
   let searchInput = $state();
   const matches = $derived(
     fields.filter(([, label]) => label.toLowerCase().includes(search.trim().toLowerCase()))
   );
-  async function toggle() {
-    open = !open;
-    search = '';
-    if (open) {
-      await tick();
-      searchInput?.focus();
-    }
-  }
-  function outside(event) {
-    if (open && !root?.contains(event.target)) open = false;
-  }
 </script>
 
-<div class="column-picker" bind:this={root}>
-  <button class="v2-btn" type="button" bind:this={trigger} aria-expanded={open} onclick={toggle}
-    >{ui('Edit columns')}</button
+{#if onActionsChange}
+  <button
+    type="button"
+    class="v2-btn v2-btn-icon column-picker-trigger"
+    aria-label={actionsVisible ? ui('Hide actions column') : ui('Show actions column')}
+    title={actionsVisible ? ui('Hide actions column') : ui('Show actions column')}
+    aria-expanded={actionsVisible}
+    onclick={() => onActionsChange(!actionsVisible)}
   >
-  {#if open}
-    <div class="dropdown" role="group" aria-label={ui('Visible columns')}>
-      <div class="picker-heading">
-        <strong>{ui('Columns')}</strong><button
-          type="button"
-          aria-label={ui('Close columns')}
-          onclick={() => {
-            open = false;
-            trigger?.focus();
-          }}><X size={16} /></button
-        >
-      </div>
-      <input
-        class="v2-input"
-        type="search"
-        placeholder={ui('Search columns…')}
-        aria-label={ui('Search columns')}
-        bind:this={searchInput}
-        bind:value={search}
-        oninput={(event) => event.stopPropagation()}
-        onkeydown={(event) => {
-          if (event.key === 'Enter') event.preventDefault();
-        }}
-      />
-      <div class="picker-actions">
-        <span aria-live="polite">{selected.length} {ui('of')} {fields.length}</span>
-        {#if onShowAll}<button type="button" onclick={onShowAll}>{ui('Show all')}</button>{/if}
-        {#if onReset}<button type="button" onclick={onReset}>{ui('Reset')}</button>{/if}
-      </div>
-      <label class="density-option"
-        ><input
-          type="checkbox"
-          checked={compact}
-          oninput={(event) => event.stopPropagation()}
-          onchange={setDensity}
-        />{ui('Compact rows')}</label
+    {#if actionsVisible}<PanelLeft size={16} />{:else}<PanelLeftClose size={16} />{/if}
+  </button>
+{/if}
+
+<Popover.Root bind:open onOpenChange={() => (search = '')}>
+  <Popover.Trigger asChild class="">
+    {#snippet child({ props })}
+      <button
+        {...props}
+        type="button"
+        class="v2-btn v2-btn-icon column-picker-trigger column-picker-settings"
+        aria-label={ui('Edit columns')}
+        title={ui('Edit columns')}><SlidersHorizontal size={16} /></button
       >
-      <div class="options">
-        {#each matches as [key, label] (key)}
-          <label
-            ><input
-              type="checkbox"
-              checked={selected.includes(key)}
-              disabled={selected.length === 1 && selected.includes(key)}
-              oninput={(event) => event.stopPropagation()}
-              onchange={() => onToggle(key)}
-            />{label}</label
-          >
-        {:else}<p>{ui('No matching columns.')}</p>{/each}
-      </div>
+    {/snippet}
+  </Popover.Trigger>
+  <Popover.Content
+    class="column-picker-popover"
+    align="end"
+    collisionPadding={12}
+    aria-label={ui('Visible columns')}
+    onOpenAutoFocus={(event) => {
+      event.preventDefault();
+      searchInput?.focus();
+    }}
+  >
+    <div class="picker-heading">
+      <strong>{ui('Columns')}</strong><button
+        type="button"
+        aria-label={ui('Close columns')}
+        onclick={() => {
+          open = false;
+        }}><X size={16} /></button
+      >
     </div>
-  {/if}
-</div>
-<svelte:window
-  onpointerdown={outside}
-  onfocusin={outside}
-  onkeydown={(event) => {
-    if (open && event.key === 'Escape') {
-      open = false;
-      trigger?.focus();
-    }
-  }}
-/>
+    <input
+      class="v2-input"
+      type="search"
+      placeholder={ui('Search columns…')}
+      aria-label={ui('Search columns')}
+      bind:this={searchInput}
+      bind:value={search}
+      oninput={(event) => event.stopPropagation()}
+      onkeydown={(event) => {
+        if (event.key === 'Enter') event.preventDefault();
+      }}
+    />
+    <div class="picker-actions">
+      <span aria-live="polite">{selected.length} {ui('of')} {fields.length}</span>
+      {#if onShowAll}<button type="button" onclick={onShowAll}>{ui('Show all')}</button>{/if}
+      {#if onReset}<button type="button" onclick={onReset}>{ui('Reset')}</button>{/if}
+    </div>
+    <label class="density-option"
+      ><input
+        type="checkbox"
+        checked={compact}
+        oninput={(event) => event.stopPropagation()}
+        onchange={setDensity}
+      />{ui('Compact rows')}</label
+    >
+    <div class="options">
+      {#each matches as [key, label] (key)}
+        <label
+          ><input
+            type="checkbox"
+            checked={selected.includes(key)}
+            disabled={selected.length === 1 && selected.includes(key)}
+            oninput={(event) => event.stopPropagation()}
+            onchange={() => onToggle(key)}
+          />{label}</label
+        >
+      {:else}<p>{ui('No matching columns.')}</p>{/each}
+    </div>
+  </Popover.Content>
+</Popover.Root>
 
 <style>
-  .column-picker {
-    position: relative;
+  .column-picker-trigger {
+    width: 30px;
+    height: 30px;
+    min-height: 30px;
+    padding: 0;
+    border-color: transparent;
+    background: transparent;
   }
-  .dropdown {
-    position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
-    z-index: 40;
-    width: min(260px, calc(100vw - 32px));
+  :global(.column-picker-popover) {
+    width: min(280px, calc(100vw - 24px));
+    max-height: min(34rem, var(--bits-popover-content-available-height));
+    overflow: auto;
     padding: 10px;
-    border: 1px solid var(--v2-line);
-    border-radius: var(--crm-radius-md);
-    background: var(--v2-bg, white);
+    background: var(--crm-surface);
+    color: var(--crm-text);
+    border: 1px solid var(--crm-border);
     box-shadow: var(--crm-shadow-lg);
   }
   .density-option {
     border-bottom: 1px solid var(--crm-border);
   }
-  .dropdown > input {
+  .v2-input {
     width: 100%;
     min-width: 0;
   }
@@ -193,22 +209,13 @@
     text-decoration: underline;
   }
   @media (max-width: 700px), (pointer: coarse) {
+    .actions-visibility {
+      margin-block: 6px 10px;
+      background: var(--crm-surface-subtle);
+      font-weight: 600;
+    }
     .density-option {
       display: none;
-    }
-  }
-  @media (max-width: 700px) {
-    .dropdown {
-      position: fixed;
-      top: auto;
-      bottom: 1rem;
-      left: 1rem;
-      right: 1rem;
-      width: auto;
-      max-height: calc(100dvh - 2rem);
-    }
-    .options {
-      max-height: 50dvh;
     }
   }
 </style>

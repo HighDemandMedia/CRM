@@ -1,4 +1,5 @@
 <script>
+  import PhoneInput from '$lib/components/PhoneInput.svelte';
   import { fieldInputType, fieldInputStep } from '$lib/v2/custom-field-input.js';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
@@ -180,6 +181,12 @@
                   <option value={opt.value}>{opt.label}</option>
                 {/each}
               </select>
+            {:else if defn.field_type === 'phone'}
+              <PhoneInput
+                id={`cf_${defn.key}`}
+                required={!!defn.is_required}
+                bind:value={draft[defn.key]}
+              />
             {:else}
               <Input
                 id={`cf_${defn.key}`}

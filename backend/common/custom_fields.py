@@ -21,16 +21,11 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator, validate_email
 from rest_framework import serializers as drf_serializers
 
+from common.phone_numbers import PHONE_ERROR, phone_e164
+
 logger = logging.getLogger(__name__)
 
 TEXT_LIMITS = {"text": 255, "textarea": 10000}
-PHONE_ERROR = "Enter exactly 10 digits, without a country code or separators."
-
-
-def valid_phone(value):
-    return isinstance(value, str) and re.fullmatch(r"[0-9]{10}", value) is not None
-
-
 # Targets whose entity model has a `custom_fields` JSONField column. Adding a
 # new entity? Drop a column on it (one migration), then add it here.
 SUPPORTED_TARGETS: set[str] = {
@@ -122,7 +117,9 @@ def _coerce_value(field_type: str, raw: Any):
                     value = "https://" + value
                 URLValidator(schemes=["http", "https"])(value)
             else:
-                if not valid_phone(value):
+                try:
+                    value = phone_e164(value)
+                except ValueError:
                     return None, PHONE_ERROR
         except ValidationError:
             return None, f"must be a valid {field_type}"

@@ -2,7 +2,7 @@
 
 Edge cases the policy specifically targets:
   * email dup vs DB and within-file (DB-enforced unique per org)
-  * phone dup vs DB and within-file (normalized to last-10 digits)
+  * phone dup vs DB and within-file (normalized with country code)
   * full-name dup vs DB, but only when the row has no email and no phone
   * permission gate (non-admin user blocked)
 """
@@ -65,7 +65,7 @@ class TestImportPreview:
                     "Alice",
                     "Smith",
                     "alice@example.com",
-                    "5551112222",
+                    "2025550123",
                     "Acme Corp",
                     "vip;newsletter",
                 ]
@@ -174,8 +174,8 @@ class TestImportPreview:
         csv_file = _csv(
             ["first_name", "last_name", "phone"],
             [
-                ["A", "One", "5550001111"],
-                ["B", "Two", "5550001111"],
+                ["A", "One", "2025550125"],
+                ["B", "Two", "2025550125"],
             ],
         )
         response = admin_client.post(
@@ -364,7 +364,7 @@ class TestImportCommit:
                     "Alice",
                     "Smith",
                     "alice@example.com",
-                    "5551112222",
+                    "2025550123",
                     "Acme Corp",
                     "Sales",
                     "vip",
@@ -373,7 +373,7 @@ class TestImportCommit:
                     "Bob",
                     "Jones",
                     "bob@example.com",
-                    "5553334444",
+                    "2025550124",
                     "Acme Corp",
                     "Sales",
                     "vip;newsletter",

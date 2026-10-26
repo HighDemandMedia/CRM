@@ -5,6 +5,7 @@
 
   import { untrack, getContext } from 'svelte';
   import { deserialize } from '$app/forms';
+  import ChoiceList from './ChoiceList.svelte';
   import TagBadge from './TagBadge.svelte';
   import { tagColors } from '$lib/v2/tag-colors.js';
   /** @type {{options?:any[],selected?:string[],original?:string[],canCreate?:boolean,creating?:boolean,onSearch?:(query:string)=>void,inputId?:string}} */
@@ -37,7 +38,6 @@
     available.filter(
       (t) =>
         (t.is_active !== false || selected.includes(String(t.id))) &&
-        !selected.includes(String(t.id)) &&
         t.name.toLowerCase().includes(search.trim().toLowerCase())
     )
   );
@@ -138,14 +138,20 @@
     />
   </div>
   {#if open}<div class="menu">
-      <div class="options">
-        {#each matches as tag (tag.id)}<button
-            type="button"
-            class="option"
-            disabled={creating}
-            onclick={() => choose(tag)}><TagBadge {tag} /></button
-          >{/each}
-      </div>
+      <ChoiceList
+        searchable={false}
+        disabled={creating}
+        label={ui('Tags')}
+        options={matches.map((tag) => ({ value: String(tag.id), label: tag.name, tag }))}
+        value={selected}
+        multiple
+        onchange={(next) => {
+          selected = next;
+          error = '';
+        }}
+      >
+        {#snippet renderOption(option)}<TagBadge tag={option.tag} />{/snippet}
+      </ChoiceList>
       {#if search.trim() && !exact && canCreate}
         <div class="create">
           <div class="colors" role="group" aria-label={ui('Tag color')}>
@@ -165,7 +171,7 @@
             <TagBadge tag={{ name: search.trim(), color }} /></button
           >
         </div>
-      {:else if !matches.length}<p>{ui('No matching tags.')}</p>{/if}
+      {/if}
       {#if error}<Notice message={ui(error)} />{/if}
     </div>{/if}
 </div>
@@ -225,24 +231,6 @@
     padding: var(--crm-space-2);
     box-shadow: var(--crm-shadow-sm);
   }
-  .options {
-    max-height: 180px;
-    overflow: auto;
-  }
-  .option {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    text-align: left;
-  }
-  .option:hover {
-    background: var(--v2-line-soft);
-  }
   .colors {
     display: flex;
     flex-wrap: wrap;
@@ -276,11 +264,6 @@
     font: inherit;
     font-size: var(--crm-text-sm);
     color: var(--v2-ink);
-  }
-  p {
-    font-size: var(--crm-text-xs);
-    padding: var(--crm-space-1);
-    margin: 0;
   }
   button:focus-visible {
     outline: 2px solid var(--crm-info);

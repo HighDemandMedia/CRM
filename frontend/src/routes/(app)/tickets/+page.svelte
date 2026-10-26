@@ -1,6 +1,7 @@
 <script>
   import { asInternalPath } from '$lib/utils/paths.js';
 
+  import { ViewToggle } from '$lib/components/ui/view-toggle';
   import SelectFilter from '$lib/components/ui/filter/SelectFilter.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { TICKET_SORT_FIELDS } from '$lib/v2/ticket-sort.js';
@@ -21,7 +22,7 @@
   import { goto, invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { deserialize } from '$app/forms';
-  import { List, Columns3, Plus } from '@lucide/svelte';
+  import { Plus } from '@lucide/svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { listColumns, columnValue } from '$lib/v2/list-columns.js';
   import { columnSelection } from '$lib/v2/column-selection.svelte.js';
@@ -111,7 +112,7 @@
     if (value) url.searchParams.set(key, value);
     else url.searchParams.delete(key);
     if (key !== 'offset') url.searchParams.delete('offset');
-    goto(resolve(asInternalPath('/tickets' + url.search + url.hash)), {
+    return goto(resolve(asInternalPath('/tickets' + url.search + url.hash)), {
       keepFocus: true,
       noScroll: true
     });
@@ -217,31 +218,33 @@
           />
         </div>
       {/if}
-      <select
-        class="v2-input"
-        aria-label={ui('Status')}
-        value={data.status}
-        onchange={(e) => filter('status', e.currentTarget.value)}
-        ><option value="">{ui('All statuses')}</option
-        >{#each statuses as [value, label] (value)}<option {value}>{label}</option>{/each}</select
-      >
-      <select
-        class="v2-input"
-        aria-label={ui('Priority')}
-        value={page.url.searchParams.get('priority') ?? ''}
-        onchange={(e) => filter('priority', e.currentTarget.value)}
-        ><option value="">{ui('Priority')}</option
-        >{#each priorities as [value, label] (value)}<option {value}>{label}</option>{/each}</select
-      >
-      <select
-        class="v2-input"
-        aria-label={ui('Category')}
-        value={page.url.searchParams.get('category') ?? ''}
-        onchange={(e) => filter('category', e.currentTarget.value)}
-        ><option value="">{ui('Category')}</option>{#each categories as value (value)}<option
-            >{value}</option
-          >{/each}</select
-      >
+      <div class="owner-filter">
+        <SelectFilter
+          label={ui('Status')}
+          allLabel={ui('All statuses')}
+          value={data.status}
+          onchange={(value) => filter('status', String(value))}
+          options={statuses.map(([value, label]) => ({ value, label }))}
+        />
+      </div>
+      <div class="owner-filter">
+        <SelectFilter
+          label={ui('Priority')}
+          allLabel={ui('All priorities')}
+          value={page.url.searchParams.get('priority') ?? ''}
+          onchange={(value) => filter('priority', String(value))}
+          options={priorities.map(([value, label]) => ({ value, label }))}
+        />
+      </div>
+      <div class="owner-filter">
+        <SelectFilter
+          label={ui('Category')}
+          allLabel={ui('Category')}
+          value={page.url.searchParams.get('category') ?? ''}
+          onchange={(value) => filter('category', String(value))}
+          options={categories.map((value) => ({ value, label: value }))}
+        />
+      </div>
       <label class="overdue-filter"
         ><input
           type="checkbox"
@@ -250,23 +253,8 @@
         />{ui('Overdue')}</label
       >
       <div class="object-views">
-        <button
-          class="v2-btn"
-          aria-label={ui('List view')}
-          aria-pressed={view === 'list'}
-          onclick={() => filter('view', 'list')}><List size={16} /></button
-        ><button
-          class="v2-btn"
-          aria-label={ui('Pipeline view')}
-          aria-pressed={view === 'pipeline'}
-          onclick={() => filter('view', 'pipeline')}><Columns3 size={16} /></button
-        >{#if view === 'list'}<ColumnPicker
-            {fields}
-            selected={columns}
-            onToggle={toggle}
-            onShowAll={selection.showAll}
-            onReset={selection.reset}
-          />{/if}
+        <ViewToggle {view} onchange={(nextView) => filter('view', nextView)} />
+
         {#if can(page.data.permissions, 'tickets', 'export')}<ExportDialog
             endpoint={resolve('/tickets/export')}
             {columns}
@@ -382,7 +370,23 @@
                         : ' ↓'
                       : ''}</button
                   ></th
-                >{/each}<th scope="col">{ui('Actions')}</th></tr
+                >{/each}<th
+                scope="col"
+                class="column-tools-heading"
+                aria-label={ui('Actions')}
+                class:actions-hidden={!selection.actionsVisible}
+                ><div class="column-tools">
+                  <ColumnPicker
+                    actionsVisible={selection.actionsVisible}
+                    onActionsChange={selection.setActions}
+                    {fields}
+                    selected={columns}
+                    onToggle={toggle}
+                    onShowAll={selection.showAll}
+                    onReset={selection.reset}
+                  />
+                </div></th
+              ></tr
             ></thead
           ><tbody
             >{#each rows as ticket (ticket.id)}<tr
@@ -405,11 +409,13 @@
                         class="list-badge"
                         data-priority={ticket.priority}>{value(ticket, key)}</span
                       >{:else}{value(ticket, key)}{/if}</td
-                  >{/each}<td class="list-row-actions"
-                  >{#if can(page.data.permissions, 'tickets', 'edit')}<a
-                      aria-label={`Edit ${ticket.name}`}
-                      href={resolve(`/tickets/${ticket.id}/edit`)}>{ui('Edit')}</a
-                    >{/if}</td
+                  >{/each}<td
+                  class="list-row-actions"
+                  class:actions-hidden={!selection.actionsVisible}
+                  >{#if selection.actionsVisible}{#if can(page.data.permissions, 'tickets', 'edit')}<a
+                        aria-label={`Edit ${ticket.name}`}
+                        href={resolve(`/tickets/${ticket.id}/edit`)}>{ui('Edit')}</a
+                      >{/if}{/if}</td
                 ></tr
               >{:else}<tr><td colspan={columns.length + 1}>{ui('No tickets found.')}</td></tr
               >{/each}</tbody
@@ -444,7 +450,7 @@
 {/if}
 
 <style>
-  .object-filters select {
+  .owner-filter {
     max-width: 180px;
   }
   .search {

@@ -4,7 +4,6 @@ Common validators for CRM models.
 
 import datetime
 import json
-import re
 import uuid as uuid_module
 from decimal import Decimal
 from zoneinfo import available_timezones
@@ -228,15 +227,10 @@ def choice_list_param(params, field: str, allowed) -> list:
 
 
 def normalize_phone(phone: str) -> str:
-    """
-    Normalize a phone number by removing all non-digit characters.
-    Returns the last 10 digits for comparison purposes.
-    """
-    if not phone:
-        return ""
-    digits_only = re.sub(r"[^\d]", "", phone)
-    # Return last 10 digits for normalized comparison
-    return digits_only[-10:] if len(digits_only) >= 10 else digits_only
+    """Return the complete country-aware matching key."""
+    from common.phone_numbers import phone_match_key
+
+    return phone_match_key(phone)
 
 
 def validate_iana_timezone(value: str) -> None:
@@ -256,6 +250,5 @@ def validate_iana_timezone(value: str) -> None:
 
 
 def contact_phone_key(value):
-    """Remove presentation separators, preserving the entire country code."""
-    digits = re.sub(r"[^0-9]", "", str(value or ""))
-    return digits[2:] if digits.startswith("00") else digits
+    """Return the indexed phone key, retaining the complete country code."""
+    return normalize_phone(value)

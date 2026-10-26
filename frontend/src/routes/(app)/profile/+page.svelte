@@ -129,7 +129,7 @@
   };
 </script>
 
-<div class="profile-shell">
+<div class="profile-shell crm-settings-fields">
   <PageHeader title={data.onboarding ? ui('Complete your profile') : ui('Profile')}>
     {#snippet sub()}{data.onboarding
         ? ui('Confirm your name, language and time zone before you start.')
@@ -158,7 +158,7 @@
       {/each}
     </div>{/if}
   <div class="v2-scroll">
-    <div class="profile-layout">
+    <div class="profile-layout crm-settings-content">
       <div
         id="profile-panel-info"
         role="tabpanel"
@@ -187,17 +187,19 @@
                   autocomplete="name"
                 /></label
               >
-              <label
-                >{ui('Email')}<input
-                  class="v2-input"
-                  type="email"
-                  value={p.user_details.email}
-                  readonly
-                  aria-describedby="email-help"
-                /></label
-              >
-              <p id="email-help" class="help">{ui('Your sign-in email.')}</p>
-              <label
+              <div class="field-group">
+                <label
+                  >{ui('Email')}<input
+                    class="v2-input"
+                    type="email"
+                    value={p.user_details.email}
+                    readonly
+                    aria-describedby="email-help"
+                  /></label
+                >
+                <p id="email-help" class="help">{ui('Your sign-in email.')}</p>
+              </div>
+              <label class="phone-field"
                 >{ui('Phone')}<input
                   class="v2-input"
                   name="phone"
@@ -210,17 +212,21 @@
             </div>
             <div class="settings-group">
               <h3>{ui('Regional preferences')}</h3>
-              <label
-                >{ui('CRM language')}
-                <select class="v2-input" name="ui_language" bind:value={editUiLanguage}>
-                  <option value="en">English</option><option value="es">Español</option>
-                </select>
-              </label>
-              <p class="help">
-                {ui('Only changes your interface. Applies across your organizations and devices.')}
-              </p>
+              <div class="field-group">
+                <label
+                  >{ui('CRM language')}
+                  <select class="v2-input" name="ui_language" bind:value={editUiLanguage}>
+                    <option value="en">English</option><option value="es">Español</option>
+                  </select>
+                </label>
+                <p class="help">
+                  {ui(
+                    'Only changes your interface. Applies across your organizations and devices.'
+                  )}
+                </p>
+              </div>
               <LanguageSelect bind:value={editLanguage} />
-              <label
+              <label class="wide"
                 >{ui('Time zone')}<select
                   class="v2-input"
                   name="timezone"
@@ -245,26 +251,28 @@
               tone="success"
               message={ui('Profile saved.')}
             />{/if}
-          <div class="form-actions detail-actions">
-            <button class="v2-btn v2-btn-primary" disabled={saving || (!dirty && !data.onboarding)}
-              >{saving
-                ? ui('Saving…')
-                : data.onboarding
-                  ? p.setup_step === 'profile_organization'
-                    ? ui('Continue to organization')
-                    : ui('Save and open CRM')
-                  : ui('Save changes')}</button
-            >
-            {#if dirty && !data.onboarding}<button
-                class="v2-btn"
-                type="button"
-                disabled={saving}
-                onclick={resetDetails}>{ui('Cancel')}</button
-              >{/if}
-          </div>
+          {#if dirty || data.onboarding}<div class="crm-settings-actions">
+              <button
+                class="v2-btn v2-btn-primary"
+                disabled={saving || (!dirty && !data.onboarding)}
+                >{saving
+                  ? ui('Saving…')
+                  : data.onboarding
+                    ? p.setup_step === 'profile_organization'
+                      ? ui('Continue to organization')
+                      : ui('Save and open CRM')
+                    : ui('Save changes')}</button
+              >
+              {#if dirty && !data.onboarding}<button
+                  class="v2-btn"
+                  type="button"
+                  disabled={saving}
+                  onclick={resetDetails}>{ui('Cancel')}</button
+                >{/if}
+            </div>{/if}
         </form>
         {#if !data.onboarding}<form
-            class="details-form"
+            class="details-form password-form"
             method="POST"
             action="?/password"
             use:enhance
@@ -484,18 +492,24 @@
   }
   .settings-group {
     display: grid;
-    gap: var(--crm-space-5);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--crm-space-4);
   }
   .settings-group + .settings-group {
-    padding-top: 26px;
+    padding-top: var(--crm-space-5);
     border-top: 1px solid var(--v2-line-soft);
   }
   .settings-group h3 {
     margin-bottom: 2px;
     font-size: var(--crm-text-sm);
   }
-  .settings-group .help {
-    margin-top: -14px;
+  .settings-group h3,
+  .settings-group .wide {
+    grid-column: 1 / -1;
+  }
+  .field-group {
+    min-width: 0;
   }
   .details-form label {
     font-weight: 500;
@@ -521,11 +535,6 @@
   .team-summary strong {
     font-weight: 500;
     color: var(--v2-ink);
-  }
-  .detail-actions {
-    margin-top: 28px;
-    padding-top: var(--crm-space-5);
-    border-top: 1px solid var(--v2-line-soft);
   }
   .section-heading .section-description {
     margin: var(--crm-space-2) 0 0;
@@ -572,9 +581,6 @@
   }
   .profile-layout {
     padding: var(--crm-space-5) var(--crm-page-gutter);
-    max-width: 1000px;
-    width: 100%;
-    box-sizing: border-box;
   }
   .profile-panel {
     background: var(--crm-surface);
@@ -624,12 +630,19 @@
     font-size: var(--crm-text-xs);
   }
   .details-form {
-    max-width: 640px;
-    margin-top: 26px;
+    margin-top: var(--crm-space-5);
+  }
+  .password-form {
+    max-width: 560px;
+    padding-top: var(--crm-space-5);
+    border-top: 1px solid var(--crm-border-soft);
+  }
+  .phone-field {
+    max-width: 22rem;
   }
   .details-form fieldset {
     display: grid;
-    gap: 26px;
+    gap: var(--crm-space-5);
   }
   fieldset {
     margin: 0;
@@ -736,6 +749,12 @@
     flex-wrap: wrap;
     gap: var(--crm-space-2);
     margin-top: var(--crm-space-3);
+  }
+
+  @container (max-width: 600px) {
+    .settings-group {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 600px) {

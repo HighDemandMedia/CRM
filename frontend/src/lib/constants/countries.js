@@ -3,6 +3,10 @@
  * Matches Django backend COUNTRIES in common/utils.py
  */
 export const COUNTRIES = [
+  { code: 'BQ', name: 'Bonaire, Sint Eustatius and Saba' },
+  { code: 'CW', name: 'Curaçao' },
+  { code: 'SX', name: 'Sint Maarten (Dutch part)' },
+  { code: 'SS', name: 'South Sudan' },
   { code: 'GB', name: 'United Kingdom' },
   { code: 'AF', name: 'Afghanistan' },
   { code: 'AX', name: 'Aland Islands' },
@@ -43,7 +47,7 @@ export const COUNTRIES = [
   { code: 'KH', name: 'Cambodia' },
   { code: 'CM', name: 'Cameroon' },
   { code: 'CA', name: 'Canada' },
-  { code: 'CV', name: 'Cape Verde' },
+  { code: 'CV', name: 'Cabo Verde' },
   { code: 'KY', name: 'Cayman Islands' },
   { code: 'CF', name: 'Central African Republic' },
   { code: 'TD', name: 'Chad' },
@@ -61,7 +65,7 @@ export const COUNTRIES = [
   { code: 'HR', name: 'Croatia' },
   { code: 'CU', name: 'Cuba' },
   { code: 'CY', name: 'Cyprus' },
-  { code: 'CZ', name: 'Czech Republic' },
+  { code: 'CZ', name: 'Czechia' },
   { code: 'DK', name: 'Denmark' },
   { code: 'DJ', name: 'Djibouti' },
   { code: 'DM', name: 'Dominica' },
@@ -128,12 +132,12 @@ export const COUNTRIES = [
   { code: 'LB', name: 'Lebanon' },
   { code: 'LS', name: 'Lesotho' },
   { code: 'LR', name: 'Liberia' },
-  { code: 'LY', name: 'Libyan Arab Jamahiriya' },
+  { code: 'LY', name: 'Libya' },
   { code: 'LI', name: 'Liechtenstein' },
   { code: 'LT', name: 'Lithuania' },
   { code: 'LU', name: 'Luxembourg' },
   { code: 'MO', name: 'Macao' },
-  { code: 'MK', name: 'Macedonia, The Former Yugoslav Republic of' },
+  { code: 'MK', name: 'North Macedonia' },
   { code: 'MG', name: 'Madagascar' },
   { code: 'MW', name: 'Malawi' },
   { code: 'MY', name: 'Malaysia' },
@@ -214,7 +218,7 @@ export const COUNTRIES = [
   { code: 'SD', name: 'Sudan' },
   { code: 'SR', name: 'Suriname' },
   { code: 'SJ', name: 'Svalbard and Jan Mayen' },
-  { code: 'SZ', name: 'Swaziland' },
+  { code: 'SZ', name: 'Eswatini' },
   { code: 'SE', name: 'Sweden' },
   { code: 'CH', name: 'Switzerland' },
   { code: 'SY', name: 'Syrian Arab Republic' },
@@ -228,7 +232,7 @@ export const COUNTRIES = [
   { code: 'TO', name: 'Tonga' },
   { code: 'TT', name: 'Trinidad and Tobago' },
   { code: 'TN', name: 'Tunisia' },
-  { code: 'TR', name: 'Turkey' },
+  { code: 'TR', name: 'Türkiye' },
   { code: 'TM', name: 'Turkmenistan' },
   { code: 'TC', name: 'Turks and Caicos Islands' },
   { code: 'TV', name: 'Tuvalu' },
@@ -251,51 +255,29 @@ export const COUNTRIES = [
   { code: 'ZW', name: 'Zimbabwe' }
 ];
 
-/**
- * Get country name by code
- * @param {string} code - Country code (e.g., 'US')
- * @returns {string} Country name or the code if not found
- */
-export function getCountryName(code) {
+// AN is retained for existing records; it is no longer an assigned ISO 3166-1 code.
+const LEGACY_CODES = new Set(['AN']);
+const COUNTRY_ALIASES = { TR: 'Turkey', CZ: 'Czech Republic', CV: 'Cape Verde', SZ: 'Swaziland' };
+
+export function getCountryName(code, locale = 'en') {
   if (!code) return '';
   const country = COUNTRIES.find((c) => c.code === code);
-  return country?.name || code;
+  if (!country || LEGACY_CODES.has(code)) return country?.name || code;
+  return new Intl.DisplayNames([locale], { type: 'region' }).of(code) || country.name;
 }
 
-// A compact Americas-focused picker; retain the full catalog for stored values.
-const PREFERRED_COUNTRY_CODES = [
-  'US',
-  'MX',
-  'CA',
-  'CO',
-  'CU',
-  'PR',
-  'DO',
-  'VE',
-  'AR',
-  'BR',
-  'CL',
-  'PE',
-  'EC',
-  'CR',
-  'PA',
-  'GT',
-  'HN',
-  'SV',
-  'NI',
-  'BO',
-  'PY',
-  'UY',
-  'JM',
-  'HT',
-  'BZ'
-];
-
-/** @param {string} [current] */
-export function countryOptions(current = '') {
-  const codes =
-    current && !PREFERRED_COUNTRY_CODES.includes(current)
-      ? [...PREFERRED_COUNTRY_CODES, current]
-      : PREFERRED_COUNTRY_CODES;
-  return codes.map((value) => ({ value, label: getCountryName(value) }));
+/** ISO 3166-1 alpha-2 values, localized labels; preserve legacy selections without offering them for new records. */
+export function countryOptions(current = '', locale = 'en') {
+  const names = new Intl.DisplayNames([locale], { type: 'region' });
+  const english = new Intl.DisplayNames(['en'], { type: 'region' });
+  const spanish = new Intl.DisplayNames(['es'], { type: 'region' });
+  return COUNTRIES.filter(({ code }) => !LEGACY_CODES.has(code) || code === current)
+    .map(({ code, name }) => ({
+      value: code,
+      label: LEGACY_CODES.has(code) ? name : names.of(code) || name,
+      keywords: `${code} ${name} ${english.of(code)} ${spanish.of(code)} ${COUNTRY_ALIASES[code] || ''}`
+    }))
+    .sort((a, b) =>
+      a.value === 'US' ? -1 : b.value === 'US' ? 1 : a.label.localeCompare(b.label, locale)
+    );
 }

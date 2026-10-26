@@ -433,7 +433,7 @@
     border: 1px solid var(--v2-line);
     background: var(--v2-card);
     padding: 0 var(--crm-space-3);
-    border-radius: var(--crm-radius-md);
+    border-radius: var(--crm-button-radius);
     color: var(--v2-slate);
     width: min(320px, 100%);
   }

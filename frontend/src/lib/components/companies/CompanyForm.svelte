@@ -1,11 +1,16 @@
 <script>
+  import RecordEditActions from '$lib/components/RecordEditActions.svelte';
+  import { toast } from 'svelte-sonner';
+  import PhoneInput from '$lib/components/PhoneInput.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { canChooseOwner } from '$lib/v2/permissions.js';
   import ConfiguredCreationFields from '$lib/components/creation/ConfiguredCreationFields.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
-  import { countryOptions } from '$lib/constants/countries.js';
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
+  import { CURRENCY_CODES } from '$lib/constants/filters.js';
+  import CountrySelect from '$lib/components/CountrySelect.svelte';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import RecordSection from '$lib/components/creation/RecordSection.svelte';
   import StageRuleNotice from '$lib/components/pipelines/StageRuleNotice.svelte';
@@ -73,6 +78,8 @@
     )
   );
   let contacts = $state(/** @type {string[]} */ (untrack(() => [...(values.contacts ?? [])])));
+  const editBaseline = untrack(() => JSON.stringify(snapshotValues()));
+  const editDirty = $derived(JSON.stringify(snapshotValues()) !== editBaseline);
   let contactSearch = $state('');
   let saving = $state(false);
   const sources = [
@@ -199,18 +206,38 @@
   });
 </script>
 
+{#snippet formActions()}<div class="actions" class:record-edit-actions={inline && editing}>
+    <button class="v2-btn v2-btn-primary" type="submit" disabled={saving || creatingTag}
+      >{saving ? ui('Saving…') : editing ? ui('Save company') : ui('Create company')}</button
+    >{#if inline}<button
+        class="v2-btn"
+        type="button"
+        disabled={saving || creatingTag}
+        onclick={onCancel}>{ui('Cancel')}</button
+      >{:else}<a
+        class="v2-btn"
+        href={resolve(editing ? `/accounts/${data.account.id}` : '/accounts')}>{ui('Cancel')}</a
+      >{/if}
+  </div>
+{/snippet}
+
 <form
   bind:this={formElement}
   use:recordValidation={result?.fieldErrors ?? autoFieldErrors}
   class="v2-form"
   class:auto-save={autoSave}
   class:inline-edit={inline}
+  aria-busy={saving}
   onfocusout={() => {
     if (autoSave && autoReady) setTimeout(flushAutoSave, 0);
   }}
   method="POST"
   action={editing ? '?/save' : '?/create'}
   use:enhance={({ cancel }) => {
+    if (saving || creatingTag) {
+      cancel();
+      return;
+    }
     if (autoSave) {
       cancel();
       queued = snapshotValues();
@@ -221,273 +248,263 @@
     return async ({ result: actionResult, update }) => {
       try {
         await update({ reset: false });
-        if (inline && actionResult.type === 'success') await onSaved();
+        if (inline && actionResult.type === 'success') {
+          toast.success(ui('Changes saved.'));
+          await onSaved();
+        }
       } finally {
         saving = false;
       }
     };
   }}
 >
-  <StageRuleNotice issue={autoIssue || result?.stageRequirements} />
-  {#if result?.error && !result?.stageRequirements}<Notice message={result.error} />{/if}
-  {#if autoSave}<div role="status">{autoStatus}</div>
-    {#if autoError && !autoIssue}<Notice message={autoError}>
-        {#snippet actions()}<button
-            type="button"
-            class="v2-btn"
-            onclick={() => {
-              queued = snapshotValues();
-              void flushAutoSave();
-            }}>{ui('Retry')}</button
-          >
-        {/snippet}</Notice
-      >{/if}{/if}
-  {#if !editing && data.creationSchema}
-    <ConfiguredCreationFields target="Account" {data} {result} bind:creatingTag />
-  {:else}
-    <RecordSection title={ui('Company details')}>
-      <label
-        >{ui('Name *')}<input
-          class="v2-input"
-          name="name"
-          required
-          maxlength="255"
-          bind:value={values.name}
-        /></label
-      >
-      <label
-        >{ui('Domain')}<input
-          class="v2-input"
-          name="website"
-          placeholder="example.com"
-          bind:value={values.website}
-        /></label
-      >
-      <label
-        >{ui('Email')}<input
-          class="v2-input"
-          name="email"
-          maxlength="254"
-          type="email"
-          bind:value={values.email}
-        /></label
-      >
-      <label
-        >{ui('Phone')}<input
-          class="v2-input"
-          name="phone"
-          type="tel"
-          maxlength="25"
-          bind:value={values.phone}
-        /></label
-      >
-    </RecordSection>
-    <RecordSection title={ui('Ownership & stage')}>
-      {#if canChooseOwner(page.data.permissions, 'companies')}
+  {#if !autoSave && inline && editing}
+    <RecordEditActions dirty={editDirty} {saving} blocked={creatingTag} oncancel={onCancel} />
+  {/if}
+  <fieldset class="record-form-fields" disabled={saving}>
+    <StageRuleNotice issue={autoIssue || result?.stageRequirements} />
+    {#if result?.error && !result?.stageRequirements}<Notice message={result.error} />{/if}
+    {#if autoSave}<div role="status">{autoStatus}</div>
+      {#if autoError && !autoIssue}<Notice message={autoError}>
+          {#snippet actions()}<button
+              type="button"
+              class="v2-btn"
+              onclick={() => {
+                queued = snapshotValues();
+                void flushAutoSave();
+              }}>{ui('Retry')}</button
+            >
+          {/snippet}</Notice
+        >{/if}{/if}
+    {#if !editing && data.creationSchema}
+      <ConfiguredCreationFields target="Account" {data} {result} bind:creatingTag />
+    {:else}
+      <RecordSection title={ui('Company details')}>
         <label
-          >{ui('Owner')}<select class="v2-input" name="assigned_to" bind:value={values.assigned_to}
-            ><option value="">{ui('Select user')}</option
-            >{#each data.owners ?? [] as owner (owner.id)}<option value={owner.id}
-                >{owner.name}</option
+          >{ui('Name *')}<input
+            class="v2-input"
+            name="name"
+            required
+            maxlength="255"
+            bind:value={values.name}
+          /></label
+        >
+        <label
+          >{ui('Domain')}<input
+            class="v2-input"
+            name="website"
+            placeholder="example.com"
+            bind:value={values.website}
+          /></label
+        >
+        <label
+          >{ui('Email')}<input
+            class="v2-input"
+            name="email"
+            maxlength="254"
+            type="email"
+            bind:value={values.email}
+          /></label
+        >
+        <div class="v2-field">
+          <label for="record-phone">{ui('Phone')}</label><PhoneInput
+            id="record-phone"
+            name="phone"
+            bind:value={values.phone}
+          />
+        </div>
+      </RecordSection>
+      <RecordSection title={ui('Ownership & stage')}>
+        {#if canChooseOwner(page.data.permissions, 'companies')}
+          <label
+            >{ui('Owner')}<select
+              class="v2-input"
+              name="assigned_to"
+              bind:value={values.assigned_to}
+              ><option value="">{ui('Select user')}</option
+              >{#each data.owners ?? [] as owner (owner.id)}<option value={owner.id}
+                  >{owner.name}</option
+                >{/each}</select
+            ></label
+          >
+          <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
+        {/if}
+        <label
+          >{ui('Stage')}<select class="v2-input" name="stage" bind:value={values.stage}
+            >{#each companyStages as stage (stage.value)}<option value={stage.value}
+                >{stage.label}</option
               >{/each}</select
           ></label
         >
-        <input type="hidden" name="assigned_to_original" value={data.form?.assigned_to ?? ''} />
-      {/if}
-      <label
-        >{ui('Stage')}<select class="v2-input" name="stage" bind:value={values.stage}
-          >{#each companyStages as stage (stage.value)}<option value={stage.value}
-              >{stage.label}</option
-            >{/each}</select
-        ></label
-      >
-      <label
-        >{ui('Source')}<select class="v2-input" name="source" bind:value={values.source}
-          ><option value="">{ui('Select source')}</option
-          >{#each sources as [value, label] (value)}<option {value}>{label}</option>{/each}</select
-        ></label
-      >
-      <div class="v2-field">
-        <span class="tags-label">{ui('Tags')}</span><TagPicker
-          options={data.tagOptions ?? []}
-          original={data.form?.tags ?? []}
-          canCreate={data.canCreateTags}
-          bind:selected={selectedTags}
-          bind:creating={creatingTag}
-        />
-      </div>
-    </RecordSection>
-    <RecordSection title={ui('Associated contacts')}>
-      <div class="contacts-field">
-        <span id="company-contacts-label">{ui('Contacts')}</span>
-        <details class="contacts-dropdown">
-          <summary
+        <label
+          >{ui('Source')}<select class="v2-input" name="source" bind:value={values.source}
+            ><option value="">{ui('Select source')}</option
+            >{#each sources as [value, label] (value)}<option {value}>{label}</option
+              >{/each}</select
+          ></label
+        >
+        <div class="v2-field">
+          <span class="tags-label">{ui('Tags')}</span><TagPicker
+            options={data.tagOptions ?? []}
+            original={data.form?.tags ?? []}
+            canCreate={data.canCreateTags}
+            bind:selected={selectedTags}
+            bind:creating={creatingTag}
+          />
+        </div>
+      </RecordSection>
+      <RecordSection title={ui('Associated contacts')}>
+        <div class="contacts-field">
+          <span id="company-contacts-label">{ui('Contacts')}</span>
+          <details class="contacts-dropdown">
+            <summary
+              class="v2-input"
+              aria-labelledby="company-contacts-label company-contacts-selected"
+            >
+              <span id="company-contacts-selected"
+                >{contacts.length
+                  ? contacts
+                      .map(
+                        (id) =>
+                          (data.contacts ?? []).find((c) => String(c.id) === id)?.name ??
+                          'Selected contact'
+                      )
+                      .join(', ')
+                  : ui('Select contacts')}</span
+              ><span aria-hidden="true">▾</span>
+            </summary>
+            <div class="contacts-menu">
+              <input type="hidden" name="contacts_present" value="1" />
+              <input
+                type="hidden"
+                name="contacts_original"
+                value={JSON.stringify([...(data.form?.contacts ?? [])].sort())}
+              />
+              {#each contacts as id (id)}<input type="hidden" name="contacts" value={id} />{/each}
+              <input
+                class="v2-input"
+                type="search"
+                aria-label={ui('Search contacts')}
+                placeholder={ui('Search contacts')}
+                bind:value={contactSearch}
+              />
+              <div class="contact-options">
+                {#each (data.contacts ?? []).filter((c) => (c.name ?? c.first_name ?? '')
+                    .toLowerCase()
+                    .includes(contactSearch.toLowerCase())) as c (c.id)}
+                  <label class="choice"
+                    ><input
+                      type="checkbox"
+                      checked={contacts.includes(String(c.id))}
+                      onchange={(event) =>
+                        (contacts = event.currentTarget.checked
+                          ? [...new Set([...contacts, String(c.id)])]
+                          : contacts.filter((id) => id !== String(c.id)))}
+                    />{c.name ?? c.first_name}</label
+                  >
+                {:else}<span class="v2-sub">{ui('No matching contacts.')}</span>{/each}
+              </div>
+            </div>
+          </details>
+        </div>
+      </RecordSection>
+      <RecordSection title={ui('Business details')} collapsible={!editing}>
+        <label
+          >{ui('Industry')}<select class="v2-input" name="industry" bind:value={values.industry}
+            ><option value="">{ui('Select industry')}</option
+            >{#each data.industries ?? [] as option (option.value)}<option value={option.value}
+                >{option.label}</option
+              >{/each}</select
+          ></label
+        >
+        <label
+          >{ui('Number of Employees')}<input
             class="v2-input"
-            aria-labelledby="company-contacts-label company-contacts-selected"
-          >
-            <span id="company-contacts-selected"
-              >{contacts.length
-                ? contacts
-                    .map(
-                      (id) =>
-                        (data.contacts ?? []).find((c) => String(c.id) === id)?.name ??
-                        'Selected contact'
-                    )
-                    .join(', ')
-                : ui('Select contacts')}</span
-            ><span aria-hidden="true">▾</span>
-          </summary>
-          <div class="contacts-menu">
-            <input type="hidden" name="contacts_present" value="1" />
-            <input
-              type="hidden"
-              name="contacts_original"
-              value={JSON.stringify([...(data.form?.contacts ?? [])].sort())}
-            />
-            {#each contacts as id (id)}<input type="hidden" name="contacts" value={id} />{/each}
+            name="number_of_employees"
+            type="number"
+            min="0"
+            step="1"
+            bind:value={values.number_of_employees}
+          /></label
+        >
+        <label
+          >{ui('Annual revenue')}<input
+            class="v2-input"
+            name="annual_revenue"
+            type="number"
+            min="0"
+            step="0.01"
+            bind:value={values.annual_revenue}
+          /></label
+        >
+        <label
+          >{ui('Currency')}<SearchableSelect
+            name="currency"
+            bind:value={values.currency}
+            label={ui('Currency')}
+            options={CURRENCY_CODES.filter((option) => option.value)}
+          /></label
+        >
+      </RecordSection>
+      <RecordSection title={ui('Communication')} collapsible={!editing}>
+        <LanguageSelect bind:value={values.language} />
+        <label
+          >{ui('Preferred Communication Channel')}<select
+            class="v2-input"
+            name="preferred_communication_channel"
+            bind:value={values.preferred_communication_channel}
+            ><option value="">{ui('Select channel')}</option><option value="SMS">SMS</option><option
+              value="CALL">{ui('Call')}</option
+            ><option value="EMAIL">{ui('Email')}</option></select
+          ></label
+        >
+      </RecordSection>
+      <RecordSection title={ui('Address')} collapsible={!editing}>
+        <label>{ui('Country')}<CountrySelect name="country" bind:value={values.country} /></label>
+        {#each addresses as [key, label] (key)}<label
+            >{ui(label)}<input
+              class="v2-input"
+              name={key}
+              maxlength={key === 'postcode' ? 64 : 255}
+              bind:value={values[key]}
+            /></label
+          >{/each}
+      </RecordSection>
+      <fieldset>
+        <legend>{ui('Pages')}</legend>
+        {#each pages as page, index (page)}<div class="page-row">
             <input
               class="v2-input"
-              type="search"
-              aria-label={ui('Search contacts')}
-              placeholder={ui('Search contacts')}
-              bind:value={contactSearch}
-            />
-            <div class="contact-options">
-              {#each (data.contacts ?? []).filter((c) => (c.name ?? c.first_name ?? '')
-                  .toLowerCase()
-                  .includes(contactSearch.toLowerCase())) as c (c.id)}
-                <label class="choice"
-                  ><input
-                    type="checkbox"
-                    checked={contacts.includes(String(c.id))}
-                    onchange={(event) =>
-                      (contacts = event.currentTarget.checked
-                        ? [...new Set([...contacts, String(c.id)])]
-                        : contacts.filter((id) => id !== String(c.id)))}
-                  />{c.name ?? c.first_name}</label
-                >
-              {:else}<span class="v2-sub">{ui('No matching contacts.')}</span>{/each}
-            </div>
-          </div>
-        </details>
-      </div>
-    </RecordSection>
-    <RecordSection title={ui('Business details')} collapsible={!editing}>
-      <label
-        >{ui('Industry')}<select class="v2-input" name="industry" bind:value={values.industry}
-          ><option value="">{ui('Select industry')}</option
-          >{#each data.industries ?? [] as option (option.value)}<option value={option.value}
-              >{option.label}</option
-            >{/each}</select
-        ></label
-      >
-      <label
-        >{ui('Number of Employees')}<input
-          class="v2-input"
-          name="number_of_employees"
-          type="number"
-          min="0"
-          step="1"
-          bind:value={values.number_of_employees}
-        /></label
-      >
-      <label
-        >{ui('Annual revenue')}<input
-          class="v2-input"
-          name="annual_revenue"
-          type="number"
-          min="0"
-          step="0.01"
-          bind:value={values.annual_revenue}
-        /></label
-      >
-      <label
-        >{ui('Currency')}<input
-          class="v2-input"
-          name="currency"
-          maxlength="3"
-          bind:value={values.currency}
-        /></label
-      >
-    </RecordSection>
-    <RecordSection title={ui('Communication')} collapsible={!editing}>
-      <LanguageSelect bind:value={values.language} />
-      <label
-        >{ui('Preferred Communication Channel')}<select
-          class="v2-input"
-          name="preferred_communication_channel"
-          bind:value={values.preferred_communication_channel}
-          ><option value="">{ui('Select channel')}</option><option value="SMS">SMS</option><option
-            value="CALL">{ui('Call')}</option
-          ><option value="EMAIL">{ui('Email')}</option></select
-        ></label
-      >
-    </RecordSection>
-    <RecordSection title={ui('Address')} collapsible={!editing}>
-      <label
-        >{ui('Country')}<select class="v2-input" name="country" bind:value={values.country}
-          ><option value="">{ui('Select country')}</option
-          >{#each countryOptions(values.country) as option (option.value)}<option
-              value={option.value}>{option.label}</option
-            >{/each}</select
-        ></label
-      >
-      {#each addresses as [key, label] (key)}<label
-          >{ui(label)}<input
-            class="v2-input"
-            name={key}
-            maxlength={key === 'postcode' ? 64 : 255}
-            bind:value={values[key]}
-          /></label
-        >{/each}
-    </RecordSection>
-    <fieldset>
-      <legend>{ui('Pages')}</legend>
-      {#each pages as page, index (page)}<div class="page-row">
-          <input
-            class="v2-input"
-            aria-label={`Page ${index + 1} name`}
-            placeholder={ui('Page name')}
-            required
-            maxlength="100"
-            bind:value={page.name}
-          /><input
-            class="v2-input"
-            aria-label={`Page ${index + 1} link`}
-            placeholder="https://…"
-            type="url"
-            required
-            bind:value={page.url}
-          /><button
-            class="v2-btn"
-            type="button"
-            aria-label={`Remove page ${index + 1}`}
-            onclick={() => (pages = pages.filter((_, i) => i !== index))}>×</button
-          >
-        </div>{/each}
-      <input type="hidden" name="pages" value={JSON.stringify(pages)} />
-      <button
-        class="v2-btn"
-        type="button"
-        disabled={pages.length >= 50}
-        onclick={() => (pages = [...pages, { name: '', url: '' }])}>{ui('Add page')}</button
-      >
-    </fieldset>
-  {/if}
-  {#if !autoSave}<div class="actions">
-      <button class="v2-btn v2-btn-primary" type="submit" disabled={saving || creatingTag}
-        >{saving ? ui('Saving…') : editing ? ui('Save company') : ui('Create company')}</button
-      >{#if inline}<button
+              aria-label={`Page ${index + 1} name`}
+              placeholder={ui('Page name')}
+              required
+              maxlength="100"
+              bind:value={page.name}
+            /><input
+              class="v2-input"
+              aria-label={`Page ${index + 1} link`}
+              placeholder="https://…"
+              type="url"
+              required
+              bind:value={page.url}
+            /><button
+              class="v2-btn"
+              type="button"
+              aria-label={`Remove page ${index + 1}`}
+              onclick={() => (pages = pages.filter((_, i) => i !== index))}>×</button
+            >
+          </div>{/each}
+        <input type="hidden" name="pages" value={JSON.stringify(pages)} />
+        <button
           class="v2-btn"
           type="button"
-          disabled={saving || creatingTag}
-          onclick={onCancel}>{ui('Cancel')}</button
-        >{:else}<a
-          class="v2-btn"
-          href={resolve(editing ? `/accounts/${data.account.id}` : '/accounts')}>{ui('Cancel')}</a
-        >{/if}
-    </div>
-  {/if}
+          disabled={pages.length >= 50}
+          onclick={() => (pages = [...pages, { name: '', url: '' }])}>{ui('Add page')}</button
+        >
+      </fieldset>
+    {/if}
+  </fieldset>
+  {#if !autoSave && !(inline && editing)}{@render formActions()}{/if}
 </form>
 
 <style>

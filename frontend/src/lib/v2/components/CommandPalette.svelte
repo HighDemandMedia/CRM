@@ -21,14 +21,13 @@
   } from '@lucide/svelte';
 
   /**
-   * One search across every record type, opened with ⌘K.
+   * One search across every record type, opened from Search in the navigation.
    *
    * v1 had a search box per list, each scoped to that list, so finding a
    * ticket meant knowing it was a ticket first. This asks once.
    *
-   * Empty query shows actions rather than an empty box. The fastest way to
-   * start a new deal is ⌘K, "new", Enter, and that only works if the actions
-   * are there before you type.
+   * Empty queries show creation actions so users can start a record without
+   * entering a search term first.
    *
    * @type {{ open: boolean, onclose: () => void }}
    */

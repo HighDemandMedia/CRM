@@ -833,6 +833,18 @@ class AccountDetailView(APIView):
         parameters=swagger_params.organization_params,
     )
     def get(self, request, pk, format=None):
+        # Resolve archived links; write endpoints still reject archived IDs.
+        visited = set()
+        while pk not in visited:
+            visited.add(pk)
+            archived = Account._base_manager.filter(
+                pk=pk, org=request.profile.org, merged_at__isnull=False
+            ).first()
+            if not archived:
+                break
+            if not archived.merged_into_id:
+                raise Http404("This company is no longer available.")
+            pk = archived.merged_into_id
         self.account = self.get_object(pk=pk)
         self.assert_account_access(self.account)
         context = {}

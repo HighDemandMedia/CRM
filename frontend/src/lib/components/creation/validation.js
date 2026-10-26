@@ -1,3 +1,4 @@
+import { normalizedPhone, PHONE_ERROR } from '$lib/utils/phone-number.js';
 import { propertyValueError } from '$lib/v2/custom-field-input.js';
 import { translate } from '$lib/i18n/messages.js';
 
@@ -54,10 +55,10 @@ export function recordValidation(form, serverErrors = {}) {
     if (!item) return;
     item.message.remove();
     input.setCustomValidity('');
-    if (item.described) input.setAttribute('aria-describedby', item.described);
-    else input.removeAttribute('aria-describedby');
-    if (item.invalid) input.setAttribute('aria-invalid', item.invalid);
-    else input.removeAttribute('aria-invalid');
+    if (item.described) item.control.setAttribute('aria-describedby', item.described);
+    else item.control.removeAttribute('aria-describedby');
+    if (item.invalid) item.control.setAttribute('aria-invalid', item.invalid);
+    else item.control.removeAttribute('aria-invalid');
     feedback.delete(input);
   }
   function show(input, text) {
@@ -75,24 +76,28 @@ export function recordValidation(form, serverErrors = {}) {
     message.style.cssText = 'display:block;font-size:0.75rem;margin-top:0.375rem';
     text = translate(document.documentElement.lang, text);
     message.textContent = text;
-    const described = input.getAttribute('aria-describedby');
-    const invalid = input.getAttribute('aria-invalid');
+    const control =
+      (input.matches('select') &&
+        input.closest('[data-property-control]')?.querySelector('[data-select-trigger]')) ||
+      input;
+    const described = control.getAttribute('aria-describedby');
+    const invalid = control.getAttribute('aria-invalid');
     (input.closest('[data-property-control]') || input.closest('label') || input).after(message);
-    input.setAttribute('aria-describedby', [described, message.id].filter(Boolean).join(' '));
-    input.setAttribute('aria-invalid', 'true');
+    control.setAttribute('aria-describedby', [described, message.id].filter(Boolean).join(' '));
+    control.setAttribute('aria-invalid', 'true');
     input.setCustomValidity(text);
-    feedback.set(input, { message, described, invalid });
+    feedback.set(input, { message, described, invalid, control });
   }
   const controls = () =>
     [...form.elements].filter((input) => input.matches('input:not([type=hidden]),select,textarea'));
   function check(input) {
     if (!input.willValidate || !input.setCustomValidity) return;
     clear(input);
+    // PhoneInput may have validated before the latest country/value reached the DOM.
+    // Recompute its custom error rather than preserving that stale message.
+    if (input.dataset.phoneCountry) input.setCustomValidity('');
     if (input.type === 'checkbox' && !input.dataset.propertyRequired) return;
-    if (input.type === 'tel' || input.dataset.propertyType === 'phone') {
-      input.pattern = '[0-9]{10}';
-      input.inputMode = 'numeric';
-    }
+
     const groupMissing =
       input.dataset.propertyRequired === 'true' &&
       !controls().some((other) => other.name === input.name && other.checked);
@@ -105,12 +110,20 @@ export function recordValidation(form, serverErrors = {}) {
       input,
       (groupMissing
         ? 'This field is required.'
-        : recordFieldError(
-            input.name,
-            input.value,
-            input.required,
-            input.dataset.propertyType || input.type
-          )) ||
+        : input.dataset.phoneCountry
+          ? input.value.trim()
+            ? normalizedPhone(input.value, input.dataset.phoneCountry)
+              ? ''
+              : PHONE_ERROR
+            : input.required
+              ? 'This field is required.'
+              : ''
+          : recordFieldError(
+              input.name,
+              input.value,
+              input.required,
+              input.dataset.propertyType || input.type
+            )) ||
         (outOfRange ? 'Enter an amount within the allowed range.' : '') ||
         input.validationMessage
     );
@@ -141,7 +154,7 @@ export function recordValidation(form, serverErrors = {}) {
   function update(errors) {
     for (const input of [...feedback.keys()]) clear(input);
     for (const [name, text] of Object.entries(errors || {})) {
-      const input = controls().find((input) => input.name === name);
+      const input = controls().find((input) => (input.name || input.dataset.phoneName) === name);
       if (input && typeof text === 'string') show(input, text);
     }
     if (!form.classList.contains('auto-save')) feedback.keys().next().value?.focus();

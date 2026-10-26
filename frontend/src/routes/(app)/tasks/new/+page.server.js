@@ -5,7 +5,13 @@ import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/fo
 /** Load only the company and contact choices used by the creation form. */
 async function loadOptions(event) {
   const options = await getTaskFormOptions(event);
+  const accountId = event.url.searchParams.get('account');
+  const contactId = event.url.searchParams.get('contact');
   return {
+    defaults: {
+      account: options.accounts.some((row) => row.id === accountId) ? accountId : '',
+      contacts: options.contacts.some((row) => row.id === contactId) ? [contactId] : []
+    },
     owners: options.owners,
     parents: { contact: options.contacts, account: options.accounts }
   };

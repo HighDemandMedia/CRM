@@ -591,7 +591,7 @@
     display: flex;
     gap: 0;
     border: 1px solid var(--crm-border);
-    border-radius: var(--crm-radius-md);
+    border-radius: var(--crm-button-radius);
     overflow: hidden;
     background: var(--crm-surface);
   }

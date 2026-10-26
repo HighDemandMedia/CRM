@@ -11,8 +11,6 @@ describe('record form validation', () => {
     ['phone', '-------'],
     ['phone', '12345'],
     ['phone', '1+3055550190'],
-    ['phone', '+13055550190'],
-    ['phone', '305-555-0190'],
     ['phone', '305555019'],
     ['phone', '30555501900']
   ])('rejects malformed %s: %s', (field, value) => {

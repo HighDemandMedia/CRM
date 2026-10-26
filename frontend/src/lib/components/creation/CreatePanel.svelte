@@ -119,10 +119,13 @@
 
 <style>
   .create-panel {
+    --crm-control-height: 36px;
+    --crm-control-padding-y: 6px;
+    --crm-control-padding-x: 12px;
     position: fixed;
     inset: 0 0 0 auto;
     margin: 0;
-    width: min(620px, 100vw);
+    width: min(465px, 100vw);
     height: 100dvh;
     max-height: 100dvh;
     max-width: 100vw;
@@ -146,7 +149,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px var(--crm-space-6);
+    padding: 12px 20px;
     border-bottom: 1px solid var(--v2-line);
     flex-shrink: 0;
     background: var(--v2-card);
@@ -161,14 +164,14 @@
     min-height: 0;
     overflow: auto;
     scroll-padding-block: var(--crm-space-12);
-    padding: 0 var(--crm-space-6);
+    padding: 0 20px;
   }
   .body :global(.v2-header) {
     display: none;
   }
   .body :global(.v2-scroll) {
     overflow: visible;
-    padding: 18px 0 !important;
+    padding: 16px 0 !important;
   }
   .body :global(form) {
     width: 100%;
@@ -177,13 +180,19 @@
     padding: 0 !important;
     background: transparent !important;
   }
+  .body :global(.requirement-field) {
+    gap: var(--crm-space-1);
+  }
+  .body :global(.phone-control .select-trigger) {
+    min-height: var(--crm-control-height);
+  }
   .body :global(form > .actions),
   .body :global(form > div:last-child:has(> button[type='submit'])),
   .body :global(form > div:last-child:has(> a.v2-btn)) {
     position: sticky;
     bottom: 0;
     background: var(--v2-bg);
-    padding: var(--crm-space-4) 0;
+    padding: var(--crm-space-3) 0;
     margin-bottom: 0;
     border-top: 1px solid var(--v2-line);
     z-index: 10;
@@ -194,7 +203,7 @@
     left: 0;
     right: 0;
     background: var(--v2-card);
-    padding: 18px var(--crm-space-6);
+    padding: 12px 20px;
     border-top: 1px solid var(--v2-line);
   }
   @keyframes enter {
@@ -218,6 +227,12 @@
     }
     header {
       padding: var(--crm-space-4);
+    }
+  }
+  @media (max-width: 1024px), (pointer: coarse) {
+    .create-panel {
+      --crm-control-height: var(--crm-target-size);
+      --crm-control-padding-y: var(--crm-space-2);
     }
   }
 </style>

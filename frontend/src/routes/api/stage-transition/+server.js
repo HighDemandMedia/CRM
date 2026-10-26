@@ -86,6 +86,7 @@ export async function GET({ cookies, url }) {
       [];
     return json(
       {
+        canCreateTags: relation === 'Tags' && data.can_create === true,
         options: rows.map((row) => ({
           value: row.id,
           ...(relation === 'Tags' ? { color: row.color } : {}),

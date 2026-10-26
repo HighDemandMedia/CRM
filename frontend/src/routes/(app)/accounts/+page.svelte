@@ -1,4 +1,6 @@
 <script>
+  import { ViewToggle } from '$lib/components/ui/view-toggle';
+  import SelectFilter from '$lib/components/ui/filter/SelectFilter.svelte';
   import { asInternalPath } from '$lib/utils/paths.js';
 
   import { SvelteURL } from 'svelte/reactivity';
@@ -17,7 +19,7 @@
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, count, relativeDays, money } = useI18n();
 
-  import { can } from '$lib/v2/permissions.js';
+  import { can, canFilterOwners } from '$lib/v2/permissions.js';
   import { showStageRequirements } from '$lib/components/pipelines/feedback.js';
   import PipelineTotal from '$lib/v2/components/PipelineTotal.svelte';
   import PipelineCardSummary from '$lib/v2/components/PipelineCardSummary.svelte';
@@ -26,6 +28,7 @@
   import { pipelineTone } from '$lib/v2/pipeline-view.js';
   import { listColumns, columnValue } from '$lib/v2/list-columns.js';
   import { columnSelection } from '$lib/v2/column-selection.svelte.js';
+  import CompanyActions from '$lib/components/companies/CompanyActions.svelte';
   import ColumnPicker from '$lib/v2/components/ColumnPicker.svelte';
   import StageProgress from '$lib/v2/components/StageProgress.svelte';
   import { resolve } from '$app/paths';
@@ -44,7 +47,7 @@
   import { advancedCompanyFilters as companyFilterDefinitions } from '$lib/v2/company-filter-fields.js';
   import { companyColumns as legacyFields } from '$lib/v2/company-columns.js';
 
-  import { Plus, List, Columns3 } from '@lucide/svelte';
+  import { Plus } from '@lucide/svelte';
 
   /** @type {{ data: any }} */
   let { data } = $props();
@@ -204,6 +207,8 @@
     const supported = [
       'search',
       'contacts',
+      'assigned_to',
+      'tags',
       'stage',
       ...advancedContactFilters.flatMap((field) =>
         field.type?.endsWith('range') ? [`${field.key}__gte`, `${field.key}__lte`] : [field.key]
@@ -240,7 +245,9 @@
       .map((key) => fields.find((field) => field[0] === key))
       .filter((field) => field !== undefined)
   );
-  let totalWidth = $derived(selected.reduce((sum, key) => sum + (widths[key] ?? 160), 120));
+  let totalWidth = $derived(
+    selected.reduce((sum, key) => sum + (widths[key] ?? 160), selection.actionsVisible ? 100 : 44)
+  );
   const widthKey = $derived(
     preferenceKey('widths', `${page.data.accountId}.${page.data.accountUser?.email}.Account`)
   );
@@ -528,39 +535,53 @@
         value={filterValues.search ?? ''}
       /></label
     >
-    <label
-      ><span class="v2-sr-only">{ui('Stage')}</span><select
-        class="v2-input"
+    {#if canFilterOwners(page.data.permissions, 'companies')}
+      <div class="owner-filter">
+        <SelectFilter
+          name="assigned_to"
+          label={ui('Owner')}
+          allLabel={ui('All owners')}
+          value={filterValues.assigned_to ?? ''}
+          options={data.people.map((person) => ({ value: person.id, label: person.name }))}
+        />
+      </div>
+    {/if}
+    <div class="owner-filter">
+      <SelectFilter
         name="stage"
+        label={ui('Stage')}
+        allLabel={ui('All stages')}
         value={filterValues.stage ?? ''}
-      >
-        <option value="">{ui('All stages')}</option>
-        {#each data.stages as stage (stage.value)}<option value={stage.value}>{stage.label}</option
-          >{/each}
-      </select></label
-    >
+        options={data.stages}
+      />
+    </div>
+    <div class="owner-filter">
+      <SelectFilter
+        name="tags"
+        label={ui('Tags')}
+        allLabel={ui('All tags')}
+        value={filterValues.tags ?? ''}
+        options={data.tags.map((tag) => ({ value: tag.id, label: tag.name }))}
+      />
+    </div>
     <details class="advanced-filters">
       <summary class="v2-btn"
         >{ui('Filters')}{advancedKeys.length ? ` (${advancedKeys.length})` : ''}</summary
       >
       <div class="advanced-panel">
-        <label
-          >{ui('Add filter')}<select
-            class="v2-input"
-            aria-label={ui('Add filter')}
-            value=""
-            onchange={(event) => {
-              if (event.currentTarget.value)
-                advancedKeys = [...advancedKeys, event.currentTarget.value];
-              event.currentTarget.value = '';
-            }}
-          >
-            <option value="">{ui('Choose a property')}</option>
-            {#each advancedContactFilters.filter((field) => !advancedKeys.includes(field.key)) as field (field.key)}
-              <option value={field.key}>{ui(field.label)}</option>
-            {/each}
-          </select></label
-        >
+        <div>
+          <span>{ui('Add filter')}</span>
+          {#key advancedKeys.length}<SelectFilter
+              label={ui('Add filter')}
+              allLabel={ui('Choose a property')}
+              options={advancedContactFilters
+                .filter((field) => !advancedKeys.includes(field.key))
+                .map((field) => ({ value: field.key, label: ui(field.label) }))}
+              onchange={(value) => {
+                if (value) advancedKeys = [...advancedKeys, String(value)];
+              }}
+            />{/key}
+        </div>
         {#each advancedKeys as key (key)}
           {@const field = advancedContactFilters.find((item) => item.key === key)}
           {#if field}
@@ -588,17 +609,15 @@
                   >
                 </fieldset>
               {:else if field.options}
-                <label
-                  >{ui(field.label)}<select
-                    class="v2-input"
+                <div>
+                  <span>{ui(field.label)}</span><SelectFilter
                     name={key}
+                    label={ui(field.label)}
+                    allLabel={ui('Any')}
                     value={filterValues[key] ?? ''}
-                  >
-                    <option value="">{ui('Any')}</option>
-                    {#each field.options as [value, label] (value)}<option {value}>{label}</option
-                      >{/each}
-                  </select></label
-                >
+                    options={field.options.map(([value, label]) => ({ value, label: ui(label) }))}
+                  />
+                </div>
               {:else}
                 <label
                   >{ui(field.label)}<input
@@ -620,41 +639,23 @@
       </div>
     </details>
     <div class="view-actions">
-      <nav class="view-toggle" aria-label={ui('Company views')}>
-        <a
-          class="v2-btn view-icon"
-          class:v2-btn-primary={data.view === 'list'}
-          aria-label={ui('List view')}
-          title={ui('List view')}
-          aria-current={data.view === 'list' ? 'page' : undefined}
-          href={resolve(asInternalPath(link({ view: 'list' })))}><List size={18} /></a
-        >
-        <a
-          class="v2-btn view-icon"
-          class:v2-btn-primary={data.view === 'pipeline'}
-          aria-label={ui('Pipeline view')}
-          title={ui('Pipeline view')}
-          aria-current={data.view === 'pipeline' ? 'page' : undefined}
-          href={resolve(asInternalPath(link({ view: 'pipeline' })))}><Columns3 size={18} /></a
-        >
-      </nav>
-      {#if data.view === 'list'}
-        <ColumnPicker
-          {fields}
-          {selected}
-          onToggle={toggleColumn}
-          onShowAll={selection.showAll}
-          onReset={selection.reset}
-        />
-      {/if}
-      {#if data.view === 'list'}
-        {#if can(page.data.permissions, 'companies', 'export')}<ExportDialog
-            endpoint={resolve('/accounts/export')}
-            columns={selected}
-            rows={data.companies}
-            filename="companies.csv"
-          />{/if}
-      {/if}
+      <ViewToggle
+        view={data.view}
+        onchange={(view) =>
+          goto(resolve(asInternalPath(link({ view, offset: null }))), {
+            keepFocus: true,
+            noScroll: true
+          })}
+      />
+
+      {#if can(page.data.permissions, 'companies', 'export')}<ExportDialog
+          endpoint={resolve('/accounts/export')}
+          columns={selected}
+          rows={data.view === 'pipeline'
+            ? data.board.flatMap((stage) => stage.contacts)
+            : data.companies}
+          filename="companies.csv"
+        />{/if}
     </div>
   </form>
 
@@ -760,7 +761,7 @@
           <colgroup
             >{#each orderedFields as [key] (key)}<col
                 style:width={`${widths[key] ?? 160}px`}
-              />{/each}<col style:width="120px" /></colgroup
+              />{/each}<col style:width={selection.actionsVisible ? '100px' : '44px'} /></colgroup
           >
           <thead
             ><tr>
@@ -824,7 +825,23 @@
                     }}
                   ></button>
                 </th>
-              {/each}<th scope="col">{ui('Actions')}</th>
+              {/each}<th
+                scope="col"
+                class="column-tools-heading"
+                aria-label={ui('Actions')}
+                class:actions-hidden={!selection.actionsVisible}
+                ><div class="column-tools">
+                  <ColumnPicker
+                    actionsVisible={selection.actionsVisible}
+                    onActionsChange={selection.setActions}
+                    {fields}
+                    {selected}
+                    onToggle={toggleColumn}
+                    onShowAll={selection.showAll}
+                    onReset={selection.reset}
+                  />
+                </div></th
+              >
             </tr></thead
           >
           <tbody>
@@ -858,14 +875,8 @@
                     {:else}{cell(contact, key)}{/if}
                   </td>
                 {/each}
-                <td class="list-row-actions"
-                  ><a aria-label={`Open ${contact.name}`} href={resolve(`/accounts/${contact.id}`)}
-                    >{ui('Open')}</a
-                  >
-                  {#if can(page.data.permissions, 'companies', 'edit')}<a
-                      aria-label={`Edit ${contact.name}`}
-                      href={resolve(`/accounts/${contact.id}/edit`)}>{ui('Edit')}</a
-                    >{/if}</td
+                <td class="list-row-actions" class:actions-hidden={!selection.actionsVisible}>
+                  {#if selection.actionsVisible}<CompanyActions company={contact} list />{/if}</td
                 >
               </tr>
             {:else}<tr><td colspan={selected.length + 1}>{ui('No companies on this page.')}</td></tr
@@ -915,6 +926,7 @@
     gap: var(--crm-space-2);
     align-items: end;
   }
+  .advanced-row > div,
   .advanced-row > label,
   .advanced-row > fieldset {
     flex: 1;
@@ -923,7 +935,7 @@
   .advanced-row input {
     min-width: 0;
   }
-  @media (max-width: 720px) {
+  @media (max-width: 1024px) {
     .advanced-panel {
       position: fixed;
       left: 24px;
@@ -1067,16 +1079,6 @@
     align-items: center;
     gap: var(--crm-space-2);
     margin-left: auto;
-  }
-  .view-toggle {
-    display: inline-flex;
-    gap: 2px;
-  }
-  .view-icon {
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    justify-content: center;
   }
   .contact-cell {
     white-space: nowrap;

@@ -9,6 +9,20 @@ import {
 import { validColumns } from './list-columns.js';
 
 describe('durable list preferences', () => {
+  it('preserves hidden actions across reloads without affecting another object or user', () => {
+    const data = new Map();
+    const storage = {
+      getItem: (key) => data.get(key),
+      setItem: (key, value) => data.set(key, value)
+    };
+    const key = preferenceKey('actions', 'org.user.Account');
+    writePreference(storage, key, false);
+    expect(readPreference(storage, key, true)).toBe(false);
+    expect(readPreference(storage, preferenceKey('actions', 'org.user.Contact'), true)).toBe(true);
+    expect(readPreference(storage, preferenceKey('actions', 'org.other.Account'), true)).toBe(true);
+    writePreference(storage, key, true);
+    expect(readPreference(storage, key, false)).toBe(true);
+  });
   it('restores a saved column order after a new reader opens the list', () => {
     const data = new Map();
     const storage = {

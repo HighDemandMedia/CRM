@@ -1,8 +1,7 @@
 <script>
+  import Notice from '$lib/components/Notice.svelte';
   import RecordActivityEntry from '$lib/v2/components/RecordActivityEntry.svelte';
   import RecordDisclosure from '$lib/v2/components/RecordDisclosure.svelte';
-  import Notice from '$lib/components/Notice.svelte';
-  import { onDestroy } from 'svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { exactTime, ui } = useI18n();
 
@@ -21,35 +20,10 @@
   import { page } from '$app/state';
 
   import RecordTabs from '$lib/v2/components/RecordTabs.svelte';
-  import DeleteRecord from '$lib/v2/components/DeleteRecord.svelte';
   import ContactAssociations from '$lib/v2/components/ContactAssociations.svelte';
-  import ContactForm from '$lib/components/contacts/ContactForm.svelte';
   let editingProperties = $state(false);
-  let editor = $state(null);
-  let editorBusy = $state(false);
-  let editorError = $state('');
-  let editorController;
-  onDestroy(() => editorController?.abort());
-  async function openEditor() {
-    editorController?.abort();
-    const controller = new AbortController();
-    editorController = controller;
-    const id = contact.id;
-    editorBusy = true;
-    editorError = '';
-    try {
-      const response = await fetch(`/api/contact-editor/${id}`, { signal: controller.signal });
-      if (!response.ok) throw new Error();
-      const result = await response.json();
-      if (contact.id !== id || controller.signal.aborted) return;
-      editor = result;
-      editingProperties = true;
-    } catch {
-      if (!controller.signal.aborted && contact.id === id)
-        editorError = 'Could not load contact. Please try again.';
-    } finally {
-      if (editorController === controller) editorBusy = false;
-    }
+  function openEditor() {
+    editingProperties = true;
   }
   let editorContactId = '';
   $effect(() => {
@@ -57,9 +31,8 @@
     const id = contact.id;
     if (editorContactId === id) return;
     editorContactId = id;
+    composeRequest = 0;
     editingProperties = false;
-    editor = null;
-    editorError = '';
   });
   import Attachments from '$lib/v2/components/Attachments.svelte';
   import { resolve } from '$app/paths';
@@ -68,10 +41,16 @@
   import CreateAppointment from '$lib/v2/components/CreateAppointment.svelte';
   import ContactActions from '$lib/components/contacts/ContactActions.svelte';
   let scheduled = $state(false);
-  import PageHeader from '$lib/v2/components/PageHeader.svelte';
+  import RecordIdentity from '$lib/v2/components/RecordIdentity.svelte';
+  import { can } from '$lib/v2/permissions.js';
+  let composeRequest = $state(0);
+  function composeEmail() {
+    composeRequest++;
+    recordTab = 'emails';
+  }
 
   /** @type {{data:any, form:any}} */
-  let { data, form } = $props();
+  let { data } = $props();
   let contact = $derived(data.contact);
   let companies = $derived([
     ...(contact.account ? [contact.account] : []),
@@ -82,103 +61,89 @@
   let noteError = $state('');
 </script>
 
-<PageHeader title={contact.name || `Contact · ${contact.id.slice(0, 8)}`} record>
-  {#snippet sub()}{[contact.email, contact.phone].filter(Boolean).join(' · ')}{/snippet}
-  {#snippet crumb()}<a href={resolve('/contacts')}>{ui('Contacts')}</a>{/snippet}
-  {#snippet actions()}
-    <CreateAppointment
-      hosts={data.hosts}
-      defaultHost={data.defaultHost}
-      selected={new Date()}
-      defaultAttendee={{ id: contact.id, name: contact.name, type: 'contact' }}
-      action={`${resolve('/calendar')}?/create`}
-      onCreated={() => {
-        scheduled = true;
-        void invalidateAll();
-      }}
-    />
-    {#if contact.email}<a class="v2-btn" href={`mailto:${contact.email}`}>{ui('Email')}</a
-      >{:else}<button
-        class="v2-btn"
-        type="button"
-        disabled
-        title={ui('Add an email to this contact')}>{ui('Email')}</button
-      >{/if}
-  {/snippet}
-</PageHeader>
 {#if scheduled}<div class="scheduled-message" role="status">
     {ui('Event scheduled.')} <a href={resolve('/calendar')}>{ui('View calendar')}</a>
   </div>{/if}
 <div class="contact-profile hdm-profile">
   <RecordDisclosure title={ui('Properties')} class="properties">
-    <div class="properties-heading">
-      <ContactActions {contact} disabled={editingProperties || editorBusy} onEdit={openEditor} />
-    </div>
-
-    {#if editorBusy}<p role="status">{ui('Loading…')}</p>{/if}
-    {#if editorError}<Notice message={ui(editorError)}
-        >{#snippet actions()}
-          <button type="button" class="v2-btn v2-btn-sm" onclick={openEditor}>{ui('Retry')}</button>
-        {/snippet}</Notice
-      >{/if}
-    {#if editingProperties && editor}
-      <ContactForm
-        data={editor}
-        result={form}
-        editing
-        inline
-        onCancel={() => (editingProperties = false)}
-        onSaved={async () => {
-          await invalidateAll();
-          editingProperties = false;
-        }}
-      />
-    {:else}
-      <PropertySummary
+    {#snippet header()}
+      <RecordIdentity
+        name={contact.name || `Contact · ${contact.id.slice(0, 8)}`}
+        email={contact.email || ''}
+        phone={contact.phone || ''}
+        backHref="/contacts"
+        backLabel="Contacts"
+        onedit={can(page.data.permissions, 'contacts', 'edit') ? openEditor : undefined}
+        editing={editingProperties}
+        onclose={() => (editingProperties = false)}
         target="Contact"
         record={contact}
-        tags={contact.tags}
-        entries={[
-          ['Name', contact.name],
-          ['Contact owner', data.owners?.join(', ')],
-          ['Phone', contact.phone],
-          ['Email', contact.email],
-          ['Language', contact.language],
-          ['Source', contact.source_label],
-          [
-            'Stage',
-            configuredLabel(page.data.pipelineConfig, 'Contact', contact.stage, contact.stage_label)
-          ],
-          ['Preferred communication channel', contact.preferred_communication_channel_label],
-          ['Appointment', contact.appointment_at ? exactTime(contact.appointment_at) : ''],
-          ['Address', contact.address_line],
-          ['City', contact.city],
-          ['State', contact.state],
-          ['Zip Code', contact.postcode],
-          ['Country', contact.country],
-          ['Tags', ''],
-          ['Last Activity', exactTime(contact.last_activity_at)],
-          ['Created', exactTime(contact.created_at)],
-          ['Created by', contact.created_by || contact.created_by_email || 'Not recorded']
-        ]}
-      />
-    {/if}
-    <DeleteRecord kind="contact" id={contact.id} />
+        schema={data.propertySchema}
+        onemail={composeEmail}
+      >
+        {#snippet actions()}
+          <ContactActions
+            showEdit={false}
+            {contact}
+            disabled={editingProperties}
+            onEdit={openEditor}
+          />
+          <CreateAppointment
+            hosts={data.hosts}
+            defaultHost={data.defaultHost}
+            selected={new Date()}
+            defaultAttendee={{ id: contact.id, name: contact.name, type: 'contact' }}
+            action={`${resolve('/calendar')}?/create`}
+            onCreated={() => {
+              scheduled = true;
+              void invalidateAll();
+            }}
+          />
+        {/snippet}
+      </RecordIdentity>
+    {/snippet}
+
+    <PropertySummary
+      schema={data.propertySchema}
+      target="Contact"
+      record={contact}
+      tags={contact.tags}
+      entries={[
+        ['Contact owner', data.owners?.join(', ')],
+        ['Language', contact.language],
+        ['Source', contact.source_label],
+        [
+          'Stage',
+          configuredLabel(page.data.pipelineConfig, 'Contact', contact.stage, contact.stage_label)
+        ],
+        ['Preferred communication channel', contact.preferred_communication_channel_label],
+        ['Appointment', contact.appointment_at ? exactTime(contact.appointment_at) : ''],
+        ['Address', contact.address_line],
+        ['City', contact.city],
+        ['State', contact.state],
+        ['Zip Code', contact.postcode],
+        ['Country', contact.country],
+        ['Tags', ''],
+        ['Last Activity', exactTime(contact.last_activity_at)],
+        ['Created', exactTime(contact.created_at)],
+        ['Created by', contact.created_by || contact.created_by_email || 'Not recorded']
+      ]}
+    />
   </RecordDisclosure>
-  <RecordDisclosure title={ui('Associated Objects')} class="contact-relations hdm-relations">
+  <section class="hdm-panel contact-relations hdm-relations" aria-label={ui('Associated Objects')}>
     <div class="profile-section">
-      <ContactAssociations contactId={contact.id} kind="company" items={companies} />
+      <ContactAssociations collapsible contactId={contact.id} kind="company" items={companies} />
     </div>
     <div class="profile-section">
-      <ContactAssociations contactId={contact.id} kind="deal" items={data.deals} />
+      <ContactAssociations collapsible contactId={contact.id} kind="deal" items={data.deals} />
     </div>
     <section class="profile-section">
-      <Attachments attachments={data.attachments} action="?/note" />
+      <Attachments collapsible attachments={data.attachments} action="?/note" />
     </section>
     <div class="profile-section">
-      <ContactAssociations contactId={contact.id} kind="ticket" items={data.tickets} />
+      <ContactAssociations collapsible contactId={contact.id} kind="ticket" items={data.tickets} />
     </div>
-  </RecordDisclosure>
+  </section>
   <main class="contact-center hdm-panel">
     <RecordTabs bind:active={recordTab} recordId={contact.id}>
       {#snippet emails()}{#key contact.id}<RecordEmails
@@ -188,6 +153,7 @@
             id={contact.id}
             initialThread={selectedThread}
             initialRequest={conversationRequest}
+            {composeRequest}
           />{/key}{/snippet}
       {#snippet notes()}
         <section class="profile-section" aria-label={ui('Contact notes')}>
@@ -258,14 +224,6 @@
 </div>
 
 <style>
-  .properties-heading {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: var(--crm-space-4);
-  }
   .scheduled-message {
     padding: var(--crm-space-2) var(--crm-space-6);
     font-size: var(--crm-text-sm);

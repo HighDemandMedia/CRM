@@ -7,7 +7,7 @@
   import { enhance } from '$app/forms';
   import OrganizationLifecycle from '$lib/v2/components/OrganizationLifecycle.svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import { countryOptions } from '$lib/constants/countries.js';
+  import CountrySelect from '$lib/components/CountrySelect.svelte';
   import { CURRENCY_CODES } from '$lib/constants/filters.js';
 
   /** @type {{data:any, form:any}} */
@@ -70,14 +70,14 @@
   };
 </script>
 
-<div class="organization-shell">
+<div class="organization-shell crm-settings-fields">
   <PageHeader title={data.onboarding ? ui('Welcome to your organization') : ui('Organization')}
     >{#snippet sub()}{data.onboarding
         ? ui('Complete your company details and confirm your currency, country and time zone.')
         : ui('Organization information and regional defaults')}{/snippet}</PageHeader
   >
   <div class="v2-scroll">
-    <div class="organization-content">
+    <div class="organization-content crm-settings-content">
       <form method="POST" action="?/save" use:enhance={save}>
         {#if data.onboarding}<input type="hidden" name="onboarding" value="1" />{/if}
         <fieldset disabled={!data.can_edit || busy}>
@@ -98,15 +98,10 @@
                 {/each}
                 {#if section.title === 'Address'}
                   <label
-                    >{ui('Country')}<select
-                      class="v2-input"
+                    >{ui('Country')}<CountrySelect
                       name="country"
                       bind:value={draft.country}
-                      ><option value="">{ui('Select country')}</option
-                      >{#each countryOptions(draft.country) as country (country.value)}<option
-                          value={country.value}>{country.label}</option
-                        >{/each}</select
-                    ></label
+                    /></label
                   >
                 {/if}
               </div>
@@ -126,15 +121,11 @@
                 ></label
               >
               <label
-                >{ui('Default country')}<select
-                  class="v2-input"
+                >{ui('Default country')}<CountrySelect
                   name="default_country"
+                  label="Default country"
                   bind:value={draft.default_country}
-                  ><option value="">{ui('Select country')}</option
-                  >{#each countryOptions(draft.default_country) as country (country.value)}<option
-                      value={country.value}>{country.label}</option
-                    >{/each}</select
-                ></label
+                /></label
               >
               <label class="wide"
                 >{ui('Time zone')}<select
@@ -149,7 +140,7 @@
             </div>
           </section>
         </fieldset>
-        {#if data.can_edit}<div class="actions">
+        {#if data.can_edit && (dirty || data.onboarding)}<div class="crm-settings-actions">
             <button class="v2-btn v2-btn-primary" disabled={busy || (!dirty && !data.onboarding)}
               >{busy
                 ? ui('Saving…')
@@ -188,6 +179,7 @@
 
 <style>
   .organization-shell {
+    min-width: 0;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -196,10 +188,8 @@
   }
   .organization-content {
     padding: var(--crm-space-5) var(--crm-page-gutter);
-    max-width: 820px;
   }
   form {
-    max-width: 640px;
     padding: var(--crm-space-5);
     background: var(--crm-surface);
     border: 1px solid var(--crm-border-soft);
@@ -213,19 +203,19 @@
     min-width: 0;
   }
   section + section {
-    margin-top: 30px;
-    padding-top: var(--crm-space-6);
+    margin-top: var(--crm-space-5);
+    padding-top: var(--crm-space-5);
     border-top: 1px solid var(--v2-line-soft);
   }
   h2 {
-    margin: 0 0 var(--crm-space-6);
+    margin: 0 0 var(--crm-space-4);
     font-size: var(--crm-text-base);
     font-weight: 600;
   }
   .fields {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--crm-space-6);
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: var(--crm-space-4);
   }
   label {
     display: grid;
@@ -242,18 +232,11 @@
   .wide {
     grid-column: 1/-1;
   }
-  .actions {
-    display: flex;
-    gap: var(--crm-space-2);
-    margin-top: 28px;
-    padding-top: var(--crm-space-5);
-    border-top: 1px solid var(--v2-line-soft);
-  }
   .metadata {
     display: flex;
     flex-wrap: wrap;
     gap: var(--crm-space-5);
-    padding-top: var(--crm-space-6);
+    padding-top: var(--crm-space-5);
     margin-top: 28px;
     border-top: 1px solid var(--v2-line-soft);
     color: var(--v2-slate);
@@ -266,12 +249,14 @@
     margin: 0;
     overflow-wrap: anywhere;
   }
+  @container (max-width: 600px) {
+    .fields {
+      grid-template-columns: 1fr;
+    }
+  }
   @media (max-width: 600px) {
     .organization-content {
       padding: var(--crm-space-4) var(--crm-page-gutter);
-    }
-    .fields {
-      grid-template-columns: 1fr;
     }
   }
 </style>

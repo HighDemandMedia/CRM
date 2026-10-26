@@ -5,9 +5,6 @@ import { fieldErrors } from '$lib/server/v2/form-errors.js';
 
 it.each([
   ['phone', '305555019'],
-  ['phone', '13055550190'],
-  ['phone', '+13055550190'],
-  ['phone', '305-555-0190'],
   ['phone', 'abcdefghij'],
   ['email', 'person@'],
   ['email', 'person.example.com'],
@@ -31,7 +28,7 @@ it.each([
   expect(propertyValueError(type, value)).not.toBe('');
 });
 it.each([
-  ['phone', '0123456789'],
+  ['phone', '+59899123456'],
   ['email', 'person+sales@example.com'],
   ['url', 'example.com'],
   ['url', 'https://example.com/path'],

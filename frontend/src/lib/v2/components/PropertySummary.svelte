@@ -1,17 +1,15 @@
 <script>
-  import Notice from '$lib/components/Notice.svelte';
-  import { recordValidation } from '$lib/components/creation/validation.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
   import TagBadge from '$lib/v2/components/TagBadge.svelte';
   import { page } from '$app/state';
-  import { invalidateAll } from '$app/navigation';
-  import { Pencil, Copy } from '@lucide/svelte';
-  import StageRequirementField from '$lib/components/pipelines/StageRequirementField.svelte';
+  import InlineProperty from './InlineProperty.svelte';
+  import { editableProperty, propertyRawValue } from '$lib/v2/inline-property.js';
+  import { Copy } from '@lucide/svelte';
   import { orderedEntries, customDisplay } from '$lib/v2/property-order.js';
-  /** @type {{entries:Array<any[]>,tags?:any[],target?:string,record?:any}} */
-  let { entries, tags, target = '', record = null } = $props();
+  /** @type {{entries:Array<any[]>,tags?:any[],target?:string,record?:any,schema?:any}} */
+  let { entries, tags, target = '', record = null, schema = null } = $props();
   const config = $derived(page.data.propertyLayout?.[target]);
   const rows = $derived(
     orderedEntries(
@@ -21,10 +19,6 @@
       record?.custom_fields
     )
   );
-  let editing = $state(''),
-    draft = $state(/** @type {any} */ ('')),
-    busy = $state(false),
-    error = $state('');
   let copyStatus = $state('');
   async function copyRecordId() {
     try {
@@ -34,84 +28,41 @@
       copyStatus = 'Could not copy. Select the full ID to copy it.';
     }
   }
-  function edit(row) {
-    error = '';
-    editing = row.key;
-    draft =
-      row.definition.field_type === 'checkbox'
-        ? row.value == null
-          ? ''
-          : String(row.value)
-        : row.definition.field_type === 'multi_select'
-          ? [...(row.value || [])]
-          : row.definition.field_type === 'datetime' && row.value
-            ? new Date(
-                new Date(row.value).getTime() - new Date(row.value).getTimezoneOffset() * 60000
-              )
-                .toISOString()
-                .slice(0, 16)
-            : row.definition.field_type === 'list'
-              ? JSON.stringify(row.value || [])
-              : (row.value ?? '');
-  }
-  async function save(event, row) {
-    event.preventDefault();
-    busy = true;
-    error = '';
-    try {
-      let value = draft;
-      if (row.definition.field_type === 'checkbox') value = draft === '' ? null : draft === 'true';
-      if (row.definition.field_type === 'list') value = JSON.parse(draft || '[]');
-      if (row.definition.field_type === 'datetime' && draft) value = new Date(draft).toISOString();
-      const response = await fetch('/api/record-properties', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target, id: record.id, values: { [row.definition.key]: value } })
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      await invalidateAll();
-      editing = '';
-    } catch (err) {
-      error = err.message || 'Could not save the property.';
-    } finally {
-      busy = false;
-    }
-  }
 </script>
 
 <dl>
-  {#each rows as row (row.key)}<div>
+  {#each rows as row (`${record?.id}:${row.key}`)}
+    {@const editable =
+      record &&
+      editableProperty(row, target, schema, page.data.permissions, page.data.pipelineConfig)}
+    <div>
       <dt>
         {row.definition ? row.label : ui(row.label)}{#if row.definition?.is_required}<span>
             *</span
           >{/if}
-        {#if row.definition && record && editing !== row.key}<button
-            type="button"
-            class="edit-property"
-            aria-label={`Edit ${row.definition ? row.label : ui(row.label)}`}
-            disabled={busy}
-            onclick={() => edit(row)}><Pencil size={13} /></button
-          >{/if}
       </dt>
       <dd>
-        {#if editing === row.key}<form use:recordValidation onsubmit={(event) => save(event, row)}>
-            <StageRequirementField
-              {target}
-              field={{
-                ...row.definition,
-                name: `custom_fields.${row.definition.key}`,
-                label: row.label
-              }}
-              required={row.definition.is_required}
-              bind:value={draft}
-            />
-            {#if error}<Notice message={ui(error)} />{/if}
-            <button class="v2-btn v2-btn-primary" disabled={busy}>{ui('Save')}</button>
-            <button type="button" class="v2-btn" disabled={busy} onclick={() => (editing = '')}
-              >{ui('Cancel')}</button
-            >
-          </form>
+        {#if editable}
+          <InlineProperty
+            field={editable}
+            value={propertyRawValue(record, editable)}
+            {target}
+            recordId={record.id}
+          >
+            {#if row.definition}{customDisplay(row.value, row.definition)}
+            {:else if row.label === 'Tags' && tags}<span class="tags"
+                >{#each tags as tag (tag.id)}<TagBadge {tag} />{:else}—{/each}</span
+              >
+            {:else if row.key === 'stage' && row.value}<span class="stage-value">{row.value}</span>
+            {:else}{row.value === '' ? '—' : (row.value ?? '—')}{/if}
+          </InlineProperty>
+          {#if row.key === 'pages'}<span class="page-links"
+              >{#each record.pages || [] as item (item.url)}<a
+                  href={item.url}
+                  target="_blank"
+                  rel="external noopener noreferrer">{item.name || item.url}</a
+                >{/each}</span
+            >{/if}
         {:else if row.key === 'id' && row.value}
           <span class="record-id">
             <details>
@@ -143,6 +94,11 @@
 </dl>
 
 <style>
+  .page-links {
+    display: grid;
+    gap: 4px;
+    margin-top: 6px;
+  }
   .record-id {
     display: flex;
     align-items: flex-start;
@@ -175,14 +131,6 @@
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
-  .edit-property {
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    color: var(--v2-slate);
-    float: right;
-    padding: 0 var(--crm-space-1);
-  }
   dl {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
@@ -202,7 +150,7 @@
     font-size: var(--crm-text-sm);
     line-height: 1.5;
     overflow-wrap: anywhere;
-    white-space: pre-wrap;
+    white-space: normal;
   }
   .stage-value {
     display: inline-block;

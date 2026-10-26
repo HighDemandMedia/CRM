@@ -11,9 +11,9 @@ from common.property_catalog import target_model
     "kind,value",
     [
         ("phone", "123456789"),
-        ("phone", "12345678901"),
-        ("phone", "+13055550190"),
-        ("phone", "305-555-0190"),
+        ("phone", "+999123456789"),
+        ("phone", "0123456789"),
+        ("phone", "+13055550190 ext 5"),
         ("phone", "abcdefghij"),
         ("phone", 3055550190),
         ("text", {"bad": "object"}),
@@ -43,7 +43,10 @@ def test_invalid_property_format(kind, value):
 @pytest.mark.parametrize(
     "kind,value,expected",
     [
-        ("phone", "0123456789", "0123456789"),
+        ("phone", "3055550190", "+13055550190"),
+        ("phone", "305-555-0190", "+13055550190"),
+        ("phone", "+598 99 123 456", "+59899123456"),
+        ("phone", "+44 20 7946 0018", "+442079460018"),
         ("text", "  Acme 2 & Co.  ", "Acme 2 & Co."),
         ("textarea", "Line 1\nLine 2", "Line 1\nLine 2"),
         ("date", "2028-02-29", "2028-02-29"),
@@ -70,7 +73,7 @@ TARGETS = [
 @pytest.mark.parametrize(
     "kind,bad,good",
     [
-        ("phone", "abc1234567", "3055550190"),
+        ("phone", "abc1234567", "+13055550190"),
         ("email", "not-an-email", "person@example.com"),
         ("url", "javascript:alert(1)", "https://example.com"),
         ("integer", "1.5", 2),
@@ -143,7 +146,8 @@ def test_system_field_validation_returns_400(admin_client, route, field, value):
 @pytest.mark.django_db
 @pytest.mark.parametrize("target,route,name_field", TARGETS[:3])
 @pytest.mark.parametrize(
-    "phone", ["123456789", "12345678901", "+13055550190", "305-555-0190", "abc1234567"]
+    "phone",
+    ["123456789", "+999123456789", "0123456789", "+13055550190 ext 5", "abc1234567"],
 )
 def test_system_phone_on_create_and_edit(
     admin_client, org_a, target, route, name_field, phone
@@ -163,8 +167,8 @@ def test_system_phone_on_create_and_edit(
     record.refresh_from_db()
     assert record.phone == "3055550190"
     result = admin_client.patch(
-        f"/api/{route}/{record.pk}/", {"phone": "0123456789"}, format="json"
+        f"/api/{route}/{record.pk}/", {"phone": "+598 99 123 456"}, format="json"
     )
     assert result.status_code == 200, result.data
     record.refresh_from_db()
-    assert record.phone == "0123456789"
+    assert record.phone == "+59899123456"

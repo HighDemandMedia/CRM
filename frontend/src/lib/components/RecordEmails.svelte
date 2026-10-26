@@ -8,13 +8,14 @@
   import EmailComposer from './EmailComposer.svelte';
   import EmailActivity from './EmailActivity.svelte';
   const { ui, exactTime } = useI18n();
-  /** @type {{kind:'contact'|'company',id:string,contacts?:any[],initialThread?:string,initialRequest?:number,recipient?:string,active?:boolean}} */
+  /** @type {{kind:'contact'|'company',id:string,contacts?:any[],initialThread?:string,initialRequest?:number,composeRequest?:number,recipient?:string,active?:boolean}} */
   let {
     kind,
     id,
     contacts = [],
     initialThread = '',
     initialRequest = 0,
+    composeRequest = 0,
     recipient = '',
     active = true
   } = $props();
@@ -33,6 +34,14 @@
   let controller,
     requestVersion = 0;
   const endpoint = $derived(`/api/record-mail/${kind}/${id}`);
+  let handledComposeRequest = 0;
+  $effect(() => {
+    // Wait for mailbox permissions before opening the existing composer.
+    if (active && composeRequest > handledComposeRequest && connection) {
+      handledComposeRequest = composeRequest;
+      if (connection.status === 'connected') composing = true;
+    }
+  });
   $effect(() => {
     const selected = initialThread;
     initialRequest;

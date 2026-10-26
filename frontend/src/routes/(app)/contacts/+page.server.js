@@ -26,13 +26,15 @@ export async function load({ cookies, url, parent, depends }) {
 
   depends('crm:contacts');
   const view = url.searchParams.get('view') === 'pipeline' ? 'pipeline' : 'list';
+  const unassigned = view === 'pipeline' && params.get('stage') === 'UNASSIGNED';
   if (view === 'list') {
     params.set('sort', url.searchParams.get('sort') ?? '');
     params.set('direction', url.searchParams.get('direction') === 'desc' ? 'desc' : 'asc');
   }
   if (view === 'pipeline') {
     params.set('include_pipeline_totals', 'true');
-    params.set('board', 'true');
+    // Unassigned contacts are filtered by the list API, outside configured board stages.
+    if (!unassigned) params.set('board', 'true');
     // The API validates/clamps offsets and only reads configured stages.
     for (const [key, value] of url.searchParams) {
       if (key.endsWith('_offset')) params.set(key, value);
@@ -40,14 +42,29 @@ export async function load({ cookies, url, parent, depends }) {
   }
   const { pageSize, offset } = listPagination(url, view === 'list');
   params.set('limit', String(pageSize));
-  params.set('offset', view === 'pipeline' ? '0' : String(offset));
+  const unassignedOffset = Math.min(
+    10000000,
+    Math.max(0, parseInt(url.searchParams.get('UNASSIGNED_offset') || '0') || 0)
+  );
+  params.set('offset', String(unassigned ? unassignedOffset : view === 'pipeline' ? 0 : offset));
+  if (unassigned) params.set('include_deal_values', 'true');
   const [response, shell] = await Promise.all([listContacts({ cookies }, params), parent()]);
 
   const { results, totals, stages: defaultStages } = response;
   checkListPage(url, { pageSize, offset }, totals.count);
   const stages = configuredStages(shell.pipelineConfig, 'Contact', defaultStages);
-  const board =
-    view === 'pipeline'
+  const board = unassigned
+    ? [
+        {
+          value: 'UNASSIGNED',
+          label: 'No stage',
+          contacts: results,
+          count: totals.count,
+          moneyTotals: totals.money_totals,
+          offset: unassignedOffset
+        }
+      ]
+    : view === 'pipeline'
       ? await pipelineColumns(response, stages, params, (params) =>
           listContacts({ cookies }, params)
         )

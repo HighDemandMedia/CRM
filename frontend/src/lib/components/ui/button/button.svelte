@@ -5,7 +5,7 @@
   export const buttonVariants = tv({
     base: [
       'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap',
-      'rounded-[var(--r-md)] text-sm font-medium leading-normal tracking-[-0.01em]',
+      'rounded-[var(--crm-button-radius)] text-sm font-medium leading-normal tracking-[-0.01em]',
       'outline-none transition-[background-color,color,border-color,box-shadow] duration-150',
       'disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50',
       "[&_svg:not([class*='size-'])]:size-[16px] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:stroke-[1.7]",
@@ -19,23 +19,23 @@
           'hover:[background:var(--crm-action-hover-bg)] active:[background:var(--crm-action-active-bg)]'
         ].join(' '),
         ghost: [
-          'bg-[color:var(--bg-elevated)] text-[color:var(--text-muted)]',
-          'border border-[color:var(--crm-control-border)]',
-          'hover:border-[color:var(--crm-control-border)] hover:text-[color:var(--text)]'
+          'bg-[color:var(--crm-surface-subtle)] text-[color:var(--text-muted)]',
+          'border border-[color:var(--crm-border)]',
+          'hover:bg-[color:var(--crm-surface-secondary)] hover:border-[color:var(--crm-control-border)] hover:text-[color:var(--text)]'
         ].join(' '),
         outline: [
-          'bg-[color:var(--bg-elevated)] text-[color:var(--text-muted)]',
-          'border border-[color:var(--crm-control-border)]',
-          'hover:border-[color:var(--crm-control-border)] hover:text-[color:var(--text)]'
+          'bg-[color:var(--crm-surface-subtle)] text-[color:var(--text-muted)]',
+          'border border-[color:var(--crm-border)]',
+          'hover:bg-[color:var(--crm-surface-secondary)] hover:border-[color:var(--crm-control-border)] hover:text-[color:var(--text)]'
         ].join(' '),
         secondary: [
-          'bg-[color:var(--bg-elevated)] text-[color:var(--text-muted)]',
-          'border border-[color:var(--crm-control-border)]',
-          'hover:border-[color:var(--crm-control-border)] hover:text-[color:var(--text)]'
+          'bg-[color:var(--crm-surface-subtle)] text-[color:var(--text-muted)]',
+          'border border-[color:var(--crm-border)]',
+          'hover:bg-[color:var(--crm-surface-secondary)] hover:border-[color:var(--crm-control-border)] hover:text-[color:var(--text)]'
         ].join(' '),
         destructive: [
-          'bg-[color:var(--bg-elevated)] text-[color:var(--red)]',
-          'border border-[color:var(--crm-control-border)]',
+          'bg-[color:var(--crm-surface-subtle)] text-[color:var(--red)]',
+          'border border-[color:var(--crm-border)]',
           'hover:border-[color:var(--red)]'
         ].join(' '),
         link: [

@@ -4,7 +4,11 @@ vi.mock('$lib/api-helpers.js', () => ({ apiRequest: (...args) => apiRequest(...a
 const { getTaskFormOptions, createTask, updateTask } = await import('./tasks.js');
 const { getTaskEditor, saveTaskEditor } = await import('./task-editor.js');
 const { load, actions } = await import('../../../routes/(app)/tasks/new/+page.server.js');
-const event = /** @type {any} */ ({ cookies: {}, params: { id: 'task-a' } });
+const event = /** @type {any} */ ({
+  cookies: {},
+  params: { id: 'task-a' },
+  url: new URL('http://localhost/tasks/new')
+});
 const contact = {
   id: 'contact-a',
   first_name: 'Claudia',

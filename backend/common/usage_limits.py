@@ -90,7 +90,7 @@ def resource_count(org_id, resource, using="default"):
         return len(seat_emails(org_id, using))
     label = next(key for key, value in RECORD_RESOURCES.items() if value == resource)
     rows = raw_rows(apps.get_model(label), org_id, using)
-    if resource == "contacts":
+    if resource in ("contacts", "companies"):
         rows = rows.filter(merged_at__isnull=True)
     from common.rls.context import org_context
 
@@ -184,7 +184,7 @@ def guard_save(instance, using="default", update_fields=None):
                     and candidate.expires_at > timezone.now()
                 )
                 email = candidate.email.lower()
-            elif resource == "contacts":
+            elif resource in ("contacts", "companies"):
                 grows = instance.merged_at is None
             if resource == "users" and grows:
                 # Acceptance exchanges a reservation for a membership, and a

@@ -89,6 +89,7 @@ function toRow(contact) {
   const { account, other_accounts } = accountLink(contact);
   return {
     id: contact.id,
+    assigned_to: (contact.assigned_to ?? []).map((owner) => String(owner.id)),
     created_by:
       contact.created_by_name || userName(contact.created_by, '') || contact.created_by_email || '',
     first_name: contact.first_name ?? '',
@@ -456,10 +457,14 @@ function toBody(values) {
   if ('tags' in values) body.tags = values.tags;
   if ('do_not_call' in body) body.do_not_call = Boolean(values.do_not_call);
   if ('is_active' in body) body.is_active = Boolean(values.is_active);
-  // Single-select owner, so the list is empty or one long. Only present when
-  // the form decided it changed. See the action for why that matters.
+  // Preserve every assignee in the inline editor while supporting legacy single-select forms.
+  // Absent means unchanged; unrelated edits must not rewrite ownership.
   if ('assigned_to' in values) {
-    body.assigned_to = values.assigned_to ? [values.assigned_to] : [];
+    body.assigned_to = Array.isArray(values.assigned_to)
+      ? values.assigned_to
+      : values.assigned_to
+        ? [values.assigned_to]
+        : [];
   }
   return body;
 }

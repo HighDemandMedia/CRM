@@ -4,6 +4,7 @@ export function dealQuery(url) {
   const params = new URLSearchParams();
   for (const key of [
     'search',
+    'tags',
     'assigned_to',
     'priority',
     'stage',

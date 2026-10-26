@@ -1,4 +1,13 @@
 export const advancedDealFilters = [
+  {
+    key: 'priority',
+    label: 'Priority',
+    options: [
+      ['LOW', 'Low'],
+      ['MEDIUM', 'Medium'],
+      ['HIGH', 'High']
+    ]
+  },
   { key: 'account', label: 'Company' },
   { key: 'contacts', label: 'Contacts' },
   {

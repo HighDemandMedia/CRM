@@ -1,6 +1,7 @@
 <script>
   import { asInternalPath } from '$lib/utils/paths.js';
 
+  import AssociationHeading from './AssociationHeading.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, money, shortDate } = useI18n();
@@ -14,8 +15,18 @@
 
   import { statusLabel, priorityLabel } from '$lib/components/tickets/options.js';
   import { STAGE_LABEL } from '$lib/v2/enums.js';
-  /** @type {{contactId:string,kind:'company'|'deal'|'contact'|'ticket',items:any[],detailed?:boolean,summary?:import('svelte').Snippet,parentKind?:'contact'|'company'|'deal'}} */
-  let { contactId, kind, items, detailed = false, summary, parentKind = 'contact' } = $props();
+  /** @type {{contactId:string,kind:'company'|'deal'|'contact'|'ticket',items:any[],detailed?:boolean,summary?:import('svelte').Snippet,parentKind?:'contact'|'company'|'deal',collapsible?:boolean}} */
+  let {
+    contactId,
+    kind,
+    items,
+    detailed = false,
+    summary,
+    parentKind = 'contact',
+    collapsible = false
+  } = $props();
+  let expanded = $state(true);
+  const contentId = $props.id();
   const label = $derived(
     kind === 'company'
       ? 'Companies'
@@ -104,17 +115,24 @@
 
 <section class="relations" aria-label={ui('Associated {kind}', { kind: ui(label) })}>
   <header class="association-heading">
-    <h2>{ui(label)} <span>{items.length}</span></h2>
+    <AssociationHeading
+      title={ui(label)}
+      count={items.length}
+      {collapsible}
+      bind:expanded
+      controls={contentId}
+    />
     {#if editable}<button
         class="add association-icon"
         type="button"
         disabled={busy}
         aria-label={ui('Add association: {kind}', { kind: ui(label) })}
         onclick={() => {
+          expanded = true;
           adding = !adding;
           menu = '';
         }}><Plus size={16} /></button
-      >{:else if parentKind !== 'deal'}
+      >{:else if kind === 'ticket' && parentKind !== 'deal' && can(page.data.permissions, 'tickets', 'create')}
       <a
         class="add association-icon"
         aria-label={ui('Create ticket')}
@@ -127,74 +145,77 @@
       >
     {/if}
   </header>
-  {#if summary}<div class="association-summary">{@render summary()}</div>{/if}
-  {#if editable && adding}<div class="search-box">
-      <input
-        class="v2-input"
-        aria-label={`Search ${label.toLowerCase()}`}
-        placeholder={`Search ${label.toLowerCase()}…`}
-        bind:value={search}
-        disabled={busy}
-      />
-      <div class="results">
-        {#if loading}<p>{ui('Searching…')}</p>{:else}{#each results as item (item.id)}<button
-              type="button"
-              disabled={busy}
-              onclick={() => change('add', item.id)}>{item.name}<span>+</span></button
-            >{:else}<p>{ui('No available records.')}</p>{/each}{/if}
-      </div>
-    </div>{/if}
-  {#each items as item (item.id)}<div class="record">
-      <a
-        href={kind === 'company'
-          ? resolve(`/accounts/${item.id}`)
-          : kind === 'deal'
-            ? resolve(`/pipeline/${item.id}`)
-            : kind === 'ticket'
-              ? resolve(`/tickets/${item.id}`)
-              : resolve(`/contacts/${item.id}`)}
-        ><strong>{item.name}</strong>{#if detailed && kind === 'contact'}<small
-            >{[item.email, item.phone].filter(Boolean).join(' · ') || 'No contact details'}</small
-          >{/if}{#if detailed && kind === 'deal'}<span class="deal-details"
-            ><span><small>{ui('Amount')}</small>{money(item.amount, item.currency)}</span><span
-              ><small>{ui('Stage')}</small>{STAGE_LABEL[item.stage] ?? item.stage}</span
-            ><span
-              ><small>{ui('Close date')}</small>{item.closed_on
-                ? shortDate(item.closed_on)
-                : '—'}</span
-            ></span
-          >{:else if kind === 'deal'}<small
-            >{STAGE_LABEL[item.stage] ?? item.stage} · {money(item.amount, item.currency)}</small
-          >{:else if kind === 'ticket'}<small
-            >{statusLabel(item.status)}{#if item.priority}
-              · {priorityLabel(item.priority)}{/if}</small
-          >{/if}</a
-      >
-      {#if editable}<div
-          class="record-actions"
-          onfocusout={(e) => {
-            if (!e.currentTarget.contains(/** @type {Node|null} */ (e.relatedTarget))) menu = '';
-          }}
+  <div id={contentId} hidden={collapsible && !expanded}>
+    {#if summary}<div class="association-summary">{@render summary()}</div>{/if}
+    {#if editable && adding}<div class="search-box">
+        <input
+          class="v2-input"
+          aria-label={`Search ${label.toLowerCase()}`}
+          placeholder={`Search ${label.toLowerCase()}…`}
+          bind:value={search}
+          disabled={busy}
+        />
+        <div class="results">
+          {#if loading}<p>{ui('Searching…')}</p>{:else}{#each results as item (item.id)}<button
+                type="button"
+                disabled={busy}
+                onclick={() => change('add', item.id)}>{item.name}<span>+</span></button
+              >{:else}<p>{ui('No available records.')}</p>{/each}{/if}
+        </div>
+      </div>{/if}
+    {#each items as item (item.id)}<div class="record">
+        <a
+          href={kind === 'company'
+            ? resolve(`/accounts/${item.id}`)
+            : kind === 'deal'
+              ? resolve(`/pipeline/${item.id}`)
+              : kind === 'ticket'
+                ? resolve(`/tickets/${item.id}`)
+                : resolve(`/contacts/${item.id}`)}
+          ><strong>{item.name}</strong>{#if detailed && kind === 'contact'}<small
+              >{[item.email, item.phone].filter(Boolean).join(' · ') || 'No contact details'}</small
+            >{/if}{#if detailed && kind === 'deal'}<span class="deal-details"
+              ><span><small>{ui('Amount')}</small>{money(item.amount, item.currency)}</span><span
+                ><small>{ui('Stage')}</small>{STAGE_LABEL[item.stage] ?? item.stage}</span
+              ><span
+                ><small>{ui('Close date')}</small>{item.closed_on
+                  ? shortDate(item.closed_on)
+                  : '—'}</span
+              ></span
+            >{:else if kind === 'deal'}<small
+              >{STAGE_LABEL[item.stage] ?? item.stage} · {money(item.amount, item.currency)}</small
+            >{:else if kind === 'ticket'}<small
+              >{statusLabel(item.status)}{#if item.priority}
+                · {priorityLabel(item.priority)}{/if}</small
+            >{/if}</a
         >
-          <button
-            class="more association-icon"
-            type="button"
-            aria-label={`Actions for ${item.name}`}
-            aria-expanded={menu === item.id}
-            disabled={busy}
-            onclick={() => (menu = menu === item.id ? '' : item.id)}><Ellipsis size={16} /></button
-          >{#if menu === item.id}<button
-              class="remove"
+        {#if editable}<div
+            class="record-actions"
+            onfocusout={(e) => {
+              if (!e.currentTarget.contains(/** @type {Node|null} */ (e.relatedTarget))) menu = '';
+            }}
+          >
+            <button
+              class="more association-icon"
               type="button"
+              aria-label={`Actions for ${item.name}`}
+              aria-expanded={menu === item.id}
               disabled={busy}
-              onclick={() => change('remove', item.id)}>{ui('Remove association')}</button
-            >{/if}
-        </div>{/if}
-    </div>{:else}<p class="empty">
-      {ui('No associated')}
-      {label.toLowerCase()}.
-    </p>{/each}
-  {#if error}<Notice message={ui(error)} />{/if}
+              onclick={() => (menu = menu === item.id ? '' : item.id)}
+              ><Ellipsis size={16} /></button
+            >{#if menu === item.id}<button
+                class="remove"
+                type="button"
+                disabled={busy}
+                onclick={() => change('remove', item.id)}>{ui('Remove association')}</button
+              >{/if}
+          </div>{/if}
+      </div>{:else}<p class="empty">
+        {ui('No associated')}
+        {label.toLowerCase()}.
+      </p>{/each}
+    {#if error}<Notice message={ui(error)} />{/if}
+  </div>
 </section>
 
 <style>
@@ -221,17 +242,6 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 6px;
-  }
-  h2 {
-    font-size: var(--crm-text-sm);
-    font-weight: 600;
-    margin: 0;
-  }
-  h2 span {
-    font-size: var(--crm-text-xs);
-    font-weight: 400;
-    color: var(--v2-slate);
-    margin-left: 5px;
   }
   .add,
   .more {

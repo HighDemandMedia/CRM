@@ -55,10 +55,7 @@
   </div>
   <nav aria-label={ui('Profile and preferences')}>
     {#each groups as group (group.label)}
-      <details
-        open={['Personal', 'Organization & access', 'CRM configuration'].includes(group.label) ||
-          group.items.some((item) => active(item.href))}
-      >
+      <details open>
         <summary>{ui(group.label)}<ChevronDown size={12} /></summary>
         {#each group.items as item (item.key)}
           <a
@@ -216,7 +213,7 @@
       min-width: 0;
       padding: var(--crm-space-2);
       border: 1px solid var(--v2-line);
-      border-radius: var(--crm-radius-sm);
+      border-radius: var(--crm-button-radius);
       background: var(--crm-surface);
       color: var(--v2-ink);
       font: inherit;

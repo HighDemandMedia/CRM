@@ -3,7 +3,7 @@
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
-  import { countryOptions } from '$lib/constants/countries.js';
+  import CountrySelect from '$lib/components/CountrySelect.svelte';
   import { resolve } from '$app/paths';
   /**
    * Editing the organisation.
@@ -261,12 +261,7 @@
 
       <div class="v2-field">
         <label for="f-country">{ui('Country')}</label>
-        <select id="f-country" name="country" class="v2-input" bind:value={form.country}>
-          <option value="">{ui('Not recorded')}</option>
-          {#each countryOptions(form.country) as c (c.value)}
-            <option value={c.value}>{c.label}</option>
-          {/each}
-        </select>
+        <CountrySelect id="f-country" name="country" bind:value={form.country} />
       </div>
 
       <div class="v2-label" style="margin:24px 0 12px">{ui('Defaults')}</div>
@@ -289,17 +284,12 @@
         </div>
         <div class="v2-field">
           <label for="f-defcountry">{ui('Country default')}</label>
-          <select
+          <CountrySelect
             id="f-defcountry"
             name="default_country"
-            class="v2-input"
+            label="Default country"
             bind:value={form.default_country}
-          >
-            <option value="">{ui('Not set')}</option>
-            {#each countryOptions(form.default_country) as c (c.value)}
-              <option value={c.value}>{c.label}</option>
-            {/each}
-          </select>
+          />
           <p class="v2-hint">{ui('Pre-filled on new addresses.')}</p>
         </div>
       </div>

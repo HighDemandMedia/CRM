@@ -73,6 +73,7 @@
   --crm-radius-lg: 0.75rem;
   --crm-radius-xl: 1rem;
   --crm-radius-full: 9999px;
+  --crm-button-radius: var(--crm-radius-full);
   --crm-shadow-sm: 0 1px 3px rgb(0 0 0 / 6%);
   --crm-shadow-md: 0 4px 16px rgb(0 0 0 / 10%);
   --crm-shadow-lg: 0 16px 48px rgb(0 0 0 / 16%);

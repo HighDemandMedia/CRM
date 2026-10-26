@@ -181,7 +181,6 @@
     >
       <Search />
       <span class="nav-text">{ui('Search')}</span>
-      <span class="v2-count">⌘K</span>
     </button>
 
     {#each groups as group (group.label)}

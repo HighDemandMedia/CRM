@@ -1,4 +1,5 @@
 <script>
+  import AssociationHeading from './AssociationHeading.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { attachmentError } from '$lib/v2/attachment-policy.js';
   import { useI18n } from '$lib/i18n/context.js';
@@ -11,8 +12,10 @@
   import { invalidateAll } from '$app/navigation';
   import { Paperclip, FileText, Trash2 } from '@lucide/svelte';
   /** @typedef {{id:string,name:string,href:string|null,canDelete?:boolean}} Attachment */
-  /** @type {{attachments: Attachment[],action?:string,allowUpload?:boolean}} */
-  let { attachments, action = '?/attach', allowUpload = true } = $props();
+  /** @type {{attachments: Attachment[],action?:string,allowUpload?:boolean,collapsible?:boolean}} */
+  let { attachments, action = '?/attach', allowUpload = true, collapsible = false } = $props();
+  let expanded = $state(true);
+  const contentId = $props.id();
   let fileBusy = $state(false);
   let fileName = $state('');
   let fileError = $state('');
@@ -51,7 +54,13 @@
 
 <div class="attachment-section">
   <header class="association-heading">
-    <h2>{ui('Attachments')}</h2>
+    <AssociationHeading
+      title={ui('Attachments')}
+      count={attachments.filter((file) => !removed.includes(file.id)).length}
+      {collapsible}
+      bind:expanded
+      controls={contentId}
+    />
     {#if allowUpload && (!recordModule(page.url.pathname) || can(page.data.permissions, recordModule(page.url.pathname), 'attachments'))}<form
         method="POST"
         {action}
@@ -106,53 +115,58 @@
           aria-label={fileBusy ? ui('Uploading attachment') : ui('Add attachment')}
           title={fileBusy ? ui('Uploading…') : ui('Add attachment')}
           disabled={fileBusy}
-          onclick={() => fileInput.click()}
+          onclick={() => {
+            expanded = true;
+            fileInput.click();
+          }}
         >
           <Paperclip size={16} />
         </button>
       </form>{/if}
   </header>
-  {#if allowUpload}<p class="v2-sub">{ui('Up to 25 MB per file.')}</p>{/if}
-  {#if fileBusy || uploadStatus}<p class="v2-sub" role="status">
-      {fileBusy ? ui('Uploading {name}…', { name: fileName }) : ui(uploadStatus)}
-    </p>{/if}
-  {#if fileError}
-    <Notice message={ui(fileError)} />
-    {#if fileName}<button
-        type="button"
-        class="v2-btn"
-        disabled={fileBusy}
-        onclick={() => fileInput.form?.requestSubmit()}>{ui('Retry upload')}</button
-      >{/if}
-  {/if}
-  {#each attachments.filter((file) => !removed.includes(file.id)) as file (file.id)}
-    <div class="attachment-row">
-      {#if file.href}
-        <a
-          class="related-item"
-          href={resolve(/** @type {`/api/attachments/${string}/download`} */ (file.href))}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Open attachment ${file.name}`}
-          ><FileText size={15} /><span>{file.name}</span></a
-        >
-      {:else}<span class="related-item"><FileText size={15} /><span>{file.name}</span></span>{/if}
-      {#if file.canDelete && can(page.data.permissions, recordModule(page.url.pathname), 'delete_attachments')}
-        <button
+  <div id={contentId} hidden={collapsible && !expanded}>
+    {#if allowUpload}<p class="v2-sub">{ui('Up to 25 MB per file.')}</p>{/if}
+    {#if fileBusy || uploadStatus}<p class="v2-sub" role="status">
+        {fileBusy ? ui('Uploading {name}…', { name: fileName }) : ui(uploadStatus)}
+      </p>{/if}
+    {#if fileError}
+      <Notice message={ui(fileError)} />
+      {#if fileName}<button
           type="button"
-          class="association-icon delete-file"
-          aria-label={`Delete attachment ${file.name}`}
-          title={ui('Delete attachment')}
-          onclick={() => {
-            selected = file;
-            deleteError = '';
-          }}
-        >
-          <Trash2 size={15} />
-        </button>
-      {/if}
-    </div>
-  {:else}<p class="v2-sub">{ui('No attachments.')}</p>{/each}
+          class="v2-btn"
+          disabled={fileBusy}
+          onclick={() => fileInput.form?.requestSubmit()}>{ui('Retry upload')}</button
+        >{/if}
+    {/if}
+    {#each attachments.filter((file) => !removed.includes(file.id)) as file (file.id)}
+      <div class="attachment-row">
+        {#if file.href}
+          <a
+            class="related-item"
+            href={resolve(/** @type {`/api/attachments/${string}/download`} */ (file.href))}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open attachment ${file.name}`}
+            ><FileText size={15} /><span>{file.name}</span></a
+          >
+        {:else}<span class="related-item"><FileText size={15} /><span>{file.name}</span></span>{/if}
+        {#if file.canDelete && can(page.data.permissions, recordModule(page.url.pathname), 'delete_attachments')}
+          <button
+            type="button"
+            class="association-icon delete-file"
+            aria-label={`Delete attachment ${file.name}`}
+            title={ui('Delete attachment')}
+            onclick={() => {
+              selected = file;
+              deleteError = '';
+            }}
+          >
+            <Trash2 size={15} />
+          </button>
+        {/if}
+      </div>
+    {:else}<p class="v2-sub">{ui('No attachments.')}</p>{/each}
+  </div>
 </div>
 
 {#if selected}
@@ -241,7 +255,7 @@
     gap: var(--crm-space-2);
     margin: 0;
   }
-  .attachment-section > .v2-sub {
+  .attachment-section > div > .v2-sub {
     margin: 6px 0 0;
     font-size: var(--crm-text-xs);
   }

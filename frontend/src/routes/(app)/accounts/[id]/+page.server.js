@@ -1,24 +1,31 @@
+import { getCreationSchema } from '$lib/server/v2/creation-forms.js';
 import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 import { apiRequest } from '$lib/api-helpers.js';
 import { createContactTag, readContactTags } from '$lib/server/v2/contact-tags.js';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { readableError, stageRequirements, fieldErrors } from '$lib/server/v2/form-errors.js';
 import {
   getAccount,
-  getAccountForEdit,
   updateAccount,
   EDITABLE_FIELDS,
   addCompanyAttachment
 } from '$lib/server/v2/accounts.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies, params, locals }) {
-  const [account, editor, { people }] = await Promise.all([
+export async function load({ cookies, params, locals, depends }) {
+  depends(`crm:record:Account:${params.id}`);
+  const [account, propertySchema, { people }] = await Promise.all([
     getAccount({ cookies }, params.id),
-    getAccountForEdit({ cookies }, params.id),
+    getCreationSchema({ cookies }, 'Account'),
     getOrgPeopleAndTeams(cookies, { module: 'calendar', action: 'reassign' })
   ]);
-  return { ...account, editor, hosts: people, defaultHost: resolveMe(people, locals.user?.email) };
+  if (account.account.id !== params.id) redirect(303, `/accounts/${account.account.id}`);
+  return {
+    ...account,
+    propertySchema,
+    hosts: people,
+    defaultHost: resolveMe(people, locals.user?.email)
+  };
 }
 
 /** @type {import('./$types').Actions} */

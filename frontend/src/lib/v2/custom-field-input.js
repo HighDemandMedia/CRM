@@ -1,3 +1,5 @@
+import { normalizedPhone, PHONE_ERROR } from '$lib/utils/phone-number.js';
+
 export function fieldInputType(type) {
   if (['number', 'integer', 'percentage'].includes(type)) return 'number';
   if (type === 'phone') return 'tel';
@@ -14,8 +16,7 @@ export function propertyValueError(type, raw, required = false) {
   if (value == null || value === '' || (Array.isArray(value) && !value.length))
     return required ? 'This field is required.' : '';
   const text = String(value);
-  if (type === 'phone' && !/^[0-9]{10}$/.test(text))
-    return 'Enter exactly 10 digits, without a country code or separators.';
+  if (type === 'phone' && !normalizedPhone(text)) return PHONE_ERROR;
   if (type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(text))
     return 'Enter a valid email address.';
   if (type === 'url') {
@@ -69,7 +70,7 @@ export function propertyValueError(type, raw, required = false) {
 
 /** @returns {Pick<import('svelte/elements').HTMLInputAttributes, 'inputmode' | 'pattern' | 'maxlength' | 'min' | 'max'>} */
 export function propertyInputAttributes(type) {
-  if (type === 'phone') return { inputmode: 'numeric', pattern: '[0-9]{10}' };
+  if (type === 'phone') return { inputmode: 'tel' };
   if (type === 'integer') return { min: -Number.MAX_SAFE_INTEGER, max: Number.MAX_SAFE_INTEGER };
   if (type === 'percentage') return { min: 0, max: 100 };
   if (type === 'money') return { inputmode: 'decimal' };

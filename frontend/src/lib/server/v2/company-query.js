@@ -4,6 +4,8 @@ export function companyQuery(url) {
   const params = new URLSearchParams();
   for (const key of [
     'search',
+    'assigned_to',
+    'tags',
     'contacts',
     'source',
     'stage',

@@ -131,7 +131,7 @@
         download><Download size={15} />{ui('Export report')}</a
       >{/if}{/snippet}
 </PageHeader>
-<div class="reports crm-module-body" aria-busy={busy}>
+<div class="reports crm-module-body crm-pill-controls" aria-busy={busy}>
   {#if data.reportError}
     <Notice title={ui('Could not open this report')} message={data.reportError}>
       {#snippet actions()}<a class="v2-btn" href={resolve('/reports')}

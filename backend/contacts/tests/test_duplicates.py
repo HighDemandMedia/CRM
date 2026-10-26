@@ -32,15 +32,13 @@ def test_email_and_formatted_phone_matches_are_scoped(admin_client, org_a, org_b
     ] == str(contact.pk)
 
 
-def test_possible_local_number_is_labelled_and_country_codes_are_preserved(
-    admin_client, org_a
-):
+def test_legacy_us_number_matches_and_country_codes_are_preserved(admin_client, org_a):
     contact = Contact.objects.create(
         org=org_a, first_name="Shared phone", phone="+1 305 555 0199"
     )
     row = admin_client.get(URL, {"phone": "305-555-0199"}).data["results"][0]
     assert row["id"] == str(contact.pk)
-    assert row["reasons"] == ["Similar phone — check country code"]
+    assert row["reasons"] == ["Same phone"]
     assert admin_client.get(URL, {"phone": "+44 305 555 0199"}).data["results"] == []
 
 
@@ -85,7 +83,7 @@ def test_phone_key_updates_on_edit_without_exposing_internal_audit_field(
     )
     assert response.status_code == 200, response.data
     contact.refresh_from_db()
-    assert contact.phone_match_key == "3055550199"
+    assert contact.phone_match_key == "13055550199"
     assert admin_client.get(URL, {"phone": "13055550100"}).data["results"] == []
     assert admin_client.get(URL, {"phone": "13055550199"}).data["results"][0][
         "id"

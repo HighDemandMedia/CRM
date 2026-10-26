@@ -58,3 +58,45 @@ it('returns to the first page when the filtered list is now empty', async () => 
     location: '/contacts?offset=0'
   });
 });
+it('shows and pages unassigned contacts in pipeline using the same filtered query', async () => {
+  const records = [{ id: 'unassigned-contact', name: 'Ana', stage: '' }];
+  vi.mocked(listContacts).mockResolvedValueOnce(
+    /** @type {any} */ ({ results: records, totals: { count: 30, money_totals: [] }, stages: [] })
+  );
+  const data = /** @type {any} */ (
+    await load(event('view=pipeline&stage=UNASSIGNED&search=Ana&UNASSIGNED_offset=25'))
+  );
+  expect(listContacts).toHaveBeenCalledTimes(1);
+  const query = vi.mocked(listContacts).mock.calls[0][1];
+  expect(query.get('stage')).toBe('UNASSIGNED');
+  expect(query.get('search')).toBe('Ana');
+  expect(query.get('board')).toBeNull();
+  expect(query.get('offset')).toBe('25');
+  expect(query.get('include_deal_values')).toBe('true');
+  expect(data.board).toEqual([
+    {
+      value: 'UNASSIGNED',
+      label: 'No stage',
+      contacts: records,
+      count: 30,
+      moneyTotals: [],
+      offset: 25
+    }
+  ]);
+});
+it('keeps batched configured stages when loading the regular pipeline', async () => {
+  vi.mocked(listContacts).mockResolvedValueOnce(
+    /** @type {any} */ ({
+      results: [],
+      totals: { count: 1 },
+      stages: [{ value: 'LEAD', label: 'Lead' }],
+      board: [
+        { key: 'LEAD', results: [{ id: 'contact-1' }], count: 1, offset: 0, money_totals: [] }
+      ]
+    })
+  );
+  const data = /** @type {any} */ (await load(event('view=pipeline&search=Ana')));
+  expect(listContacts).toHaveBeenCalledTimes(1);
+  expect(vi.mocked(listContacts).mock.calls[0][1].get('board')).toBe('true');
+  expect(data.board[0].contacts).toEqual([{ id: 'contact-1' }]);
+});

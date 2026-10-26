@@ -73,10 +73,7 @@
     exact ? page.url.pathname === href : page.url.pathname.startsWith(href);
 
   function onkeydown(e) {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-      e.preventDefault();
-      paletteOpen = !paletteOpen;
-    } else if (e.key === 'Escape' && menuOpen) {
+    if (e.key === 'Escape' && menuOpen) {
       menuOpen = false;
     }
   }
@@ -178,7 +175,13 @@
     {/if}
     <div class="page-workspace">
       {#if preferencesOpen}<PreferencesNav />{/if}
-      <div class="route-content" class:with-preferences={preferencesOpen}>{@render children()}</div>
+      <div
+        class="route-content"
+        class:with-preferences={preferencesOpen}
+        class:crm-pill-controls={preferencesOpen}
+      >
+        {@render children()}
+      </div>
     </div>
 
     <nav class="v2-tabbar" aria-label={ui('Sections')}>
