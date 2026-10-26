@@ -1,6 +1,8 @@
 # Navigation performance
 
-People/filter catalogues live in module layouts. Tasks and ordinary Tickets queries inherit them directly instead of calling server `parent()`, which re-executes server ancestor loads even when their browser data is retained. Contacts, Companies, Deals and the open-stage Tickets preset still need parent pipeline configuration and can repeat those catalogue requests. Organization/session changes must continue to invalidate layouts; do not replace this with a shared server cache. Record authorization is checked by the API on every request.
+People/filter catalogues live in module layouts. Tasks and ordinary Tickets queries inherit them directly. Contacts, Companies and Deals now also avoid server `parent()` for list/batched-board loads: universal page loads combine inherited stage presentation with authorized records. Older APIs without batched boards and the open-stage Tickets preset still need server parent configuration and can repeat catalogue reads. Organization/session changes must continue to invalidate layouts; do not replace this with a shared server cache. Record authorization is checked by the API on every request. Root UI context still refreshes on URL changes, including query changes.
+
+ViewToggle optionally preloads a destination on pointer/focus intent; hints older than five seconds force fresh data. It retains callback behavior for other consumers. Optional `CRM_PERFORMANCE_DIAGNOSTICS=true` adds request-local aggregate Server-Timing and browser navigation measurements. It defaults to false and stores no identities or payloads. See `../audits/2026-10-26-navigation-round-two.md` for the local comparison and its limits.
 
 Stage updates invalidate only `crm:contacts`, `crm:companies` or `crm:deals`. Changes to people/tags can invalidate `crm:contact-options` or `crm:deal-options`; broad mutations still invalidate all data.
 

@@ -24,7 +24,9 @@ export async function load({ cookies, url, parent, depends }) {
   const { pageSize, offset } = listPagination(url, view === 'list');
   query.set('limit', String(pageSize));
   query.set('offset', String(view === 'list' ? offset : 0));
-  const [response, shell] = await Promise.all([listDeals({ cookies }, query), parent()]);
+  const response = await listDeals({ cookies }, query);
+  // Keep the rolling-deploy fallback, without reloading layouts for current APIs.
+  const shell = view === 'pipeline' && !response.board ? await parent() : {};
   checkListPage(url, { pageSize, offset }, response.totals.count);
   const stages = configuredStages(
     shell.pipelineConfig,
@@ -38,12 +40,10 @@ export async function load({ cookies, url, parent, depends }) {
 
   return {
     view,
-    tags: shell.tags ?? [],
     deals: response.results,
     totals: response.totals,
     contacts: response.contacts,
     accounts: response.accounts,
-    people: shell.people,
     stages,
     board,
     pageSize,

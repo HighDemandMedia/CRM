@@ -1,4 +1,5 @@
 <script>
+  import NavigationTiming from '$lib/v2/components/NavigationTiming.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
 
@@ -20,7 +21,7 @@
   import CommandPalette from '$lib/v2/components/CommandPalette.svelte';
   import { Search, Sun, Columns3, LifeBuoy, CalendarDays, Plus, Menu } from '@lucide/svelte';
 
-  /** @type {{ data: { accountUser: { name?: string, email?: string }, accountId: string, counts: Record<string, number> | Promise<Record<string, number>>, org: { name: string, terminology?: Record<string, string> | null }, role: string, isSuperAdmin?: boolean, platformAccess?: { return_organization: { id: string, name: string } | null } | null, lifecycle?: { read_only: boolean } }, children: import('svelte').Snippet }} */
+  /** @type {{ data: { performanceDiagnostics?: boolean, accountUser: { name?: string, email?: string }, accountId: string, counts: Record<string, number> | Promise<Record<string, number>>, org: { name: string, terminology?: Record<string, string> | null }, role: string, isSuperAdmin?: boolean, platformAccess?: { return_organization: { id: string, name: string } | null } | null, lifecycle?: { read_only: boolean } }, children: import('svelte').Snippet }} */
   let { data, children } = $props();
 
   let preferencesOpen = $derived(
@@ -97,12 +98,9 @@
 </svelte:head>
 
 <svelte:window {onkeydown} />
+<NavigationTiming enabled={data.performanceDiagnostics} />
 <Toaster position="top-right" closeButton />
-{#if navigating.to}<div
-    class="navigation-progress"
-    role="status"
-    aria-label={ui('Loading…')}
-  ></div>{/if}
+{#if navigating.to}<div class="navigation-progress" aria-hidden="true"></div>{/if}
 
 <div class="v2-root v2-shell">
   <div class="desktop-navigation" class:collapsed={navigationHidden}>
@@ -186,9 +184,13 @@
       </div>
     {/if}
     <div class="page-workspace">
+      {#if navigating.to}
+        <div class="route-loading-label" role="status">{ui('Loading…')}</div>
+      {/if}
       {#if preferencesOpen}<PreferencesNav />{/if}
       <div
         class="route-content"
+        aria-busy={!!navigating.to}
         class:with-preferences={preferencesOpen}
         class:crm-pill-controls={preferencesOpen}
       >
@@ -265,6 +267,30 @@
 </div>
 
 <style>
+  .page-workspace {
+    position: relative;
+  }
+  .route-loading-label {
+    position: absolute;
+    z-index: 30;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 14px;
+    border: 1px solid var(--v2-line);
+    border-radius: var(--crm-button-radius);
+    background: var(--v2-card);
+    color: var(--v2-muted);
+    font-size: 13px;
+    pointer-events: none;
+    opacity: 0;
+    animation: reveal-loading 100ms 120ms forwards;
+  }
+  @keyframes reveal-loading {
+    to {
+      opacity: 1;
+    }
+  }
   .support-banner {
     display: flex;
     flex-wrap: wrap;

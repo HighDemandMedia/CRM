@@ -2,9 +2,12 @@
   import { List, Columns3 } from '@lucide/svelte';
   import { toast } from 'svelte-sonner';
   import { useI18n } from '$lib/i18n/context.js';
+  import { goto, preloadData } from '$app/navigation';
+  import { createViewNavigation } from '$lib/v2/view-navigation.js';
 
-  /** @type {{ view: string, onchange: (view: 'list' | 'pipeline') => void | Promise<void> }} */
-  let { view = 'list', onchange } = $props();
+  /** @type {{ view: string, onchange?: (view: 'list' | 'pipeline') => void | Promise<void>, href?: string }} */
+  let { view = 'list', onchange, href } = $props();
+  const navigation = createViewNavigation({ preload: preloadData, navigate: goto });
   const { ui } = useI18n();
   let pending = $state(false);
   let requested = $state(false);
@@ -15,7 +18,8 @@
     requested = view !== 'pipeline';
     pending = true;
     try {
-      await onchange(requested ? 'pipeline' : 'list');
+      if (href) await navigation.go(href);
+      else await onchange?.(requested ? 'pipeline' : 'list');
     } catch {
       toast.error(ui('Could not change view. Please try again.'));
     } finally {
@@ -35,6 +39,11 @@
   disabled={pending}
   title={ui(pipeline ? 'Switch to list view' : 'Switch to pipeline view')}
   onclick={toggle}
+  onpointerenter={(event) => {
+    if (event.pointerType === 'mouse' && !pending) navigation.prepare(href);
+  }}
+  onfocus={() => !pending && navigation.prepare(href)}
+  onpointerdown={() => !pending && navigation.prepare(href)}
 >
   <span class="thumb" aria-hidden="true"></span>
   <span class="option" class:selected={!pipeline} aria-hidden="true"><List size={17} /></span>

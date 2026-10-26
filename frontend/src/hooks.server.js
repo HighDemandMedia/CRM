@@ -1,6 +1,8 @@
 import { logProxyProbe } from '$lib/server/proxy-diagnostics.js';
 import { savePasswordSession, saveSessionTokens } from '$lib/server/password-session.js';
 import { API_ORIGIN } from '$lib/server/api-origin.js';
+import { env } from '$env/dynamic/private';
+import { timeRequest } from '$lib/server/navigation-timing.js';
 /**
  * SvelteKit Server Hooks with JWT Authentication
  *
@@ -182,14 +184,20 @@ async function switchOrg(accessToken, orgId, refreshToken) {
 export const handle = async (input) => {
   logProxyProbe(input.event);
   let response;
+  let timingHeader;
   try {
-    response = await handleSession(input);
+    const timed = await timeRequest(env.CRM_PERFORMANCE_DIAGNOSTICS === 'true', () =>
+      handleSession(input)
+    );
+    response = timed.response;
+    timingHeader = timed.header;
   } catch (error) {
     if (!isRedirect(error)) throw error;
     response = new Response(null, { status: error.status, headers: { location: error.location } });
   }
   // Fetch responses can have immutable headers; preserve the streaming body.
   const headers = new Headers(response.headers);
+  if (timingHeader) headers.set('server-timing', timingHeader);
   // Keep authentication pages crawlable so search engines can read this directive.
   const pathname = input.event.url.pathname;
   if (pathname === '/login' || pathname.startsWith('/login/')) {

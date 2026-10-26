@@ -48,7 +48,9 @@ export async function load({ cookies, url, parent, depends }) {
   );
   params.set('offset', String(unassigned ? unassignedOffset : view === 'pipeline' ? 0 : offset));
   if (unassigned) params.set('include_deal_values', 'true');
-  const [response, shell] = await Promise.all([listContacts({ cookies }, params), parent()]);
+  const response = await listContacts({ cookies }, params);
+  // Only legacy APIs without a batched board need server-side ancestor data.
+  const shell = view === 'pipeline' && !unassigned && !response.board ? await parent() : {};
 
   const { results, totals, stages: defaultStages } = response;
   checkListPage(url, { pageSize, offset }, totals.count);
@@ -79,10 +81,7 @@ export async function load({ cookies, url, parent, depends }) {
     contacts: results,
     totals,
     includeInactive,
-    search: params.get('search') ?? '',
-    people: shell.people,
-    tags: shell.tags,
-    meId: shell.meId
+    search: params.get('search') ?? ''
   };
 }
 

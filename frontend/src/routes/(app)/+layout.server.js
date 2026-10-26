@@ -4,6 +4,7 @@ import { setupDestination } from '$lib/server/onboarding.js';
 import { normalizeLocale } from '$lib/i18n/messages.js';
 import { apiRequest } from '$lib/api-helpers.js';
 import { listTickets, OPEN_STATUSES } from '$lib/server/v2/tickets.js';
+import { env } from '$env/dynamic/private';
 
 /**
  * Counts actually rendered by Sidebar and SectionTabs.
@@ -109,6 +110,7 @@ export async function load(event) {
   });
   return {
     ...shell,
+    performanceDiagnostics: env.CRM_PERFORMANCE_DIAGNOSTICS === 'true',
     platformAccess: shell.isPlatformOwner ? (context.platform_access ?? null) : null,
     uiLocale,
     counts,

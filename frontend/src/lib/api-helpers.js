@@ -2,6 +2,7 @@ import { clientIdentityHeaders } from '$lib/server/proxy-identity.js';
 import { attachmentError } from '$lib/v2/attachment-policy.js';
 import { apiOriginFor } from '$lib/server/api-origin.js';
 import { apiFetch } from '$lib/server/api-fetch.js';
+import { startApiTiming } from '$lib/server/navigation-timing.js';
 /**
  * API Helper Functions
  *
@@ -90,6 +91,7 @@ export async function apiRequest(endpoint, options = {}, locals) {
   }
 
   const url = `${apiOriginFor(endpoint)}/api${endpoint}`;
+  const finishTiming = startApiTiming();
 
   try {
     const response = await apiFetch(url, requestOptions);
@@ -177,6 +179,8 @@ export async function apiRequest(endpoint, options = {}, locals) {
       );
     }
     throw error;
+  } finally {
+    finishTiming();
   }
 }
 

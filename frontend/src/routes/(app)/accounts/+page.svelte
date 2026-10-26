@@ -641,11 +641,11 @@
     <div class="view-actions">
       <ViewToggle
         view={data.view}
-        onchange={(view) =>
-          goto(resolve(asInternalPath(link({ view, offset: null }))), {
-            keepFocus: true,
-            noScroll: true
-          })}
+        href={resolve(
+          asInternalPath(
+            link({ view: data.view === 'pipeline' ? 'list' : 'pipeline', offset: null })
+          )
+        )}
       />
 
       {#if can(page.data.permissions, 'companies', 'export')}<ExportDialog

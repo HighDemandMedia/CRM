@@ -3,19 +3,20 @@ vi.mock('$lib/server/v2/accounts.js', () => ({ listAccounts: vi.fn(), updateAcco
 import { listAccounts } from '$lib/server/v2/accounts.js';
 import { load } from './+page.server.js';
 
-it('starts the company request without waiting for shell settings', async () => {
-  /** @type {(value: any) => void} */
-  let finishParent = () => {};
-  const parent = vi.fn(
-    () =>
-      new Promise((resolve) => {
-        finishParent = resolve;
-      })
-  );
+it('loads company records without repeating server layout reads', async () => {
+  const parent = vi.fn(() => {
+    throw new Error('Must reuse inherited layout data');
+  });
   vi.mocked(listAccounts).mockResolvedValue(
-    /** @type {any} */ ({ results: [], totals: {}, contacts: [], industries: [], countries: [] })
+    /** @type {any} */ ({
+      results: [],
+      totals: { count: 0 },
+      contacts: [],
+      industries: [],
+      countries: []
+    })
   );
-  const pending = load(
+  const result = await load(
     /** @type {any} */ ({
       cookies: {},
       depends: vi.fn(),
@@ -24,9 +25,6 @@ it('starts the company request without waiting for shell settings', async () => 
     })
   );
   expect(listAccounts).toHaveBeenCalledOnce();
-  expect(parent).toHaveBeenCalledOnce();
-  finishParent({ pipelineConfig: {} });
-  const result = await pending;
-  if (!result) throw new Error('Expected company data');
-  expect(result.companies).toEqual([]);
+  expect(parent).not.toHaveBeenCalled();
+  expect(result).toMatchObject({ companies: [] });
 });
