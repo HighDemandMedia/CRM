@@ -8,8 +8,19 @@
 
   import { setContext, onMount, tick } from 'svelte';
   import { beforeNavigate, goto } from '$app/navigation';
+  import Notice from '$lib/components/Notice.svelte';
   import { X } from '@lucide/svelte';
-  let { url, title, component: Component, data, onclose, oncreated } = $props();
+  let {
+    url,
+    title,
+    component: Component,
+    data,
+    onclose,
+    oncreated,
+    loading = false,
+    loadError = '',
+    onretry = () => {}
+  } = $props();
   let dialog,
     form = $state(null),
     busy = $state(false);
@@ -46,6 +57,14 @@
       else if (result.type === 'success') await oncreated();
       else form = { error: 'Could not save. Your entries are still here. Please try again.' };
     }
+  });
+  $effect(() => {
+    if (loading || !Component) return;
+    void tick().then(() => {
+      if (!dialog?.isConnected) return;
+      baseline = fingerprint();
+      dialog.querySelector('form input:not([type=hidden]), form select, form textarea')?.focus();
+    });
   });
   function close() {
     if (busy) return;
@@ -111,13 +130,36 @@
       onclick={close}><X size={19} /></button
     >
   </header>
-  <div class="body" inert={busy} aria-busy={busy}>
-    <Component {data} {form} />
+  <div class="body" inert={busy} aria-busy={busy || loading}>
+    {#if loading}
+      <div class="form-loading" role="status">
+        <p>{ui('Opening form…')}</p>
+        <div class="skeleton" aria-hidden="true"></div>
+        <div class="skeleton" aria-hidden="true"></div>
+        <div class="skeleton" aria-hidden="true"></div>
+      </div>
+    {:else if loadError}
+      <Notice message={ui(loadError)} />
+      <button type="button" class="v2-btn" onclick={() => onretry()}>{ui('Try again')}</button>
+    {:else if Component}
+      <Component {data} {form} />
+    {/if}
   </div>
   {#if busy}<div class="saving" role="status">{ui('Saving…')}</div>{/if}
 </dialog>
 
 <style>
+  .form-loading {
+    padding-block: var(--crm-space-4);
+    color: var(--v2-muted);
+  }
+  .skeleton {
+    height: 36px;
+    margin-block: 24px;
+    border-radius: var(--crm-radius-md);
+    background: var(--v2-line);
+  }
+
   .create-panel {
     --crm-control-height: 36px;
     --crm-control-padding-y: 6px;

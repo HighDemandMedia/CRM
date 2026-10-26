@@ -4,6 +4,9 @@
   const { ui } = useI18n();
 
   import NotificationBell from '$lib/v2/components/NotificationBell.svelte';
+  import { onMount } from 'svelte';
+  import { browserStorage } from '$lib/v2/list-preferences.js';
+  import { savedListLinks } from '$lib/v2/list-navigation.js';
   import { afterNavigate } from '$app/navigation';
   import { ChevronDown } from '@lucide/svelte';
   import { resolve, base } from '$app/paths';
@@ -97,6 +100,12 @@
     panelLeft = Math.max(8, Math.min(rect.left, window.innerWidth - 348));
     panelBottom = window.innerHeight - rect.top + 8;
   }
+
+  let mounted = $state(false);
+  onMount(() => (mounted = true));
+  const listLinks = $derived(
+    savedListLinks(mounted ? browserStorage() : null, accountId, user.email, page.url)
+  );
 
   /** @type {{label: string, items: {href: string, label: string, icon: typeof Sun, exact?: boolean, termKey?: string, count?: string}[]}[]} */
   const GROUPS = [
@@ -193,7 +202,7 @@
         {#each group.items as item (item.href)}
           <a
             class="v2-link"
-            href={resolve(asInternalPath(item.href))}
+            href={resolve(asInternalPath(listLinks[item.href] || item.href))}
             aria-label={item.label}
             title={collapsed ? item.label : undefined}
             aria-current={isActive(item.href, item.exact) ? 'page' : undefined}

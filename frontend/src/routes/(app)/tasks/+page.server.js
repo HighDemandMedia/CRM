@@ -3,7 +3,6 @@ import { readableError, stageRequirements } from '$lib/server/v2/form-errors.js'
 import { fail } from '@sveltejs/kit';
 import { listTasks, setTaskDone, updateTask } from '$lib/server/v2/tasks.js';
 import { taskQuery } from '$lib/server/v2/queue-query.js';
-import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
 
 /**
  * The task queue.
@@ -24,10 +23,9 @@ export async function load(event) {
   params.set('limit', String(pageSize));
   params.set('offset', String(offset));
 
-  const [{ results, totals, owners }, orgPeople] = await Promise.all([
-    listTasks(event, params),
-    getOrgPeopleAndTeams(event.cookies, { module: 'tasks' })
-  ]);
+  // Layout data is already merged into page data. Calling parent() here would
+  // re-execute server layouts and their option requests on every filter change.
+  const { results, totals, owners } = await listTasks(event, params);
 
   checkListPage(url, { pageSize, offset }, totals.count);
 
@@ -38,8 +36,6 @@ export async function load(event) {
     totals,
     owners,
     showAll,
-    people: orgPeople.people,
-    meId: resolveMe(orgPeople.people, /** @type {any} */ (locals).user?.email),
     canDelete: locals.profile?.role === 'ADMIN'
   };
 }

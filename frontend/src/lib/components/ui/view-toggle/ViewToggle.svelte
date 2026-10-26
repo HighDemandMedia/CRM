@@ -7,13 +7,15 @@
   let { view = 'list', onchange } = $props();
   const { ui } = useI18n();
   let pending = $state(false);
-  const pipeline = $derived(view === 'pipeline');
+  let requested = $state(false);
+  const pipeline = $derived(pending ? requested : view === 'pipeline');
 
   async function toggle() {
     if (pending) return;
+    requested = view !== 'pipeline';
     pending = true;
     try {
-      await onchange(pipeline ? 'list' : 'pipeline');
+      await onchange(requested ? 'pipeline' : 'list');
     } catch {
       toast.error(ui('Could not change view. Please try again.'));
     } finally {

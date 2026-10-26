@@ -9,8 +9,6 @@ import {
   summarizeBulk
 } from '$lib/server/v2/tickets.js';
 import { ticketQuery } from '$lib/server/v2/queue-query.js';
-import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
-import { getTags } from '$lib/server/v2/tags.js';
 import { parseBulkForm } from '$lib/server/v2/bulk-form.js';
 
 /**
@@ -21,30 +19,24 @@ import { parseBulkForm } from '$lib/server/v2/bulk-form.js';
  * switches to `status__in` when more than one arrives, so "open" is three
  * values rather than a fourth definition of the word.
  *
- * The pickers are fetched here rather than inside `listTickets` because
+ * The pickers are retained in the module layout rather than `listTickets` because
  * `getSettingsHub` calls read functions for their totals alone, and a picker
  * fetch folded into one costs a redundant request on every hub load.
  *
  * @type {import('./$types').PageServerLoad}
  */
-export async function load({ cookies, url, locals, parent }) {
-  const params = ticketQuery(url, (await parent()).pipelineConfig);
+export async function load({ cookies, url, parent }) {
+  // Only the open-stage preset needs configuration before starting the record request.
+  const needsStages = url.searchParams.get('all') === '0' && !url.searchParams.get('status');
+  const params = ticketQuery(url, needsStages ? (await parent()).pipelineConfig : undefined);
   const { pageSize, offset } = listPagination(url);
   params.set('limit', String(pageSize));
   params.set('offset', String(offset));
   const status = url.searchParams.get('status') ?? '';
   const showAll = url.searchParams.get('all') !== '0';
 
-  const [{ results, totals }, orgPeople, tagList] = await Promise.all([
-    listTickets({ cookies }, params),
-    getOrgPeopleAndTeams(cookies, { module: 'tickets' }),
-    // getTags has no fallback of its own: on /settings/tags a failed fetch is
-    // meant to surface as an error. Here the tag list is just one picker in
-    // the filter bar, so the degradation belongs to this caller, not to the
-    // shared function. Losing the picker should cost the Tag dropdown, not
-    // the whole queue.
-    getTags({ cookies }).catch(() => ({ tags: [] }))
-  ]);
+  // People/tags are inherited from the layout; avoid re-running it via parent().
+  const { results, totals } = await listTickets({ cookies }, params);
 
   checkListPage(url, { pageSize, offset }, totals.count);
   return {
@@ -55,10 +47,7 @@ export async function load({ cookies, url, locals, parent }) {
     showAll,
     status,
     search: params.get('search') ?? '',
-    priority: params.get('priority') ?? '',
-    people: orgPeople.people,
-    tags: tagList.tags ?? [],
-    meId: resolveMe(orgPeople.people, /** @type {any} */ (locals).user?.email)
+    priority: params.get('priority') ?? ''
   };
 }
 

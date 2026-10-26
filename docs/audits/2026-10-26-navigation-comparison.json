@@ -1,0 +1,559 @@
+{
+  "before": {
+    "start": "2026-10-26T18:10:50.524Z",
+    "end": "2026-10-26T18:10:52.666Z",
+    "navigation": [
+      {
+        "round": 0,
+        "module": "Companies",
+        "ms": 200,
+        "complete": true
+      },
+      {
+        "round": 0,
+        "module": "Deals",
+        "ms": 142,
+        "complete": true
+      },
+      {
+        "round": 0,
+        "module": "Tasks",
+        "ms": 126,
+        "complete": true
+      },
+      {
+        "round": 0,
+        "module": "Tickets",
+        "ms": 245,
+        "complete": true
+      },
+      {
+        "round": 0,
+        "module": "Contacts",
+        "ms": 98,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Companies",
+        "ms": 97,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Deals",
+        "ms": 117,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Tasks",
+        "ms": 104,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Tickets",
+        "ms": 238,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Contacts",
+        "ms": 146,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Companies",
+        "ms": 97,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Deals",
+        "ms": 115,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Tasks",
+        "ms": 104,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Tickets",
+        "ms": 209,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Contacts",
+        "ms": 101,
+        "complete": true
+      }
+    ],
+    "forms": [
+      {
+        "run": 0,
+        "panelMs": 339,
+        "visible": true
+      },
+      {
+        "run": 1,
+        "panelMs": 305,
+        "visible": true
+      },
+      {
+        "run": 2,
+        "panelMs": 311,
+        "visible": true
+      }
+    ]
+  },
+  "after": {
+    "start": "2026-10-26T18:17:50.684Z",
+    "end": "2026-10-26T18:17:52.612Z",
+    "navigation": [
+      {
+        "round": 0,
+        "module": "Companies",
+        "ms": 148,
+        "complete": true
+      },
+      {
+        "round": 0,
+        "module": "Deals",
+        "ms": 143,
+        "complete": true
+      },
+      {
+        "round": 0,
+        "module": "Tasks",
+        "ms": 127,
+        "complete": true
+      },
+      {
+        "round": 0,
+        "module": "Tickets",
+        "ms": 198,
+        "complete": true
+      },
+      {
+        "round": 0,
+        "module": "Contacts",
+        "ms": 102,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Companies",
+        "ms": 98,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Deals",
+        "ms": 121,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Tasks",
+        "ms": 109,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Tickets",
+        "ms": 177,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Contacts",
+        "ms": 91,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Companies",
+        "ms": 96,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Deals",
+        "ms": 120,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Tasks",
+        "ms": 107,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Tickets",
+        "ms": 196,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Contacts",
+        "ms": 95,
+        "complete": true
+      }
+    ],
+    "forms": [
+      {
+        "run": 0,
+        "readyMs": 311,
+        "visible": true
+      },
+      {
+        "run": 1,
+        "readyMs": 301,
+        "visible": true
+      },
+      {
+        "run": 2,
+        "readyMs": 308,
+        "visible": true
+      }
+    ]
+  },
+  "method": "Local production builds, same machine/backend/account. Automation-inclusive elapsed times; 3 repetitions. Form before is first dialog observation; after is ready fields. Not production percentiles.",
+  "finalUnpaired": {
+    "start": "2026-10-26T18:29:42.204Z",
+    "end": "2026-10-26T18:29:45.290Z",
+    "navigation": [
+      {
+        "round": 0,
+        "module": "Companies",
+        "ms": 209,
+        "complete": true
+      },
+      {
+        "round": 0,
+        "module": "Deals",
+        "ms": 226,
+        "complete": true
+      },
+      {
+        "round": 0,
+        "module": "Tasks",
+        "ms": 192,
+        "complete": true
+      },
+      {
+        "round": 0,
+        "module": "Tickets",
+        "ms": 233,
+        "complete": true
+      },
+      {
+        "round": 0,
+        "module": "Contacts",
+        "ms": 235,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Companies",
+        "ms": 151,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Deals",
+        "ms": 208,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Tasks",
+        "ms": 178,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Tickets",
+        "ms": 298,
+        "complete": true
+      },
+      {
+        "round": 1,
+        "module": "Contacts",
+        "ms": 162,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Companies",
+        "ms": 171,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Deals",
+        "ms": 184,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Tasks",
+        "ms": 186,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Tickets",
+        "ms": 291,
+        "complete": true
+      },
+      {
+        "round": 2,
+        "module": "Contacts",
+        "ms": 162,
+        "complete": true
+      }
+    ]
+  },
+  "finalPaired": [
+    {
+      "phase": "before",
+      "start": "2026-10-26T18:30:22.332Z",
+      "end": "2026-10-26T18:30:25.639Z",
+      "navigation": [
+        {
+          "round": 0,
+          "module": "Companies",
+          "ms": 178,
+          "complete": true
+        },
+        {
+          "round": 0,
+          "module": "Deals",
+          "ms": 187,
+          "complete": true
+        },
+        {
+          "round": 0,
+          "module": "Tasks",
+          "ms": 189,
+          "complete": true
+        },
+        {
+          "round": 0,
+          "module": "Tickets",
+          "ms": 314,
+          "complete": true
+        },
+        {
+          "round": 0,
+          "module": "Contacts",
+          "ms": 240,
+          "complete": true
+        },
+        {
+          "round": 1,
+          "module": "Companies",
+          "ms": 186,
+          "complete": true
+        },
+        {
+          "round": 1,
+          "module": "Deals",
+          "ms": 182,
+          "complete": true
+        },
+        {
+          "round": 1,
+          "module": "Tasks",
+          "ms": 181,
+          "complete": true
+        },
+        {
+          "round": 1,
+          "module": "Tickets",
+          "ms": 292,
+          "complete": true
+        },
+        {
+          "round": 1,
+          "module": "Contacts",
+          "ms": 242,
+          "complete": true
+        },
+        {
+          "round": 2,
+          "module": "Companies",
+          "ms": 189,
+          "complete": true
+        },
+        {
+          "round": 2,
+          "module": "Deals",
+          "ms": 184,
+          "complete": true
+        },
+        {
+          "round": 2,
+          "module": "Tasks",
+          "ms": 187,
+          "complete": true
+        },
+        {
+          "round": 2,
+          "module": "Tickets",
+          "ms": 270,
+          "complete": true
+        },
+        {
+          "round": 2,
+          "module": "Contacts",
+          "ms": 286,
+          "complete": true
+        }
+      ]
+    },
+    {
+      "phase": "after",
+      "start": "2026-10-26T18:30:25.639Z",
+      "end": "2026-10-26T18:30:28.555Z",
+      "navigation": [
+        {
+          "round": 0,
+          "module": "Companies",
+          "ms": 147,
+          "complete": true
+        },
+        {
+          "round": 0,
+          "module": "Deals",
+          "ms": 191,
+          "complete": true
+        },
+        {
+          "round": 0,
+          "module": "Tasks",
+          "ms": 205,
+          "complete": true
+        },
+        {
+          "round": 0,
+          "module": "Tickets",
+          "ms": 268,
+          "complete": true
+        },
+        {
+          "round": 0,
+          "module": "Contacts",
+          "ms": 184,
+          "complete": true
+        },
+        {
+          "round": 1,
+          "module": "Companies",
+          "ms": 158,
+          "complete": true
+        },
+        {
+          "round": 1,
+          "module": "Deals",
+          "ms": 199,
+          "complete": true
+        },
+        {
+          "round": 1,
+          "module": "Tasks",
+          "ms": 176,
+          "complete": true
+        },
+        {
+          "round": 1,
+          "module": "Tickets",
+          "ms": 235,
+          "complete": true
+        },
+        {
+          "round": 1,
+          "module": "Contacts",
+          "ms": 191,
+          "complete": true
+        },
+        {
+          "round": 2,
+          "module": "Companies",
+          "ms": 166,
+          "complete": true
+        },
+        {
+          "round": 2,
+          "module": "Deals",
+          "ms": 194,
+          "complete": true
+        },
+        {
+          "round": 2,
+          "module": "Tasks",
+          "ms": 179,
+          "complete": true
+        },
+        {
+          "round": 2,
+          "module": "Tickets",
+          "ms": 249,
+          "complete": true
+        },
+        {
+          "round": 2,
+          "module": "Contacts",
+          "ms": 173,
+          "complete": true
+        }
+      ]
+    }
+  ],
+  "finalPairedConditions": "Consecutive local production builds, same backend/account and saved Contacts name ascending sorting in both origins. Includes automation overhead; 3 samples per module, not production percentiles.",
+  "requestCounts": {
+    "initial": {
+      "before": 75,
+      "after": 57
+    },
+    "finalPaired": {
+      "before": 87,
+      "after": 58,
+      "beforeStatus200": 87,
+      "afterStatus200": 58
+    },
+    "ticketQueryChange": {
+      "before": 6,
+      "after": 2,
+      "beforeWindow": [
+        "2026-10-26T18:27:40Z",
+        "2026-10-26T18:27:42Z"
+      ],
+      "afterWindow": [
+        "2026-10-26T18:28:56Z",
+        "2026-10-26T18:28:58Z"
+      ]
+    }
+  },
+  "bundle": {
+    "before": {
+      "commit": "cbf032a75af1b8ff75fc97dfb0665f9fdf5e055c",
+      "layout_static_js_files": 48,
+      "raw_bytes": 752738,
+      "gzip_bytes": 244698
+    },
+    "after": {
+      "layout_static_js_files": 38,
+      "raw_bytes": 361382,
+      "gzip_bytes": 131005
+    }
+  }
+}

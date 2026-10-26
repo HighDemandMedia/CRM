@@ -94,8 +94,9 @@ export async function load(event) {
   // The database may have changed since the access token was issued.
   shell.role = context.permissions?.is_admin === true ? 'ADMIN' : 'USER';
   // Ticket badges are only displayed inside the Tickets section.
-  const countKeys =
-    pathname === '/tickets' || pathname?.startsWith('/tickets/') ? Object.keys(LIVE_COUNTS) : [];
+  const countKeys = ['/tickets/analytics', '/tickets/approvals'].includes(pathname)
+    ? Object.keys(LIVE_COUNTS)
+    : [];
   const counts = Promise.allSettled(
     countKeys.map((key) => LIVE_COUNTS[/** @type {keyof typeof LIVE_COUNTS} */ (key)](event))
   ).then((results) => {

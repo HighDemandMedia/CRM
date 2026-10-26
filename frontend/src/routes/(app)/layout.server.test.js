@@ -17,7 +17,7 @@ function event(canPreview) {
   return /** @type {any} */ ({
     locals: { org: { id: 'org', name: 'Example' }, profile: { can_preview: canPreview } },
     cookies: { get: vi.fn(), set: vi.fn() },
-    url: new URL('https://crm.example.com/tickets')
+    url: new URL('https://crm.example.com/tickets/analytics')
   });
 }
 
@@ -188,13 +188,18 @@ it('uses fresh platform ownership instead of a stale token for navigation', asyn
   expect(result).toHaveProperty('isPlatformOwner', false);
 });
 
-it.each(['/contacts', '/contacts?view=pipeline', '/accounts', '/pipeline', '/profile'])(
-  'does not request a hidden ticket counter at %s',
-  async (path) => {
-    vi.mocked(apiRequest).mockResolvedValue(context);
-    const result = await load({ ...event(false), url: new URL(`https://crm.example.com${path}`) });
-    if (!result) throw new Error('Expected shell');
-    expect(await result.counts).toEqual({});
-    expect(apiRequest).toHaveBeenCalledExactlyOnceWith('/org/ui-context/', {}, expect.anything());
-  }
-);
+it.each([
+  '/contacts',
+  '/contacts?view=pipeline',
+  '/accounts',
+  '/pipeline',
+  '/profile',
+  '/tickets',
+  '/tickets/example'
+])('does not request a hidden ticket counter at %s', async (path) => {
+  vi.mocked(apiRequest).mockResolvedValue(context);
+  const result = await load({ ...event(false), url: new URL(`https://crm.example.com${path}`) });
+  if (!result) throw new Error('Expected shell');
+  expect(await result.counts).toEqual({});
+  expect(apiRequest).toHaveBeenCalledExactlyOnceWith('/org/ui-context/', {}, expect.anything());
+});

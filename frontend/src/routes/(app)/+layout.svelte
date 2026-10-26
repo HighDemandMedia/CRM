@@ -3,6 +3,8 @@
   const { ui } = useI18n();
 
   import StageTransitionLayer from '$lib/components/pipelines/StageTransitionLayer.svelte';
+  import { browserStorage } from '$lib/v2/list-preferences.js';
+  import { savedListLinks } from '$lib/v2/list-navigation.js';
   import CreateLayer from '$lib/components/creation/CreateLayer.svelte';
   import { Toaster } from 'svelte-sonner';
   import { onMount } from 'svelte';
@@ -51,6 +53,16 @@
   // the footer: profile, notifications, help, sign out. It reuses the same
   // <Sidebar>, so the two can never drift apart. Closes itself on navigation.
   let menuOpen = $state(false);
+  let mounted = $state(false);
+  onMount(() => (mounted = true));
+  const listLinks = $derived(
+    savedListLinks(
+      mounted ? browserStorage() : null,
+      data.accountId,
+      data.accountUser?.email,
+      page.url
+    )
+  );
   afterNavigate(() => (menuOpen = false));
 
   /** Focus the panel on open so Escape reaches it and keyboard users land inside. */
@@ -187,7 +199,7 @@
     <nav class="v2-tabbar" aria-label={ui('Sections')}>
       {#each TABS as tab (tab.href)}
         <a
-          href={resolve(asInternalPath(tab.href))}
+          href={resolve(asInternalPath(listLinks[tab.href] || tab.href))}
           aria-current={isActive(tab.href, tab.exact) ? 'page' : undefined}
         >
           <tab.icon />

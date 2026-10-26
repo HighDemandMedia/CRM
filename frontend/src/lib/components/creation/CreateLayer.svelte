@@ -46,6 +46,7 @@
   async function open(url) {
     const [title, load] = formRoute(url.pathname);
     const current = ++sequence;
+    panel = { url: url.href, title, component: null, data: null };
     loading = true;
     error = '';
     message = '';
@@ -67,6 +68,12 @@
     navigation.cancel();
     if (!panel && !loading) void open(target);
   });
+  function close() {
+    sequence++;
+    panel = null;
+    loading = false;
+    error = '';
+  }
   async function created() {
     const editing = panel.title.startsWith('Edit ');
     const title = panel.title.replace(/^(New|Edit) /, '');
@@ -80,8 +87,15 @@
   }
 </script>
 
-{#if panel}<CreatePanel {...panel} onclose={() => (panel = null)} oncreated={created} />{/if}
-{#if loading || message || error}<div class="notice" role={error ? 'alert' : 'status'}>
+{#if panel}<CreatePanel
+    {...panel}
+    {loading}
+    loadError={error}
+    onretry={() => open(new URL(panel.url))}
+    onclose={close}
+    oncreated={created}
+  />{/if}
+{#if !panel && (message || error)}<div class="notice" role={error ? 'alert' : 'status'}>
     {loading ? ui('Opening form…') : error || message}
     {#if !loading}<button
         aria-label={ui('Dismiss notification')}

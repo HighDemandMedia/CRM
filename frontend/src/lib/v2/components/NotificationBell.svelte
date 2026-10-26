@@ -8,6 +8,7 @@
   import { asInternalPath } from '$lib/utils/paths.js';
   import { Bell, X, Check } from '@lucide/svelte';
   import { resolvedLink, reminderLabel, reminderDetail } from '$lib/v2/notification-content.js';
+  import { notificationRefreshDue } from '$lib/v2/notification-refresh.js';
   import { announceReminders } from '$lib/v2/reminder-alerts.js';
 
   let { collapsed = false } = $props();
@@ -24,9 +25,10 @@
   let controller;
   let alive = false;
   let generation = 0;
+  let lastSuccess = null;
 
-  async function refresh() {
-    if (!alive) return;
+  async function refresh(force = false) {
+    if (!alive || !notificationRefreshDue({ loading, lastSuccess, force })) return;
     const version = ++generation;
     controller?.abort();
     controller = new AbortController();
@@ -43,6 +45,7 @@
       announceReminders(rows, Date.now(), ui, locale());
       unread = data.unread_count || 0;
       failure = '';
+      lastSuccess = Date.now();
     } catch (error) {
       if (alive && version === generation && error.name !== 'AbortError')
         failure = 'Could not load notifications.';
@@ -78,7 +81,7 @@
     const rect = event.currentTarget.getBoundingClientRect();
     left = Math.max(8, Math.min(rect.left, window.innerWidth - 388));
     top = Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 160));
-    void refresh();
+    void refresh(true);
   }
   function destination(row) {
     return resolvedLink(row.link);
@@ -115,7 +118,7 @@
       });
       if (!response.ok) throw new Error();
       if (!alive) return false;
-      await refresh();
+      await refresh(true);
       return true;
     } catch {
       failure = 'Could not mark notifications as read. Try again.';
