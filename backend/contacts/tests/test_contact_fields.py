@@ -23,7 +23,8 @@ def test_full_name_and_optional_fields_round_trip(admin_client):
     assert response.status_code == 200, response.data
     contact = Contact.objects.get(first_name=payload["name"])
     data = admin_client.get(f"/api/contacts/{contact.id}/").data["contact_obj"]
-    for key, value in payload.items():
+    expected = {**payload, "phone": "+13055550199"}
+    for key, value in expected.items():
         assert data[key] == value
     assert data["last_name"] == ""
     assert data["email"] is None

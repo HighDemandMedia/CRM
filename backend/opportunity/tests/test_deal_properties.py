@@ -94,11 +94,11 @@ def test_phone_email_and_tags(admin_client, admin_profile, org_a):
     response = admin_client.post("/api/opportunities/", body, format="json")
     assert response.status_code == 200, response.data
     deal = Opportunity.objects.get(name=body["name"], org=org_a)
-    assert deal.phone == body["phone"] and deal.email == body["email"]
+    assert deal.phone == "+13055550188" and deal.email == body["email"]
     assert deal.tags.filter(pk=tag.pk).exists()
     url = f"/api/opportunities/{deal.pk}/"
     detail = admin_client.get(url).data["opportunity_obj"]
-    assert detail["phone"] == body["phone"] and detail["email"] == body["email"]
+    assert detail["phone"] == "+13055550188" and detail["email"] == body["email"]
     assert (
         admin_client.patch(url, {"email": "invalid"}, format="json").status_code == 400
     )
@@ -106,7 +106,7 @@ def test_phone_email_and_tags(admin_client, admin_profile, org_a):
         admin_client.patch(url, {"name": "Renamed"}, format="json").status_code == 200
     )
     deal.refresh_from_db()
-    assert deal.phone == body["phone"] and deal.tags.filter(pk=tag.pk).exists()
+    assert deal.phone == "+13055550188" and deal.tags.filter(pk=tag.pk).exists()
     response = admin_client.patch(
         url, {"phone": None, "email": None, "tags": []}, format="json"
     )

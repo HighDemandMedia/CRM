@@ -28,7 +28,7 @@ def test_company_properties_and_contacts(admin_client, org_a, org_b, admin_profi
     response = admin_client.post("/api/accounts/", payload, format="json")
     assert response.status_code == 200, response.data
     account = Account.objects.get(name=payload["name"], org=org_a)
-    assert account.phone == payload["phone"]
+    assert account.phone == "+13055550188"
     assert account.email == payload["email"]
     assert account.preferred_communication_channel == "SMS"
     assert account.tags.filter(pk=tag.pk).exists()

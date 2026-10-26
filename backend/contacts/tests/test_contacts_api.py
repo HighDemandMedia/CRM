@@ -165,7 +165,7 @@ class TestContactListView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["error"] is False
         contact = Contact.objects.get(email="full@example.com")
-        assert contact.phone == "3055550199"
+        assert contact.phone == "+13055550199"
         assert contact.organization == "Acme Inc"
         assert contact.title == "CTO"
         assert contact.department == "Engineering"
