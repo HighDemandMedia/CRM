@@ -74,3 +74,52 @@ def test_record_api_normalizes_and_rejects_invalid(admin_client, route):
         format="json",
     )
     assert bad.status_code == 400
+
+
+@pytest.mark.django_db
+def test_phone_index_migration_visits_each_tenant_and_restores_context(org_a, org_b):
+    from importlib import import_module
+    from types import SimpleNamespace
+
+    from django.apps import apps
+    from django.db import connection
+
+    from common.rls.context import org_context
+    from contacts.models import Contact
+
+    rows = []
+    for org, phone, expected in (
+        (org_a, "2025550123", "12025550123"),
+        (org_b, "+598 99 123 456", "59899123456"),
+    ):
+        with org_context(org.pk):
+            row = Contact.objects.create(org=org, first_name="Legacy", phone=phone)
+            Contact.objects.filter(pk=row.pk).update(phone_match_key="old-key")
+            rows.append((org, row.pk, phone, expected))
+    with org_context(org_a.pk):
+        import_module("contacts.migrations.0023_international_phone_keys").update_keys(
+            apps, SimpleNamespace(connection=connection)
+        )
+        if connection.vendor == "postgresql":
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT current_setting('app.current_org', true)")
+                assert cursor.fetchone()[0] == str(org_a.pk)
+    for org, pk, phone, expected in rows:
+        with org_context(org.pk):
+            row = Contact.objects.get(pk=pk)
+            assert row.phone_match_key == expected
+            assert row.phone == phone
+
+
+@pytest.mark.postgres_only
+@pytest.mark.django_db
+def test_phone_index_migration_with_enforced_rls(org_a, org_b):
+    from django.db import connection
+
+    assert connection.vendor == "postgresql"
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user"
+        )
+        assert cursor.fetchone() == (False, False)
+    test_phone_index_migration_visits_each_tenant_and_restores_context(org_a, org_b)
