@@ -9,7 +9,9 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.mark.parametrize("currency", ["USD", "EUR", None])
-def test_contact_detail_preserves_associated_deal_currency(admin_client, org_a, currency):
+def test_contact_detail_preserves_associated_deal_currency(
+    admin_client, org_a, currency
+):
     contact = Contact.objects.create(first_name="Currency test", org=org_a)
     deal = Opportunity.objects.create(
         name="Associated deal", org=org_a, amount=125, currency=currency
