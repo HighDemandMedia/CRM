@@ -7,6 +7,7 @@
   import SelectFilter from '$lib/components/ui/filter/SelectFilter.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import ListPagination from '$lib/v2/components/ListPagination.svelte';
+  import AddRecordMenu from '$lib/v2/components/AddRecordMenu.svelte';
   import ExportDialog from '$lib/v2/components/ExportDialog.svelte';
   import {
     browserStorage,
@@ -45,8 +46,6 @@
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { advancedContactFilters } from '$lib/v2/contact-filter-fields.js';
   import { contactColumns as legacyFields } from '$lib/v2/contact-columns.js';
-
-  import { Plus } from '@lucide/svelte';
 
   /** @type {{ data: any }} */
   let { data } = $props();
@@ -472,6 +471,17 @@
   }
 </script>
 
+{#snippet exportAction()}
+  {#if can(page.data.permissions, 'contacts', 'export')}<ExportDialog
+      endpoint={resolve('/contacts/export')}
+      columns={selected}
+      rows={data.view === 'pipeline'
+        ? data.board.flatMap((stage) => stage.contacts)
+        : data.contacts}
+      filename="contacts.csv"
+    />{/if}
+{/snippet}
+
 <PageHeader compact title={ui('Contacts')}>
   {#snippet sub()}<span class="v2-num">{count(data.totals.count)}</span>
     {ui('contacts')}{#if data.view === 'pipeline'}
@@ -481,10 +491,7 @@
         label={ui('Associated deal total (each deal counted once)')}
       />{/if}{/snippet}
   {#snippet actions()}
-    {#if can(page.data.permissions, 'contacts', 'create')}<a
-        class="v2-btn v2-btn-primary"
-        href={resolve('/contacts/new')}><Plus />{ui('New contact')}</a
-      >{/if}
+    <AddRecordMenu module="contacts" />
   {/snippet}
 </PageHeader>
 
@@ -630,15 +637,6 @@
           )
         )}
       />
-
-      {#if can(page.data.permissions, 'contacts', 'export')}<ExportDialog
-          endpoint={resolve('/contacts/export')}
-          columns={selected}
-          rows={data.view === 'pipeline'
-            ? data.board.flatMap((stage) => stage.contacts)
-            : data.contacts}
-          filename="contacts.csv"
-        />{/if}
     </div>
   </form>
 
@@ -866,6 +864,7 @@
         </table>
       </div>
       <ListPagination
+        actions={exportAction}
         offset={data.offset}
         pageSize={data.pageSize}
         total={data.totals.count}
@@ -873,6 +872,9 @@
       />
     {/if}
   </div>
+  {#if data.view === 'pipeline' && can(page.data.permissions, 'contacts', 'export')}
+    <ListPagination actions={exportAction} showPagination={false} />
+  {/if}
 </div>
 
 <style>

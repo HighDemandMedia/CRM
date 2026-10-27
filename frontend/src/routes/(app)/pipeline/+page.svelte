@@ -7,6 +7,7 @@
   import SelectFilter from '$lib/components/ui/filter/SelectFilter.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import ListPagination from '$lib/v2/components/ListPagination.svelte';
+  import AddRecordMenu from '$lib/v2/components/AddRecordMenu.svelte';
   import ExportDialog from '$lib/v2/components/ExportDialog.svelte';
   import {
     browserStorage,
@@ -46,7 +47,7 @@
   import { advancedDealFilters as dealFilterDefinitions } from '$lib/v2/deal-filter-fields.js';
   import { dealColumns as legacyFields } from '$lib/v2/deal-columns.js';
 
-  import { Plus, ChevronDown, ExternalLink, Pencil } from '@lucide/svelte';
+  import { ChevronDown, ExternalLink, Pencil } from '@lucide/svelte';
   import * as Dropdown from '$lib/components/ui/dropdown-menu/index.js';
 
   /** @type {{ data: any }} */
@@ -488,6 +489,15 @@
   }
 </script>
 
+{#snippet exportAction()}
+  {#if can(page.data.permissions, 'deals', 'export')}<ExportDialog
+      endpoint={resolve('/pipeline/export')}
+      columns={selected}
+      rows={data.view === 'pipeline' ? data.board.flatMap((stage) => stage.contacts) : data.deals}
+      filename="deals.csv"
+    />{/if}
+{/snippet}
+
 <PageHeader compact title={ui('Deals')}>
   {#snippet sub()}<span class="v2-num">{count(data.totals.count)}</span>
     {data.totals.count === 1 ? ui('deal') : ui('deals')}{#if data.view === 'pipeline'}
@@ -497,10 +507,7 @@
         label={ui('Total deal amount')}
       />{/if}{/snippet}
   {#snippet actions()}
-    {#if can(page.data.permissions, 'deals', 'create')}<a
-        class="v2-btn v2-btn-primary"
-        href={resolve('/pipeline/new')}><Plus />{ui('New deal')}</a
-      >{/if}
+    <AddRecordMenu module="deals" />
   {/snippet}
 </PageHeader>
 
@@ -645,15 +652,6 @@
           )
         )}
       />
-
-      {#if can(page.data.permissions, 'deals', 'export')}<ExportDialog
-          endpoint={resolve('/pipeline/export')}
-          columns={selected}
-          rows={data.view === 'pipeline'
-            ? data.board.flatMap((stage) => stage.contacts)
-            : data.deals}
-          filename="deals.csv"
-        />{/if}
     </div>
   </form>
 
@@ -912,6 +910,7 @@
         </table>
       </div>
       <ListPagination
+        actions={exportAction}
         offset={data.offset}
         pageSize={data.pageSize}
         total={data.totals.count}
@@ -919,6 +918,9 @@
       />
     {/if}
   </div>
+  {#if data.view === 'pipeline' && can(page.data.permissions, 'deals', 'export')}
+    <ListPagination actions={exportAction} showPagination={false} />
+  {/if}
 </div>
 
 <style>

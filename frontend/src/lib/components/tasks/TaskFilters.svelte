@@ -14,7 +14,7 @@
   import { onDestroy } from 'svelte';
   import { page } from '$app/state';
   import { canFilterOwners } from '$lib/v2/permissions.js';
-  let { url, people, columnTools } = $props();
+  let { url, people, columnTools = undefined } = $props();
   let timer;
   onDestroy(() => clearTimeout(timer));
   function apply(form) {

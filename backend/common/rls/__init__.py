@@ -123,6 +123,7 @@ ORG_SCOPED_TABLES = [
     "notification",
     "reminder_delivery",
     "appointment_email_delivery",
+    "csv_import_receipt",
     # Case watchers (Tier 2 watchers-mentions)
     "case_watcher",
     # Business hours (Tier 2 business-hours-sla)

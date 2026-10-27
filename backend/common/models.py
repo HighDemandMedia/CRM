@@ -1410,3 +1410,18 @@ from common.organization_lifecycle_models import (  # noqa: E402, F401
     OrganizationClosure,
     OrganizationLifecycleEvent,
 )
+
+
+class CSVImportReceipt(models.Model):
+    """Completed preview token; retries cannot create the same batch twice.
+
+    No uploaded file, row contents or credentials are retained.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    org = models.ForeignKey(Org, on_delete=models.CASCADE)
+    created_count = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "csv_import_receipt"

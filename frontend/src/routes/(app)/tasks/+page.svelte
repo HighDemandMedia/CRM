@@ -1,5 +1,6 @@
 <script>
   import ListPagination from '$lib/v2/components/ListPagination.svelte';
+  import AddRecordMenu from '$lib/v2/components/AddRecordMenu.svelte';
   import ExportDialog from '$lib/v2/components/ExportDialog.svelte';
   import { listViewPreference } from '$lib/v2/list-view-preference.svelte.js';
   import { useI18n } from '$lib/i18n/context.js';
@@ -34,7 +35,7 @@
   import { invalidateAll } from '$app/navigation';
   import '$lib/v2/styles/pipeline.css';
   import { enhance, deserialize } from '$app/forms';
-  import { CircleCheck, Circle, Plus } from '@lucide/svelte';
+  import { CircleCheck, Circle } from '@lucide/svelte';
 
   /** @type {{ data: any, form: any }} */
   let { data, form } = $props();
@@ -110,6 +111,15 @@
   };
 </script>
 
+{#snippet exportAction()}
+  {#if can(page.data.permissions, 'tasks', 'export')}<ExportDialog
+      endpoint={resolve('/tasks/export')}
+      {columns}
+      rows={tasks}
+      filename="tasks.csv"
+    />{/if}
+{/snippet}
+
 <PageHeader compact title={ui('Tasks')}>
   {#snippet sub()}
     <span class="v2-num">{count(totals.open)}</span>
@@ -118,24 +128,12 @@
     {ui('overdue')}
   {/snippet}
   {#snippet actions()}
-    {#if can(page.data.permissions, 'tasks', 'create')}<a
-        class="v2-btn v2-btn-primary"
-        href={resolve('/tasks/new')}><Plus />{ui('New task')}</a
-      >{/if}
+    <AddRecordMenu module="tasks" />
   {/snippet}
 </PageHeader>
 
 <div class="object-workspace crm-list-workspace" class:is-list={!pipeline}>
-  <TaskFilters url={page.url} people={data.people}>
-    {#snippet columnTools()}
-      {#if can(page.data.permissions, 'tasks', 'export')}<ExportDialog
-          endpoint={resolve('/tasks/export')}
-          {columns}
-          rows={tasks}
-          filename="tasks.csv"
-        />{/if}
-    {/snippet}
-  </TaskFilters>
+  <TaskFilters url={page.url} people={data.people} />
 
   {#if form?.error}
     <ErrorNotice message={ui(form.error)} />
@@ -362,6 +360,7 @@
       </div>
     {/if}
     <ListPagination
+      actions={exportAction}
       offset={data.offset}
       pageSize={data.pageSize}
       total={data.totals.count}

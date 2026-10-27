@@ -6,6 +6,7 @@
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import { TICKET_SORT_FIELDS } from '$lib/v2/ticket-sort.js';
   import ListPagination from '$lib/v2/components/ListPagination.svelte';
+  import AddRecordMenu from '$lib/v2/components/AddRecordMenu.svelte';
   import ExportDialog from '$lib/v2/components/ExportDialog.svelte';
   import { listViewPreference } from '$lib/v2/list-view-preference.svelte.js';
   import { useI18n } from '$lib/i18n/context.js';
@@ -22,7 +23,6 @@
   import { goto, invalidateAll } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { deserialize } from '$app/forms';
-  import { Plus } from '@lucide/svelte';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { listColumns, columnValue } from '$lib/v2/list-columns.js';
   import { columnSelection } from '$lib/v2/column-selection.svelte.js';
@@ -175,6 +175,15 @@
   }
 </script>
 
+{#snippet exportAction()}
+  {#if can(page.data.permissions, 'tickets', 'export')}<ExportDialog
+      endpoint={resolve('/tickets/export')}
+      {columns}
+      {rows}
+      filename="tickets.csv"
+    />{/if}
+{/snippet}
+
 {#if advanced}<button class="v2-btn" onclick={() => (advanced = false)}
     >{ui('Back to tickets')}</button
   ><AdvancedQueue {data} /><ListPagination
@@ -187,12 +196,9 @@
     >{#snippet sub()}{data.totals.count}
       {data.totals.count === 1
         ? ui('ticket')
-        : ui(
-            'tickets'
-          )}{/snippet}{#snippet actions()}{#if can(page.data.permissions, 'tickets', 'create')}<a
-          class="v2-btn v2-btn-primary"
-          href={resolve('/tickets/new')}><Plus size={14} />{ui('New ticket')}</a
-        >{/if}{/snippet}</PageHeader
+        : ui('tickets')}{/snippet}{#snippet actions()}<AddRecordMenu
+        module="tickets"
+      />{/snippet}</PageHeader
   >
   <div class="object-workspace crm-list-workspace" class:is-list={view === 'list'}>
     <div class="object-filters">
@@ -254,13 +260,6 @@
       >
       <div class="object-views">
         <ViewToggle {view} onchange={(nextView) => filter('view', nextView)} />
-
-        {#if can(page.data.permissions, 'tickets', 'export')}<ExportDialog
-            endpoint={resolve('/tickets/export')}
-            {columns}
-            {rows}
-            filename="tickets.csv"
-          />{/if}
       </div>
     </div>
     {#if error}<ErrorNotice message={ui(error)} />{/if}
@@ -423,6 +422,7 @@
         </table>
       </div>{/if}
     <ListPagination
+      actions={exportAction}
       offset={data.offset}
       pageSize={data.pageSize}
       total={data.totals.count}
@@ -492,9 +492,6 @@
     color: inherit;
     text-decoration: none;
     font-weight: 600;
-  }
-  a.v2-btn-primary {
-    color: var(--crm-primary-text);
   }
   a:hover {
     text-decoration: underline;

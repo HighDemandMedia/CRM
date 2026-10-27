@@ -7,6 +7,7 @@
 
   import Notice from '$lib/components/Notice.svelte';
   import ListPagination from '$lib/v2/components/ListPagination.svelte';
+  import AddRecordMenu from '$lib/v2/components/AddRecordMenu.svelte';
   import ExportDialog from '$lib/v2/components/ExportDialog.svelte';
   import {
     browserStorage,
@@ -46,8 +47,6 @@
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import { advancedCompanyFilters as companyFilterDefinitions } from '$lib/v2/company-filter-fields.js';
   import { companyColumns as legacyFields } from '$lib/v2/company-columns.js';
-
-  import { Plus } from '@lucide/svelte';
 
   /** @type {{ data: any }} */
   let { data } = $props();
@@ -491,6 +490,17 @@
   }
 </script>
 
+{#snippet exportAction()}
+  {#if can(page.data.permissions, 'companies', 'export')}<ExportDialog
+      endpoint={resolve('/accounts/export')}
+      columns={selected}
+      rows={data.view === 'pipeline'
+        ? data.board.flatMap((stage) => stage.contacts)
+        : data.companies}
+      filename="companies.csv"
+    />{/if}
+{/snippet}
+
 <PageHeader compact title={ui('Companies')}>
   {#snippet sub()}<span class="v2-num">{count(data.totals.count)}</span>
     {data.totals.count === 1 ? ui('company') : ui('companies')}{#if data.view === 'pipeline'}
@@ -500,10 +510,7 @@
         label={ui('Total annual revenue')}
       />{/if}{/snippet}
   {#snippet actions()}
-    {#if can(page.data.permissions, 'companies', 'create')}<a
-        class="v2-btn v2-btn-primary"
-        href={resolve('/accounts/new')}><Plus />{ui('New company')}</a
-      >{/if}
+    <AddRecordMenu module="companies" />
   {/snippet}
 </PageHeader>
 
@@ -647,15 +654,6 @@
           )
         )}
       />
-
-      {#if can(page.data.permissions, 'companies', 'export')}<ExportDialog
-          endpoint={resolve('/accounts/export')}
-          columns={selected}
-          rows={data.view === 'pipeline'
-            ? data.board.flatMap((stage) => stage.contacts)
-            : data.companies}
-          filename="companies.csv"
-        />{/if}
     </div>
   </form>
 
@@ -885,6 +883,7 @@
         </table>
       </div>
       <ListPagination
+        actions={exportAction}
         offset={data.offset}
         pageSize={data.pageSize}
         total={data.totals.count}
@@ -892,6 +891,9 @@
       />
     {/if}
   </div>
+  {#if data.view === 'pipeline' && can(page.data.permissions, 'companies', 'export')}
+    <ListPagination actions={exportAction} showPagination={false} />
+  {/if}
 </div>
 
 <style>

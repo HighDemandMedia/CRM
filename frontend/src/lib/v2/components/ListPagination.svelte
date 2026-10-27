@@ -8,54 +8,68 @@
   import { useI18n } from '$lib/i18n/context.js';
   import { PAGE_SIZES, paginationHref } from '$lib/v2/pagination.js';
   const { ui, count } = useI18n();
-  let { offset, pageSize, total, shown } = $props();
+  let {
+    offset = 0,
+    pageSize = 25,
+    total = 0,
+    shown = 0,
+    actions = undefined,
+    showPagination = true
+  } = $props();
   const pagePath = (changes) =>
     asInternalPath(withoutBase(paginationHref(page.url, changes), base));
 </script>
 
 <nav class="pagination" aria-label={ui('Record pages')}>
-  <span class="page-summary" aria-live="polite">
-    {ui('Showing')}
-    {count(shown ? offset + 1 : 0)}–{count(shown ? offset + shown : 0)}
-    {ui('of')}
-    {count(total)}
-  </span>
-  <label class="page-size">
-    <span class="rows-label">{ui('Rows per page')}</span>
-    <select
-      class="v2-input"
-      value={pageSize}
-      onchange={(event) =>
-        goto(resolve(pagePath({ pageSize: event.currentTarget.value, offset: 0 })), {
-          noScroll: true,
-          keepFocus: true
-        })}
-    >
-      {#each PAGE_SIZES as size (size)}<option value={size}>{size}</option>{/each}
-    </select>
-  </label>
-  {#if offset > 0}
-    <a
-      class="v2-btn"
-      href={resolve(
-        pagePath({
-          offset: Math.max(0, offset - pageSize),
-          pageSize: undefined
-        })
-      )}>{ui('Previous')}</a
-    >
-  {:else}<button type="button" class="v2-btn" disabled>{ui('Previous')}</button>{/if}
-  <span
-    >{ui('Page')}
-    {count(Math.floor(offset / pageSize) + 1)}
-    {ui('of')}
-    {count(Math.max(1, Math.ceil(total / pageSize)))}</span
-  >
-  {#if offset + pageSize < total}
-    <a class="v2-btn" href={resolve(pagePath({ offset: offset + pageSize, pageSize: undefined }))}
-      >{ui('Next')}</a
-    >
-  {:else}<button type="button" class="v2-btn" disabled>{ui('Next')}</button>{/if}
+  <div class="page-overview">
+    {#if showPagination}<span class="page-summary" aria-live="polite">
+        {ui('Showing')}
+        {count(shown ? offset + 1 : 0)}–{count(shown ? offset + shown : 0)}
+        {ui('of')}
+        {count(total)}
+      </span>{/if}
+    {@render actions?.()}
+  </div>
+  {#if showPagination}<div class="page-controls">
+      <label class="page-size">
+        <span class="rows-label">{ui('Rows per page')}</span>
+        <select
+          class="v2-input"
+          value={pageSize}
+          onchange={(event) =>
+            goto(resolve(pagePath({ pageSize: event.currentTarget.value, offset: 0 })), {
+              noScroll: true,
+              keepFocus: true
+            })}
+        >
+          {#each PAGE_SIZES as size (size)}<option value={size}>{size}</option>{/each}
+        </select>
+      </label>
+      {#if offset > 0}
+        <a
+          class="v2-btn"
+          href={resolve(
+            pagePath({
+              offset: Math.max(0, offset - pageSize),
+              pageSize: undefined
+            })
+          )}>{ui('Previous')}</a
+        >
+      {:else}<button type="button" class="v2-btn" disabled>{ui('Previous')}</button>{/if}
+      <span
+        >{ui('Page')}
+        {count(Math.floor(offset / pageSize) + 1)}
+        {ui('of')}
+        {count(Math.max(1, Math.ceil(total / pageSize)))}</span
+      >
+      {#if offset + pageSize < total}
+        <a
+          class="v2-btn"
+          href={resolve(pagePath({ offset: offset + pageSize, pageSize: undefined }))}
+          >{ui('Next')}</a
+        >
+      {:else}<button type="button" class="v2-btn" disabled>{ui('Next')}</button>{/if}
+    </div>{/if}
 </nav>
 
 <style>
@@ -70,8 +84,21 @@
     color: var(--crm-text-muted);
     font-size: var(--crm-text-xs);
   }
-  .page-summary {
+  .page-overview {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--crm-space-3);
     margin-right: auto;
+  }
+  .page-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--crm-space-2);
+    flex-wrap: wrap;
+  }
+  .page-summary {
+    white-space: nowrap;
   }
   .page-size {
     display: flex;
@@ -92,8 +119,9 @@
     .pagination {
       padding-inline: var(--crm-space-3);
     }
-    .page-summary {
+    .page-overview {
       flex-basis: 100%;
+      justify-content: space-between;
     }
     .rows-label {
       position: absolute;

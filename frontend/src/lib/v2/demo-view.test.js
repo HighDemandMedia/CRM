@@ -6,6 +6,11 @@ describe('customer demo routes', () => {
     for (const route of [
       '/',
       '/contacts',
+      '/imports/contacts',
+      '/imports/companies',
+      '/imports/deals',
+      '/imports/tasks',
+      '/imports/tickets',
       '/contacts/123/edit',
       '/accounts/new',
       '/record-delete/contact/123',
@@ -33,6 +38,8 @@ describe('customer demo routes', () => {
   it('excludes unfinished modules and similar prefixes', () => {
     for (const route of [
       '/leads',
+      '/imports/users',
+      '/imports/contacts/extra',
       '/invoices/123',
       '/documents',
       '/solutions',

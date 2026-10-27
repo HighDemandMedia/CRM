@@ -29,6 +29,7 @@ export function demoPageAllowed(path) {
   // Authentication and record permissions are still checked by the server handlers and API.
   if (/^\/record-(?:delete|associations)\/(?:contact|company|deal)\/[^/]+\/?$/.test(path))
     return true;
+  if (/^\/imports\/(?:contacts|companies|deals|tasks|tickets)\/?$/.test(path)) return true;
   return [...DEMO_MAIN, ...DEMO_SETTINGS].some(
     (root) => path === root || (root !== '/' && path.startsWith(root + '/'))
   );

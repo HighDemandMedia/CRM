@@ -65,6 +65,7 @@ from common.views.profile_photo_views import ProfilePhotoView
 from common.views.property_layout_views import PropertyLayoutView
 from common.views.record_association_views import RecordAssociationView
 from common.views.record_delete_views import RecordDeleteView
+from common.views.record_import_views import RecordImportView
 from common.views.role_views import (
     MemberRoleView,
     MyPermissionsView,
@@ -98,6 +99,7 @@ app_name = "api_common"
 
 
 urlpatterns = [
+    path("record-import/<str:module>/", RecordImportView.as_view()),
     path("org/lifecycle/", OrganizationLifecycleView.as_view()),
     path("integrations/google/connect/<str:service>/", GoogleConnectView.as_view()),
     path("integrations/google/callback/", GoogleCallbackView.as_view()),
