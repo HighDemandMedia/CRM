@@ -476,6 +476,7 @@
   }
   table {
     width: 100%;
+    min-width: 760px;
     border-collapse: collapse;
     text-align: left;
     font-size: var(--crm-text-sm);
@@ -509,6 +510,9 @@
   }
   .percentage input {
     width: 76px;
+  }
+  td > input {
+    min-width: 160px;
   }
   .rules {
     display: grid;
