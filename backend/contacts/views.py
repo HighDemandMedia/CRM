@@ -512,6 +512,7 @@ class ContactDetailView(APIView):
                 "name": deal.name,
                 "stage": deal.stage,
                 "amount": deal.amount,
+                "currency": deal.currency,
                 "closed_on": deal.closed_on,
             }
             for deal in contact.opportunity_contacts.filter(

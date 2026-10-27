@@ -286,6 +286,8 @@ export async function getDeal({ cookies }, id) {
       id: contact.id,
       first_name: contact.first_name ?? '',
       last_name: contact.last_name ?? '',
+      email: contact.email ?? '',
+      phone: contact.phone ?? '',
       title: contact.title ?? '',
       // The mock had `relationship` here; "Champion", "Blocker". Contact has
       // no such field and nothing infers one.

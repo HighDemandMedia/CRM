@@ -2,7 +2,8 @@ import { expect, it, vi, beforeEach } from 'vitest';
 vi.mock('$lib/api-helpers.js', () => ({ apiRequest: vi.fn() }));
 import { apiRequest } from '$lib/api-helpers.js';
 import { getTaskFormOptions } from './tasks.js';
-import { listDeals } from './deals.js';
+import { getDeal, listDeals } from './deals.js';
+import { getContact } from './contacts.js';
 import { money } from '$lib/v2/format.js';
 
 const cookies = {
@@ -14,6 +15,33 @@ const cookies = {
 };
 
 beforeEach(() => vi.clearAllMocks());
+
+it.each([
+  ['qa@example.com', '+12025550196'],
+  ['qa@example.com', null],
+  [null, '+12025550196'],
+  [null, null]
+])('preserves associated contact details: email=%s, phone=%s', async (email, phone) => {
+  vi.mocked(apiRequest).mockResolvedValue({
+    opportunity_obj: { id: 'DEA-0001' },
+    contacts: [{ id: 'CON-0001', first_name: 'QA', email, phone }]
+  });
+  const result = await getDeal({ cookies }, 'DEA-0001');
+  expect(result.contacts[0]).toMatchObject({
+    id: 'CON-0001',
+    email: email ?? '',
+    phone: phone ?? ''
+  });
+});
+
+it.each(['USD', 'EUR', null])('preserves an associated deal currency: %s', async (currency) => {
+  vi.mocked(apiRequest).mockResolvedValue({
+    contact_obj: { id: 'CON-0001' },
+    opportunities: [{ id: 'DEA-0001', amount: '125.00', currency }]
+  });
+  const result = await getContact({ cookies }, 'CON-0001');
+  expect(result.deals[0]).toMatchObject({ amount: 125, currency: currency ?? '' });
+});
 
 it('uses saved task assignee names and falls back to email only when blank', async () => {
   vi.mocked(apiRequest).mockResolvedValue({
