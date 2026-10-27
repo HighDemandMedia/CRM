@@ -75,7 +75,7 @@
     {/if}
   {/snippet}
 </PageHeader>
-<nav class="tabs" aria-label={ui('Notification sections')}>
+<nav class="tabs crm-preferences-tabs" aria-label={ui('Notification sections')}>
   <a
     href={resolve('/notifications')}
     class:active={!preferencesOpen}
@@ -88,7 +88,7 @@
   >
 </nav>
 <div class="v2-scroll">
-  <div class="content">
+  <div class="content crm-preferences-body crm-settings-content">
     {#if preferencesOpen}
       <h2>{ui('Notification preferences')}</h2>
       <p class="muted">{ui('Choose the notifications you receive in this organization.')}</p>

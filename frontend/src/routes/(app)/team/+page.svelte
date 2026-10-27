@@ -103,7 +103,7 @@
         >{/if}
     {/snippet}
   </PageHeader>
-  <nav class="team-tabs" aria-label={ui('Users and teams sections')}>
+  <nav class="team-tabs crm-preferences-tabs" aria-label={ui('Users and teams sections')}>
     {#each [['users', 'Users', members.length], ['teams', 'Teams', data.teams.length], ['invitations', 'Invitations', invitations.length]] as [id, label, total] (id)}
       <button
         class:active={activeTab === id}
@@ -114,7 +114,7 @@
     <a href={resolve('/settings/roles')}>{ui('Roles & permissions')}<ArrowUpRight size={14} /></a>
   </nav>
   <div class="v2-scroll">
-    <div class="team-content access-list">
+    <div class="team-content access-list crm-preferences-body">
       {#if form?.invited}<p class="notice" role="status">
           {ui('Invitation sent to')}
           {form.invited}.

@@ -97,7 +97,7 @@
   function positionAccount(event) {
     if (!accountOpen) void loadOrganizations();
     const rect = event.currentTarget.getBoundingClientRect();
-    panelLeft = Math.max(8, Math.min(rect.left, window.innerWidth - 348));
+    panelLeft = Math.max(8, Math.min(rect.left, window.innerWidth - 296));
     panelBottom = window.innerHeight - rect.top + 8;
   }
 
@@ -265,6 +265,7 @@
     class="account-panel"
     style:left={`${panelLeft}px`}
     style:bottom={`${panelBottom}px`}
+    style:max-height={`min(420px, calc(100dvh - ${panelBottom + 8}px))`}
     ontoggle={(event) => (accountOpen = event.newState === 'open')}
   >
     <div class="account-identity">
@@ -426,12 +427,12 @@
     top: auto;
     right: auto;
     margin: 0;
-    width: 332px;
+    width: 288px;
     max-width: calc(100vw - 16px);
     max-height: min(580px, calc(100dvh - 100px));
     overflow-y: auto;
     box-sizing: border-box;
-    padding: 10px;
+    padding: var(--crm-space-2);
     border: 1px solid var(--crm-border);
     border-radius: var(--crm-radius-lg);
     background: var(--crm-surface);
@@ -442,7 +443,7 @@
   .account-identity {
     display: flex;
     gap: var(--crm-space-3);
-    padding: var(--crm-space-3) 10px;
+    padding: var(--crm-space-2);
     align-items: center;
   }
   .account-identity div {
@@ -464,7 +465,8 @@
     display: flex;
     align-items: center;
     gap: 9px;
-    padding: 11px 10px;
+    padding: 8px;
+    min-height: 36px;
     border-radius: var(--crm-radius-md);
     color: inherit;
     text-decoration: none;
@@ -474,7 +476,10 @@
   .account-action:hover {
     background: var(--crm-surface-secondary);
   }
-  .account-action:focus-visible,
+  .account-action:focus-visible {
+    outline: 2px solid var(--crm-focus);
+    outline-offset: -2px;
+  }
   .account-trigger:focus-visible {
     outline: 2px solid var(--crm-nav-text);
     outline-offset: 2px;
@@ -482,9 +487,9 @@
   .account-details {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    padding: 14px 10px;
-    margin: var(--crm-space-2) 0;
+    gap: 3px;
+    padding: 10px 8px;
+    margin: var(--crm-space-1) 0;
     border-block: 1px solid var(--crm-border);
     font-size: var(--crm-text-xs);
     color: var(--crm-text-muted);
@@ -529,8 +534,8 @@
     background: var(--crm-surface-secondary);
   }
   .organization-name select:focus-visible {
-    outline: 2px solid var(--crm-nav-text);
-    outline-offset: 2px;
+    outline: 2px solid var(--crm-focus);
+    outline-offset: -2px;
   }
   .organization-name select:disabled {
     cursor: wait;
@@ -545,6 +550,11 @@
     border-top: 1px solid var(--crm-border);
     padding-top: 6px;
     margin-top: 6px;
+  }
+  @media (max-width: 767px), (pointer: coarse) {
+    .account-action {
+      min-height: var(--crm-target-size);
+    }
   }
   .brand-home {
     color: inherit;

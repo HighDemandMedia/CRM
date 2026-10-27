@@ -136,7 +136,7 @@
       >{/if}{/snippet}
 </PageHeader>
 <div class="v2-scroll">
-  <div class="roles-content" class:access-list={!editing}>
+  <div class="roles-content crm-preferences-body" class:access-list={!editing}>
     {#if data.forbidden}<p>{ui('Only organization admins can manage roles and permissions.')}</p>
     {:else if editing}
       <form

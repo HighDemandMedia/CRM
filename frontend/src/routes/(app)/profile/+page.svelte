@@ -137,7 +137,7 @@
   </PageHeader>
 
   {#if !data.onboarding}<div
-      class="profile-tabs"
+      class="profile-tabs crm-preferences-tabs"
       role="tablist"
       aria-label={ui('Profile sections')}
     >
@@ -158,14 +158,14 @@
       {/each}
     </div>{/if}
   <div class="v2-scroll">
-    <div class="profile-layout crm-settings-content">
+    <div class="profile-layout crm-settings-content crm-preferences-body">
       <div
         id="profile-panel-info"
         role="tabpanel"
         aria-labelledby={data.onboarding ? 'personal-information-title' : 'profile-tab-info'}
         hidden={activeTab !== 'info'}
         tabindex="0"
-        class="profile-panel personal"
+        class="profile-panel personal crm-preferences-card"
       >
         <div class="section-heading">
           <div>
@@ -327,7 +327,7 @@
           aria-labelledby="profile-tab-integrations"
           hidden={activeTab !== 'integrations'}
           tabindex="0"
-          class="profile-panel"
+          class="profile-panel crm-preferences-card"
         >
           <div class="section-heading">
             <h2 id="integration-title"><Link2 size={17} />{ui('Connected accounts')}</h2>
@@ -513,7 +513,7 @@
   }
   .details-form label {
     font-weight: 500;
-    gap: 9px;
+    gap: var(--crm-space-2);
     font-size: var(--crm-text-sm);
   }
   .details-form :global(select),
@@ -602,7 +602,7 @@
     justify-content: space-between;
     align-items: center;
     gap: var(--crm-space-3);
-    margin-bottom: 18px;
+    margin-bottom: var(--crm-space-4);
   }
   h2 {
     display: flex;
@@ -630,7 +630,7 @@
     font-size: var(--crm-text-xs);
   }
   .details-form {
-    margin-top: var(--crm-space-5);
+    margin-top: 0;
   }
   .password-form {
     max-width: 560px;

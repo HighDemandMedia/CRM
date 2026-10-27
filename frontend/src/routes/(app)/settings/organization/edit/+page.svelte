@@ -112,7 +112,7 @@
   <PageHeader title={ui('Organization')}>
     {#snippet crumb()}<SettingsCrumb />{/snippet}
   </PageHeader>
-  <div class="v2-pad" style="padding-top:40px">
+  <div class="v2-pad crm-preferences-body">
     <NextAction
       label={ui('Admins only')}
       text="Editing organization details is limited to admins. Ask an admin on your team if a company detail, currency, or survey setting needs changing."
@@ -127,7 +127,7 @@
     {/snippet}
   </PageHeader>
 
-  <div class="v2-scroll v2-pad" style="padding-top:18px">
+  <div class="v2-scroll v2-pad crm-preferences-body">
     <form class="v2-form" method="POST" action="?/save" use:enhance={check} novalidate>
       {#if result?.error}
         <Notice title={ui('Could not save changes')} message={result.error} />

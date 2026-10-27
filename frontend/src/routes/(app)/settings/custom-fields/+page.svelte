@@ -165,7 +165,7 @@
   {/snippet}
 </PageHeader>
 
-<div class="catalog">
+<div class="catalog crm-preferences-body">
   <div class="toolbar">
     <label class="object-field"
       >{ui('Object')}

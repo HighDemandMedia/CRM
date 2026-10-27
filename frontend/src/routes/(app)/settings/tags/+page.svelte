@@ -165,7 +165,7 @@
         onclick={() => openEditor()}><Plus size={16} />{ui('New tag')}</button
       >{/if}{/snippet}
 </PageHeader>
-<div class="tag-settings">
+<div class="tag-settings crm-preferences-body">
   <div class="status-filters" role="group" aria-label={ui('Tag status')}>
     {#each filters as filter (filter.key)}<button
         type="button"

@@ -90,7 +90,7 @@
   {/snippet}
 </PageHeader>
 
-<div class="v2-pad" style="padding-top:16px;flex:none">
+<div class="v2-pad crm-preferences-body crm-preferences-summary">
   <div class="v2-stats">
     <StatCard label={ui('Published')} value={count(totals.published)} tone="ink" />
     <StatCard
@@ -110,7 +110,7 @@
 </div>
 
 <div class="v2-scroll">
-  <div class="v2-pad" style="padding-bottom:32px">
+  <div class="v2-pad crm-preferences-body">
     {#if actionError}
       <div style="margin-bottom:16px">
         <NextAction label={ui('That did not work')} text={actionError} tone="rust" />

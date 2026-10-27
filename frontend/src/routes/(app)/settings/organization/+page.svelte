@@ -77,8 +77,8 @@
         : ui('Organization information and regional defaults')}{/snippet}</PageHeader
   >
   <div class="v2-scroll">
-    <div class="organization-content crm-settings-content">
-      <form method="POST" action="?/save" use:enhance={save}>
+    <div class="organization-content crm-settings-content crm-preferences-body">
+      <form class="crm-preferences-card" method="POST" action="?/save" use:enhance={save}>
         {#if data.onboarding}<input type="hidden" name="onboarding" value="1" />{/if}
         <fieldset disabled={!data.can_edit || busy}>
           {#each sections as section (section)}
@@ -237,7 +237,7 @@
     flex-wrap: wrap;
     gap: var(--crm-space-5);
     padding-top: var(--crm-space-5);
-    margin-top: 28px;
+    margin-top: var(--crm-space-4);
     border-top: 1px solid var(--v2-line-soft);
     color: var(--v2-slate);
     font-size: var(--crm-text-xs);

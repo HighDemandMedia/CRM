@@ -154,7 +154,7 @@
 </script>
 
 <PageHeader title={ui('Pipelines')} />
-<div class="pipeline-settings">
+<div class="pipeline-settings v2-scroll crm-preferences-body">
   <div class="toolbar">
     <label
       >{ui('Object')}<select
@@ -451,8 +451,9 @@
   .toolbar {
     display: flex;
     align-items: end;
-    gap: var(--crm-space-6);
-    margin-bottom: var(--crm-space-6);
+    gap: var(--crm-space-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--crm-space-4);
   }
   .toolbar label {
     display: grid;

@@ -2135,6 +2135,46 @@ select.v2-input[size='1']:not([multiple]):dir(rtl) {
   box-sizing: border-box;
 }
 
+/* One spacing rhythm across preference pages, including nested tab panels. */
+.with-preferences {
+  --crm-preferences-gutter: clamp(16px, 2vw, 24px);
+}
+.v2-root .with-preferences .v2-header {
+  padding: 16px var(--crm-preferences-gutter) 12px;
+  gap: var(--crm-space-3);
+  align-items: center;
+}
+.v2-root .with-preferences .v2-header .v2-actions {
+  padding-top: 0;
+}
+.v2-root .with-preferences .crm-preferences-body {
+  padding: 12px var(--crm-preferences-gutter) 24px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.v2-root .with-preferences .crm-preferences-summary {
+  flex: none;
+  padding-bottom: 0;
+}
+.v2-root .with-preferences .crm-preferences-card {
+  padding: var(--crm-space-4);
+}
+.v2-root .with-preferences .crm-preferences-tabs {
+  padding-inline: var(--crm-preferences-gutter);
+  column-gap: var(--crm-space-5);
+  row-gap: 0;
+  flex-shrink: 0;
+}
+.v2-root .with-preferences .crm-preferences-tabs > :is(button, a) {
+  min-height: 40px;
+  padding-block: 8px;
+}
+@media (max-width: 767px), (pointer: coarse) {
+  .v2-root .with-preferences .crm-preferences-tabs > :is(button, a) {
+    min-height: var(--crm-target-size);
+  }
+}
+
 /* A shared, compact form surface for personal and organization settings. */
 .v2-root .crm-settings-fields .v2-input {
   min-height: 42px;

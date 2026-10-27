@@ -112,7 +112,7 @@
       'Choose the fields your team completes when creating a record.'
     )}{/snippet}</PageHeader
 >
-<div class="v2-scroll v2-pad editor">
+<div class="v2-scroll v2-pad editor crm-preferences-body">
   <label class="object-select"
     >{ui('Object')}
     <select
@@ -135,7 +135,7 @@
   {#if !data.can_edit}<p>{ui('Read only')}</p>{/if}
   <div class="panels">
     <section
-      class="panel"
+      class="panel crm-preferences-card"
       class:drop-available={overAvailable}
       aria-label={ui('Available properties')}
       ondragover={overProperties}
@@ -175,7 +175,7 @@
     <form
       method="POST"
       action="?/save"
-      class="panel"
+      class="panel crm-preferences-card"
       use:enhance={() => {
         busy = true;
         return async ({ update }) => {

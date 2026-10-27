@@ -246,7 +246,7 @@
     >{/snippet}
 </PageHeader>
 <div class="v2-scroll">
-  <div class="v2-pad builder">
+  <div class="v2-pad builder crm-preferences-body">
     <nav class="top-nav" aria-label={ui('Form sections')}>
       <button class:active={!activity} onclick={() => (activity = false)}>{ui('Setup')}</button>
       <button class:active={activity} onclick={() => (activity = true)}

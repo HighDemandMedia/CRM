@@ -182,13 +182,13 @@
   .mobile-preferences {
     display: none;
   }
-  @media (max-width: 1100px) and (min-width: 768px) {
+  @media (max-width: 1100px) and (min-width: 1024px) {
     .preferences-sidebar {
       flex-basis: 186px;
       padding-inline: 9px;
     }
   }
-  @media (max-width: 767px) {
+  @media (max-width: 1023px) {
     .preferences-sidebar {
       flex: none;
       padding: 10px var(--crm-space-4);

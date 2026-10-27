@@ -79,7 +79,7 @@
   });
   function show(event) {
     const rect = event.currentTarget.getBoundingClientRect();
-    left = Math.max(8, Math.min(rect.left, window.innerWidth - 388));
+    left = Math.max(8, Math.min(rect.left, window.innerWidth - 344));
     top = Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 160));
     void refresh(true);
   }
@@ -163,7 +163,7 @@
   class="notification-panel"
   style:left={`${left}px`}
   style:top={`${top}px`}
-  style:max-height={`calc(100dvh - ${top + 8}px)`}
+  style:max-height={`min(440px, calc(100dvh - ${top + 8}px))`}
   ontoggle={(event) => (open = event.newState === 'open')}
 >
   <header>
@@ -268,7 +268,8 @@
     position: fixed;
     inset: auto;
     margin: 0;
-    width: min(380px, calc(100vw - 16px));
+    width: min(336px, calc(100vw - 16px));
+    box-sizing: border-box;
     max-height: calc(100dvh - 100px);
     padding: 0;
     border: 1px solid var(--v2-line);
@@ -276,13 +277,18 @@
     background: var(--v2-bg, var(--crm-surface));
     color: var(--v2-ink);
     box-shadow: var(--crm-shadow-lg);
-    overflow: auto;
+    overflow: hidden;
+  }
+  .notification-panel:popover-open {
+    display: flex;
+    flex-direction: column;
   }
   header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--crm-space-4);
+    padding: var(--crm-space-2) var(--crm-space-3);
+    flex-shrink: 0;
     border-bottom: 1px solid var(--v2-line-soft);
   }
   h2 {
@@ -310,11 +316,27 @@
     font-size: var(--crm-text-xs);
   }
   .read-actions {
-    padding: 10px var(--crm-space-4);
+    padding: 4px var(--crm-space-3);
+    flex-shrink: 0;
     text-align: right;
   }
+  header button {
+    width: 32px;
+    height: 32px;
+    justify-content: center;
+    border-radius: var(--crm-radius-sm);
+  }
+  header button:hover {
+    background: var(--crm-surface-secondary);
+  }
+  .notification-panel :is(button, a):focus-visible {
+    outline: 2px solid var(--crm-focus);
+    outline-offset: -2px;
+  }
   .feed {
-    max-height: min(450px, 55dvh);
+    min-height: 0;
+    max-height: min(320px, 50dvh);
+    overscroll-behavior: contain;
     overflow-y: auto;
   }
   .notification-row {
@@ -325,7 +347,7 @@
     background: transparent;
     border: 0;
     border-bottom: 1px solid var(--v2-line-soft);
-    padding: 14px var(--crm-space-4);
+    padding: 10px var(--crm-space-3);
     font: inherit;
     color: inherit;
     cursor: pointer;
@@ -348,7 +370,7 @@
   }
   .row-body {
     display: grid;
-    gap: 5px;
+    gap: 3px;
     min-width: 0;
     font-size: var(--crm-text-xs);
     overflow-wrap: anywhere;
@@ -375,7 +397,7 @@
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    padding: var(--crm-space-8) 18px;
+    padding: var(--crm-space-5) var(--crm-space-3);
     color: var(--v2-slate);
     font-size: var(--crm-text-xs);
   }
@@ -389,13 +411,27 @@
     font-size: var(--crm-text-xs);
   }
   footer {
-    padding: var(--crm-space-3) var(--crm-space-4);
+    padding: var(--crm-space-2) var(--crm-space-3);
+    flex-shrink: 0;
     border-top: 1px solid var(--v2-line-soft);
     text-align: center;
   }
   footer a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
     color: var(--v2-ink);
     font-size: var(--crm-text-xs);
     text-decoration: none;
+  }
+  @media (max-width: 767px), (pointer: coarse) {
+    header button,
+    .read-actions button,
+    footer a {
+      min-height: var(--crm-target-size);
+    }
+    header button {
+      width: var(--crm-target-size);
+    }
   }
 </style>

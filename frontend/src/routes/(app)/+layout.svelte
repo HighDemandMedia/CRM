@@ -183,7 +183,7 @@
         {ui('This organization is closing. You can still view and export records.')}
       </div>
     {/if}
-    <div class="page-workspace">
+    <div class="page-workspace" class:preferences-workspace={preferencesOpen}>
       {#if navigating.to}
         <div class="route-loading-label" role="status">{ui('Loading…')}</div>
       {/if}
@@ -350,6 +350,11 @@
   }
   @media (max-width: 768px) {
     .page-workspace {
+      flex-direction: column;
+    }
+  }
+  @media (max-width: 1023px) {
+    .preferences-workspace {
       flex-direction: column;
     }
   }
