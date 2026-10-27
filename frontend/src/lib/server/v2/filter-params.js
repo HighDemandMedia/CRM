@@ -1,3 +1,4 @@
+import { isRecordId } from '$lib/identifiers.js';
 /**
  * Reading filters off a URL, and turning them into an API query.
  *
@@ -17,7 +18,6 @@ import { FILTERS } from '$lib/v2/filters.js';
 const BOOLEANS = ['true', 'false'];
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const NUMERIC = /^\d+(\.\d+)?$/;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Field types whose value is an opaque id the API looks up by primary key. */
 const ID_TYPES = ['person', 'tag', 'account'];
 
@@ -70,7 +70,7 @@ export function readFilters(url, pageKey) {
     } else if (field.type === 'boolean') {
       if (BOOLEANS.includes(value)) out[field.key] = value;
     } else if (ID_TYPES.includes(field.type)) {
-      if (UUID.test(value)) out[field.key] = value;
+      if (isRecordId(value)) out[field.key] = value;
     } else {
       out[field.key] = value;
     }

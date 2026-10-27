@@ -1,3 +1,4 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { resolve } from '$app/paths';
 /**
  * API Client for Django REST Framework Backend
@@ -10,8 +11,6 @@ import { resolve } from '$app/paths';
 
 import { env } from '$env/dynamic/public';
 import { goto } from '$app/navigation';
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // API Base URL from environment variables
 // Note: VITE_ prefix is required for client-side env vars
@@ -270,7 +269,7 @@ export const auth = {
    * @returns {Promise<any>} New tokens and org data
    */
   async switchOrg(orgId) {
-    if (!orgId || !UUID_RE.test(orgId)) {
+    if (!orgId || !isRecordId(orgId)) {
       throw new Error('Invalid organization ID format');
     }
     // Hand over the outgoing refresh token so the backend retires it; we replace

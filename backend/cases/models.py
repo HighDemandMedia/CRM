@@ -10,6 +10,7 @@ from django.utils.translation import pgettext_lazy
 
 from accounts.models import Account
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
+from common.identifiers import BusinessIDField
 from common.models import Org, Profile, Tags, Teams
 from common.rbac import CRMRecordManager
 from common.utils import CASE_TYPE, CURRENCY_CODES, PRIORITY_CHOICE, STATUS_CHOICE
@@ -28,6 +29,7 @@ class TicketSequence(models.Model):
 
 
 class Case(AssignableMixin, BaseModel):
+    id = BusinessIDField(prefix="TKT")
     file_attachments = GenericRelation("common.Attachments")
 
     objects = CRMRecordManager()
@@ -68,6 +70,8 @@ class Case(AssignableMixin, BaseModel):
 
     @property
     def ticket_code(self):
+        if str(self.pk).startswith("TKT-"):
+            return str(self.pk)
         return (
             f"TKT-{self.ticket_number:04d}"
             if self.ticket_number

@@ -10,6 +10,9 @@ def org_context(org_id):
     if connection.vendor != "postgresql":
         yield
         return
+    from common.identifiers import resolve_identifier
+
+    org_id = resolve_identifier(org_id)
     # A transaction-local setting is automatically restored at commit/rollback.
     # Explicit restoration also preserves an enclosing transaction's context.
     with transaction.atomic():

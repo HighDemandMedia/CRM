@@ -1,13 +1,12 @@
 """Read-only contact matches, limited to the caller's visible organization records."""
 
-from uuid import UUID
-
 from django.db.models import Case, IntegerField, Q, Value, When
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.identifiers import normalize_identifier
 from common.permissions import HasOrgContext, is_org_admin
 from common.rbac import configured, scoped
 from common.validators import contact_phone_key
@@ -30,7 +29,7 @@ class ContactDuplicatesView(APIView):
             ).distinct()
         if exclude:
             try:
-                exclude = UUID(exclude)
+                exclude = normalize_identifier(exclude)
             except ValueError:
                 raise ValidationError({"exclude": "Invalid contact ID."})
             qs = qs.exclude(pk=exclude)

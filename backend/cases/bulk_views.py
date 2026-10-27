@@ -1,7 +1,5 @@
 """Bulk update / bulk delete endpoints for the Cases module."""
 
-import uuid
-
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from rest_framework import status
@@ -12,6 +10,7 @@ from rest_framework.views import APIView
 
 from cases.access import has_case_write_access, is_org_admin
 from cases.models import Case
+from common.identifiers import normalize_identifier
 from common.models import Activity, Profile, Tags
 from common.permissions import HasOrgContext
 from common.pipeline_settings import validate_entry
@@ -39,7 +38,7 @@ def _valid_ids(raw):
     ids = []
     for value in raw if isinstance(raw, (list, tuple)) else []:
         try:
-            ids.append(str(uuid.UUID(str(value))))
+            ids.append(normalize_identifier(value))
         except (ValueError, TypeError, AttributeError):
             continue
     return ids

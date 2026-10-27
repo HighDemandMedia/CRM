@@ -1,6 +1,5 @@
 import logging
 import secrets
-import uuid
 from datetime import timedelta
 from functools import partial
 
@@ -20,6 +19,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from common import serializer
+from common.identifier_serializers import IdentifierField
+from common.identifiers import resolve_identifier
 from common.models import Org, Profile, User
 from common.organization_lifecycle import invitation_write
 from common.platform_access import accessible_profiles, select_organization
@@ -665,7 +666,7 @@ class OrgSwitchView(APIView):
         request=inline_serializer(
             name="OrgSwitchRequest",
             fields={
-                "org_id": serializers.UUIDField(help_text="Target organization ID"),
+                "org_id": IdentifierField(help_text="Target organization ID"),
                 "refresh": serializers.CharField(
                     required=False,
                     help_text=(
@@ -701,10 +702,10 @@ class OrgSwitchView(APIView):
             )
 
         try:
-            uuid.UUID(str(org_id))
+            org_id = resolve_identifier(org_id)
         except (ValueError, AttributeError):
             return Response(
-                {"error": "org_id must be a valid UUID"},
+                {"error": "org_id must be a valid ID"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

@@ -1,10 +1,11 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { json } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
 
 /** @param {any} event */
 async function forward({ cookies, params, url, request }) {
   const headers = { 'Cache-Control': 'private, no-store' };
-  if (!['contact', 'company'].includes(params.kind) || !/^[0-9a-f-]{36}$/i.test(params.id))
+  if (!['contact', 'company'].includes(params.kind) || !isRecordId(params.id))
     return json({ error: 'Invalid record.' }, { status: 400, headers });
   const query = new URLSearchParams();
   for (const key of ['offset', 'direction', 'q', 'contact', 'thread', 'view']) {

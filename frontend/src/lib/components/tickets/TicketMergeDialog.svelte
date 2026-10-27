@@ -1,4 +1,5 @@
 <script>
+  import { displayRecordId } from '$lib/identifiers.js';
   import { resolve } from '$app/paths';
   import { enhance } from '$app/forms';
   import { goto } from '$app/navigation';
@@ -20,7 +21,7 @@
   let searching = $state(false);
   let submitting = $state(false);
 
-  const shortId = (/** @type {string} */ id) => (id || '').replace(/-/g, '').slice(0, 8);
+  const shortId = displayRecordId;
 
   let searchTimer = /** @type {any} */ (null);
 

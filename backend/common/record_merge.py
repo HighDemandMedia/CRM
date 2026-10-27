@@ -2,7 +2,6 @@
 
 import hashlib
 import json
-from uuid import UUID
 
 from django.contrib.contenttypes.models import ContentType
 from django.core import signing
@@ -16,6 +15,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.identifiers import normalize_identifier
 from common.models import (
     Activity,
     Attachments,
@@ -244,7 +244,7 @@ class RecordMergeView(APIView):
                 }
             )
         try:
-            other = UUID(other)
+            other = normalize_identifier(other)
         except ValueError:
             raise ValidationError("Invalid record ID.")
         secondary = get_object_or_404(self.model.objects, pk=other, org=primary.org)

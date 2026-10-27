@@ -12,6 +12,7 @@ from django.db import connection, transaction
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from common.identifiers import resolve_identifier
 from common.models import Org, Profile
 from common.platform_access import is_platform_owner
 
@@ -44,6 +45,7 @@ def organization_lock(org_id, *, exclusive=False, transactional=True):
     outbox acknowledgements commit independently when a later recipient fails.
     Both lock kinds share PostgreSQL's advisory lock namespace.
     """
+    org_id = resolve_identifier(org_id)
     with transaction.atomic() if transactional else nullcontext():
         key = int.from_bytes(
             hashlib.sha256(str(org_id).encode()).digest()[:8], "big", signed=True
@@ -83,18 +85,22 @@ def organization_job(function):
 
     @wraps(function)
     def guarded(*args, **kwargs):
-        arguments = signature.bind(*args, **kwargs).arguments
+        bound = signature.bind(*args, **kwargs)
+        arguments = bound.arguments
         org = arguments.get("org")
         org_id = arguments.get("org_id") or getattr(org, "pk", None)
         if not org_id:
             # Legacy jobs without tenant context cannot safely mutate or send.
             return None
+        org_id = resolve_identifier(org_id)
+        if "org_id" in arguments:
+            arguments["org_id"] = org_id
         with organization_lock(org_id, transactional=False):
             if not Org.objects.filter(
                 pk=org_id, is_active=True, closing_at__isnull=True
             ).exists():
                 return None
-            return function(*args, **kwargs)
+            return function(*bound.args, **bound.kwargs)
 
     return guarded
 
@@ -119,6 +125,7 @@ def lifecycle_payload(org, user=None):
 
 
 def change_lifecycle(org_id, actor, action, *, confirmation=None):
+    org_id = resolve_identifier(org_id)
     from common.models import GoogleConnection, OrganizationInvitation, User
     from common.organization_lifecycle_models import (
         OrganizationClosure,

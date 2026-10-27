@@ -1,11 +1,11 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { json } from '@sveltejs/kit';
 import { getContactForEdit } from '$lib/server/v2/contacts.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ cookies, params }) {
   const headers = { 'Cache-Control': 'private, no-store' };
-  if (!/^[0-9a-f-]{36}$/i.test(params.id))
-    return json({ error: 'Invalid record.' }, { status: 400, headers });
+  if (!isRecordId(params.id)) return json({ error: 'Invalid record.' }, { status: 400, headers });
   try {
     // The API checks the current session, organization and record visibility.
     return json(await getContactForEdit({ cookies }, params.id), { headers });

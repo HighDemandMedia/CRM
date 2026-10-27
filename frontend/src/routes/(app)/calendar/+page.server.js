@@ -1,3 +1,4 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { fail } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
 import { getOrgPeopleAndTeams, resolveMe } from '$lib/server/v2/org-people.js';
@@ -16,7 +17,7 @@ export const actions = {
     const operation = String(form.get('operation') ?? '');
     if (
       !['appointment', 'contact', 'company', 'google'].includes(kind) ||
-      !/^[0-9a-f-]{36}$/i.test(id ?? '') ||
+      !isRecordId(id ?? '') ||
       !['cancel', 'reschedule', 'details'].includes(operation)
     )
       return fail(400, { message: 'Invalid event action.' });
@@ -76,7 +77,7 @@ export const actions = {
     body.users = [];
     for (const value of selected) {
       const [kind, id] = String(value).split(':');
-      if (!['contact', 'company', 'user'].includes(kind) || !/^[0-9a-f-]{36}$/i.test(id ?? ''))
+      if (!['contact', 'company', 'user'].includes(kind) || !isRecordId(id ?? ''))
         return fail(400, { message: 'Select a valid attendee.' });
       const key = kind === 'contact' ? 'contacts' : kind === 'company' ? 'companies' : 'users';
       if (!body[key].includes(id)) body[key].push(id);

@@ -17,12 +17,12 @@ app_name = "portal"
 
 urlpatterns = [
     path(
-        "login/<uuid:org_id>/request/",
+        "login/<uid:org_id>/request/",
         portal_auth_views.PortalLoginRequestView.as_view(),
         name="login_request",
     ),
     path(
-        "login/<uuid:org_id>/verify/",
+        "login/<uid:org_id>/verify/",
         portal_auth_views.PortalLoginVerifyView.as_view(),
         name="login_verify",
     ),

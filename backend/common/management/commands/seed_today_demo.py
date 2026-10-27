@@ -54,16 +54,41 @@ class Command(BaseCommand):
                     datetime.combine(today + timedelta(days=day), time(hour, minute))
                 )
 
+            from common.identifiers import BusinessIDField
+            from common.models import LegacyBusinessID
+
+            seed_org = (
+                LegacyBusinessID.objects.filter(replacement=org.pk)
+                .values_list("id", flat=True)
+                .first()
+                or org.pk
+            )
+
             def identity(key):
-                return uuid5(NAMESPACE_URL, f"hdm-today-demo:{org.pk}:{key}")
+                return str(uuid5(NAMESPACE_URL, f"hdm-today-demo:{seed_org}:{key}"))
 
             def make(model, key, **fields):
                 fields.update(org=org, created_by=profile.user)
                 if any(field.name == "is_sample" for field in model._meta.fields):
                     fields["is_sample"] = True
-                obj, _ = model.objects.update_or_create(
-                    pk=identity(key), defaults=fields
-                )
+                seed_id = identity(key)
+                if isinstance(model._meta.pk, BusinessIDField):
+                    record_id = (
+                        LegacyBusinessID.objects.filter(pk=seed_id)
+                        .values_list("replacement", flat=True)
+                        .first()
+                    )
+                    if record_id and model.objects.filter(pk=record_id).exists():
+                        obj, _ = model.objects.update_or_create(
+                            pk=record_id, defaults=fields
+                        )
+                    else:
+                        obj = model.objects.create(**fields)
+                        LegacyBusinessID.objects.update_or_create(
+                            pk=seed_id, defaults={"replacement": obj.pk}
+                        )
+                else:
+                    obj, _ = model.objects.update_or_create(pk=seed_id, defaults=fields)
                 if hasattr(obj, "assigned_to"):
                     obj.assigned_to.set([profile])
                 return obj

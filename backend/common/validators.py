@@ -4,7 +4,6 @@ Common validators for CRM models.
 
 import datetime
 import json
-import uuid as uuid_module
 from decimal import Decimal
 from zoneinfo import available_timezones
 
@@ -14,6 +13,8 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError as DRFValidationError
+
+from common.identifiers import normalize_identifier
 
 # E.164 format: +[country code][number] (max 15 digits total)
 # Examples: +12025551234, +442071234567
@@ -34,23 +35,13 @@ flexible_phone_validator = RegexValidator(
 
 
 def validate_uuid(value, field: str) -> str:
-    """Return ``value`` if it is a usable id, otherwise raise a DRF 400.
+    """Validate an opaque CRM reference (business ID or auxiliary UUID).
 
-    Id-valued filters (``tags``, ``assigned_to``, ``account``, ...) arrive as
-    raw query-string text and go straight into an ``id`` lookup. Django parses
-    them with ``uuid.UUID`` while building the query and raises
-    ``django.core.exceptions.ValidationError`` on anything malformed. DRF's
-    exception handler does not translate that class, so the request answered
-    500 rather than 400: a stale bookmark or a hand-edited URL took the
-    endpoint down.
-
-    Parsing here with ``uuid.UUID`` deliberately mirrors what ``UUIDField``
-    does, so this accepts exactly what the ORM accepts (hyphenated, bare hex,
-    braced and URN forms alike) and cannot drift into rejecting requests that
-    used to work.
+    The historical name remains for existing callers. Authorization and model
+    lookup still run after shape validation.
     """
     try:
-        uuid_module.UUID(str(value))
+        normalize_identifier(value)
     except (AttributeError, TypeError, ValueError):
         raise DRFValidationError({field: [f"'{value}' is not a valid id."]}) from None
     return value

@@ -106,11 +106,13 @@ def session_response(
         accessible_profiles(user).select_related("org").order_by("org__name")
     )
     profile = profiles[0] if len(profiles) == 1 else None
+    from common.identifiers import resolve_identifier
+
     if request.auth and request.auth.get("org_id"):
-        profile = next(
-            (p for p in profiles if str(p.org_id) == request.auth["org_id"]), profile
-        )
+        selected_org = resolve_identifier(request.auth["org_id"])
+        profile = next((p for p in profiles if str(p.org_id) == selected_org), profile)
     if organization_id is not None:
+        organization_id = resolve_identifier(organization_id)
         profile = next(
             (p for p in profiles if str(p.org_id) == str(organization_id)), None
         )

@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from accounts.choices import ACCOUNT_INDUSTRIES
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
+from common.identifiers import BusinessIDField
 from common.languages import LANGUAGES
 from common.models import Org, Profile, Tags, Teams
 from common.rbac import CRMRecordManager
@@ -27,6 +28,7 @@ class ActiveAccountManager(CRMRecordManager):
 
 
 class Account(AssignableMixin, BaseModel):
+    id = BusinessIDField(prefix="COM")
     file_attachments = GenericRelation("common.Attachments")
 
     objects = ActiveAccountManager()

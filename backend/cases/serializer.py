@@ -14,6 +14,7 @@ from cases.models import (
     TimeEntry,
 )
 from cases.parent_guards import check_parent_link
+from common.identifier_serializers import IdentifierField
 from common.last_activity import ActivityListSerializer, LastActivitySerializerMixin
 from common.models import Profile, Teams
 from common.permissions import is_org_admin
@@ -949,8 +950,8 @@ class CaseMoveSerializer(PipelineMoveChoicesMixin, serializers.Serializer):
     kanban_order = serializers.DecimalField(
         max_digits=15, decimal_places=6, required=False
     )
-    above_case_id = serializers.UUIDField(required=False, allow_null=True)
-    below_case_id = serializers.UUIDField(required=False, allow_null=True)
+    above_case_id = IdentifierField(required=False, allow_null=True)
+    below_case_id = IdentifierField(required=False, allow_null=True)
 
     def validate(self, attrs):
         if not attrs.get("stage_id") and not attrs.get("status"):

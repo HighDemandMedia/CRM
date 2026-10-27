@@ -1,3 +1,4 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { error } from '@sveltejs/kit';
 
 /** Preserve legacy exports as filtered exports; never silently broaden an unknown scope. */
@@ -20,10 +21,7 @@ export function exportQueryURL(url) {
 export async function postExport(event, handler) {
   const body = await event.request.formData();
   const ids = body.getAll('ids').map(String);
-  if (
-    ids.length > 1000 ||
-    ids.some((id) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
-  )
+  if (ids.length > 1000 || ids.some((id) => !isRecordId(id)))
     error(400, 'Invalid records for export.');
   return handler({ ...event, exportIds: [...new Set(ids)] });
 }

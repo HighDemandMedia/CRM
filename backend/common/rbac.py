@@ -357,14 +357,14 @@ def check_request(request):
         else:
             request._full_data["assigned_to"] = [str(profile.pk)]
     # Detail and sub-resource actions must respect their own action scope.
-    from uuid import UUID
-
     from django.apps import apps
+
+    from common.identifiers import resolve_identifier
 
     ids = []
     for part in parts[1:]:
         try:
-            ids.append(UUID(part))
+            ids.append(resolve_identifier(part))
         except (ValueError, TypeError):
             pass
     obj = None

@@ -1,10 +1,11 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { json } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
 import { mailAttachmentError } from '$lib/v2/mail-composition.js';
 
 export async function POST({ cookies, params, request }) {
   const headers = { 'Cache-Control': 'private, no-store' };
-  if (!['contact', 'company'].includes(params.kind) || !/^[0-9a-f-]{36}$/i.test(params.id))
+  if (!['contact', 'company'].includes(params.kind) || !isRecordId(params.id))
     return json({ error: 'Invalid record.' }, { status: 400, headers });
   let body;
   try {

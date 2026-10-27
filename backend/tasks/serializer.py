@@ -1,6 +1,7 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from common.identifier_serializers import IdentifierField
 from common.last_activity import ActivityListSerializer, LastActivitySerializerMixin
 from common.list_serializers import ContactLabelSerializer
 from common.pipeline_settings import PipelineMoveChoicesMixin, PipelineRulesMixin
@@ -535,7 +536,7 @@ class TaskPipelineListSerializer(serializers.ModelSerializer):
 class RelatedEntitySerializer(serializers.Serializer):
     """Minimal serializer for related entities on kanban cards."""
 
-    id = serializers.UUIDField()
+    id = IdentifierField()
     name = serializers.CharField()
 
 
@@ -590,8 +591,8 @@ class TaskMoveSerializer(PipelineMoveChoicesMixin, serializers.Serializer):
     kanban_order = serializers.DecimalField(
         max_digits=15, decimal_places=6, required=False
     )
-    above_task_id = serializers.UUIDField(required=False, allow_null=True)
-    below_task_id = serializers.UUIDField(required=False, allow_null=True)
+    above_task_id = IdentifierField(required=False, allow_null=True)
+    below_task_id = IdentifierField(required=False, allow_null=True)
 
     def validate(self, attrs):
         # Must provide either stage_id or status

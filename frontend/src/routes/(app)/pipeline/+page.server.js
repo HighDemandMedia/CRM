@@ -1,3 +1,4 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { listPagination, checkListPage } from '$lib/server/v2/pagination.js';
 import { pipelineColumns } from '$lib/server/v2/pipeline-columns.js';
 import { configuredStages } from '$lib/v2/pipeline-config.js';
@@ -56,8 +57,7 @@ export const actions = {
     const form = await request.formData(),
       id = String(form.get('id') ?? ''),
       stage = String(form.get('stage') ?? '');
-    if (!/^[0-9a-f-]{36}$/i.test(id) || !stage)
-      return fail(400, { error: 'Choose a valid deal and stage.' });
+    if (!isRecordId(id) || !stage) return fail(400, { error: 'Choose a valid deal and stage.' });
     try {
       await moveDeal({ cookies }, id, { columnId: stage, aboveId: '', belowId: '' });
       return { moved: true };

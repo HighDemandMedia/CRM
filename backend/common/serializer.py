@@ -15,6 +15,7 @@ from common.custom_fields import (
     is_supported_target,
     validate_definition_options,
 )
+from common.identifier_serializers import IdentifierField
 from common.models import (
     Activity,
     Address,
@@ -360,7 +361,7 @@ class CommentCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating comments with ContentType"""
 
     content_type = serializers.CharField(write_only=True)
-    object_id = serializers.UUIDField(write_only=True)
+    object_id = IdentifierField(write_only=True)
 
     class Meta:
         model = Comment
@@ -908,7 +909,7 @@ class AttachmentsCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating attachments with ContentType"""
 
     content_type = serializers.CharField(write_only=True)
-    object_id = serializers.UUIDField(write_only=True)
+    object_id = IdentifierField(write_only=True)
 
     class Meta:
         model = Attachments
@@ -1292,7 +1293,7 @@ class ProfileDetailSerializer(serializers.ModelSerializer):
 class ActivityUserSerializer(serializers.Serializer):
     """Simplified user info for activity display"""
 
-    id = serializers.UUIDField(source="user.id")
+    id = IdentifierField(source="user.id")
     email = serializers.EmailField(source="user.email")
     name = serializers.SerializerMethodField()
     profile_pic = serializers.CharField(source="user.profile_pic", allow_null=True)

@@ -22,7 +22,7 @@ register_converter(UUIDLikeConverter, "uid")
 # falls back to a bare string. Without this the published schema would describe
 # 165 id path parameters as untyped strings, which is what `<str:pk>` gave us
 # and is less than the route now guarantees.
-DJANGO_PATH_CONVERTER_MAPPING["uid"] = OpenApiTypes.UUID
+DJANGO_PATH_CONVERTER_MAPPING["uid"] = OpenApiTypes.STR
 
 app_name = "crm"
 

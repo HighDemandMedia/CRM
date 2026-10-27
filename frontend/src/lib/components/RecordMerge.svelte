@@ -1,4 +1,5 @@
 <script>
+  import { displayRecordId } from '$lib/identifiers.js';
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
@@ -178,7 +179,7 @@
       <div class="records">
         <div>
           <small>{ui(labels.keep)}</small><strong>{preview.primary.name}</strong><span
-            >{preview.primary.id.slice(0, 8)}…{preview.primary.id.slice(-4)}</span
+            >{displayRecordId(preview.primary.id)}</span
           >
         </div>
         <button
@@ -191,7 +192,7 @@
         >
         <div>
           <small>{ui('Merge into the primary')}</small><strong>{preview.secondary.name}</strong
-          ><span>{preview.secondary.id.slice(0, 8)}…{preview.secondary.id.slice(-4)}</span>
+          ><span>{displayRecordId(preview.secondary.id)}</span>
         </div>
       </div>
       <div class="comparison">

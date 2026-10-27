@@ -1,3 +1,4 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { json } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
 import { readableError, fieldErrors, stageRequirements } from '$lib/server/v2/form-errors.js';
@@ -24,7 +25,7 @@ export async function POST({ cookies, request }) {
   const { target, id, values, system = false } = input ?? {};
   if (
     !Object.hasOwn(endpoints, target) ||
-    !/^[0-9a-f-]{36}$/i.test(id) ||
+    !isRecordId(id) ||
     !values ||
     typeof values !== 'object' ||
     Array.isArray(values) ||

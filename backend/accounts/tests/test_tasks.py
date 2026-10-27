@@ -18,11 +18,11 @@ class SendEmailTaskTest(SimpleTestCase):
         get_account_email.side_effect = AccountEmail.DoesNotExist
 
         with self.assertLogs("accounts.tasks", level="ERROR") as logs:
-            result = send_email.run("missing-email", "org-id")
+            result = send_email.run("missing-email", "HDM-7K9M4R8Q")
 
         self.assertIsNone(result)
-        organization_lock.assert_called_once_with("org-id", transactional=False)
-        set_rls_context.assert_called_once_with("org-id")
+        organization_lock.assert_called_once_with("HDM-7K9M4R8Q", transactional=False)
+        set_rls_context.assert_called_once_with("HDM-7K9M4R8Q")
         get_account_email.assert_called_once_with(id="missing-email")
         self.assertEqual(
             logs.output,

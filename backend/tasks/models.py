@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy as _
 
 from accounts.models import Account
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
+from common.identifiers import BusinessIDField
 from common.models import Org, Profile, Tags, Teams
 from common.rbac import CRMRecordManager
 from contacts.models import Contact
@@ -300,6 +301,7 @@ class TaskStage(BaseModel):
 
 
 class Task(AssignableMixin, BaseModel):
+    id = BusinessIDField(prefix="TSK")
     file_attachments = GenericRelation("common.Attachments")
 
     objects = CRMRecordManager()

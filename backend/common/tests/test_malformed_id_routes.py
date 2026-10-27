@@ -107,9 +107,16 @@ class TestTheConverterAcceptsEveryFormTheORMAccepts:
 
     @pytest.fixture
     def account(self, org_a):
-        from accounts.models import Account
+        from uuid import uuid4
 
-        return Account.objects.create(name="Converter Account", org=org_a)
+        from accounts.models import Account
+        from common.models import LegacyBusinessID
+
+        account = Account.objects.create(name="Converter Account", org=org_a)
+        legacy_id = uuid4()
+        LegacyBusinessID.objects.create(id=str(legacy_id), replacement=account.pk)
+        account.legacy_id = legacy_id
+        return account
 
     @pytest.mark.parametrize(
         "form",
@@ -122,7 +129,7 @@ class TestTheConverterAcceptsEveryFormTheORMAccepts:
         ],
     )
     def test_form_resolves(self, admin_client, account, form):
-        raw = account.id
+        raw = account.legacy_id
         rendered = {
             "canonical": str(raw),
             "uppercase": str(raw).upper(),

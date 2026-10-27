@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from accounts.models import Account
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
+from common.identifiers import BusinessIDField
 from common.languages import LANGUAGES
 from common.models import Org, Profile, Tags, Teams
 from common.rbac import CRMRecordManager
@@ -39,6 +40,7 @@ DISCOUNT_TYPES = (
 
 
 class Opportunity(AssignableMixin, BaseModel):
+    id = BusinessIDField(prefix="DEA")
     file_attachments = GenericRelation("common.Attachments")
 
     objects = CRMRecordManager()

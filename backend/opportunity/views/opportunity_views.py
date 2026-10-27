@@ -17,6 +17,7 @@ from accounts.models import Account
 from accounts.serializer import AccountSerializer, TagsSerializer
 from common.creation_forms import validate_creation
 from common.custom_fields import validate_payload as validate_custom_fields_payload
+from common.identifier_serializers import IdentifierField
 from common.models import (
     Attachments,
     Comment,
@@ -352,7 +353,7 @@ class OpportunityListView(APIView, LimitOffsetPagination):
                 fields={
                     "error": serializers.BooleanField(),
                     "message": serializers.CharField(),
-                    "id": serializers.UUIDField(),
+                    "id": IdentifierField(),
                 },
             )
         },

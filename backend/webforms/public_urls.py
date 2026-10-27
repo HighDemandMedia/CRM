@@ -16,22 +16,22 @@ app_name = "public_webforms"
 
 urlpatterns = [
     path(
-        "<uuid:org_id>/<uuid:form_id>/connect.js",
+        "<uid:org_id>/<uuid:form_id>/connect.js",
         public_views.WebFormConnectJsView.as_view(),
         name="connect_js",
     ),
     path(
-        "<uuid:org_id>/<uuid:form_id>/embed/",
+        "<uid:org_id>/<uuid:form_id>/embed/",
         public_views.WebFormEmbedView.as_view(),
         name="embed",
     ),
     path(
-        "<uuid:org_id>/<uuid:form_id>/embed.js",
+        "<uid:org_id>/<uuid:form_id>/embed.js",
         public_views.WebFormEmbedJsView.as_view(),
         name="embed_js",
     ),
     path(
-        "<uuid:org_id>/<uuid:form_id>/submit/",
+        "<uid:org_id>/<uuid:form_id>/submit/",
         public_views.WebFormSubmitView.as_view(),
         name="submit",
     ),

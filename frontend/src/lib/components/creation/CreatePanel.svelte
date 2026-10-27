@@ -42,7 +42,7 @@
     async result(result) {
       if (result.type === 'redirect') {
         const target = new URL(result.location, url);
-        const module = new URL(url).pathname.replace(/\/(new|[0-9a-f-]{36}\/edit)\/?$/i, '');
+        const module = new URL(url).pathname.replace(/\/(new|[A-Za-z0-9-]+\/edit)\/?$/i, '');
         if (
           target.origin === new URL(url).origin &&
           (target.pathname === module || target.pathname.startsWith(`${module}/`))

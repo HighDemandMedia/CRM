@@ -352,7 +352,7 @@ APPLICATION_NAME = "high-demand-media-crm"
 SETTINGS_EXPORT = ["APPLICATION_NAME"]
 
 REST_FRAMEWORK = {
-    "EXCEPTION_HANDLER": "rest_framework.views.exception_handler",
+    "EXCEPTION_HANDLER": "common.api_exceptions.exception_handler",
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "common.pat_auth.PATAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",

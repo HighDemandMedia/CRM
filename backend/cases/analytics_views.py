@@ -13,7 +13,6 @@ from __future__ import annotations
 import csv
 from datetime import datetime, timedelta
 from typing import Optional
-from uuid import UUID
 
 from django.db.models import Q
 from django.http import StreamingHttpResponse
@@ -30,6 +29,7 @@ from cases.analytics import DEFAULT_SERVICE_DAYS
 from cases.models import Case
 from cases.serializer import CaseSerializer
 from common.csv_utils import csv_safe
+from common.identifiers import normalize_identifier
 from common.permissions import HasOrgContext
 from common.renderers import CSV_RENDERERS
 from common.validators import uuid_param
@@ -306,7 +306,7 @@ class AnalyticsExportView(_AnalyticsBaseView):
         except ValueError as exc:
             return Response({"error": str(exc)}, status=400)
 
-        ids = [UUID(str(cid)) for cid in ids_iter]
+        ids = [normalize_identifier(cid) for cid in ids_iter]
         cases_qs = (
             Case.objects.filter(org=request.profile.org, id__in=ids)
             .order_by("-created_at")

@@ -58,6 +58,9 @@ def purge_organization(org_id):
     """
     if not settings.CRM_ORG_PURGE_ENABLED:
         return False
+    from common.identifiers import resolve_identifier
+
+    org_id = resolve_identifier(org_id)
     if PendingFileDeletion.objects.filter(org_id__isnull=True).exists():
         raise ValueError(
             "Drain unattributed legacy file deletions before purging organizations"

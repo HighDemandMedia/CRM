@@ -39,7 +39,7 @@
   function formRoute(path) {
     const key = path.replace(/\/$/, '');
     if (routes[key]) return routes[key];
-    const match = key.match(/^\/(contacts|accounts|pipeline|tasks|tickets)\/[0-9a-f-]{36}\/edit$/i);
+    const match = key.match(/^\/(contacts|accounts|pipeline|tasks|tickets)\/[A-Za-z0-9-]+\/edit$/i);
     if (match && page.url.pathname.replace(/\/$/, '') === `/${match[1]}`) return editors[match[1]];
     return null;
   }

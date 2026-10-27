@@ -5,6 +5,7 @@ from django.db.models.functions import Lower
 from django.utils.translation import gettext_lazy as _
 
 from common.base import SAMPLE_DATA_HELP_TEXT, AssignableMixin, BaseModel
+from common.identifiers import BusinessIDField
 from common.languages import LANGUAGES
 from common.models import Org, Profile, Tags, Teams
 from common.rbac import CRMRecordManager
@@ -19,6 +20,7 @@ class ActiveContactManager(CRMRecordManager):
 
 
 class Contact(AssignableMixin, BaseModel):
+    id = BusinessIDField(prefix="CON")
     file_attachments = GenericRelation("common.Attachments")
 
     objects = ActiveContactManager()

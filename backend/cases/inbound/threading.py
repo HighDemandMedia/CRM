@@ -6,6 +6,7 @@ import re
 from typing import Optional
 
 from django.db import connection
+from django.db.models import Q
 
 from cases.models import Case, EmailMessage
 
@@ -13,7 +14,9 @@ from .parser import ParsedEmail
 
 # Subject-line fallback: `[Case #<short-id>]` where short-id is the first
 # 8 hex chars of the case UUID. Used only when RFC headers can't thread.
-_SUBJECT_FALLBACK_RE = re.compile(r"\[Case #([0-9a-f]{8})(?:[0-9a-f-]*)?\]", re.I)
+_SUBJECT_FALLBACK_RE = re.compile(
+    r"\[Case #(TKT-[0-9]{4,20}|[0-9a-f]{8})(?:[0-9a-f-]*)?\]", re.I
+)
 
 
 def _follow_merge(case: Optional[Case]) -> Optional[Case]:
@@ -92,16 +95,26 @@ def find_existing_case(parsed: ParsedEmail, org) -> Optional[Case]:
                 if any(tid in candidate_set for tid in (case.alt_thread_ids or [])):
                     return _follow_merge(case)
 
-    # Subject-line fallback. We need a real prefix because Case.id is a UUID.
+    # Prefer the complete ticket ID; legacy subjects may contain a UUID prefix.
     subject_match = _SUBJECT_FALLBACK_RE.search(parsed.subject or "")
     if subject_match:
         prefix = subject_match.group(1).lower()
-        # Reconstruct enough of a UUID to use a startswith filter on the str cast.
-        # SQLite can't index a UUIDField for prefix lookups; in production
-        # Postgres this is still cheap because the candidate set is small per org.
-        for case in Case.objects.filter(org=org).only("id", "merged_into")[:200]:
-            if str(case.id).replace("-", "").lower().startswith(prefix):
-                return _follow_merge(case)
+        if prefix.startswith("tkt-"):
+            return _follow_merge(
+                Case.objects.filter(org=org, pk=prefix.upper()).first()
+            )
+        from common.models import LegacyBusinessID
+
+        aliases = LegacyBusinessID.objects.filter(
+            id__startswith=prefix, replacement__startswith="TKT-"
+        ).values("replacement")
+        matches = list(
+            Case.objects.filter(org=org)
+            .filter(Q(pk__in=aliases) | Q(pk__istartswith=prefix))
+            .select_related("merged_into")[:2]
+        )
+        if len(matches) == 1:
+            return _follow_merge(matches[0])
 
     return None
 
@@ -109,8 +122,12 @@ def find_existing_case(parsed: ParsedEmail, org) -> Optional[Case]:
 # A tiny helper used by the pipeline when a brand-new Case is created. The
 # Case.external_thread_id should be the Message-ID of the email that birthed it.
 def short_case_id(case: Case) -> str:
-    """8-char prefix used in subject-line fallback threading."""
-    return str(case.id).replace("-", "")[:8]
+    """Use the complete compact ID; preserve the legacy fallback for UUID rows."""
+    return (
+        str(case.id)
+        if str(case.id).startswith("TKT-")
+        else str(case.id).replace("-", "")[:8]
+    )
 
 
 __all__ = ["find_existing_case", "short_case_id"]

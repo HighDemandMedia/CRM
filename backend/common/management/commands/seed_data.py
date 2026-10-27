@@ -731,7 +731,7 @@ class Command(BaseCommand):
 
         # Create additional users for this org
         for i in range(user_count):
-            email = f"user{i + 1}_{org.id.hex[:8]}@example.com"
+            email = f"user{i + 1}_{str(org.id).replace('-', '')[:8]}@example.com"
             user, user_created = User.objects.get_or_create(
                 email=email,
                 defaults={"is_active": True},

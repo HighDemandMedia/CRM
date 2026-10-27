@@ -5,6 +5,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from accounts.models import Account
+from common.identifier_serializers import IdentifierField
 from common.permissions import is_org_admin
 from common.rbac import configured, require_record
 from contacts.views import ContactDetailView
@@ -52,7 +53,7 @@ class ContactAssociationView(ContactDetailView):
         action = request.data.get("operation")
         if action not in ("add", "remove"):
             raise serializers.ValidationError("Invalid association action.")
-        target_id = serializers.UUIDField().run_validation(request.data.get("target"))
+        target_id = IdentifierField().run_validation(request.data.get("target"))
         target = get_object_or_404(self.targets(kind), pk=target_id)
         require_record(request.profile, target, "associations")
         if action == "add":

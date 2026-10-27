@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 # must not inherit this permission by accident.
 SUBMIT_PATH = re.compile(
     r"^/api/public/forms/"
-    r"(?P<org_id>[0-9a-fA-F-]{36})/"
+    r"(?P<org_id>HDM-[0-9A-HJKMNP-TV-Z]{8}|[0-9a-fA-F-]{36})/"
     r"(?P<form_id>[0-9a-fA-F-]{36})/submit/$"
 )
 
@@ -49,9 +49,10 @@ def allow_webform_origin(sender, request, **kwargs):
     # from AppConfig.ready() without pulling the ORM in too early.
     from common.rls.context import org_context
 
-    org_id = match.group("org_id")
-
     try:
+        from common.identifiers import resolve_identifier
+
+        org_id = resolve_identifier(match.group("org_id"))
         with org_context(org_id):
             allowed = (
                 WebForm.objects.filter(

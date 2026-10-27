@@ -22,6 +22,7 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from cases.workflow import DEFAULT_FIRST_RESPONSE_SLA, TERMINAL_STATUSES
+from common.identifiers import normalize_identifier
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -132,8 +133,8 @@ def compute_frt(
     now = timezone.now()
     deltas: list[float] = []
     breach_count = 0
-    case_ids: list[UUID] = []
-    breach_ids: list[UUID] = []
+    case_ids: list[str] = []
+    breach_ids: list[str] = []
     for case_id, created_at, first_response_at, sla_hours in rows:
         case_ids.append(case_id)
         if first_response_at is not None:
@@ -199,7 +200,7 @@ def compute_mttr(
     )
     deltas: list[float] = []
     by_priority_lists: dict[str, list[float]] = {}
-    case_ids: list[UUID] = []
+    case_ids: list[str] = []
     for case_id, created_at, resolved_at, priority in rows:
         h = _hours_between(resolved_at, created_at)
         deltas.append(h)
@@ -394,8 +395,8 @@ def compute_sla(
     total = len(rows)
     frt_breach = 0
     res_breach = 0
-    breach_ids_frt: list[UUID] = []
-    breach_ids_res: list[UUID] = []
+    breach_ids_frt: list[str] = []
+    breach_ids_res: list[str] = []
     by_priority: dict[str, dict] = {}
 
     for (
@@ -468,7 +469,7 @@ def case_ids_for_metric(
     from_dt: Optional[datetime],
     to_dt: Optional[datetime],
     bucket: Optional[str] = None,
-) -> Iterable[UUID]:
+) -> Iterable[str]:
     """Return the set of case ids that the named metric/bucket pulls in.
 
     Used by both the drilldown JSON endpoint and the CSV export. Bucket is
@@ -480,7 +481,7 @@ def case_ids_for_metric(
         in_window = qs.filter(created_at__gte=from_dt, created_at__lt=to_dt)
         if bucket == "breach":
             data = compute_frt(qs, from_dt, to_dt)
-            return [UUID(s) for s in data["breach_case_ids"]]
+            return [normalize_identifier(s) for s in data["breach_case_ids"]]
         return in_window.values_list("id", flat=True)
 
     if metric == "mttr":
@@ -493,11 +494,12 @@ def case_ids_for_metric(
     if metric == "sla":
         if bucket == "frt_breach":
             return [
-                UUID(s) for s in compute_sla(qs, from_dt, to_dt)["frt_breach_case_ids"]
+                normalize_identifier(s)
+                for s in compute_sla(qs, from_dt, to_dt)["frt_breach_case_ids"]
             ]
         if bucket == "resolution_breach":
             return [
-                UUID(s)
+                normalize_identifier(s)
                 for s in compute_sla(qs, from_dt, to_dt)["resolution_breach_case_ids"]
             ]
         return qs.filter(created_at__gte=from_dt, created_at__lt=to_dt).values_list(

@@ -41,6 +41,9 @@ def set_rls_context(org_id):
     if connection.vendor != "postgresql":
         return
     if org_id:
+        from common.identifiers import resolve_identifier
+
+        org_id = resolve_identifier(org_id)
         with connection.cursor() as cursor:
             cursor.execute(
                 "SELECT set_config('app.current_org', %s, false)", [str(org_id)]

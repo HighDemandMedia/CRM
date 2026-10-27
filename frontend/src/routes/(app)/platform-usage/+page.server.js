@@ -1,3 +1,4 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { error, fail } from '@sveltejs/kit';
 import { apiRequest } from '$lib/api-helpers.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
@@ -30,7 +31,7 @@ export const actions = {
   async limits({ request, cookies }) {
     const form = await request.formData();
     const id = String(form.get('organization_id') || '');
-    if (!/^[0-9a-f-]{36}$/i.test(id)) return fail(400, { limitsError: 'Invalid organization.' });
+    if (!isRecordId(id)) return fail(400, { limitsError: 'Invalid organization.' });
     const limits = {};
     for (const key of [
       'users',

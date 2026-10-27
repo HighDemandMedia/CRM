@@ -31,7 +31,11 @@ class Command(BaseCommand):
             raise CommandError(
                 "An existing active owner and a separate demo email are required."
             )
-        org_id = uuid5(NAMESPACE_URL, f"hdm-customer-demo:{email}")
+        from common.identifiers import resolve_identifier
+        from common.models import LegacyBusinessID
+
+        seed_id = str(uuid5(NAMESPACE_URL, f"hdm-customer-demo:{email}"))
+        org_id = resolve_identifier(seed_id)
         user = User.objects.filter(email__iexact=email).first()
         if user and (
             not Profile.objects.filter(user=user, org_id=org_id, is_demo=True).exists()
@@ -42,15 +46,16 @@ class Command(BaseCommand):
             raise CommandError(
                 "That email is already used outside this demo. Choose a new demo email."
             )
-        org, created = Org.objects.get_or_create(
-            pk=org_id,
-            defaults={
-                "name": "High Demand Media · Demo",
-                "owner": owner,
-                "timezone": "America/New_York",
-                "default_currency": "USD",
-            },
-        )
+        org = Org.objects.filter(pk=org_id).first()
+        created = org is None
+        if created:
+            org = Org.objects.create(
+                name="High Demand Media · Demo",
+                owner=owner,
+                timezone="America/New_York",
+                default_currency="USD",
+            )
+            LegacyBusinessID.objects.create(id=seed_id, replacement=org.pk)
         if org.owner_id != owner.pk:
             raise CommandError("This demo belongs to a different owner.")
         if connection.vendor == "postgresql":

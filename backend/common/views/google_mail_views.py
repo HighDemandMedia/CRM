@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 
 from common.google_integration import GoogleError, connection_status, decrypt
 from common.google_mail import mail_rows, mail_summary, record_contacts, unique_messages
+from common.identifier_serializers import IdentifierField
 from common.permissions import HasOrgContext
 
 
@@ -23,7 +24,7 @@ class MailQuery(serializers.Serializer):
     q = serializers.CharField(
         max_length=200, required=False, allow_blank=True, default=""
     )
-    contact = serializers.UUIDField(required=False)
+    contact = IdentifierField(required=False)
     thread = serializers.CharField(max_length=128, required=False)
     view = serializers.ChoiceField(
         choices=["conversations", "messages"], default="conversations"

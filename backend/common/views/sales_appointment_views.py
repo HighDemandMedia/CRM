@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 
 from accounts.models import Account
 from common.appointment_emails import queue_appointment_emails
+from common.identifier_serializers import IdentifierField
 from common.models import Activity, Comment, Org, Profile, SalesAppointment
 from common.permissions import HasOrgContext, is_org_admin
 from common.pipeline_settings import validate_entry
@@ -390,9 +391,7 @@ class AppointmentAvailabilityView(APIView):
         )
         exclude = request.query_params.get("exclude")
         if exclude:
-            records = records.exclude(
-                pk=serializers.UUIDField().run_validation(exclude)
-            )
+            records = records.exclude(pk=IdentifierField().run_validation(exclude))
         visible_ids = set(
             calendar_scoped(records, request.profile).values_list("pk", flat=True)
         )

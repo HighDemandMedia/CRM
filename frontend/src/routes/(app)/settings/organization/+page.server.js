@@ -1,3 +1,4 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { settingsAccess } from '$lib/v2/settings-access.js';
 import { savePasswordSession } from '$lib/server/password-session.js';
 import { apiRequest } from '$lib/api-helpers.js';
@@ -9,7 +10,6 @@ import {
   EDITABLE_FIELDS
 } from '$lib/server/v2/organization.js';
 import { readableError } from '$lib/server/v2/form-errors.js';
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies, url, parent }) {
@@ -77,7 +77,7 @@ export const actions = {
     const form = await request.formData();
     const orgId = form.get('org_id')?.toString() ?? '';
 
-    if (!UUID_RE.test(orgId)) {
+    if (!isRecordId(orgId)) {
       return fail(400, { scope: 'switch', message: 'Invalid organisation.' });
     }
 

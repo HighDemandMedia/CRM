@@ -1,3 +1,4 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { API_ORIGIN } from '$lib/server/api-origin.js';
 /**
  * Server-side calls to /api/portal/, the customer self-service portal.
@@ -83,8 +84,6 @@ export const getArticle = (token, id) => call(`/articles/${id}/`, { token });
 export const suggestArticles = (token, q) =>
   call(`/articles/suggest/?q=${encodeURIComponent(q)}`, { token });
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * Where to send a visitor with no usable session.
  *
@@ -95,7 +94,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  *
  * @param {string | null | undefined} org
  */
-export const loginPath = (org) => (org && UUID.test(org) ? `/portal/login/${org}` : '/login');
+export const loginPath = (org) => (org && isRecordId(org) ? `/portal/login/${org}` : '/login');
 
 /** Write the session, httpOnly so no script on the page can read the token. */
 export function setSession(cookies, accessToken, orgId) {

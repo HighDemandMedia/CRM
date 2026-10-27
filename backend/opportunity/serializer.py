@@ -3,6 +3,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from accounts.serializer import AccountSerializer
+from common.identifier_serializers import IdentifierField
 from common.last_activity import ActivityListSerializer, LastActivitySerializerMixin
 from common.pipeline_settings import (
     PipelineMoveChoicesMixin,
@@ -505,8 +506,8 @@ class OpportunityMoveSerializer(PipelineMoveChoicesMixin, serializers.Serializer
     kanban_order = serializers.DecimalField(
         max_digits=15, decimal_places=6, required=False
     )
-    above_id = serializers.UUIDField(required=False, allow_null=True)
-    below_id = serializers.UUIDField(required=False, allow_null=True)
+    above_id = IdentifierField(required=False, allow_null=True)
+    below_id = IdentifierField(required=False, allow_null=True)
 
 
 class OpportunityCreateSwaggerSerializer(serializers.ModelSerializer):

@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import Account
+from common.identifier_serializers import IdentifierField
 from common.permissions import HasOrgContext, is_org_admin
 from common.rbac import configured, require_record
 from contacts.access import assert_contact_access
@@ -84,7 +85,7 @@ class RecordAssociationView(APIView):
             raise serializers.ValidationError("Invalid action.")
         target = get_object_or_404(
             self.records(target_kind),
-            pk=serializers.UUIDField().run_validation(request.data.get("target")),
+            pk=IdentifierField().run_validation(request.data.get("target")),
         )
         require_record(request.profile, target, "associations")
         if target_kind == "contact":

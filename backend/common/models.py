@@ -15,6 +15,7 @@ from django.utils.timesince import timesince
 from django.utils.translation import gettext_lazy as _
 
 from common.base import BaseModel, BaseOrgModel
+from common.identifiers import BusinessIDField
 from common.usage_limits import (
     QuotaManager,
     QuotaModelMixin,
@@ -42,9 +43,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     ui_language = models.CharField(
         max_length=2, choices=[("en", "English"), ("es", "Español")], default="en"
     )
-    id = models.UUIDField(
-        default=uuid.uuid4, unique=True, editable=False, db_index=True, primary_key=True
-    )
+    id = BusinessIDField(prefix="USR")
     email = models.EmailField(_("email address"), blank=True, unique=True)
     name = models.CharField(_("name"), max_length=255, blank=True, default="")
     profile_pic = models.CharField(max_length=1000, null=True, blank=True)
@@ -113,6 +112,7 @@ def generate_unique_key():
 
 
 class Org(BaseModel):
+    id = BusinessIDField(prefix="HDM")
     usage_limits = models.JSONField(
         default=default_organization_limits, blank=True, editable=False
     )
@@ -452,7 +452,7 @@ class Comment(BaseModel):
     content_type = models.ForeignKey(
         ContentType, on_delete=models.CASCADE, related_name="comments"
     )
-    object_id = models.UUIDField()
+    object_id = models.CharField(max_length=36)
     content_object = GenericForeignKey("content_type", "object_id")
 
     comment = models.TextField(max_length=COMMENT_MAX_LENGTH)
@@ -576,7 +576,7 @@ class Attachments(BaseModel):
     content_type = models.ForeignKey(
         ContentType, on_delete=models.CASCADE, related_name="attachments"
     )
-    object_id = models.UUIDField()
+    object_id = models.CharField(max_length=36)
     content_object = GenericForeignKey("content_type", "object_id")
 
     file_name = models.CharField(max_length=60)
@@ -886,7 +886,7 @@ class Activity(BaseModel):
     )
     action = models.CharField(max_length=32, choices=ACTION_CHOICES)
     entity_type = models.CharField(max_length=50, choices=ENTITY_TYPE_CHOICES)
-    entity_id = models.UUIDField()
+    entity_id = models.CharField(max_length=36)
     entity_name = models.CharField(max_length=255, blank=True, default="")
     description = models.TextField(blank=True, default="")
     metadata = models.JSONField(default=dict, blank=True)
@@ -937,7 +937,7 @@ class Notification(BaseModel):
         related_name="dispatched_notifications",
     )
     entity_type = models.CharField(max_length=50, blank=True, default="")
-    entity_id = models.UUIDField(null=True, blank=True)
+    entity_id = models.CharField(max_length=36, null=True, blank=True)
     entity_name = models.CharField(max_length=255, blank=True, default="")
     data = models.JSONField(default=dict, blank=True)
     link = models.CharField(max_length=500, blank=True, default="")
@@ -1239,7 +1239,7 @@ class PortalAccessToken(models.Model):
         "common.Org", on_delete=models.CASCADE, related_name="portal_access_tokens"
     )
     resource_type = models.CharField(max_length=16, choices=RESOURCE_CHOICES)
-    resource_id = models.UUIDField()
+    resource_id = models.CharField(max_length=36)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1325,7 +1325,7 @@ class SalesAppointment(QuotaModelMixin):
     company = models.ForeignKey(
         "accounts.Account", null=True, blank=True, on_delete=models.SET_NULL
     )
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = BusinessIDField(prefix="EVT")
     org = models.ForeignKey(Org, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     host = models.ForeignKey(
@@ -1396,7 +1396,7 @@ from common.legal_models import LegalAcceptance  # noqa: E402, F401
 class PendingFileDeletion(models.Model):
     """Internal storage outbox; deliberately survives deletion of its tenant."""
 
-    org_id = models.UUIDField(null=True, blank=True, db_index=True)
+    org_id = models.CharField(max_length=36, null=True, blank=True, db_index=True)
     name = models.CharField(max_length=1024)
     created_at = models.DateTimeField(auto_now_add=True)
     last_attempt_at = models.DateTimeField(null=True, blank=True)
@@ -1425,3 +1425,19 @@ class CSVImportReceipt(models.Model):
 
     class Meta:
         db_table = "csv_import_receipt"
+
+
+class BusinessIDSequence(models.Model):
+    prefix = models.CharField(max_length=3, primary_key=True)
+    last_number = models.PositiveBigIntegerField(default=0)
+
+
+class OrganizationIDReservation(models.Model):
+    id = models.CharField(max_length=12, primary_key=True)
+
+
+class LegacyBusinessID(models.Model):
+    """Resolve pre-migration links; these values are no longer primary keys."""
+
+    id = models.CharField(max_length=36, primary_key=True)
+    replacement = models.CharField(max_length=36, unique=True)

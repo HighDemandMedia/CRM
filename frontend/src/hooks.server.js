@@ -1,3 +1,4 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { logProxyProbe } from '$lib/server/proxy-diagnostics.js';
 import { savePasswordSession, saveSessionTokens } from '$lib/server/password-session.js';
 import { API_ORIGIN } from '$lib/server/api-origin.js';
@@ -19,7 +20,6 @@ import axios from 'axios';
 import { describeError } from '$lib/server/log-safe.js';
 
 const API_BASE_URL = `${API_ORIGIN}/api`;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * @typedef {{ default_currency?: string, currency_symbol?: string, default_country?: string|null }} OrgSettingsPayload
@@ -248,7 +248,7 @@ const handleSession = async ({ event, resolve }) => {
         saveSessionTokens(event.cookies, {
           access_token: refreshed.access,
           refresh_token: refreshed.refresh,
-          current_org: orgId && UUID_RE.test(orgId) ? { id: orgId } : undefined
+          current_org: orgId && isRecordId(orgId) ? { id: orgId } : undefined
         });
       }
     }
@@ -272,7 +272,7 @@ const handleSession = async ({ event, resolve }) => {
     };
 
     // Check if org cookie is set and token has org context
-    if (orgId && !UUID_RE.test(orgId)) {
+    if (orgId && !isRecordId(orgId)) {
       // Invalid org cookie value, clear it
       event.cookies.delete('org', { path: '/' });
     } else if (orgId) {

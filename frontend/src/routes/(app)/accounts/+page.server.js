@@ -1,3 +1,4 @@
+import { isRecordId } from '$lib/identifiers.js';
 import { listPagination, checkListPage } from '$lib/server/v2/pagination.js';
 import { pipelineColumns } from '$lib/server/v2/pipeline-columns.js';
 import { configuredStages } from '$lib/v2/pipeline-config.js';
@@ -54,7 +55,7 @@ export const actions = {
     const form = await request.formData();
     const id = String(form.get('id') ?? ''),
       source = String(form.get('stage') ?? '');
-    if (!/^[0-9a-f-]{36}$/i.test(id) || !source)
+    if (!isRecordId(id) || !source)
       return fail(400, { error: 'Choose a valid company and stage.' });
     try {
       await updateAccount({ cookies }, id, { stage: source });
