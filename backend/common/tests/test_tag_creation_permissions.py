@@ -113,7 +113,13 @@ def test_admin_retains_creation(admin_client):
 def test_company_legacy_names_cannot_bypass_permission(user_client, user_profile):
     assign(user_profile, False)
     response = user_client.post(
-        "/api/accounts/", {"name": "Blocked company", "tags": ["newtag"]}, format="json"
+        "/api/accounts/",
+        {
+            "name": "Blocked company",
+            "website": "https://blocked.example.com",
+            "tags": ["newtag"],
+        },
+        format="json",
     )
     assert response.status_code == 403, response.data
     assert not Account.objects.filter(
@@ -124,7 +130,7 @@ def test_company_legacy_names_cannot_bypass_permission(user_client, user_profile
 
 def test_import_cannot_create_tags_but_can_apply_existing(user_profile):
     assign(user_profile, False)
-    csv = b"first_name,email,tags\nAlex,alex@example.com,Existing\nTaylor,taylor@example.com,New\n"
+    csv = b"first_name,email,phone,tags\nAlex,alex@example.com,+12025550123,Existing\nTaylor,taylor@example.com,+12025550124,New\n"
     Tags.objects.create(org=user_profile.org, name="Existing", slug="existing")
     with pytest.raises(PermissionDenied):
         commit_rows(csv, user_profile.org, user_profile)
@@ -132,7 +138,7 @@ def test_import_cannot_create_tags_but_can_apply_existing(user_profile):
         org=user_profile.org, email="alex@example.com"
     ).exists()
     result = commit_rows(
-        b"first_name,email,tags\nAlex,alex@example.com,Existing\n",
+        b"first_name,email,phone,tags\nAlex,alex@example.com,+12025550123,Existing\n",
         user_profile.org,
         user_profile,
     )

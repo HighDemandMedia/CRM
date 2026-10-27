@@ -54,9 +54,16 @@ def test_system_and_custom_fields_store_e164():
 @pytest.mark.django_db
 @pytest.mark.parametrize("route", ["contacts", "accounts", "opportunities"])
 def test_record_api_normalizes_and_rejects_invalid(admin_client, route):
+    identity = (
+        {"email": "phone-qa@example.com"}
+        if route == "contacts"
+        else {"website": "https://phone-qa.example.com"}
+        if route == "accounts"
+        else {}
+    )
     response = admin_client.post(
         f"/api/{route}/",
-        {"name": "International phone QA", "phone": "+598 99 123 456"},
+        {"name": "International phone QA", "phone": "+598 99 123 456", **identity},
         format="json",
     )
     assert response.status_code in (200, 201), response.data

@@ -313,6 +313,7 @@ def test_member_create_defaults_owner_to_self(user_client, regular_user, org_a):
             "/api/contacts/",
             {
                 "first_name": "New member contact",
+                "email": "new-member@example.com",
                 "phone": "2125550123",
                 "source": "META",
                 "stage": "LEAD",
@@ -364,6 +365,7 @@ def test_replace_contact_preserves_omitted_owner(user_client, regular_user, org_
         f"/api/contacts/{contact.pk}/",
         {
             "first_name": "Still mine",
+            "email": "still-mine@example.com",
             "phone": "2125550123",
             "source": "META",
             "stage": "LEAD",

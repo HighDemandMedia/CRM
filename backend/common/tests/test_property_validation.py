@@ -100,6 +100,10 @@ def test_custom_formats_on_create_and_edit(
         else [str(admin_profile.pk)],
         "custom_fields": {"format_test": bad},
     }
+    if target == "Contact":
+        body.update(email="format-check@example.com", phone="+12025550123")
+    elif target == "Account":
+        body["website"] = "https://format-check.example.com"
     result = admin_client.post(f"/api/{route}/", body, format="json")
     assert result.status_code == 400, result.data
     assert "format_test" in str(result.data), result.data

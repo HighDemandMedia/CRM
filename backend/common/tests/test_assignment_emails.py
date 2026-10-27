@@ -147,6 +147,7 @@ def test_contact_reassignment_notifies_only_new_assignees(
     record.assigned_to.add(admin_profile)
     data = {
         "first_name": "Demo",
+        "email": "assignment@example.com",
         "source": "ORGANIC",
         "stage": "LEAD",
         "phone": "3055550199",

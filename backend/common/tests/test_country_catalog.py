@@ -35,9 +35,12 @@ def test_country_catalog_is_unique_and_rejects_unknown_codes():
 @pytest.mark.django_db
 @pytest.mark.parametrize("route", ["contacts", "accounts", "opportunities"])
 def test_new_country_can_be_created_and_updated_through_api(admin_client, route):
-    response = admin_client.post(
-        f"/api/{route}/", {"name": "Country QA", "country": "CW"}, format="json"
-    )
+    payload = {"name": "Country QA", "country": "CW"}
+    if route == "contacts":
+        payload.update(email="country@example.com", phone="+12025550123")
+    elif route == "accounts":
+        payload["website"] = "https://country.example.com"
+    response = admin_client.post(f"/api/{route}/", payload, format="json")
     assert response.status_code in (200, 201), response.data
     model = {"contacts": Contact, "accounts": Account, "opportunities": Opportunity}[
         route

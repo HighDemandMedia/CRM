@@ -252,7 +252,7 @@ def test_contact_import_exceeding_capacity_rolls_back_every_row(admin_client, or
     limit(org_a, contacts=1)
     upload = SimpleUploadedFile(
         "quota.csv",
-        b"first_name,email\nFirst,first-quota@example.com\nSecond,second-quota@example.com\n",
+        b"first_name,email,phone\nFirst,first-quota@example.com,+12025550123\nSecond,second-quota@example.com,+12025550124\n",
         content_type="text/csv",
     )
     response = admin_client.post(
@@ -316,6 +316,7 @@ def test_member_cannot_use_hidden_records_to_bypass_quota(
         "/api/contacts/",
         {
             "first_name": "Over quota",
+            "email": "over-quota@example.com",
             "phone": "2125550123",
             "source": "META",
             "stage": "LEAD",

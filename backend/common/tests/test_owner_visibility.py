@@ -319,9 +319,12 @@ def test_member_creation_without_owner_assigns_self_and_edit_preserves_it(
 ):
     model = apps.get_model(label)
     key = "name" if module == "contacts" else field
-    response = user_client.post(
-        f"/api/{root}/", {key: "Automatic owner"}, format="json"
-    )
+    payload = {key: "Automatic owner"}
+    if module == "contacts":
+        payload.update(email="automatic-owner@example.com", phone="+12025550123")
+    elif module == "companies":
+        payload["website"] = "https://automatic-owner.example.com"
+    response = user_client.post(f"/api/{root}/", payload, format="json")
     assert response.status_code in (200, 201), response.data
     record = model.objects.get(org=org_a, **{field: "Automatic owner"})
     assert list(record.assigned_to.all()) == [user_profile]
