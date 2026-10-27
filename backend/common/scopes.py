@@ -58,6 +58,7 @@ API_RESOURCES = frozenset(
         "property-layout",
         "record-associations",
         "record-delete",
+        "record-import",
         "reports",
         "sales-appointments",
         "members",
