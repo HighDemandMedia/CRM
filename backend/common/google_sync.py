@@ -119,6 +119,9 @@ def sync_gmail(conn, api):
             mail_page_token="",
             mail_contacts_fingerprint=contacts_fingerprint,
         )
+    if not emails:
+        # No customer matches are possible; do not enumerate the user's mailbox.
+        return
     baseline = api.get("gmail/v1/users/me/profile")["historyId"]
     ids, deleted = set(), set()
     cursor = conn.history_id

@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import secrets
+import uuid
 from datetime import timedelta
 from urllib.parse import urlencode
 
@@ -10,6 +11,7 @@ import requests
 from cryptography.fernet import Fernet, InvalidToken
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2.id_token import verify_oauth2_token
@@ -35,10 +37,12 @@ class GoogleError(Exception):
         message="Google is unavailable. Try syncing again later.",
         reconnect=False,
         status=0,
+        revoked=False,
     ):
         super().__init__(message)
         self.reconnect = reconnect
         self.status = status
+        self.revoked = revoked
 
 
 def configured():
@@ -127,12 +131,81 @@ def token_request(payload):
             timeout=20,
         )
         if response.status_code == 400:
-            raise GoogleError("Reconnect Google to restore access.", reconnect=True)
+            if response.json().get("error") == "invalid_grant":
+                raise GoogleError(
+                    "Reconnect Google to restore access.", reconnect=True, revoked=True
+                )
+            raise GoogleError()
         if not response.ok:
             raise GoogleError()
         return response.json()
     except (requests.RequestException, ValueError):
         raise GoogleError() from None
+
+
+def clear_unusable_connection(conn):
+    """Forget private cache on a rejected refresh grant, not on transient failures."""
+    with transaction.atomic():
+        row = (
+            GoogleConnection.objects.select_for_update()
+            .filter(pk=conn.pk, generation=conn.generation)
+            .first()
+        )
+        if not row:
+            return
+        row.events.all().delete()
+        row.mail_activity.all().delete()
+        row.mirrors.all().delete()
+        row.encrypted_refresh_token = row.encrypted_verifier = row.oauth_state_hash = ""
+        row.history_id = row.initial_history_id = row.mail_page_token = ""
+        row.oauth_started_at = row.last_sync = row.sync_started_at = None
+        row.scopes = []
+        row.status = "reconnect"
+        row.error = "Reconnect Google to restore access."
+        row.generation = uuid.uuid4()
+        row.save()
+
+
+def revoke_google_account(conn):
+    """Explicit project-wide Google revocation; local cleanup stays tenant-scoped.
+
+    Google can revoke other grants for this Google account. Never invoke this
+    implicitly when disconnecting just Gmail or Calendar.
+    """
+    identity = Q(subject=conn.subject) if conn.subject else Q(email__iexact=conn.email)
+    connections = list(
+        GoogleConnection.objects.filter(identity, org=conn.org, profile=conn.profile)
+    )
+    sources = [row for row in connections if row.encrypted_refresh_token]
+    if not sources:
+        raise GoogleError("Remove access in your Google Account, then disconnect here.")
+    try:
+        for source in sources:
+            response = requests.post(
+                "https://oauth2.googleapis.com/revoke",
+                data={"token": decrypt(source.encrypted_refresh_token)},
+                timeout=20,
+            )
+            if response.status_code == 200:
+                break
+            # An expired Gmail token does not prove Calendar's token is revoked.
+            if (
+                response.status_code != 400
+                or response.json().get("error") != "invalid_token"
+            ):
+                raise GoogleError(
+                    "Could not revoke Google access. Try again or remove access in your Google Account."
+                )
+    except (requests.RequestException, ValueError):
+        raise GoogleError(
+            "Could not revoke Google access. Try again or remove access in your Google Account."
+        ) from None
+    with transaction.atomic():
+        for row in connections:
+            # Do not erase a connection replaced while Google was responding.
+            GoogleConnection.objects.select_for_update().filter(
+                pk=row.pk, generation=row.generation
+            ).delete()
 
 
 def complete(profile, code, state):
@@ -221,12 +294,17 @@ def complete(profile, code, state):
 
 class GoogleAPI:
     def __init__(self, conn):
-        result = token_request(
-            {
-                "grant_type": "refresh_token",
-                "refresh_token": decrypt(conn.encrypted_refresh_token),
-            }
-        )
+        try:
+            result = token_request(
+                {
+                    "grant_type": "refresh_token",
+                    "refresh_token": decrypt(conn.encrypted_refresh_token),
+                }
+            )
+        except GoogleError as exc:
+            if exc.revoked:
+                clear_unusable_connection(conn)
+            raise
         self.token = result.get("access_token")
         if not self.token:
             raise GoogleError("Reconnect Google to restore access.", reconnect=True)

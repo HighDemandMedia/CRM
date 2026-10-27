@@ -1,6 +1,7 @@
 <script>
   import Notice from '$lib/components/Notice.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
+  import GoogleConnectionDialog from '$lib/components/GoogleConnectionDialog.svelte';
   import { googleErrorMessage, googleCallbackMessage } from '$lib/utils/google-feedback.js';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
@@ -400,13 +401,11 @@
                 />{/if}
               <div class="integration-actions">
                 {#if connection?.status !== 'connected'}
-                  <form method="POST" action="?/googleConnect">
-                    <input type="hidden" name="service" value={item.service} /><button
-                      class="v2-btn v2-btn-primary v2-btn-sm"
-                      disabled={!connection?.configured || googlePending}
-                      >{connection?.email ? ui('Reconnect') : ui(`Connect ${item.title}`)}</button
-                    >
-                  </form>
+                  <GoogleConnectionDialog
+                    service={item.service}
+                    label={connection?.email ? 'Reconnect' : `Connect ${item.title}`}
+                    disabled={!connection?.configured || googlePending}
+                  />
                 {/if}
                 {#if connection?.status === 'connected'}<form
                     method="POST"
@@ -425,6 +424,13 @@
                 <details class="connection-settings">
                   <summary>{ui('Manage connection')}</summary>
                   <div class="integration-actions">
+                    <GoogleConnectionDialog
+                      service={item.service}
+                      label="Remove Google access"
+                      revoke
+                      onManage={onGoogleManage}
+                      disabled={googlePending}
+                    />
                     <form method="POST" action="?/googleManage" use:enhance={onGoogleManage}>
                       <input type="hidden" name="service" value={item.service} /><button
                         class="v2-btn v2-btn-sm"
@@ -440,6 +446,16 @@
                         >{ui(loadingCalendars ? 'Loading…' : 'Choose calendar')}</button
                       >{/if}
                   </div>
+                  <p class="help">
+                    {ui(
+                      'Disconnect removes only this service from this profile. To withdraw HDM permissions too, use Remove Google access.'
+                    )}
+                    <a
+                      href="https://myaccount.google.com/connections"
+                      target="_blank"
+                      rel="noopener noreferrer">{ui('Google Account connections')}</a
+                    >
+                  </p>
                   {#if item.service === 'calendar' && connection?.status === 'connected' && calendars.length}<form
                       method="POST"
                       action="?/googleManage"

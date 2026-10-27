@@ -534,6 +534,10 @@ export const articles = [
         text: 'The initial import covers the last 90 days, followed by background sync about every five minutes. Large imports can take several jobs. Full message text is available, including expandable quoted history; remote images and attachments are not imported. Drafts, spam and trash are excluded. The CRM does not create contacts from Gmail, mark messages read in Gmail or track recipient opens. Compose, reply and forward support basic formatting and To/CC/BCC, with up to 25 recipients. Attach up to 10 files from your device, totaling 10 MB. Original Gmail attachments are not automatically forwarded. Drafts remain open only on this page; close confirmation prevents accidental discarding.'
       },
       {
+        title: 'Disconnect or remove Google access',
+        text: 'Disconnect removes this service’s connection and cached data from your current CRM profile. Remove Google access also revokes HDM permissions at Google and may disconnect other HDM integrations for the same Google account. Original Google data, separate CRM records and internal comments remain. If Google rejects an expired or revoked refresh permission, the CRM clears that connection’s private cache when it detects the rejection. The initial 90-day import is not an automatic deletion deadline.'
+      },
+      {
         title: 'Privacy and troubleshooting',
         text: 'Only you can read your connected mailbox through the CRM, even if another user is an administrator. Current record access is checked again when opening a message. Connections belong to your user profile in the selected organization. Manage connection status and Sync now in Profile → Integrations. Automated CRM notifications use the separate system sender and do not require every user to connect Gmail.'
       }
@@ -557,6 +561,10 @@ export const articles = [
       {
         title: 'What synchronizes',
         text: 'Google events appear in your CRM calendar. Hosted CRM appointments synchronize title, start/end times and meeting notes in both directions; meeting notes become the Google event description. General contact notes are not exported. The sync window covers the previous 90 days and next 365 days. Google-only events are private to their connected user; shared host availability shows busy times without exposing private details.'
+      },
+      {
+        title: 'Disconnect or remove Google access',
+        text: 'Disconnect removes Calendar credentials and cached Google events from this profile, keeping CRM appointments and original Google events. Remove Google access revokes HDM permissions for that Google account and may also disconnect Gmail or other HDM integrations. Review the confirmation before continuing.'
       },
       {
         title: 'Limits and conflicts',

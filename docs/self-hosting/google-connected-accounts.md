@@ -1,5 +1,7 @@
 # Gmail and Google Calendar connected accounts
 
+Current verification preparation: [October 27 readiness and release notes](../operations/google-oauth-readiness-2026-10-27.md). Historical Console notes below are not the current approval status.
+
 Each CRM profile authorizes its own Google account in Profile → Integrations.
 Connections and cached data belong to that profile in that organization, including
 when the same person belongs to multiple organizations. Organization administrators
@@ -52,6 +54,7 @@ expire and require reconnecting. See [Google's scope documentation](https://deve
 
 - Imports the last 90 days in short resumable jobs, then polls Gmail history every
   five minutes. Expired history is rebuilt from the last 90 days.
+- Skips mailbox enumeration when there are no accessible CRM contact email addresses.
 - Records incoming and sent messages when the external address matches an active,
   visible CRM contact. No contacts are automatically created.
 - Stores date, subject, sender, To/CC recipients, direction and full text. The message
@@ -130,6 +133,16 @@ expire and require reconnecting. See [Google's scope documentation](https://deve
   deletes CRM cached Google data and credentials, not the user's events in Google
   or their CRM appointments. Reconnecting to the same calendar reuses stable IDs.
   Switching to a different calendar leaves the previous Google events in place.
+
+## Disconnecting and retention
+
+Before Google consent, the user reviews a service-specific data-use disclosure.
+Disconnect removes only that service’s credentials and cache from the current profile.
+The separate **Remove Google access** confirmation revokes the Google grant, which
+may affect other HDM integrations for the same Google account. Original Google data
+and independent CRM records remain. A confirmed revoked/expired refresh grant clears
+its private cache when detected; transient failures preserve it for retry.
+The initial 90-day Gmail import does not impose a 90-day cache expiration.
 
 ## Validation and activation
 

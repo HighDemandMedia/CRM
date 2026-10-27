@@ -1,5 +1,9 @@
 /** Only product-safe Google errors may reach the UI; never display provider payloads. */
 const messages = new Set([
+  'Review how Google data is used before connecting.',
+  'Confirm removal of Google access first.',
+  'Remove access in your Google Account, then disconnect here.',
+  'Could not revoke Google access. Try again or remove access in your Google Account.',
   'Google connections need configuration by the CRM administrator.',
   'Reconnect Google to restore access.',
   'Google access was denied. Check permissions and reconnect.',

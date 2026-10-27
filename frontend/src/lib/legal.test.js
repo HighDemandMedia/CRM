@@ -4,10 +4,11 @@ import { legalFormValues, legalLinks } from './legal.js';
 describe('legal documents and explicit acceptance', () => {
   it('links to the corresponding public language without accepting user-provided hosts', () => {
     expect(legalLinks('es-US').terms).toBe('/legal/terms?lang=es');
-    expect(legalLinks('en-US').privacy).toBe('https://highdemandmedia.com/crm-privacy.html');
+    expect(legalLinks('en-US').privacy).toBe('https://highdemandmedia.com/crm/privacy');
     expect(legalLinks('https://evil.example').privacy).toBe(
-      'https://highdemandmedia.com/crm-privacy.html'
+      'https://highdemandmedia.com/crm/privacy'
     );
+    expect(legalLinks('es-US').privacy).toBe('https://highdemandmedia.com/es/crm/privacy');
     expect(legalLinks('es').dpa).toBe('/legal/dpa?lang=es');
     expect(legalLinks('en').dpa).toBe('/legal/dpa?lang=en');
   });

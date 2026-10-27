@@ -4,7 +4,7 @@ export function legalLinks(locale = 'en') {
   const suffix = locale.startsWith('es') ? '-es' : '';
   return {
     terms: `/legal/terms?lang=${suffix ? 'es' : 'en'}`,
-    privacy: `${LEGAL_ORIGIN}/crm-privacy${suffix}.html`,
+    privacy: `${LEGAL_ORIGIN}${suffix ? '/es' : ''}/crm/privacy`,
     dpa: `/legal/dpa?lang=${suffix ? 'es' : 'en'}`
   };
 }

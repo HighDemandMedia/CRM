@@ -234,6 +234,9 @@ def test_sync_gmail_matches_contacts_deduplicates_and_encrypts(conn, org_a):
 
 
 def test_mail_excludes_unmatched_contacts_and_drafts(conn):
+    Contact.objects.create(
+        org=conn.org, first_name="Customer", email="client@example.com"
+    )
     api = Mock()
     api.get.side_effect = [
         {"historyId": "h"},
@@ -246,6 +249,9 @@ def test_mail_excludes_unmatched_contacts_and_drafts(conn):
 
 
 def test_mail_initial_pagination_resumes_without_skipping_history(conn):
+    Contact.objects.create(
+        org=conn.org, first_name="Customer", email="client@example.com"
+    )
     api = Mock()
     api.get.side_effect = [
         {"historyId": "h0"},

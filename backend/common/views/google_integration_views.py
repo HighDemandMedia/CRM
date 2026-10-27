@@ -19,6 +19,7 @@ from common.google_integration import (
     complete,
     connection_status,
     decrypt,
+    revoke_google_account,
 )
 from common.google_mail import visible_mail_contacts
 from common.models import GoogleCalendarEvent, GoogleConnection, GoogleMailActivity
@@ -53,6 +54,10 @@ class GoogleConnectView(APIView):
     def post(self, request, service):
         if service not in SCOPES:
             raise serializers.ValidationError("Unknown Google service.")
+        if request.data.get("disclosure_accepted") is not True:
+            raise serializers.ValidationError(
+                "Review how Google data is used before connecting."
+            )
         require(
             request.profile, "contacts" if service == "gmail" else "calendar", "view"
         )
@@ -83,6 +88,16 @@ class GoogleConnectionView(APIView):
         service = request.data.get("service")
         conn = own_connection(request, service)
         operation = request.data.get("operation")
+        if operation == "revoke":
+            if request.data.get("confirm_revoke") is not True:
+                raise serializers.ValidationError(
+                    "Confirm removal of Google access first."
+                )
+            try:
+                revoke_google_account(conn)
+            except GoogleError as exc:
+                raise serializers.ValidationError(str(exc))
+            return Response({"revoked": True})
         if operation == "disconnect":
             # Delete tokens and cached private data; do not delete events in Google.
             # Do not revoke at Google: doing so also revokes the other service's grant.

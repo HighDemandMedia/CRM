@@ -31,11 +31,16 @@ export const actions = {
     const service = String(form.get('service'));
     if (!['gmail', 'calendar'].includes(service))
       return fail(400, { scope: 'google', message: 'Choose a Google service.' });
+    if (form.get('disclosure_accepted') !== 'yes')
+      return fail(400, {
+        scope: 'google',
+        message: 'Review how Google data is used before connecting.'
+      });
     let result;
     try {
       result = await apiRequest(
         `/integrations/google/connect/${service}/`,
-        { method: 'POST', body: {} },
+        { method: 'POST', body: { disclosure_accepted: true } },
         { cookies }
       );
     } catch (err) {
@@ -60,9 +65,15 @@ export const actions = {
         '/integrations/google/',
         {
           method: 'POST',
-          body: Object.fromEntries(
-            ['service', 'operation', 'calendar_id'].map((key) => [key, String(form.get(key) || '')])
-          )
+          body: {
+            ...Object.fromEntries(
+              ['service', 'operation', 'calendar_id'].map((key) => [
+                key,
+                String(form.get(key) || '')
+              ])
+            ),
+            confirm_revoke: form.get('confirm_revoke') === 'yes'
+          }
         },
         { cookies }
       );
@@ -70,9 +81,11 @@ export const actions = {
         scope: 'google',
         saved: true,
         googleMessage:
-          form.get('operation') === 'disconnect'
-            ? 'Disconnected. Cached Google data has been removed from the CRM.'
-            : 'Synchronization requested. Check the connection status and last sync time for progress.'
+          form.get('operation') === 'revoke'
+            ? 'Google access removed. Reconnect any HDM integration you want to use again.'
+            : form.get('operation') === 'disconnect'
+              ? 'Disconnected. Cached Google data has been removed from the CRM.'
+              : 'Synchronization requested. Check the connection status and last sync time for progress.'
       };
     } catch (err) {
       return fail(400, {
