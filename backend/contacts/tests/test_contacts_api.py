@@ -257,7 +257,12 @@ class TestContactListView:
 
     def test_list_contacts_name_filter(self, admin_client, contact_a):
         """Name filter works."""
-        response = admin_client.get(CONTACTS_LIST_URL, {"name": "Alice"})
+        response = admin_client.get(
+            CONTACTS_LIST_URL,
+            {
+                "name": "Alice",
+            },
+        )
         assert response.status_code == status.HTTP_200_OK
 
     def test_list_contacts_phone_filter(self, admin_client, admin_user, org_a):
@@ -337,6 +342,7 @@ class TestContactDetailView:
     def test_update_contact(self, mock_email, admin_client, contact_a):
         """Admin can update a contact via PUT."""
         payload = {
+            "phone": "2025550339",
             "first_name": "Updated",
             "last_name": "Name",
             "email": "alice@example.com",
@@ -370,6 +376,7 @@ class TestContactDetailView:
     def test_duplicate_email_same_org(self, mock_email, admin_client, contact_a):
         """Creating a contact with a duplicate email in the same org returns 400."""
         payload = {
+            "phone": "2025550372",
             "first_name": "Duplicate",
             "last_name": "Email",
             "email": "alice@example.com",
@@ -403,6 +410,7 @@ class TestContactDetailView:
         response = admin_client.put(
             _detail_url(contact_a.pk),
             {
+                "phone": "2025550405",
                 "first_name": "Alice",
                 "last_name": "Smith",
                 "email": "alice@example.com",
@@ -423,6 +431,7 @@ class TestContactDetailView:
         response = admin_client.put(
             _detail_url(contact_a.pk),
             {
+                "phone": "2025550425",
                 "first_name": "Alice",
                 "last_name": "Smith",
                 "email": "alice@example.com",
@@ -444,6 +453,7 @@ class TestContactDetailView:
         response = admin_client.put(
             _detail_url(contact_a.pk),
             {
+                "phone": "2025550446",
                 "first_name": "Alice",
                 "last_name": "Smith",
                 "email": "alice@example.com",
@@ -512,7 +522,9 @@ class TestContactDetailView:
         """PATCH allows partial field updates."""
         response = admin_client.patch(
             _detail_url(contact_a.pk),
-            {"first_name": "PatchedAlice"},
+            {
+                "first_name": "PatchedAlice",
+            },
             format="json",
         )
         assert response.status_code == status.HTTP_200_OK
@@ -776,7 +788,10 @@ class TestContactListViewFilters:
             created_by=admin_user,
         )
 
-        response = admin_client.get(CONTACTS_LIST_URL, {"name": "john"})
+        response = admin_client.get(
+            CONTACTS_LIST_URL,
+            {"name": "john"},
+        )
 
         assert response.status_code == status.HTTP_200_OK
         returned_ids = {contact["id"] for contact in response.data["contact_obj_list"]}
@@ -982,6 +997,7 @@ class TestContactDetailUpdateM2M:
         response = admin_client.put(
             _detail_url(contact_a.pk),
             {
+                "phone": "2025550984",
                 "first_name": "Alice",
                 "last_name": "Smith",
                 "email": "alice@example.com",
@@ -1001,6 +1017,7 @@ class TestContactDetailUpdateM2M:
         response = admin_client.put(
             _detail_url(contact_a.pk),
             {
+                "phone": "2025551003",
                 "first_name": "Alice",
                 "last_name": "Smith",
                 "email": "alice@example.com",
@@ -1022,6 +1039,7 @@ class TestContactDetailUpdateM2M:
         response = admin_client.put(
             _detail_url(contact_a.pk),
             {
+                "phone": "2025551024",
                 "first_name": "Alice",
                 "last_name": "Smith",
                 "email": "alice@example.com",
@@ -1044,6 +1062,7 @@ class TestContactDetailUpdateM2M:
         response = admin_client.put(
             _detail_url(contact_a.pk),
             {
+                "phone": "2025551046",
                 "first_name": "Alice",
                 "last_name": "Smith",
                 "email": "alice@example.com",
@@ -1089,7 +1108,12 @@ class TestContactDetailUpdateM2M:
         """PUT with invalid data returns 400 (line 255-258)."""
         response = admin_client.put(
             _detail_url(contact_a.pk),
-            {"first_name": "Valid", "last_name": "Contact", "email": "not-an-email"},
+            {
+                "phone": "2025551092",
+                "first_name": "Valid",
+                "last_name": "Contact",
+                "email": "not-an-email",
+            },
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST

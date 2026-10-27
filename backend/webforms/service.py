@@ -17,6 +17,7 @@ from django.db import IntegrityError, transaction
 from django.db.models.functions import Lower
 
 from common.models import Comment
+from common.validators import contact_phone_key
 from contacts.models import Contact
 from leads.models import Lead
 from webforms.constants import CONTACT_FIELD_VALUES
@@ -238,11 +239,20 @@ def submit_form(
     return submission
 
 
+def _existing_contact(form, email, phone):
+    records = Contact.objects.filter(org_id=form.org_id)
+    by_email = records.filter(email__iexact=email).first() if email else None
+    if by_email is not None:
+        return by_email
+    key = contact_phone_key(phone)
+    return records.filter(phone_match_key=key).first() if key else None
+
+
 def _submit_contact(
     form, values, custom_fields, ip, referer, request_id, submission_language
 ):
-    email = values["email"].strip().lower()
-    existing = Contact.objects.filter(org_id=form.org_id, email__iexact=email).first()
+    email = (values.get("email") or "").strip().lower()
+    existing = _existing_contact(form, email, values.get("phone"))
     contact = existing
     if contact is None:
         safe_values = {
@@ -262,9 +272,7 @@ def _submit_contact(
                     **safe_values,
                 )
         except IntegrityError:
-            contact = Contact.objects.filter(
-                org_id=form.org_id, email__iexact=email
-            ).first()
+            contact = _existing_contact(form, email, values.get("phone"))
             if contact is None:
                 raise
             existing = contact

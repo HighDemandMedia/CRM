@@ -307,25 +307,20 @@ def validate_rows(request, module, content, selected_rows=None):
             )
             if custom_errors:
                 raise ValidationError({"custom_fields": custom_errors})
-            # Mirror uniqueness enforced by the ordinary create serializers.
-            unique_field = (
-                "email"
-                if module == "contacts"
-                else "name"
-                if module in {"companies", "deals"}
-                else None
+            from common.record_identity import record_identity_keys
+
+            identities = set(
+                record_identity_keys(module, serializer.validated_data).items()
             )
-            identity = (
-                str(serializer.validated_data.get(unique_field, "")).casefold()
-                if unique_field
-                else ""
-            )
-            if identity:
-                if identity in seen:
-                    raise ValidationError(
-                        {unique_field: "This value is repeated in the CSV."}
-                    )
-                seen.add(identity)
+            repeated = identities & seen
+            if repeated:
+                raise ValidationError(
+                    {
+                        field: "This value is repeated in the CSV."
+                        for field, _ in sorted(repeated)
+                    }
+                )
+            seen.update(identities)
             valid.append((number, row.data))
         except ValidationError as exc:
             errors.extend({"row": number, **e} for e in flatten_errors(exc.detail))

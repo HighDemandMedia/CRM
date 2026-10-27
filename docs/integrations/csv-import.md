@@ -27,6 +27,15 @@ returns its existing result rather than creating duplicates.
 - Keep template column names. Optional columns can be omitted; unknown or duplicate
   headers and malformed rows are rejected. Blank rows are ignored.
 - The template has headers only, so no demonstration record can be imported accidentally.
+- Names remain system-required. Contact email and phone are required by default;
+  administrators may require either one or both in Creation Forms. At least one must
+  remain required. Companies require name and domain (`website`). Required fields
+  cannot be explicitly cleared; legacy records can receive unrelated partial updates.
+- Contacts are duplicates when either email or normalized international phone matches.
+  Companies are duplicates by domain, ignoring scheme, `www.`, port, path and case;
+  other subdomains remain distinct. Names alone are not duplicate keys. Comparisons
+  are per organization and exclude merged records. CSV preview checks existing records
+  and accepted rows in the same file; rejected rows do not reserve their other keys.
 - Phones use international format, such as `+12025550123`. Email, URLs, numeric
   values, dates, country codes and custom properties use the normal CRM validators.
 - Dates: `YYYY-MM-DD`. Datetimes: ISO 8601 with timezone offset.
@@ -67,3 +76,14 @@ and created count; the uploaded CSV is not retained. It is deleted with its orga
 The older `/api/contacts/import/*`, `/api/cases/import/*` and legacy lead uploader
 remain separate compatibility endpoints. They do not back this UI; use the shared
 `record-import` endpoint for the current five-object workflow.
+
+## Duplicate-key rollout
+
+The domain/phone migrations backfill derived keys without changing the original values.
+They abort and roll back if existing active records share a key in an organization;
+resolve those conflicts explicitly before deploying. They never delete or merge data.
+Database uniqueness also prevents simultaneous requests from creating duplicates.
+Contact creation layouts default to requiring both email and phone. Administrators
+may require either one instead, but cannot make both optional. Import templates and
+row validation follow that organization setting. Public web forms keep their own
+required fields and must require name plus at least one of email or phone.

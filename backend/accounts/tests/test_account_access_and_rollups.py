@@ -202,7 +202,10 @@ class TestAccountVerbsAgree:
         _created_by(account, admin_user)
         response = user_client.put(
             f"/api/accounts/{account.id}/",
-            {"name": "Renamed By A Stranger"},
+            {
+                "website": "https://fixture-205.example.com",
+                "name": "Renamed By A Stranger",
+            },
             content_type="application/json",
         )
         assert response.status_code == 403
@@ -219,7 +222,7 @@ class TestAccountVerbsAgree:
         _created_by(account, admin_user)
         response = user_client.put(
             f"/api/accounts/{account.id}/",
-            {"name": ""},
+            {"website": "https://fixture-222.example.com", "name": ""},
             content_type="application/json",
         )
         assert response.status_code == 403
@@ -338,7 +341,12 @@ class TestMalformedIds:
 class TestRevenueValidation:
     def test_negative_revenue_is_400_naming_the_field(self, admin_client):
         response = admin_client.post(
-            "/api/accounts/", {"name": "Underwater Ltd", "annual_revenue": "-5000"}
+            "/api/accounts/",
+            {
+                "website": "https://fixture-341.example.com",
+                "name": "Underwater Ltd",
+                "annual_revenue": "-5000",
+            },
         )
         assert response.status_code == 400
         assert "annual_revenue" in response.json()["errors"]
@@ -346,14 +354,24 @@ class TestRevenueValidation:
 
     def test_zero_revenue_is_allowed(self, admin_client):
         response = admin_client.post(
-            "/api/accounts/", {"name": "Pre Revenue Ltd", "annual_revenue": "0"}
+            "/api/accounts/",
+            {
+                "website": "https://fixture-349.example.com",
+                "name": "Pre Revenue Ltd",
+                "annual_revenue": "0",
+            },
         )
         assert response.status_code == 200
 
     def test_negative_headcount_still_400(self, admin_client):
         """The sibling field already answered correctly; keep it that way."""
         response = admin_client.post(
-            "/api/accounts/", {"name": "Ghost Ltd", "number_of_employees": -3}
+            "/api/accounts/",
+            {
+                "website": "https://fixture-356.example.com",
+                "name": "Ghost Ltd",
+                "number_of_employees": -3,
+            },
         )
         assert response.status_code == 400
 

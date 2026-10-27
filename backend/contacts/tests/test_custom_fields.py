@@ -182,6 +182,7 @@ class TestContactUpdateWithCustomFields:
         response = admin_client.put(
             f"{CONTACTS_LIST_URL}{contact_a.id}/",
             {
+                "phone": "2025550184",
                 "first_name": contact_a.first_name,
                 "last_name": contact_a.last_name,
                 "email": contact_a.email,

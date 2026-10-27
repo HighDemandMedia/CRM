@@ -55,7 +55,7 @@ export const actions = {
           source: 'lead',
           lead_field: key,
           label: ['Name', 'Email', 'Phone', 'Company', 'Message'][i],
-          is_required: i < 2
+          is_required: i < 3
         }))
       });
     } catch (/** @type {any} */ err) {

@@ -174,18 +174,23 @@ class WebFormPublishView(WebFormBaseView):
             )
 
         required = (
-            {"first_name", "email"}
-            if form.target_model == "Contact"
-            else {REQUIRED_LEAD_FIELD}
+            {"first_name"} if form.target_model == "Contact" else {REQUIRED_LEAD_FIELD}
         )
-        if not required.issubset(set(form.fields.values_list("lead_field", flat=True))):
+        identity_required = (
+            form.target_model != "Contact"
+            or form.fields.filter(
+                source="lead", lead_field__in=["email", "phone"], is_required=True
+            ).exists()
+        )
+        if (
+            not required.issubset(set(form.fields.values_list("lead_field", flat=True)))
+            or not identity_required
+        ):
             return Response(
                 {
                     "error": True,
                     "errors": (
-                        "Add the required identity fields (name and email for contacts) before publishing. This lets "
-                        "a repeat submission update the existing lead instead "
-                        "of failing."
+                        "Include name and require email or phone for contacts before publishing. Lead forms require email."
                     ),
                 },
                 status=status.HTTP_400_BAD_REQUEST,

@@ -277,14 +277,24 @@ class PipelineRulesMixin:
         data = clean_record_values(data, target)
         if hasattr(data, "get"):
             data = data.copy()
+        required = REQUIRED.get(target, set())
+        if target == "Contact":
+            from common.creation_forms import contact_required_fields
+
+            org = getattr(self, "org", None) or getattr(self.instance, "org", None)
+            required = required | contact_required_fields(org)
         for key in FIELDS.get(target, []):
             field = self.fields.get(key)
             if field is None or field.read_only:
                 continue
-            field.required = key in REQUIRED.get(target, set()) and target != "Contact"
+            field.required = key in required and not (
+                target == "Contact" and key == "first_name"
+            )
             if isinstance(field, (serializers.CharField, serializers.ChoiceField)):
-                field.allow_blank = key not in REQUIRED.get(target, set())
-                field.allow_null = self.Meta.model._meta.get_field(key).null
+                field.allow_blank = key not in required
+                field.allow_null = (
+                    key not in required and self.Meta.model._meta.get_field(key).null
+                )
                 if (
                     not field.allow_null
                     and hasattr(data, "get")

@@ -23,7 +23,10 @@ class TestAccountListView:
         assert "active_accounts" in data
 
     def test_create_account(self, admin_client, org_a):
-        response = admin_client.post("/api/accounts/", {"name": "New Account"})
+        response = admin_client.post(
+            "/api/accounts/",
+            {"website": "https://fixture-26.example.com", "name": "New Account"},
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["error"] is False
@@ -33,7 +36,11 @@ class TestAccountListView:
         tag = Tags.objects.create(name="VIP", org=org_a)
         response = admin_client.post(
             "/api/accounts/",
-            {"name": "Tagged Account", "tags": [str(tag.id)]},
+            {
+                "website": "https://fixture-36.example.com",
+                "name": "Tagged Account",
+                "tags": [str(tag.id)],
+            },
         )
         assert response.status_code == 200
         data = response.json()
@@ -53,7 +60,10 @@ class TestAccountListView:
         response, so the exception never reaches the test. The assertion worth
         making is the one about the database.
         """
-        response = unauthenticated_client.post("/api/accounts/", {"name": "Test"})
+        response = unauthenticated_client.post(
+            "/api/accounts/",
+            {"website": "https://fixture-56.example.com", "name": "Test"},
+        )
 
         assert response.status_code in (401, 403)
         assert not Account.objects.filter(name="Test").exists()
@@ -91,15 +101,15 @@ class TestAccountListView:
         assert account.assigned_to.count() == 1
 
     def test_create_account_duplicate_name(self, admin_client, org_a):
-        """Test that creating an account with a duplicate name fails."""
+        """Test that creating an account with a shared name succeeds."""
         Account.objects.create(name="Duplicate Test", org=org_a)
         response = admin_client.post(
             "/api/accounts/",
-            {"name": "Duplicate Test"},
+            {"website": "https://fixture-98.example.com", "name": "Duplicate Test"},
             format="json",
         )
-        assert response.status_code == 400
-        assert response.json()["error"] is True
+        assert response.status_code == 200
+        assert response.json()["error"] is False
 
     def test_list_accounts_with_filters(self, admin_client, org_a):
         """Test listing accounts with query parameter filters."""
@@ -188,6 +198,7 @@ class TestAccountListView:
         response = admin_client.post(
             "/api/accounts/",
             {
+                "website": "https://fixture-190.example.com",
                 "name": "Team Account",
                 "teams": [str(team.id)],
             },
@@ -212,7 +223,7 @@ class TestAccountDetailView:
         account = Account.objects.create(name="Old Name", org=org_a)
         response = admin_client.put(
             f"/api/accounts/{account.id}/",
-            {"name": "New Name"},
+            {"website": "https://fixture-215.example.com", "name": "New Name"},
             format="json",
         )
         assert response.status_code == 200
@@ -304,6 +315,7 @@ class TestAccountDetailView:
         response = admin_client.put(
             f"/api/accounts/{account.id}/",
             {
+                "website": "https://fixture-306.example.com",
                 "name": "Update Me",
                 "tags": [str(tag.id)],
                 "assigned_to": [str(admin_profile.id)],
@@ -323,7 +335,7 @@ class TestAccountDetailView:
         account.tags.add(tag)
         response = admin_client.put(
             f"/api/accounts/{account.id}/",
-            {"name": "Clear Tags"},
+            {"website": "https://fixture-326.example.com", "name": "Clear Tags"},
             format="json",
         )
         assert response.status_code == 200
@@ -337,6 +349,7 @@ class TestAccountDetailView:
         response = admin_client.put(
             f"/api/accounts/{account.id}/",
             {
+                "website": "https://fixture-339.example.com",
                 "name": "Contact Account",
                 "contacts": [str(contact.id)],
             },
@@ -353,6 +366,7 @@ class TestAccountDetailView:
         response = admin_client.put(
             f"/api/accounts/{account.id}/",
             {
+                "website": "https://fixture-355.example.com",
                 "name": "Teams Account",
                 "teams": [str(team.id)],
             },
@@ -365,10 +379,15 @@ class TestAccountDetailView:
         """Test updating an account with invalid data returns 400."""
         account = Account.objects.create(name="Invalid Update", org=org_a)
         # Create another account to trigger unique constraint
-        Account.objects.create(name="Existing Account", org=org_a)
+        Account.objects.create(
+            name="Existing Account", website="https://existing.example.com", org=org_a
+        )
         response = admin_client.put(
             f"/api/accounts/{account.id}/",
-            {"name": "Existing Account"},
+            {
+                "website": "https://www.existing.example.com/path",
+                "name": "Existing Account",
+            },
             format="json",
         )
         assert response.status_code == 400
@@ -422,7 +441,7 @@ class TestAccountDetailView:
         )
         response = user_client.put(
             f"/api/accounts/{account.id}/",
-            {"name": "Not Assigned"},
+            {"website": "https://fixture-425.example.com", "name": "Not Assigned"},
             format="json",
         )
         assert response.status_code == 403
@@ -779,6 +798,7 @@ class TestAccountCreateWithEmail:
         response = admin_client.post(
             "/api/accounts/",
             {
+                "website": "https://fixture-781.example.com",
                 "name": "Email Test Account",
                 "assigned_to": [str(admin_profile.id)],
             },
@@ -797,6 +817,7 @@ class TestAccountCreateWithEmail:
         response = admin_client.post(
             "/api/accounts/",
             {
+                "website": "https://fixture-799.example.com",
                 "name": "Contact Create Acct",
                 "contacts": [str(contact.id)],
             },
@@ -812,7 +833,9 @@ class TestAccountCreateWithEmail:
     ):
         """Email task is called even with empty recipients list."""
         response = admin_client.post(
-            "/api/accounts/", {"name": "No Assign Acct"}, format="json"
+            "/api/accounts/",
+            {"website": "https://fixture-815.example.com", "name": "No Assign Acct"},
+            format="json",
         )
         assert response.status_code == 200
         mock_email.assert_called_once()
@@ -833,6 +856,7 @@ class TestAccountUpdateWithEmail:
         response = admin_client.put(
             f"/api/accounts/{account.id}/",
             {
+                "website": "https://fixture-835.example.com",
                 "name": "Update Email Acct",
                 "assigned_to": [str(admin_profile.id)],
             },
@@ -853,6 +877,7 @@ class TestAccountUpdateWithEmail:
         response = admin_client.put(
             f"/api/accounts/{account.id}/",
             {
+                "website": "https://fixture-855.example.com",
                 "name": "JSON Contacts Acct",
                 "contacts": [str(contact.id)],
             },
@@ -976,28 +1001,28 @@ class TestAccountSerializerValidation:
         account = Account.objects.create(name="Same Name Acct", org=org_a)
         response = admin_client.put(
             f"/api/accounts/{account.id}/",
-            {"name": "Same Name Acct"},
+            {"website": "https://fixture-979.example.com", "name": "Same Name Acct"},
             format="json",
         )
         assert response.status_code == 200
 
     def test_validate_name_update_to_existing_name(self, admin_client, org_a):
-        """Updating an account to another existing name should fail."""
+        """Updating an account to another existing name should succeed."""
         Account.objects.create(name="Existing Name", org=org_a)
         account = Account.objects.create(name="Other Name", org=org_a)
         response = admin_client.put(
             f"/api/accounts/{account.id}/",
-            {"name": "Existing Name"},
+            {"website": "https://fixture-990.example.com", "name": "Existing Name"},
             format="json",
         )
-        assert response.status_code == 400
+        assert response.status_code == 200
 
     def test_validate_name_update_to_new_name(self, admin_client, org_a):
         """Updating an account to a brand new name should succeed."""
         account = Account.objects.create(name="Old Name For Update", org=org_a)
         response = admin_client.put(
             f"/api/accounts/{account.id}/",
-            {"name": "Brand New Name"},
+            {"website": "https://fixture-1000.example.com", "name": "Brand New Name"},
             format="json",
         )
         assert response.status_code == 200
@@ -1038,6 +1063,7 @@ class TestAccountSerializerValidation:
         response = admin_client.post(
             "/api/accounts/",
             {
+                "website": "https://fixture-1040.example.com",
                 "name": "Currency Default Acct",
                 "annual_revenue": "100000.00",
             },

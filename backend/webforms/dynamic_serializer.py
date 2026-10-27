@@ -27,7 +27,7 @@ HONEYPOT_FIELD = "company_website_url"
 def _field_for(row):
     """One DRF field for one WebFormField row."""
     required = row.is_required or (
-        row.form.target_model == "Contact" and row.lead_field in ("first_name", "email")
+        row.form.target_model == "Contact" and row.lead_field == "first_name"
     )
 
     if row.source == WebFormField.SOURCE_CUSTOM:
@@ -105,9 +105,12 @@ def build_serializer(form):
         if form.target_model == "Contact":
             missing = {
                 key: "This field is required."
-                for key in ("first_name", "email")
+                for key in ("first_name",)
                 if not attrs_in.get(key)
             }
+            if not attrs_in.get("email") and not attrs_in.get("phone"):
+                missing["email"] = "Enter an email or phone number."
+                missing["phone"] = "Enter an email or phone number."
             if missing:
                 raise serializers.ValidationError(missing)
         submitted = {

@@ -147,6 +147,11 @@ class Contact(AssignableMixin, BaseModel):
             ),
         ]
         constraints = [
+            models.UniqueConstraint(
+                fields=["org", "phone_match_key"],
+                name="unique_contact_phone_per_org",
+                condition=~Q(phone_match_key="") & Q(merged_at__isnull=True),
+            ),
             # Case-insensitive unique email per organization (when email is not null)
             models.UniqueConstraint(
                 Lower("email"),

@@ -128,7 +128,7 @@ class TestFindDuplicateContacts:
         dupes = DuplicateDetector.find_duplicate_contacts(
             org_a, first_name="alice", last_name="smith"
         )
-        assert c in dupes
+        assert c not in dupes
 
     def test_exclude_id(self, org_a):
         c = Contact.objects.create(
@@ -285,20 +285,20 @@ class TestFindDuplicateAccounts:
     def test_exact_name_match(self, org_a):
         acct = Account.objects.create(name="Acme Corp", org=org_a)
         dupes = DuplicateDetector.find_duplicate_accounts(org_a, name="acme corp")
-        assert acct in dupes
+        assert acct not in dupes
 
     def test_partial_name_match(self, org_a):
         acct = Account.objects.create(name="Acme Industries", org=org_a)
         dupes = DuplicateDetector.find_duplicate_accounts(org_a, name="Acme Corp")
         # "Acme Industries" starts with "Acme" so it's a partial match
-        assert acct in dupes
+        assert acct not in dupes
 
     def test_email_match(self, org_a):
         acct = Account.objects.create(
             name="Acme Corp", email="info@acme.com", org=org_a
         )
         dupes = DuplicateDetector.find_duplicate_accounts(org_a, email="INFO@ACME.COM")
-        assert acct in dupes
+        assert acct not in dupes
 
     def test_website_match(self, org_a):
         acct = Account.objects.create(
@@ -314,7 +314,7 @@ class TestFindDuplicateAccounts:
     def test_phone_match(self, org_a):
         acct = Account.objects.create(name="Acme Corp", phone="555-111-2222", org=org_a)
         dupes = DuplicateDetector.find_duplicate_accounts(org_a, phone="(555) 111-2222")
-        assert acct in dupes
+        assert acct not in dupes
 
     def test_exclude_id(self, org_a):
         acct = Account.objects.create(
@@ -325,15 +325,13 @@ class TestFindDuplicateAccounts:
         )
         assert len(dupes) == 0
 
-    def test_no_duplicate_entries_across_matchers(self, org_a):
-        """Account matching by name and email should appear only once."""
-        acct = Account.objects.create(
-            name="Acme Corp", email="info@acme.com", org=org_a
-        )
+    def test_company_name_and_email_are_not_duplicate_keys(self, org_a):
+        """Only the company domain establishes identity."""
+        Account.objects.create(name="Acme Corp", email="info@acme.com", org=org_a)
         dupes = DuplicateDetector.find_duplicate_accounts(
             org_a, name="Acme Corp", email="info@acme.com"
         )
-        assert dupes.count(acct) == 1
+        assert dupes == []
 
     def test_cross_org_isolation(self, org_a, org_b):
         Account.objects.create(name="Acme Corp", org=org_b)

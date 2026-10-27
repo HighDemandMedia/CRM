@@ -6,6 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from common.models import CSVImportReceipt, CustomFieldDefinition
 from common.property_catalog import target_model
 from common.record_import import COMMIT_BATCH_SIZE, MAX_ROWS
+from common.tests.csv_fixtures import with_identities
 
 pytestmark = pytest.mark.django_db
 OBJECTS = [
@@ -17,7 +18,76 @@ OBJECTS = [
 ]
 
 
-def upload(client, module, content, **extra):
+@pytest.mark.parametrize("module,target,key", OBJECTS)
+def test_compact_ids_preserve_import_associations(
+    admin_client, admin_profile, org_a, org_b, module, target, key
+):
+    from accounts.models import Account
+    from common.models import BusinessIDSequence
+    from common.rls.context import org_context
+    from contacts.models import Contact
+
+    company = Account.objects.create(org=org_a, name="Shared company name")
+    contacts = [
+        Contact.objects.create(
+            org=org_a, first_name=f"Existing {i}", email=f"existing{i}@example.com"
+        )
+        for i in range(2)
+    ]
+    # Identical lookup values in a different tenant must never win the match.
+    with org_context(org_b.pk):
+        Account.objects.create(org=org_b, name=company.name)
+        Contact.objects.create(org=org_b, first_name="Foreign", email=contacts[0].email)
+    model = target_model(target)
+    prefix = model._meta.pk.prefix
+    BusinessIDSequence.objects.update_or_create(
+        pk=prefix, defaults={"last_number": 9999}
+    )
+    headers = [key, "assigned_to"]
+    values = ["Imported association", admin_profile.user.email]
+    if module != "companies":
+        headers.append("account")
+        values.append(company.name)
+    if module != "contacts":
+        headers.append("contacts")
+        values.append(";".join(contact.email for contact in contacts))
+    content = ",".join(headers) + "\n" + ",".join(values) + "\n"
+
+    preview = upload(admin_client, module, content)
+    assert preview.status_code == 200, preview.data
+    assert preview.data["errors"] == [], preview.data
+    assert BusinessIDSequence.objects.get(pk=prefix).last_number == 9999
+    result = upload(
+        admin_client, module, content, action="commit", token=preview.data["token"]
+    )
+    assert result.status_code == 200, result.data
+    record = model.objects.get(pk=f"{prefix}-10000", org=org_a)
+    assert list(record.assigned_to.all()) == [admin_profile]
+    if module != "companies":
+        assert record.account_id == company.pk
+    if module != "contacts":
+        assert set(record.contacts.values_list("pk", flat=True)) == {
+            contact.pk for contact in contacts
+        }
+    else:
+        assert company.contacts.filter(pk=record.pk).exists()
+    retry = upload(
+        admin_client, module, content, action="commit", token=preview.data["token"]
+    )
+    assert retry.data["already_imported"] is True
+    assert BusinessIDSequence.objects.get(pk=prefix).last_number == 10000
+
+
+@pytest.mark.parametrize("module,target,key", OBJECTS)
+def test_csv_cannot_supply_or_replace_primary_keys(admin_client, module, target, key):
+    prefix = target_model(target)._meta.pk.prefix
+    response = upload(admin_client, module, f"{key},id\nSpoofed,{prefix}-0001\n")
+    assert response.status_code == 400, response.data
+
+
+def upload(client, module, content, *, complete_identity=True, **extra):
+    if complete_identity:
+        content = with_identities(module, content)
     return client.post(
         f"/api/record-import/{module}/",
         {
@@ -244,7 +314,7 @@ def test_utf8_bom_semicolon_and_quoted_multiline(admin_client, org_a):
     )
 
 
-@pytest.mark.parametrize("module", ["companies", "deals"])
+@pytest.mark.parametrize("module", ["deals"])
 def test_duplicate_names_in_batch_rejected_at_preview(admin_client, module):
     result = upload(admin_client, module, "name\nSame\nsame\n")
     assert result.data["token"]
@@ -432,3 +502,100 @@ def test_later_batch_failure_preserves_progress_and_resumes(admin_client, org_a)
     )
     assert retry.status_code == 200, retry.data
     assert retry.data["created"] == 102 and retry.data["complete"]
+
+
+@pytest.mark.parametrize(
+    "module,content,field",
+    [
+        (
+            "contacts",
+            "first_name,email,phone\nFirst,one@example.com,+13055550199\nSecond,two@example.com,3055550199\n",
+            "phone",
+        ),
+        (
+            "contacts",
+            "first_name,email\nFirst,one@example.com\nSecond,ONE@example.com\n",
+            "email",
+        ),
+        (
+            "companies",
+            "name,website\nFirst,https://www.example.com/about\nSecond,http://example.com?ref=1\n",
+            "website",
+        ),
+    ],
+)
+def test_import_duplicate_identity_keys(admin_client, module, content, field):
+    result = upload(admin_client, module, content)
+    assert result.status_code == 200, result.data
+    assert result.data["valid"] == 1, result.data
+    assert result.data["errors"][0]["field"] == field
+    response = upload(
+        admin_client, module, content, action="commit", token=result.data["token"]
+    )
+    assert response.status_code == 200, response.data
+
+
+def test_company_import_allows_shared_name_with_distinct_domains(admin_client, org_a):
+    content = "name,website\nSame,https://first.example.com\nSame,https://second.example.com\n"
+    result = upload(admin_client, "companies", content)
+    assert result.data["valid"] == 2, result.data
+    response = upload(
+        admin_client, "companies", content, action="commit", token=result.data["token"]
+    )
+    assert response.status_code == 200, response.data
+    assert target_model("Account").objects.filter(org=org_a, name="Same").count() == 2
+
+
+def test_rejected_row_does_not_reserve_its_other_identifiers(admin_client):
+    content = "first_name,email,phone\nOne,one@example.com,+13055550199\nRejected,two@example.com,+13055550199\nTwo,two@example.com,+13055550188\n"
+    result = upload(admin_client, "contacts", content)
+    assert result.data["valid"] == 2, result.data
+    assert {e["row"] for e in result.data["errors"]} == {3}
+
+
+@pytest.mark.parametrize(
+    "module,content,missing",
+    [
+        ("contacts", "first_name\nMissing\n", {"email", "phone"}),
+        ("companies", "name\nMissing\n", {"website"}),
+    ],
+)
+def test_csv_requires_system_identity(admin_client, module, content, missing):
+    result = upload(admin_client, module, content, complete_identity=False)
+    assert result.status_code == 200
+    assert result.data["valid"] == 0
+    assert missing.issubset({e["field"] for e in result.data["errors"]})
+
+
+@pytest.mark.parametrize(
+    "key,value", [("email", "only-email@example.com"), ("phone", "+12025550123")]
+)
+def test_import_follows_configurable_contact_identity(admin_client, org_a, key, value):
+    from contacts.models import Contact
+
+    org_a.creation_forms = {
+        "Contact": [
+            {"key": "first_name", "required": True},
+            {"key": key, "required": True},
+        ]
+    }
+    org_a.save(update_fields=["creation_forms"])
+    meta = admin_client.get("/api/record-import/contacts/")
+    assert meta.status_code == 200
+    content = f"first_name,{key}\nConfigured,{value}\n"
+    preview = upload(admin_client, "contacts", content, complete_identity=False)
+    assert preview.status_code == 200, preview.data
+    assert preview.data["errors"] == [], preview.data
+    committed = upload(
+        admin_client,
+        "contacts",
+        content,
+        complete_identity=False,
+        action="commit",
+        token=preview.data["token"],
+    )
+    assert committed.status_code == 200, committed.data
+    assert committed.data["created"] == 1
+    contact = Contact.objects.get(org=org_a, first_name="Configured")
+    assert getattr(contact, key) == value
+    assert not getattr(contact, "phone" if key == "email" else "email")

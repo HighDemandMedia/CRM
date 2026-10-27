@@ -63,7 +63,11 @@ class TestAccountCreateWithCustomFields:
         _make_tier_def(org_a)
         response = admin_client.post(
             ACCOUNTS_LIST_URL,
-            {"name": "Tiered Co", "custom_fields": {"tier": "gold"}},
+            {
+                "website": "https://fixture-66.example.com",
+                "name": "Tiered Co",
+                "custom_fields": {"tier": "gold"},
+            },
             format="json",
         )
         assert response.status_code == 200, response.content
@@ -74,7 +78,11 @@ class TestAccountCreateWithCustomFields:
         _make_tier_def(org_a)
         response = admin_client.post(
             ACCOUNTS_LIST_URL,
-            {"name": "Bad Tier Co", "custom_fields": {"tier": "platinum"}},
+            {
+                "website": "https://fixture-77.example.com",
+                "name": "Bad Tier Co",
+                "custom_fields": {"tier": "platinum"},
+            },
             format="json",
         )
         assert response.status_code == 400
@@ -86,6 +94,7 @@ class TestAccountCreateWithCustomFields:
         response = admin_client.post(
             ACCOUNTS_LIST_URL,
             {
+                "website": "https://fixture-88.example.com",
                 "name": "Unknown Key Co",
                 "custom_fields": {"tier": "gold", "made_up": "ignored"},
             },
@@ -101,7 +110,7 @@ class TestAccountCreateWithCustomFields:
         _make_tier_def(org_a, is_required=True)
         response = admin_client.post(
             ACCOUNTS_LIST_URL,
-            {"name": "No CF Co"},
+            {"website": "https://fixture-104.example.com", "name": "No CF Co"},
             format="json",
         )
         assert response.status_code == 200
@@ -146,7 +155,11 @@ class TestAccountUpdateWithCustomFields:
 
         response = admin_client.put(
             f"{ACCOUNTS_LIST_URL}{account_a.id}/",
-            {"name": account_a.name, "custom_fields": {"tier": "gold"}},
+            {
+                "website": "https://fixture-149.example.com",
+                "name": account_a.name,
+                "custom_fields": {"tier": "gold"},
+            },
             format="json",
         )
         assert response.status_code == 200, response.content

@@ -45,6 +45,7 @@ REQUIRED = {
     }
     for target in FIELDS
 }
+REQUIRED["Account"].add("website")
 LABELS = {
     "id": "Record ID",
     "first_name": "Name",

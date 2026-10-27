@@ -2,7 +2,6 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Q
-from django.db.models.functions import Lower
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -12,6 +11,7 @@ from common.identifiers import BusinessIDField
 from common.languages import LANGUAGES
 from common.models import Org, Profile, Tags, Teams
 from common.rbac import CRMRecordManager
+from common.record_identity import company_domain
 from common.utils import COUNTRIES, CURRENCY_CODES
 from common.validators import flexible_phone_validator
 from contacts.choices import COMMUNICATION_CHANNELS, CONTACT_SOURCES, CONTACT_STAGES
@@ -62,6 +62,9 @@ class Account(AssignableMixin, BaseModel):
         max_length=16, choices=COMMUNICATION_CHANNELS, blank=True, null=True
     )
     website = models.URLField(_("Website"), blank=True, null=True)
+    domain_match_key = models.CharField(
+        max_length=253, blank=True, default="", editable=False
+    )
 
     source = models.CharField(
         max_length=32, choices=CONTACT_SOURCES, blank=True, null=True
@@ -138,12 +141,10 @@ class Account(AssignableMixin, BaseModel):
             models.Index(fields=["org", "-created_at"]),
         ]
         constraints = [
-            # Case-insensitive unique account name per organization
             models.UniqueConstraint(
-                Lower("name"),
-                "org",
-                name="unique_account_name_per_org",
-                condition=~Q(name="") & Q(merged_at__isnull=True),
+                fields=["org", "domain_match_key"],
+                name="unique_account_domain_per_org",
+                condition=~Q(domain_match_key="") & Q(merged_at__isnull=True),
             ),
             # Annual revenue must be non-negative
             models.CheckConstraint(
@@ -153,6 +154,11 @@ class Account(AssignableMixin, BaseModel):
         ]
 
     def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        if update_fields is None or "website" in update_fields:
+            self.domain_match_key = company_domain(self.website)
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"domain_match_key"}
         with transaction.atomic():
             fields = kwargs.get("update_fields")
             if not self._state.adding and (fields is None or "stage" in fields):

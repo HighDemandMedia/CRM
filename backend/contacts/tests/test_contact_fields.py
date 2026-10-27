@@ -8,6 +8,7 @@ from contacts.models import Contact
 @pytest.mark.django_db
 def test_full_name_and_optional_fields_round_trip(admin_client):
     payload = {
+        "email": "fixture-10@example.com",
         "name": "María del Carmen",
         "phone": "3055550199",
         "source": "META",
@@ -27,13 +28,14 @@ def test_full_name_and_optional_fields_round_trip(admin_client):
     for key, value in expected.items():
         assert data[key] == value
     assert data["last_name"] == ""
-    assert data["email"] is None
+    assert data["email"] == payload["email"]
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("missing", ["phone", "source", "stage"])
+@pytest.mark.parametrize("missing", ["source", "stage"])
 def test_general_fields_are_optional(admin_client, missing):
     payload = {
+        "email": "fixture-36@example.com",
         "name": "Demo",
         "phone": "3055550199",
         "source": "ORGANIC",
@@ -56,6 +58,7 @@ def test_general_fields_are_optional(admin_client, missing):
 )
 def test_invalid_contact_values_rejected(admin_client, field, value):
     payload = {
+        "email": "fixture-58@example.com",
         "name": "Demo",
         "phone": "3055550199",
         "source": "ORGANIC",
@@ -77,7 +80,10 @@ def test_legacy_name_and_unknown_fields_preserved(admin_client, org_a, admin_use
     )
     response = admin_client.patch(
         f"/api/contacts/{c.id}/",
-        {"name": "María del Carmen", "description": "Updated"},
+        {
+            "name": "María del Carmen",
+            "description": "Updated",
+        },
         format="json",
     )
     assert response.status_code == 200, response.data

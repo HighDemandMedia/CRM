@@ -3,13 +3,19 @@ Lead conversion service functions
 """
 
 from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
+from rest_framework.exceptions import ValidationError
 
 from accounts.models import Account
+from common.creation_forms import contact_required_fields
 from common.models import Attachments, Comment
+from common.record_identity import company_domain
+from common.validators import contact_phone_key
 from contacts.models import Contact
 from opportunity.models import Opportunity
 
 
+@transaction.atomic
 def convert_lead_to_account(lead_obj, request, create_opportunity=True):
     """
     Convert a Lead to Account, Contact, and optionally Opportunity.
@@ -31,29 +37,31 @@ def convert_lead_to_account(lead_obj, request, create_opportunity=True):
     Returns:
         tuple: (account, contact, opportunity) - the created entities (Contact/Opportunity may be None)
     """
-    # Create or get existing Account (handles unique_account_name_per_org constraint)
+    # Only a domain identifies an existing company; a shared name does not.
     account_name = (
         lead_obj.company_name
         if lead_obj.company_name
         else f"{lead_obj.first_name} {lead_obj.last_name}"
     )
-    account, created = Account.objects.get_or_create(
-        name__iexact=account_name,
-        org=request.profile.org,
-        defaults={
-            "created_by": request.profile.user,
-            "name": account_name,
-            "email": lead_obj.email,
-            "phone": lead_obj.phone,
-            "description": lead_obj.description,
-            "website": lead_obj.website,
-            "is_active": True,
-            "address_line": lead_obj.address_line,
-            "city": lead_obj.city,
-            "state": lead_obj.state,
-            "postcode": lead_obj.postcode,
-            "country": lead_obj.country,
-        },
+    domain = company_domain(lead_obj.website)
+    if not domain:
+        raise ValidationError({"website": "Company domain is required."})
+    account_values = {
+        "created_by": request.profile.user,
+        "name": account_name,
+        "email": lead_obj.email,
+        "phone": lead_obj.phone,
+        "description": lead_obj.description,
+        "website": lead_obj.website,
+        "is_active": True,
+        "address_line": lead_obj.address_line,
+        "city": lead_obj.city,
+        "state": lead_obj.state,
+        "postcode": lead_obj.postcode,
+        "country": lead_obj.country,
+    }
+    account, _ = Account.objects.get_or_create(
+        org=request.profile.org, domain_match_key=domain, defaults=account_values
     )
 
     # Copy tags
@@ -84,29 +92,52 @@ def convert_lead_to_account(lead_obj, request, create_opportunity=True):
         org=request.profile.org,
     ).update(content_type=account_ct, object_id=account.id)
 
-    # Create or get existing Contact from Lead data (handles unique_contact_email_per_org constraint)
+    # Reuse either identifier without overwriting an existing contact's details.
     contact = None
-    if lead_obj.email:
-        contact, contact_created = Contact.objects.get_or_create(
-            email__iexact=lead_obj.email,
-            org=request.profile.org,
-            defaults={
-                "first_name": lead_obj.first_name or "",
-                "last_name": lead_obj.last_name or "",
-                "email": lead_obj.email,
-                "phone": lead_obj.phone,
-                "organization": lead_obj.company_name or "",
-                "title": lead_obj.job_title,
-                "description": lead_obj.description,
-                "address_line": lead_obj.address_line,
-                "city": lead_obj.city,
-                "state": lead_obj.state,
-                "postcode": lead_obj.postcode,
-                "country": lead_obj.country,
-                "created_by": request.profile.user,
-                "account": account,
-            },
+    if lead_obj.email or lead_obj.phone:
+        phone_key = contact_phone_key(lead_obj.phone)
+        contacts = Contact.objects.filter(org=request.profile.org)
+        contact = (
+            contacts.filter(email__iexact=lead_obj.email).first()
+            if lead_obj.email
+            else None
         )
+        if contact is None and phone_key:
+            contact = contacts.filter(phone_match_key=phone_key).first()
+        contact_created = False
+        if contact is None:
+            missing = {
+                key: "This field is required."
+                for key in {"first_name"} | contact_required_fields(request.profile.org)
+                if not getattr(lead_obj, key, None)
+            }
+            if missing:
+                raise ValidationError(missing)
+            identity = (
+                {"email__iexact": lead_obj.email}
+                if lead_obj.email
+                else {"phone_match_key": phone_key}
+            )
+            contact, contact_created = Contact.objects.get_or_create(
+                **identity,
+                org=request.profile.org,
+                defaults={
+                    "first_name": lead_obj.first_name or "",
+                    "last_name": lead_obj.last_name or "",
+                    "email": lead_obj.email,
+                    "phone": lead_obj.phone,
+                    "organization": lead_obj.company_name or "",
+                    "title": lead_obj.job_title,
+                    "description": lead_obj.description,
+                    "address_line": lead_obj.address_line,
+                    "city": lead_obj.city,
+                    "state": lead_obj.state,
+                    "postcode": lead_obj.postcode,
+                    "country": lead_obj.country,
+                    "created_by": request.profile.user,
+                    "account": account,
+                },
+            )
         if contact_created:
             contact.assigned_to.set(lead_obj.assigned_to.all())
         elif not contact.account:

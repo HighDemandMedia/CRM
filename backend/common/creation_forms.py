@@ -9,6 +9,7 @@ from common.models import CustomFieldDefinition
 from common.property_catalog import (
     FIELDS,
     LABELS,
+    REQUIRED,
     field_constraints,
     field_type,
     target_model,
@@ -25,6 +26,18 @@ IDENTITY = {
 EXCLUDED = {"id", "created_at", "created_by", "last_activity_at", "appointment_at"}
 WORK_ITEMS = {"Task", "Case"}
 RELATIONS = {"account", "contacts", "opportunity", "case"}
+CONTACT_KEYS = frozenset({"email", "phone"})
+
+
+def contact_required_fields(org):
+    """Default to both identifiers; saved layouts must require at least one."""
+    saved = (getattr(org, "creation_forms", None) or {}).get("Contact")
+    required = {
+        row["key"]
+        for row in (saved or [])
+        if row.get("required") and row.get("key") in CONTACT_KEYS
+    }
+    return required or CONTACT_KEYS
 
 
 def catalog(org, target):
@@ -76,7 +89,7 @@ def catalog(org, target):
                     for value, label in (f.choices or [])
                 ],
                 **field_constraints(f),
-                "locked": key == IDENTITY[target]
+                "locked": key in REQUIRED[target]
                 or (target in WORK_ITEMS and key == "assigned_to"),
                 "section": section,
                 "custom": False,
@@ -146,6 +159,17 @@ def configuration(org, target):
             else:
                 normalized.append(row)
         saved = normalized
+    if target == "Contact":
+        # Old layouts may predate the identifier rule. Supply safe defaults on read.
+        required = contact_required_fields(org)
+        saved = [dict(row) for row in saved]
+        for key in ("email", "phone"):
+            if key in required:
+                row = next((row for row in saved if row["key"] == key), None)
+                if row is None:
+                    saved.insert(1, {"key": key, "required": True})
+                else:
+                    row["required"] = True
     # Disabled/deleted definitions are omitted without deleting stored record values.
     selected = [
         {
@@ -205,6 +229,12 @@ def validate_configuration(org, target, selected):
             raise ValidationError(
                 "Identifying and assignment fields must stay visible and required."
             )
+    if target == "Contact" and not any(
+        row["key"] in CONTACT_KEYS and row["required"] for row in selected
+    ):
+        raise ValidationError(
+            {"detail": "Require at least one contact identifier: email or phone."}
+        )
     if any(r["key"] == "reminder_days" and r["required"] for r in selected) and not any(
         r["key"] == "due_date" and r["required"] for r in selected
     ):

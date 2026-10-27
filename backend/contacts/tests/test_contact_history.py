@@ -13,6 +13,7 @@ def test_creation_stage_clock_actor_and_changes(admin_client, admin_user):
     response = admin_client.post(
         "/api/contacts/",
         {
+            "email": "fixture-15@example.com",
             "name": "History test",
             "phone": "3055550199",
             "source": "META",

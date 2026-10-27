@@ -32,6 +32,16 @@ def save(client, target, fields):
     )
 
 
+def identifiers(target):
+    return (
+        {"email": "identity@example.com", "phone": "+13055550199"}
+        if target == "Contact"
+        else {"website": "https://example.com"}
+        if target == "Account"
+        else {}
+    )
+
+
 def row(key, required=False):
     return {"key": key, "required": required}
 
@@ -60,6 +70,7 @@ def test_catalog_defaults_and_manual_creation(
             admin_client,
             target,
             [row(identity, True), row("custom_fields.reference", True)]
+            + [row(key, True) for key in identifiers(target)]
             + ([row("assigned_to", True)] if target in {"Task", "Case"} else []),
         ).status_code
         == 200
@@ -69,7 +80,7 @@ def test_catalog_defaults_and_manual_creation(
     )
     response = admin_client.post(
         f"/api/{endpoint}/",
-        {key: "Creation form regression", **assignment},
+        {key: "Creation form regression", **assignment, **identifiers(target)},
         format="json",
     )
     assert response.status_code == 400, response.data
@@ -78,6 +89,7 @@ def test_catalog_defaults_and_manual_creation(
         key: "Creation form regression",
         "custom_fields": {"reference": "A-123"},
         **assignment,
+        **identifiers(target),
     }
     if target == "Task":
         payload.update(status="New", priority="Medium")
@@ -114,22 +126,29 @@ def test_permissions_and_org_isolation(
     manager.save()
     assert (
         save(
-            user_client, "Contact", [row("first_name", True), row("phone", True)]
+            user_client,
+            "Contact",
+            [row("first_name", True), row("phone", True), row("email", True)],
         ).status_code
         == 200
     )
     assert [f["key"] for f in admin_client.get(URL + "Contact/").data["selected"]] == [
         "first_name",
         "phone",
+        "email",
     ]
     assert len(org_b_client.get(URL + "Contact/").data["selected"]) > 2
 
 
 def test_order_revision_and_invalid_configuration(admin_client, org_a):
     before = admin_client.get(URL).data
-    rows = [row("email"), row("first_name", True)]
+    rows = [row("email", True), row("first_name", True), row("phone", True)]
     result = save(admin_client, "Contact", rows)
-    assert [f["key"] for f in result.data["selected"]] == ["email", "first_name"]
+    assert [f["key"] for f in result.data["selected"]] == [
+        "email",
+        "first_name",
+        "phone",
+    ]
     assert (
         admin_client.put(
             URL,
@@ -232,14 +251,22 @@ def test_required_values_keep_zero_and_false(org_a):
     validate_creation(
         org_a,
         "Contact",
-        {"name": "A", "custom_fields": {"quantity": 0, "approved": False}},
+        {
+            "name": "A",
+            **identifiers("Contact"),
+            "custom_fields": {"quantity": 0, "approved": False},
+        },
     )
     for value in ["", " ", None, [], {}]:
         with pytest.raises(ValidationError):
             validate_creation(
                 org_a,
                 "Contact",
-                {"name": "A", "custom_fields": {"quantity": value, "approved": False}},
+                {
+                    "name": "A",
+                    **identifiers("Contact"),
+                    "custom_fields": {"quantity": value, "approved": False},
+                },
             )
 
 
@@ -273,6 +300,7 @@ def test_default_form_with_optional_blanks(
         if name in {"waiting_reason", "resolution_note"}:
             value = ""
         payload["tag_ids" if target == "Account" and name == "tags" else name] = value
+    payload.update(identifiers(target))
     payload[key] = "Default form test"
     response = admin_client.post(f"/api/{endpoint}/", payload, format="json")
     assert response.status_code in (200, 201), response.data
@@ -290,7 +318,116 @@ def test_default_address_order_and_saved_order(org_a, target):
     saved = configuration(org_a, target)
     assert [field["key"] for field in saved["selected"]] == [
         identity,
+        *(
+            ["phone", "email"]
+            if target == "Contact"
+            else ["website"]
+            if target == "Account"
+            else []
+        ),
         "address_line",
         "city",
         "state",
     ]
+
+
+@pytest.mark.parametrize("required", [{"email"}, {"phone"}, {"email", "phone"}])
+def test_admin_configures_contact_identifiers(admin_client, org_a, required):
+    layout = [row("first_name", True)] + [
+        row(k, k in required) for k in ("email", "phone")
+    ]
+    response = save(admin_client, "Contact", layout)
+    assert response.status_code == 200, response.data
+    config = admin_client.get(URL, {"target_model": "Contact"}).data
+    identifiers = {
+        f["key"]: f for f in config["selected"] if f["key"] in {"email", "phone"}
+    }
+    assert {key for key, f in identifiers.items() if f["required"]} == required
+    assert not any(f["locked"] for f in identifiers.values())
+    payload = {
+        "name": "Configured identity",
+        **{
+            key: value
+            for key, value in {
+                "email": "configured@example.com",
+                "phone": "+12025550123",
+            }.items()
+            if key in required
+        },
+    }
+    created = admin_client.post("/api/contacts/", payload, format="json")
+    assert created.status_code == 200, created.data
+    org_a.refresh_from_db()
+    validate_creation(org_a, "Contact", payload)
+    for key in required:
+        invalid = {k: v for k, v in payload.items() if k != key}
+        result = admin_client.post("/api/contacts/", invalid, format="json")
+        assert result.status_code == 400
+        assert key in result.data or key in result.data.get("errors", {})
+
+
+def test_admin_cannot_make_both_contact_identifiers_optional(admin_client):
+    result = save(
+        admin_client, "Contact", [row("first_name", True), row("email"), row("phone")]
+    )
+    assert result.status_code == 400
+    assert "email or phone" in str(result.data)
+
+
+@pytest.mark.parametrize("existing_key", ["email", "phone"])
+def test_legacy_contact_cannot_clear_last_identifier(
+    org_a, admin_profile, existing_key
+):
+    from types import SimpleNamespace
+
+    from contacts.models import Contact
+    from contacts.serializer import CreateContactSerializer
+
+    required_key = "phone" if existing_key == "email" else "email"
+    org_a.creation_forms = {
+        "Contact": [row("first_name", True), row(required_key, True)]
+    }
+    contact = Contact.objects.create(
+        org=org_a,
+        first_name="Legacy",
+        **{
+            existing_key: "legacy@example.com"
+            if existing_key == "email"
+            else "+12025550123"
+        },
+    )
+    request = SimpleNamespace(profile=admin_profile)
+    for data, valid in [
+        ({"name": "Updated legacy"}, True),
+        ({existing_key: ""}, False),
+    ]:
+        serializer = CreateContactSerializer(
+            contact, data=data, partial=True, request_obj=request
+        )
+        assert serializer.is_valid() is valid, serializer.errors
+        if not valid:
+            assert "Provide an email address or phone number." in str(serializer.errors)
+
+
+@pytest.mark.parametrize("required", ["email", "phone"])
+def test_optional_identifier_still_checks_duplicates(admin_client, org_a, required):
+    from contacts.models import Contact
+
+    save(admin_client, "Contact", [row("first_name", True), row(required, True)])
+    Contact.objects.create(
+        org=org_a,
+        first_name="Original",
+        email="original@example.com",
+        phone="+12025550123",
+    )
+    optional = "phone" if required == "email" else "email"
+    payload = {
+        "name": "Duplicate",
+        "email": "original@example.com"
+        if optional == "email"
+        else "different@example.com",
+        "phone": "+12025550123" if optional == "phone" else "+12025550124",
+    }
+    response = admin_client.post("/api/contacts/", payload, format="json")
+    assert response.status_code == 400
+    assert optional in response.data["errors"]

@@ -3,7 +3,7 @@
 Edge cases the policy specifically targets:
   * email dup vs DB and within-file (DB-enforced unique per org)
   * phone dup vs DB and within-file (normalized with country code)
-  * full-name dup vs DB, but only when the row has no email and no phone
+  * names alone never establish duplicates; email and phone are required
   * permission gate (non-admin user blocked)
 """
 
@@ -15,10 +15,13 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from accounts.models import Account
 from common.models import Tags, Teams
+from common.tests.csv_fixtures import with_identities
 from contacts.models import Contact
 
 
-def _csv(headers: list[str], rows: list[list[str]]) -> SimpleUploadedFile:
+def _csv(
+    headers: list[str], rows: list[list[str]], *, complete_identity=True
+) -> SimpleUploadedFile:
     """Build an in-memory CSV upload from header + row lists."""
     buf = io.StringIO()
     writer = csv.writer(buf)
@@ -27,7 +30,11 @@ def _csv(headers: list[str], rows: list[list[str]]) -> SimpleUploadedFile:
         writer.writerow(row)
     return SimpleUploadedFile(
         "contacts.csv",
-        buf.getvalue().encode("utf-8"),
+        (
+            with_identities("contacts", buf.getvalue())
+            if complete_identity
+            else buf.getvalue()
+        ).encode("utf-8"),
         content_type="text/csv",
     )
 
@@ -187,11 +194,10 @@ class TestImportPreview:
         err = body["errors"][0]
         assert err["row"] == 2 and err["field"] == "phone"
 
-    def test_full_name_dup_blocked_without_disambiguator(
+    def test_full_name_only_does_not_block(
         self, admin_client, existing_contact, admin_profile
     ):
-        # existing_contact is "Pat Lee" with pat@acme.test + a phone. Row has
-        # the same name but NO email and NO phone → can't disambiguate.
+        # Same name with distinct system identifiers is a different person.
         csv_file = _csv(
             ["first_name", "last_name"],
             [["Pat", "Lee"]],
@@ -200,9 +206,7 @@ class TestImportPreview:
             "/api/contacts/import/preview/", {"file": csv_file}, format="multipart"
         )
         body = response.json()
-        assert body["summary"]["invalid"] == 1
-        fields = {(e["row"], e["field"]) for e in body["errors"]}
-        assert (1, "first_name") in fields
+        assert body["summary"] == {"total": 1, "valid": 1, "invalid": 0}
 
     def test_full_name_dup_allowed_with_different_email(
         self, admin_client, existing_contact, admin_profile
@@ -218,8 +222,8 @@ class TestImportPreview:
         body = response.json()
         assert body["summary"] == {"total": 1, "valid": 1, "invalid": 0}
 
-    def test_full_name_dup_within_file_blocked(self, admin_client, admin_profile):
-        # Two name-only rows with no email/phone. Second row must be flagged.
+    def test_full_name_dup_within_file_allowed(self, admin_client, admin_profile):
+        # Names alone do not establish that two people are the same.
         csv_file = _csv(
             ["first_name", "last_name"],
             [
@@ -231,11 +235,7 @@ class TestImportPreview:
             "/api/contacts/import/preview/", {"file": csv_file}, format="multipart"
         )
         body = response.json()
-        assert body["summary"]["valid"] == 1
-        assert body["summary"]["invalid"] == 1
-        err = body["errors"][0]
-        assert err["row"] == 2 and err["field"] == "first_name"
-        assert "row 1" in err["message"]
+        assert body["summary"] == {"total": 2, "valid": 2, "invalid": 0}
 
     def test_linkedin_url_with_only_scheme_rejected(self, admin_client, admin_profile):
         # "https://" passes the old regex but is not a valid URL, Django's
@@ -481,3 +481,14 @@ class TestImportCommit:
         assert body["error"] is True
         assert body["created"] == 0
         assert "concurrently" in body["message"].lower()
+
+
+@pytest.mark.django_db
+def test_legacy_import_requires_email_and_phone(admin_client):
+    response = admin_client.post(
+        "/api/contacts/import/preview/",
+        {"file": _csv(["first_name"], [["Missing"]], complete_identity=False)},
+        format="multipart",
+    )
+    assert response.status_code == 200
+    assert {e["field"] for e in response.data["errors"]} == {"email", "phone"}

@@ -14,12 +14,26 @@ OBJECTS = [
 ]
 
 
+def identifiers(target, suffix="one"):
+    return (
+        {
+            "email": f"{suffix}@example.com",
+            "phone": "+13055550199" if suffix == "one" else "+13055550188",
+        }
+        if target == "Contact"
+        else {"website": f"https://{suffix}.example.com"}
+        if target == "Account"
+        else {}
+    )
+
+
 @pytest.mark.parametrize("target,route,name,stage,default", OBJECTS)
 def test_minimum_required_records_generate_distinct_ids(
     admin_client, admin_profile, org_a, target, route, name, stage, default
 ):
     model = target_model(target)
-    for payload in ({name: "First"}, {name: "Second", stage: ""}):
+    for index, payload in enumerate(({name: "First"}, {name: "Second", stage: ""})):
+        payload.update(identifiers(target, "one" if index == 0 else "two"))
         if target in {"Task", "Case"}:
             payload["assigned_to"] = [str(admin_profile.pk)]
         result = admin_client.post(f"/api/{route}/", payload, format="json")
@@ -34,7 +48,11 @@ def test_minimum_required_records_generate_distinct_ids(
     rows = admin_client.get(
         f"/api/custom-fields/?catalog=true&target_model={target}"
     ).json()["properties"]
-    assert {r["key"] for r in rows if r["is_required"]} == {"id", name}
+    assert {r["key"] for r in rows if r["is_required"]} == {
+        "id",
+        name,
+        *({"website"} if target == "Account" else set()),
+    }
     assert next(r for r in rows if r["key"] == "id")["is_read_only"]
 
 
@@ -55,6 +73,7 @@ def test_stage_requirements_survive_optional_policy(
     assignment = (
         {"assigned_to": [str(admin_profile.pk)]} if target in {"Task", "Case"} else {}
     )
+    assignment.update(identifiers(target))
     result = admin_client.post(f"/api/{route}/", assignment, format="json")
     assert result.status_code == 400, result.data
     assert "stage_requirements" in str(result.data)
@@ -84,7 +103,11 @@ def test_custom_required_cannot_be_reenabled_but_stage_can_require_it(
     )
     result = admin_client.post(
         "/api/contacts/",
-        {"name": "Optional custom value", "custom_fields": {}},
+        {
+            "name": "Optional custom value",
+            "custom_fields": {},
+            **identifiers("Contact"),
+        },
         format="json",
     )
     assert result.status_code in (200, 201), result.data
@@ -100,7 +123,12 @@ def test_custom_required_cannot_be_reenabled_but_stage_can_require_it(
     )
     result = admin_client.post(
         "/api/contacts/",
-        {"name": "Stage validation", "stage": "QUALIFIED", "custom_fields": {}},
+        {
+            "name": "Stage validation",
+            "stage": "QUALIFIED",
+            "custom_fields": {},
+            **identifiers("Contact", "two"),
+        },
         format="json",
     )
     assert result.status_code == 400
@@ -124,7 +152,9 @@ def test_optional_format_validation_and_id_protection(admin_client, org_a):
         ).status_code
         == 400
     )
-    result = admin_client.post("/api/contacts/", {"name": "ID check"}, format="json")
+    result = admin_client.post(
+        "/api/contacts/", {"name": "ID check", **identifiers("Contact")}, format="json"
+    )
     assert result.status_code in (200, 201)
     contact = target_model("Contact").objects.get(org=org_a)
     original = contact.pk
@@ -164,6 +194,7 @@ def test_forms_can_clear_optional_values(
         payload.update(priority=None, description=None, account=None)
     if target == "Task":
         payload["priority"] = None
+    payload.update(identifiers(target))
     response = admin_client.post(f"/api/{route}/", payload, format="json")
     assert response.status_code in (200, 201), response.data
     obj = target_model(target).objects.get(org=org_a)
@@ -196,7 +227,9 @@ def test_names_are_required_on_create_and_edit(
         )
     assert admin_client.post(f"/api/{route}/", {}, format="json").status_code == 400
     response = admin_client.post(
-        f"/api/{route}/", {public_name: "Keep name", **assignment}, format="json"
+        f"/api/{route}/",
+        {public_name: "Keep name", **assignment, **identifiers(target)},
+        format="json",
     )
     assert response.status_code == 200, response.data
     obj = target_model(target).objects.get(org=org_a)

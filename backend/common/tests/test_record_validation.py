@@ -72,6 +72,13 @@ def test_api_validates_address_and_preserves_optional_fields(admin_client, route
             "country": "BR",
             "phone": "",
             "email": "",
+            **(
+                {"email": "valid@example.com", "phone": "+13055550199"}
+                if route == "contacts"
+                else {"website": "example.com"}
+                if route == "accounts"
+                else {}
+            ),
         },
         format="json",
     )

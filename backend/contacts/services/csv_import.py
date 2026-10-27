@@ -5,17 +5,8 @@ DB beyond read-only lookups; `commit_rows` writes inside a transaction. Both
 phases re-run validation so the commit endpoint is safe even if called
 directly.
 
-Duplicate policy (per org):
-  * email: hard error (DB enforces a per-org case-insensitive unique
-                constraint; we mirror it in the importer so users see a clean
-                row-level message instead of an IntegrityError at commit).
-  * phone: hard error. There is no DB constraint, but most callers
-                consider phone a unique identifier in practice. We normalize
-                using `common.validators.normalize_phone` (country-aware, all
-                digits) so "+1 (202) 555-1234" matches "2025551234".
-  * full name. Hard error ONLY when the row has neither email nor phone to
-                disambiguate from an existing same-named contact. Two people
-                can legitimately share a name when other identifiers differ.
+Duplicate policy (per org): email or normalized phone. Both are DB-unique;
+name alone is not proof that two contacts are the same person.
 
 All reference lookups (account, assignees, teams) are bulk-prefetched once per
 call (one SELECT per reference type), scoped to the caller's org so a
@@ -168,7 +159,7 @@ class _RefMaps:
     """Reference values needed to validate + resolve rows in one pass.
 
     Keys are lowercased; values are canonical UUID strings for the match.
-    The three "existing_*" sets exist only for duplicate detection.
+    The "existing_*" sets exist only for duplicate detection.
     """
 
     accounts: dict[str, str]
@@ -176,7 +167,6 @@ class _RefMaps:
     teams: dict[str, str]
     existing_emails: set[str]
     existing_phones: set[str]
-    existing_full_names: set[str]
 
 
 def _decode(file_bytes: bytes) -> str | None:
@@ -267,20 +257,19 @@ def parse_and_validate(file_bytes: bytes, org) -> ImportResult:
         }
         parsed.append((idx, record))
 
+    from common.creation_forms import contact_required_fields
+
+    required_identity = contact_required_fields(org)
     ref_maps = _build_ref_maps(parsed, org)
 
     valid: list[ValidatedRow] = []
     errors: list[RowError] = []
     seen_emails: dict[str, int] = {}  # email.lower() -> row number
     seen_phones: dict[str, int] = {}  # normalized phone -> row number
-    # Tracks rows that had NO email and NO phone, the same disambiguation
-    # rule used vs the DB. A row with an email/phone is exempt because the
-    # email/phone uniqueness checks already prevent silent duplicates.
-    seen_full_names: dict[str, int] = {}  # "first|last".lower() -> row number
 
     for idx, record in parsed:
         row_errors, validated = _validate_and_build(
-            idx, record, ref_maps, seen_emails, seen_phones, seen_full_names
+            idx, record, ref_maps, seen_emails, seen_phones, required_identity
         )
         if row_errors:
             errors.extend(row_errors)
@@ -303,9 +292,6 @@ def parse_and_validate(file_bytes: bytes, org) -> ImportResult:
             normalized = normalize_phone(validated.phone)
             if normalized:
                 seen_phones[normalized] = idx
-        if not validated.email and not validated.phone:
-            key = f"{validated.first_name.lower()}|{validated.last_name.lower()}"
-            seen_full_names[key] = idx
 
     return ImportResult(valid=valid, errors=errors)
 
@@ -314,17 +300,14 @@ def _build_ref_maps(parsed: list[tuple[int, dict[str, str]]], org) -> _RefMaps:
     """Bulk-prefetch every reference value referenced anywhere in the file.
 
     One query per reference type, scoped to `org`. Keys are lowercased so
-    row-level lookups are O(1) and case-insensitive. The three "existing_*"
-    sets cover the duplicate-detection policy: email (DB-unique), phone
-    (normalized digits), and full_name (only used when row has no email or
-    phone for disambiguation).
+    row-level lookups are O(1) and case-insensitive. Duplicate keys are email
+    and normalized phone; names are used only for association lookups.
     """
     account_names: set[str] = set()
     assigned_emails: set[str] = set()
     team_names: set[str] = set()
     candidate_emails: set[str] = set()
     candidate_phones: set[str] = set()
-    candidate_full_names: set[str] = set()
 
     for _idx, record in parsed:
         account_name = record.get("account_name", "")
@@ -342,12 +325,9 @@ def _build_ref_maps(parsed: list[tuple[int, dict[str, str]]], org) -> _RefMaps:
             normalized = normalize_phone(phone)
             if normalized:
                 candidate_phones.add(normalized)
-        first = record.get("first_name", "")
-        last = record.get("last_name", "")
-        if first and last and not email and not phone:
-            candidate_full_names.add(f"{first.lower()}|{last.lower()}")
 
     accounts: dict[str, str] = {}
+    ambiguous_accounts = set()
     if account_names:
         for pk, name_lower in (
             Account.objects.filter(org=org)
@@ -355,7 +335,11 @@ def _build_ref_maps(parsed: list[tuple[int, dict[str, str]]], org) -> _RefMaps:
             .filter(name_lower__in=account_names)
             .values_list("id", "name_lower")
         ):
-            accounts.setdefault(name_lower, str(pk))
+            if name_lower in accounts:
+                ambiguous_accounts.add(name_lower)
+            accounts[name_lower] = str(pk)
+        for name in ambiguous_accounts:
+            accounts.pop(name, None)
 
     profiles: dict[str, str] = {}
     if assigned_emails:
@@ -386,36 +370,11 @@ def _build_ref_maps(parsed: list[tuple[int, dict[str, str]]], org) -> _RefMaps:
             .values_list("email_lower", flat=True)
         )
 
-    existing_phones: set[str] = set()
-    if candidate_phones:
-        # Phone has no DB constraint and no normalized column; we have to scan
-        # all contacts that have a phone in this org and normalize in Python.
-        # Bounded by org size, not file size, fine for any reasonable tenant.
-        for raw_phone in (
-            Contact.objects.filter(org=org)
-            .exclude(phone__isnull=True)
-            .exclude(phone="")
-            .values_list("phone", flat=True)
-        ):
-            normalized = normalize_phone(raw_phone)
-            if normalized and normalized in candidate_phones:
-                existing_phones.add(normalized)
-
-    existing_full_names: set[str] = set()
-    if candidate_full_names:
-        # Only run this query if any row has a full name but no email and no
-        # phone. That's the only case where full-name dedup applies.
-        for first, last in (
-            Contact.objects.filter(org=org)
-            .annotate(
-                first_lower=Lower("first_name"),
-                last_lower=Lower("last_name"),
-            )
-            .values_list("first_lower", "last_lower")
-        ):
-            key = f"{first}|{last}"
-            if key in candidate_full_names:
-                existing_full_names.add(key)
+    existing_phones = set(
+        Contact.objects.filter(
+            org=org, phone_match_key__in=candidate_phones
+        ).values_list("phone_match_key", flat=True)
+    )
 
     return _RefMaps(
         accounts=accounts,
@@ -423,7 +382,6 @@ def _build_ref_maps(parsed: list[tuple[int, dict[str, str]]], org) -> _RefMaps:
         teams=teams,
         existing_emails=existing_emails,
         existing_phones=existing_phones,
-        existing_full_names=existing_full_names,
     )
 
 
@@ -433,7 +391,7 @@ def _validate_and_build(
     refs: _RefMaps,
     seen_emails: dict[str, int],
     seen_phones: dict[str, int],
-    seen_full_names: dict[str, int],
+    required_identity: frozenset[str] | set[str],
 ) -> tuple[list[RowError], ValidatedRow | None]:
     """Validate a single row and, on success, return the resolved ValidatedRow.
 
@@ -455,6 +413,8 @@ def _validate_and_build(
         )
 
     email = record.get("email", "")
+    if not email and "email" in required_identity:
+        errors.append(RowError(idx, "email", "Email is required"))
     if email:
         if not EMAIL_RE.match(email):
             errors.append(RowError(idx, "email", f"'{email}' is not a valid email"))
@@ -479,6 +439,8 @@ def _validate_and_build(
                 )
 
     phone = record.get("phone", "")
+    if not phone and "phone" in required_identity:
+        errors.append(RowError(idx, "phone", "Phone is required"))
     normalized_phone: str | None = None
     if phone:
         if not valid_phone(phone):
@@ -510,29 +472,6 @@ def _validate_and_build(
                             "A contact with this phone number already exists in your organization",
                         )
                     )
-
-    # Full-name dedup only kicks in when there's nothing else to tell two
-    # same-named people apart. If the row has an email or phone, we trust
-    # those as the disambiguator (and have already checked them above).
-    if first_name and last_name and not email and not phone:
-        key = f"{first_name.lower()}|{last_name.lower()}"
-        prior = seen_full_names.get(key)
-        if prior:
-            errors.append(
-                RowError(
-                    idx,
-                    "first_name",
-                    f"Same name as row {prior} in this file; add an email or phone to either row to confirm they're different people",
-                )
-            )
-        elif key in refs.existing_full_names:
-            errors.append(
-                RowError(
-                    idx,
-                    "first_name",
-                    "A contact with this name already exists; add an email or phone to confirm it's a different person",
-                )
-            )
 
     linkedin_url = record.get("linkedin_url", "")
     if linkedin_url:

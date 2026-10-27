@@ -25,13 +25,9 @@ class DuplicateDetector:
     @staticmethod
     def normalize_domain(website: str) -> str:
         """Extract and normalize domain from a website URL."""
-        if not website:
-            return ""
-        domain = website.lower()
-        domain = domain.replace("https://", "").replace("http://", "")
-        domain = domain.replace("www.", "")
-        domain = domain.split("/")[0]  # Remove path
-        return domain
+        from common.record_identity import company_domain
+
+        return company_domain(website)
 
     @classmethod
     def find_duplicate_contacts(
@@ -44,7 +40,7 @@ class DuplicateDetector:
         exclude_id=None,
     ) -> list["Contact"]:
         """
-        Find potential duplicate contacts based on email, phone, or name.
+        Find potential duplicate contacts based on email or phone.
 
         Args:
             org: The organization to search within
@@ -80,15 +76,6 @@ class DuplicateDetector:
                     if cls.normalize_phone(contact.phone) == normalized:
                         if contact not in duplicates:
                             duplicates.append(contact)
-
-        # Name match (first + last name combination)
-        if first_name and last_name:
-            name_matches = base_qs.filter(
-                first_name__iexact=first_name, last_name__iexact=last_name
-            )
-            for contact in name_matches:
-                if contact not in duplicates:
-                    duplicates.append(contact)
 
         return duplicates
 
@@ -170,7 +157,7 @@ class DuplicateDetector:
         exclude_id=None,
     ) -> list["Account"]:
         """
-        Find potential duplicate accounts based on name, email, website, or phone.
+        Find potential duplicate accounts based on the website domain.
 
         Args:
             org: The organization to search within
@@ -185,54 +172,10 @@ class DuplicateDetector:
         """
         from accounts.models import Account
 
-        duplicates = []
         base_qs = Account.objects.filter(org=org, is_active=True)
 
         if exclude_id:
             base_qs = base_qs.exclude(pk=exclude_id)
 
-        # Exact name match (case-insensitive)
-        if name:
-            name_matches = base_qs.filter(name__iexact=name)
-            duplicates.extend(list(name_matches))
-
-            # Also check for partial matches on first word (for company variations)
-            first_word = name.split()[0] if name else ""
-            if len(first_word) >= 3:
-                partial_matches = base_qs.filter(name__istartswith=first_word).exclude(
-                    name__iexact=name
-                )
-                for account in partial_matches:
-                    if account not in duplicates:
-                        duplicates.append(account)
-
-        # Exact email match
-        if email:
-            email_matches = base_qs.filter(email__iexact=email)
-            for account in email_matches:
-                if account not in duplicates:
-                    duplicates.append(account)
-
-        # Website domain match
-        if website:
-            domain = cls.normalize_domain(website)
-            if domain:
-                website_candidates = base_qs.exclude(website__isnull=True).exclude(
-                    website=""
-                )
-                for account in website_candidates:
-                    if cls.normalize_domain(account.website) == domain:
-                        if account not in duplicates:
-                            duplicates.append(account)
-
-        # Normalized phone match
-        if phone:
-            normalized = cls.normalize_phone(phone)
-            if len(normalized) >= 7:
-                phone_candidates = base_qs.exclude(phone__isnull=True).exclude(phone="")
-                for account in phone_candidates:
-                    if cls.normalize_phone(account.phone) == normalized:
-                        if account not in duplicates:
-                            duplicates.append(account)
-
-        return duplicates
+        domain = cls.normalize_domain(website)
+        return list(base_qs.filter(domain_match_key=domain)) if domain else []

@@ -16,6 +16,7 @@ def test_colored_tags_create_assign_read_remove(admin_client, org_a):
     response = admin_client.post(
         "/api/contacts/",
         {
+            "email": "fixture-18@example.com",
             "name": "Tagged contact",
             "phone": "3055550101",
             "source": "META",

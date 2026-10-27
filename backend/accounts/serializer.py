@@ -253,10 +253,10 @@ class AccountWriteSerializer(serializers.ModelSerializer):
 class AccountCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
     """Serializer for creating/updating Account data"""
 
-    website = serializers.URLField(
-        required=False,
-        allow_blank=True,
-        allow_null=True,
+    website = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        allow_null=False,
         max_length=200,
         error_messages={
             "invalid": "Enter a valid company domain or website URL.",
@@ -267,8 +267,7 @@ class AccountCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
         request_obj = kwargs.pop("request_obj", None)
         kwargs.pop("account", None)  # Remove unused 'account' parameter passed by views
         super().__init__(*args, **kwargs)
-        if request_obj:
-            self.org = request_obj.profile.org
+        self.org = request_obj.profile.org if request_obj else None
 
     def validate_pages(self, value):
         if not isinstance(value, list) or len(value) > 50:
@@ -308,6 +307,17 @@ class AccountCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Enter a valid HTTP or HTTPS website URL."
             )
+        from common.record_identity import company_domain
+
+        matches = Account.objects.filter(
+            org=self.org, domain_match_key=company_domain(cleaned)
+        )
+        if self.instance:
+            matches = matches.exclude(pk=self.instance.pk)
+        if matches.exists():
+            raise serializers.ValidationError(
+                "Company already exists with this domain."
+            )
         return cleaned
 
     def validate(self, attrs):
@@ -333,21 +343,6 @@ class AccountCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
                     {"tag_ids": "Choose tags from this organization."}
                 )
         return super().validate(attrs)
-
-    def validate_name(self, name):
-        if not name:
-            return name
-        if self.instance:
-            if self.instance.name != name:
-                if not Account.objects.filter(name__iexact=name, org=self.org).exists():
-                    return name
-                raise serializers.ValidationError(
-                    "Account already exists with this name"
-                )
-            return name
-        if not Account.objects.filter(name__iexact=name, org=self.org).exists():
-            return name
-        raise serializers.ValidationError("Account already exists with this name")
 
     def validate_annual_revenue(self, annual_revenue):
         """Reject negative revenue here rather than letting the database do it.

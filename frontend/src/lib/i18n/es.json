@@ -1964,5 +1964,7 @@
   "Resume import": "Continuar importación",
   "records skipped. Correct the error file and upload it again.": "registros omitidos. Corrige el archivo de errores y vuelve a subirlo.",
   "Import paused. Retry to continue without duplicating saved records.": "Importación pausada. Reintenta para continuar sin duplicar los registros guardados.",
-  "Could not confirm import progress. Retry the same file to check its result.": "No se pudo confirmar el progreso. Reintenta con el mismo archivo para comprobar el resultado."
+  "Could not confirm import progress. Retry the same file to check its result.": "No se pudo confirmar el progreso. Reintenta con el mismo archivo para comprobar el resultado.",
+  "Require at least one contact identifier: email or phone.": "Marca como obligatorio al menos un identificador del contacto: email o teléfono.",
+  "Provide an email address or phone number.": "Indica un email o número de teléfono."
 }

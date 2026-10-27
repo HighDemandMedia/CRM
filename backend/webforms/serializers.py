@@ -381,14 +381,22 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
                     )
                 targets.add(key)
                 inputs.add(name)
-                if target == "Contact" and key in ("first_name", "email"):
+                if target == "Contact" and key == "first_name":
                     row["is_required"] = True
             if self.instance and self.instance.is_published:
-                required = {"first_name", "email"} if target == "Contact" else {"email"}
-                if not required.issubset(targets):
+                required = {"first_name"} if target == "Contact" else {"email"}
+                identity_required = any(
+                    row.get("source") == "lead"
+                    and row.get("lead_field") in {"email", "phone"}
+                    and row.get("is_required")
+                    for row in rows
+                )
+                if not required.issubset(targets) or (
+                    target == "Contact" and not identity_required
+                ):
                     raise serializers.ValidationError(
                         {
-                            "fields": "Keep the required identity fields on a published form."
+                            "fields": "Keep name and require email or phone on a published contact form."
                         }
                     )
         mode = attrs.get(
@@ -463,6 +471,7 @@ class WebFormDetailSerializer(serializers.ModelSerializer):
                 for key, label, required in [
                     ("first_name", "Name", True),
                     ("email", "Email", True),
+                    ("phone", "Phone", True),
                     ("description", "Message", False),
                 ]
             ]

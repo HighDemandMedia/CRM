@@ -290,9 +290,10 @@
           /></label
         >
         <label
-          >{ui('Domain')}<input
+          >{ui('Domain')} *<input
             class="v2-input"
             name="website"
+            required
             placeholder="example.com"
             bind:value={values.website}
           /></label

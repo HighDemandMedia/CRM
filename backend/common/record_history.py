@@ -64,6 +64,7 @@ def capture_changes(sender, instance, update_fields=None):
             "updated_by",
             "stage_entered_at",
             "phone_match_key",
+            "domain_match_key",
             "merged_into",
             "merged_at",
             "merge_snapshot",

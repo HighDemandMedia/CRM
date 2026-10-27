@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { contactDuplicateNoticeIndex, contactDuplicateQuery } from './contact-duplicates.js';
 
 describe('contact duplicate identity', () => {
+  it('preserves an international prefix for short international numbers', () => {
+    expect(
+      new URLSearchParams(contactDuplicateQuery({ phone: '+49 30 123456' })).get('phone')
+    ).toBe('+4930123456');
+  });
   const identity = {
     name: 'Ana Maria Lopez',
     email: 'ana+sales@example.com',
@@ -19,7 +24,6 @@ describe('contact duplicate identity', () => {
   });
 
   it.each([
-    ['name', 'Ana Maria Perez'],
     ['email', 'ana+support@example.com'],
     ['phone', '3055550100'],
     ['exclude', 'other-contact']
@@ -41,12 +45,13 @@ describe('contact duplicate identity', () => {
     {},
     { name: '  ', email: ' ', phone: '  ' },
     { name: 'Al', email: 'not-an-email', phone: '123-456' },
-    { exclude: 'contact-a' }
+    { exclude: 'contact-a' },
+    { name: 'Ana Maria' }
   ])('does not start a lookup without sufficient identifying data: %j', (values) => {
     expect(contactDuplicateQuery(values)).toBe('');
   });
 
-  it.each([{ name: 'Ana' }, { email: 'a@example.com' }, { phone: '555-0199' }])(
+  it.each([{ email: 'a@example.com' }, { phone: '555-0199' }])(
     'allows any supported identifying field to trigger a lookup: %j',
     (values) => {
       expect(contactDuplicateQuery(values)).not.toBe('');

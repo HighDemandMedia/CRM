@@ -177,6 +177,16 @@ class CreateContactSerializer(PipelineRulesMixin, serializers.ModelSerializer):
                 attrs["last_name"] = ""
         if self.instance is None and not attrs.get("first_name", "").strip():
             raise serializers.ValidationError({"name": "Name is required."})
+        if self.instance is not None and {"email", "phone"}.intersection(attrs):
+            # Legacy records may lack the identifier now required by their form.
+            # Allow unrelated edits, but never clear their last identifier.
+            if not any(
+                attrs.get(key, getattr(self.instance, key, None))
+                for key in ("email", "phone")
+            ):
+                raise serializers.ValidationError(
+                    {"email": "Provide an email address or phone number."}
+                )
         return attrs
 
     def __init__(self, *args, **kwargs):
@@ -203,6 +213,20 @@ class CreateContactSerializer(PipelineRulesMixin, serializers.ModelSerializer):
             raise serializers.ValidationError("No such account.")
         return account
 
+    def validate_phone(self, phone):
+        from common.validators import contact_phone_key
+
+        key = contact_phone_key(phone)
+        if key:
+            matches = Contact.objects.filter(org=self.org, phone_match_key=key)
+            if self.instance:
+                matches = matches.exclude(pk=self.instance.pk)
+            if matches.exists():
+                raise serializers.ValidationError(
+                    "Contact already exists with this phone number."
+                )
+        return phone
+
     def validate_email(self, email):
         if email:
             if self.instance:
@@ -227,7 +251,8 @@ class CreateContactSerializer(PipelineRulesMixin, serializers.ModelSerializer):
         extra_kwargs = {
             "first_name": {"required": False},
             "last_name": {"required": False, "allow_blank": True},
-            "phone": {"required": False, "allow_blank": False, "allow_null": False},
+            "phone": {"required": False, "allow_blank": True, "allow_null": True},
+            "email": {"required": False, "allow_blank": True, "allow_null": True},
             "source": {"required": False, "allow_blank": False, "allow_null": False},
             "stage": {"required": False, "allow_blank": False, "allow_null": False},
         }

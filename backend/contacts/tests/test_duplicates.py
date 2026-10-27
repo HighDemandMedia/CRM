@@ -42,12 +42,11 @@ def test_legacy_us_number_matches_and_country_codes_are_preserved(admin_client, 
     assert admin_client.get(URL, {"phone": "+44 305 555 0199"}).data["results"] == []
 
 
-def test_names_are_suggestions_not_unique_and_results_are_limited(admin_client, org_a):
+def test_names_alone_do_not_identify_duplicates(admin_client, org_a):
     for i in range(8):
         Contact.objects.create(org=org_a, first_name="Alex", last_name=f"Smith {i}")
     result = admin_client.get(URL, {"name": "Alex Smith"}).data["results"]
-    assert len(result) == 5
-    assert all("Similar name" in row["reasons"] for row in result)
+    assert result == []
     assert admin_client.get(URL, {"name": "Al"}).data["results"] == []
     assert admin_client.get(URL).data["results"] == []
 

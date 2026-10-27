@@ -145,7 +145,7 @@
         label: m.label,
         placeholder: '',
         external_name: m.name,
-        is_required: ['first_name', 'email'].includes(property) || m.required
+        is_required: property === 'first_name' || m.required
       };
     });
     html = '';
@@ -175,7 +175,7 @@
     row.label = custom
       ? (data.customFields.find((f) => f.id === row.custom_field)?.label ?? '')
       : (options.find((f) => f.value === value)?.label ?? '');
-    if (['first_name', 'email'].includes(value)) row.is_required = true;
+    if (value === 'first_name') row.is_required = true;
   }
   const save = ({ cancel, submitter }) => {
     notice = '';
@@ -458,7 +458,7 @@
                         ><input
                           type="checkbox"
                           disabled={config.target_model === 'Contact' &&
-                            ['first_name', 'email'].includes(row.lead_field)}
+                            row.lead_field === 'first_name'}
                           bind:checked={row.is_required}
                         />{ui('Required')}</label
                       >

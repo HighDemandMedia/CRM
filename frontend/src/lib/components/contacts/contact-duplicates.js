@@ -1,10 +1,11 @@
 /** Canonical values keep a dismissed warning stable through formatting-only edits. */
-export function contactDuplicateQuery({ name = '', email = '', phone = '', exclude = '' }) {
-  name = name.trim().replace(/\s+/g, ' ').toLowerCase();
+/** @param {{ name?: string, email?: string, phone?: string, exclude?: string }} values */
+export function contactDuplicateQuery({ email = '', phone = '', exclude = '' }) {
   email = email.trim().toLowerCase();
-  phone = phone.replace(/\D/g, '');
-  if (name.length < 3 && !email.includes('@') && phone.length < 7) return '';
-  const query = new URLSearchParams({ name, email, phone });
+  const international = phone.trim().startsWith('+');
+  phone = (international ? '+' : '') + phone.replace(/\D/g, '');
+  if (!email.includes('@') && phone.length < 7) return '';
+  const query = new URLSearchParams({ email, phone });
   if (exclude) query.set('exclude', exclude);
   return query.toString();
 }

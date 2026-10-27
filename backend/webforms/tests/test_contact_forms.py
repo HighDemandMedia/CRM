@@ -42,7 +42,12 @@ def form(org_a, admin_profile):
 def post(client, form, **payload):
     return client.post(
         f"/api/public/forms/{form.org_id}/{form.pk}/submit/",
-        {"first_name": "Pat", "email": "pat@example.com", **payload},
+        {
+            "first_name": "Pat",
+            "email": "pat@example.com",
+            "phone": "+12025550123",
+            **payload,
+        },
         format="json",
         HTTP_ORIGIN="https://example.com",
     )
@@ -278,9 +283,10 @@ def test_contact_form_creation_seeds_identifying_fields(admin_client):
     assert [r["lead_field"] for r in response.data["fields"]] == [
         "first_name",
         "email",
+        "phone",
         "description",
     ]
-    assert all(r["is_required"] for r in response.data["fields"][:2])
+    assert all(r["is_required"] for r in response.data["fields"][:3])
     assert "connect.js" in response.data["connector_js"]
 
 
@@ -368,7 +374,7 @@ def test_api_errors_do_not_disclose_duplicate_identity(form, unauthenticated_cli
 def test_duplicate_input_mapping_returns_validation_error(form, admin_client):
     rows = [
         {"source": "lead", "lead_field": key, "external_name": "same", "label": key}
-        for key in ("first_name", "email")
+        for key in ("first_name", "email", "phone")
     ]
     response = admin_client.put(
         f"/api/webforms/{form.pk}/", {"fields": rows}, format="json"
@@ -389,8 +395,13 @@ def test_custom_contact_property_maps_to_contact_json(
         field_type="text",
     )
     rows = [
-        {"source": "lead", "lead_field": key, "label": key}
-        for key in ("first_name", "email")
+        {
+            "source": "lead",
+            "lead_field": key,
+            "label": key,
+            "is_required": key == "email",
+        }
+        for key in ("first_name", "email", "phone")
     ]
     rows.append(
         {
@@ -467,3 +478,64 @@ def test_email_delivery_has_no_database_lock_and_claim_blocks_duplicate(form):
     assert sender.call_count == 1
     row.refresh_from_db()
     assert row.email_completed_at and row.email_claim_id is None
+
+
+def test_name_stays_required_even_if_form_marks_it_optional(
+    form, unauthenticated_client
+):
+    field = "first_name"
+    form.fields.filter(lead_field=field).update(is_required=False)
+    response = post(unauthenticated_client, form, **{field: ""})
+    assert response.status_code == 400
+    assert not Contact.objects.exists()
+    assert WebFormSubmission.objects.get().status == WebFormSubmission.REJECTED_INVALID
+
+
+def test_phone_match_links_submission_without_rewriting_contact(form):
+    existing = Contact.objects.create(
+        org=form.org,
+        first_name="Original",
+        email="original@example.com",
+        phone="+13055550199",
+    )
+    row = submit_form(
+        form,
+        {"first_name": "Submitted", "email": "new@example.com", "phone": "3055550199"},
+        custom_fields={},
+    )
+    assert row.contact_id == existing.pk
+    existing.refresh_from_db()
+    assert existing.email == "original@example.com"
+    assert existing.first_name == "Original"
+    assert row.payload["email"] == "new@example.com"
+
+
+@pytest.mark.parametrize("required", ["email", "phone"])
+def test_webform_accepts_one_required_identifier(
+    form, unauthenticated_client, required
+):
+    form.fields.filter(lead_field__in=["email", "phone"]).update(is_required=False)
+    form.fields.filter(lead_field=required).update(is_required=True)
+    optional = "phone" if required == "email" else "email"
+    response = post(unauthenticated_client, form, **{optional: ""})
+    assert response.status_code == 200, response.data
+    contact = Contact.objects.get(org=form.org)
+    assert getattr(contact, required)
+    assert not getattr(contact, optional)
+    # Blank email must never link unrelated phone-only visitors together.
+    if required == "phone":
+        second = post(unauthenticated_client, form, email="", phone="+12025550124")
+        assert second.status_code == 200, second.data
+        assert Contact.objects.filter(org=form.org).count() == 2
+
+
+def test_published_form_must_require_email_or_phone(form, admin_client):
+    rows = [
+        {"source": "lead", "lead_field": key, "label": key, "is_required": False}
+        for key in ("first_name", "email", "phone")
+    ]
+    response = admin_client.put(
+        f"/api/webforms/{form.pk}/", {"fields": rows}, format="json"
+    )
+    assert response.status_code == 400
+    assert "fields" in response.data
