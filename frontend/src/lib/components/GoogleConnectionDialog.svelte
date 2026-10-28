@@ -6,14 +6,21 @@
   import { useI18n } from '$lib/i18n/context.js';
   import { legalLinks } from '$lib/legal.js';
 
-  let { service, label, disabled = false, revoke = false, onManage = undefined } = $props();
+  let {
+    service,
+    label,
+    disabled = false,
+    revoke = false,
+    onManage = undefined,
+    accountEmail = ''
+  } = $props();
   const { ui, locale } = useI18n();
   const privacyUrl = $derived(legalLinks(locale()).privacy + '#google');
   let open = $state(false);
   let submitting = $state(false);
   const title = $derived(
     revoke
-      ? 'Remove Google access'
+      ? 'Remove all Google access'
       : service === 'gmail'
         ? 'Connect Gmail'
         : 'Connect Google Calendar'
@@ -62,13 +69,14 @@
       <Dialog.Description class={revoke ? undefined : 'sr-only'}
         >{ui(
           revoke
-            ? 'Remove HDM access to this Google account.'
+            ? 'Disconnect Gmail and Google Calendar for this Google account.'
             : 'Connect only if you want to use this integration.'
         )}</Dialog.Description
       >
     </Dialog.Header>
     <div class="disclosure">
       {#if revoke}
+        {#if accountEmail}<strong class="account-email">{accountEmail}</strong>{/if}
         <p>
           {ui(
             'This revokes HDM permissions for this Google account and may disconnect its other HDM integrations, including in other organizations.'
@@ -133,7 +141,7 @@
         >
         <button type="submit" class="v2-btn v2-btn-primary" disabled={submitting}
           >{ui(
-            submitting ? 'Please wait…' : revoke ? 'Remove Google access' : 'Continue to Google'
+            submitting ? 'Please wait…' : revoke ? 'Remove all Google access' : 'Continue to Google'
           )}</button
         >
       </div>
@@ -164,6 +172,9 @@
     gap: 0.75rem;
     font-size: 0.875rem;
     line-height: 1.5;
+  }
+  .account-email {
+    overflow-wrap: anywhere;
   }
   .disclosure p {
     margin: 0;

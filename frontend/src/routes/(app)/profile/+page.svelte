@@ -16,6 +16,18 @@
   /** @type {{data:any, form:any}} */
   let { data, form } = $props();
   let p = $derived(data.profile);
+  const googleAccounts = $derived(
+    [
+      { service: 'gmail', email: p.integrations?.gmail?.email },
+      { service: 'calendar', email: p.integrations?.google_calendar?.email }
+    ].filter(
+      (account, index, accounts) =>
+        account.email &&
+        accounts.findIndex(
+          (other) => other.email?.toLowerCase() === account.email.toLowerCase()
+        ) === index
+    )
+  );
   let calendars = $state(/** @type {any[]} */ ([])),
     selectedCalendar = $state('primary'),
     calendarError = $state('');
@@ -419,43 +431,30 @@
                       value="sync">{ui('Sync now')}</button
                     >
                   </form>{/if}
-              </div>
-              {#if connection?.email}
-                <details class="connection-settings">
-                  <summary>{ui('Manage connection')}</summary>
-                  <div class="integration-actions">
-                    <GoogleConnectionDialog
-                      service={item.service}
-                      label="Remove Google access"
-                      revoke
-                      onManage={onGoogleManage}
+                {#if connection?.email}
+                  <form method="POST" action="?/googleManage" use:enhance={onGoogleManage}>
+                    <input type="hidden" name="service" value={item.service} />
+                    <button
+                      class="v2-btn v2-btn-sm"
                       disabled={googlePending}
-                    />
-                    <form method="POST" action="?/googleManage" use:enhance={onGoogleManage}>
-                      <input type="hidden" name="service" value={item.service} /><button
-                        class="v2-btn v2-btn-sm"
-                        disabled={googlePending}
-                        name="operation"
-                        value="disconnect">{ui('Disconnect')}</button
-                      >
-                    </form>
-                    {#if item.service === 'calendar' && connection?.status === 'connected'}<button
-                        class="v2-btn v2-btn-sm"
-                        disabled={loadingCalendars || googlePending}
-                        onclick={loadCalendars}
-                        >{ui(loadingCalendars ? 'Loading…' : 'Choose calendar')}</button
-                      >{/if}
-                  </div>
-                  <p class="help">
-                    {ui(
-                      'Disconnect removes only this service from this profile. To withdraw HDM permissions too, use Remove Google access.'
-                    )}
-                    <a
-                      href="https://myaccount.google.com/connections"
-                      target="_blank"
-                      rel="noopener noreferrer">{ui('Google Account connections')}</a
+                      name="operation"
+                      value="disconnect"
+                      >{ui(
+                        item.service === 'gmail' ? 'Disconnect Gmail' : 'Disconnect Google Calendar'
+                      )}</button
                     >
-                  </p>
+                  </form>
+                {/if}
+              </div>
+              {#if item.service === 'calendar' && connection?.status === 'connected'}
+                <details class="connection-settings">
+                  <summary>{ui('Choose calendar')}</summary>
+                  <button
+                    class="v2-btn v2-btn-sm"
+                    disabled={loadingCalendars || googlePending}
+                    onclick={loadCalendars}
+                    >{ui(loadingCalendars ? 'Loading…' : 'Load calendars')}</button
+                  >
                   {#if item.service === 'calendar' && connection?.status === 'connected' && calendars.length}<form
                       method="POST"
                       action="?/googleManage"
@@ -485,6 +484,27 @@
                 />{/if}
             </section>
           {/each}
+          <details class="connection-settings google-advanced">
+            <summary>{ui('Advanced options')}</summary>
+            {#each googleAccounts as account (account.email)}
+              <div class="google-account-access">
+                <strong>{account.email}</strong>
+                <GoogleConnectionDialog
+                  service={account.service}
+                  accountEmail={account.email}
+                  label="Remove all Google access"
+                  revoke
+                  onManage={onGoogleManage}
+                  disabled={googlePending}
+                />
+              </div>
+            {/each}
+            <a
+              href="https://myaccount.google.com/connections"
+              target="_blank"
+              rel="noopener noreferrer">{ui('Google Account connections')}</a
+            >
+          </details>
         </div>{/if}
     </div>
   </div>
@@ -703,6 +723,27 @@
     outline: 2px solid var(--v2-ink);
     outline-offset: 3px;
     border-radius: var(--crm-radius-sm);
+  }
+  .google-advanced {
+    border-top: 1px solid var(--v2-line);
+    padding-top: var(--crm-space-2);
+  }
+  .google-account-access {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--crm-space-3);
+    padding-block: var(--crm-space-3);
+  }
+  .google-account-access strong {
+    font-size: var(--crm-text-sm);
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+  .google-advanced > a {
+    font-size: var(--crm-text-xs);
+    text-decoration: underline;
   }
   .connection-settings > form {
     display: grid;

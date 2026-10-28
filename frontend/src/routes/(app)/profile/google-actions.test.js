@@ -112,3 +112,21 @@ it.each(['gmail', 'calendar'])(
     );
   }
 );
+
+it.each(['gmail', 'calendar'])(
+  'disconnects only the selected %s service without revocation',
+  async (service) => {
+    vi.mocked(apiRequest).mockResolvedValue({ disconnected: true });
+    expect(await actions.googleManage(event(service, { operation: 'disconnect' }))).toMatchObject({
+      saved: true,
+      googleMessage: 'Disconnected. Cached Google data has been removed from the CRM.'
+    });
+    expect(apiRequest).toHaveBeenCalledWith(
+      '/integrations/google/',
+      expect.objectContaining({
+        body: expect.objectContaining({ service, operation: 'disconnect', confirm_revoke: false })
+      }),
+      expect.anything()
+    );
+  }
+);
