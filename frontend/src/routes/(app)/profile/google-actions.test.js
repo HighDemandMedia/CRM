@@ -114,7 +114,7 @@ it.each(['gmail', 'calendar'])(
 );
 
 it.each(['gmail', 'calendar'])(
-  'disconnects only the selected %s service without revocation',
+  'reports local-only cleanup for a legacy %s connection',
   async (service) => {
     vi.mocked(apiRequest).mockResolvedValue({ disconnected: true });
     expect(await actions.googleManage(event(service, { operation: 'disconnect' }))).toMatchObject({
@@ -130,3 +130,28 @@ it.each(['gmail', 'calendar'])(
     );
   }
 );
+
+it.each(['gmail', 'calendar'])(
+  'reports Google revocation only when the API confirms it for %s',
+  async (service) => {
+    vi.mocked(apiRequest).mockResolvedValue({ disconnected: true, revoked: true });
+    expect(await actions.googleManage(event(service, { operation: 'disconnect' }))).toMatchObject({
+      saved: true,
+      googleMessage:
+        'Disconnected. Google permission and cached data have been removed for this service.'
+    });
+  }
+);
+
+it('does not report disconnect success if Google revocation fails', async () => {
+  vi.mocked(apiRequest).mockRejectedValue({
+    body: ['Could not revoke Google access. Try again or remove access in your Google Account.']
+  });
+  expect(await actions.googleManage(event('gmail', { operation: 'disconnect' }))).toMatchObject({
+    status: 400,
+    data: {
+      scope: 'google',
+      message: 'Could not revoke Google access. Try again or remove access in your Google Account.'
+    }
+  });
+});

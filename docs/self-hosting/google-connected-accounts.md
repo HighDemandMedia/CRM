@@ -2,6 +2,11 @@
 
 Current verification preparation: [October 27 readiness and release notes](../operations/google-oauth-readiness-2026-10-27.md). Historical Console notes below are not the current approval status.
 
+Independent-project migration: [October 28 configuration and rollout guide](../operations/google-independent-connections-2026-10-28.md).
+The setup below remains the supported legacy/shared configuration. Dedicated
+Gmail and Calendar clients are optional until their Cloud projects are ready;
+retain shared credentials for existing tokens throughout migration.
+
 Each CRM profile authorizes its own Google account in Profile → Integrations.
 Connections and cached data belong to that profile in that organization, including
 when the same person belongs to multiple organizations. Organization administrators
@@ -137,9 +142,13 @@ expire and require reconnecting. See [Google's scope documentation](https://deve
 ## Disconnecting and retention
 
 Before Google consent, the user reviews a service-specific data-use disclosure.
-Disconnect removes only that service’s credentials and cache from the current profile.
-The separate **Remove Google access** confirmation revokes the Google grant, which
-may affect other HDM integrations for the same Google account. Original Google data
+For independent-project connections, Disconnect revokes that service's Google grant
+before removing its credentials and cache from the current profile. Failed revocation
+preserves the connection for retry. Legacy/shared Disconnect remains local-only.
+The separate **Revoke shared Google access** confirmation under Advanced options
+revokes the shared grant, which may affect other HDM integrations using that project
+for the same Google account. Revocation can affect the same service in other
+organizations; independent projects isolate services, not organizations. Original Google data
 and independent CRM records remain. A confirmed revoked/expired refresh grant clears
 its private cache when detected; transient failures preserve it for retry.
 The initial 90-day Gmail import does not impose a 90-day cache expiration.

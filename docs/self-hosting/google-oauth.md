@@ -37,3 +37,10 @@ For this release deploy **API before Web**: the API now accepts the signed visit
 Automated tests cover PKCE/state, replay, signed visitor identity, failed verification, unknown/disabled users, password fallback for third-party addresses, remember choices, and existing tenant permissions. A real Google authorization still needs verification against the configured client and redirect URI before claiming the deployment is ready.
 
 References: [Google server OAuth flow](https://developers.google.com/identity/protocols/oauth2/web-server), [ID token validation and mailbox authority](https://developers.google.com/identity/sign-in/web/backend-auth), [Google button guidance](https://developers.google.com/identity/branding-guidelines).
+
+## Independent integrations
+
+Gmail and Calendar now support their own Cloud projects without changing the
+sign-in credentials described here. See the [independent connection rollout](../operations/google-independent-connections-2026-10-28.md)
+before enabling service-specific credentials. Never reuse a sign-in project for
+a connection that should be independently revocable.

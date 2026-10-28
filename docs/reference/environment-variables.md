@@ -158,6 +158,15 @@ are read at startup and require restarting the affected services after a change.
 | `GOOGLE_INTEGRATION_CLIENT_ID` | *(empty)* | For personal Gmail/Calendar connections | OAuth client ID for personal integrations, independent from Google sign-in and system mail. |
 | `GOOGLE_INTEGRATION_CLIENT_SECRET` | *(empty)* | For personal Gmail/Calendar connections | OAuth client secret for personal integrations. |
 | `GOOGLE_INTEGRATION_ENCRYPTION_KEY` | *(empty)* | For personal Gmail/Calendar connections | Fernet key encrypting stored integration tokens. Preserve this secret across deploys; replacing it without re-encrypting existing tokens makes them unreadable. |
+| `GOOGLE_PROJECT_ID` | *(empty)* | When enabling isolated integrations | Actual Google Cloud project for CRM sign-in. |
+| `GMAIL_SYSTEM_PROJECT_ID` | *(empty)* | When enabling isolated integrations | Actual Google Cloud project for the existing Gmail system sender. |
+| `GOOGLE_INTEGRATION_PROJECT_ID` | *(empty)* | When enabling isolated integrations | Actual project for legacy shared Gmail/Calendar grants. |
+| `GOOGLE_GMAIL_CLIENT_ID` | *(empty)* | When enabling isolated integrations | Dedicated Gmail OAuth client ID. |
+| `GOOGLE_GMAIL_CLIENT_SECRET` | *(empty)* | When enabling isolated integrations | Dedicated Gmail OAuth client secret; backend-only. |
+| `GOOGLE_GMAIL_PROJECT_ID` | *(empty)* | When enabling isolated integrations | Actual project for the dedicated Gmail client; separate from Calendar and sign-in. |
+| `GOOGLE_CALENDAR_CLIENT_ID` | *(empty)* | When enabling isolated integrations | Dedicated Calendar OAuth client ID. |
+| `GOOGLE_CALENDAR_CLIENT_SECRET` | *(empty)* | When enabling isolated integrations | Dedicated Calendar OAuth client secret; backend-only. |
+| `GOOGLE_CALENDAR_PROJECT_ID` | *(empty)* | When enabling isolated integrations | Actual project for the dedicated Calendar client; separate from Gmail and sign-in. |
 
 ### Docker bootstrap (not read by `crm/settings.py`)
 

@@ -603,6 +603,8 @@ if PROXY_SIGNING_KEY:
 # nothing: the schema is served from whatever host serves the app.
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID", "")
+GMAIL_SYSTEM_PROJECT_ID = os.environ.get("GMAIL_SYSTEM_PROJECT_ID", "")
 
 # Standard SMTP settings; local development can point these at Mailpit.
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
@@ -629,6 +631,15 @@ GOOGLE_INTEGRATION_CLIENT_SECRET = os.environ.get(
 GOOGLE_INTEGRATION_ENCRYPTION_KEY = os.environ.get(
     "GOOGLE_INTEGRATION_ENCRYPTION_KEY", ""
 )
+GOOGLE_INTEGRATION_PROJECT_ID = os.environ.get("GOOGLE_INTEGRATION_PROJECT_ID", "")
+# Separate projects, not just separate clients. Keep legacy credentials until
+# every existing integration has been explicitly reauthorized by its owner.
+GOOGLE_GMAIL_CLIENT_ID = os.environ.get("GOOGLE_GMAIL_CLIENT_ID", "")
+GOOGLE_GMAIL_CLIENT_SECRET = os.environ.get("GOOGLE_GMAIL_CLIENT_SECRET", "")
+GOOGLE_GMAIL_PROJECT_ID = os.environ.get("GOOGLE_GMAIL_PROJECT_ID", "")
+GOOGLE_CALENDAR_CLIENT_ID = os.environ.get("GOOGLE_CALENDAR_CLIENT_ID", "")
+GOOGLE_CALENDAR_CLIENT_SECRET = os.environ.get("GOOGLE_CALENDAR_CLIENT_SECRET", "")
+GOOGLE_CALENDAR_PROJECT_ID = os.environ.get("GOOGLE_CALENDAR_PROJECT_ID", "")
 
 # Owner-confirmed closure freezes writes; purge enforces the 30-day deadline.
 # The purge switch remains available for an operational incident.

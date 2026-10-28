@@ -19,6 +19,7 @@ from common.google_integration import (
     complete,
     connection_status,
     decrypt,
+    disconnect,
     revoke_google_account,
 )
 from common.google_mail import visible_mail_contacts
@@ -99,11 +100,11 @@ class GoogleConnectionView(APIView):
                 raise serializers.ValidationError(str(exc))
             return Response({"revoked": True})
         if operation == "disconnect":
-            # Delete tokens and cached private data; do not delete events in Google.
-            # Do not revoke at Google: doing so also revokes the other service's grant.
-            with transaction.atomic():
-                GoogleConnection.objects.select_for_update().get(pk=conn.pk).delete()
-            return Response({"disconnected": True})
+            try:
+                revoked = disconnect(conn)
+            except GoogleError as exc:
+                raise serializers.ValidationError(str(exc))
+            return Response({"disconnected": True, "revoked": revoked})
         if conn.status != "connected":
             raise serializers.ValidationError("Connect Google first.")
         if operation == "calendar":

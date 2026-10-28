@@ -38,6 +38,10 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture(autouse=True)
 def google_settings(settings):
+    # These tests exercise the legacy client independently of local OAuth setup.
+    for service in ("GMAIL", "CALENDAR"):
+        for suffix in ("CLIENT_ID", "CLIENT_SECRET", "PROJECT_ID"):
+            setattr(settings, f"GOOGLE_{service}_{suffix}", "")
     settings.GOOGLE_INTEGRATION_CLIENT_ID = "test-client"
     settings.GOOGLE_INTEGRATION_CLIENT_SECRET = "test-secret"
     settings.GOOGLE_INTEGRATION_ENCRYPTION_KEY = Fernet.generate_key().decode()

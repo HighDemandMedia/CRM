@@ -7,6 +7,8 @@
   const { ui, locale } = useI18n();
 
   import { resolve } from '$app/paths';
+  import { replaceState } from '$app/navigation';
+  import { page } from '$app/state';
   import { untrack } from 'svelte';
   import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
   import { enhance } from '$app/forms';
@@ -18,15 +20,17 @@
   let p = $derived(data.profile);
   const googleAccounts = $derived(
     [
-      { service: 'gmail', email: p.integrations?.gmail?.email },
-      { service: 'calendar', email: p.integrations?.google_calendar?.email }
-    ].filter(
-      (account, index, accounts) =>
-        account.email &&
-        accounts.findIndex(
-          (other) => other.email?.toLowerCase() === account.email.toLowerCase()
-        ) === index
-    )
+      { service: 'gmail', ...p.integrations?.gmail },
+      { service: 'calendar', ...p.integrations?.google_calendar }
+    ]
+      .filter((account) => !account.independent_disconnect)
+      .filter(
+        (account, index, accounts) =>
+          account.email &&
+          accounts.findIndex(
+            (other) => other.email?.toLowerCase() === account.email.toLowerCase()
+          ) === index
+      )
   );
   let calendars = $state(/** @type {any[]} */ ([])),
     selectedCalendar = $state('primary'),
@@ -35,6 +39,15 @@
   let googlePending = $state(false);
   let googleActionError = $state('');
   const onGoogleManage = () => {
+    // Callback feedback must not reappear on reload after a newer connection action.
+    if (page.url.searchParams.has('google')) {
+      const url = new URL(page.url);
+      url.searchParams.delete('google');
+      url.searchParams.set('tab', 'integrations');
+      // The path is resolved separately to preserve the current query and fragment.
+      // eslint-disable-next-line svelte/no-navigation-without-resolve
+      replaceState(`${resolve('/profile')}${url.search}${url.hash}`, page.state);
+    }
     googlePending = true;
     googleActionError = '';
     return async ({ result, update }) => {
@@ -351,10 +364,12 @@
               message={ui('Google setup is required. Contact your CRM administrator.')}
             />
           {/if}
-          {#if googleCallbackMessage(data.googleResult)}
-            <ErrorNotice message={ui(googleCallbackMessage(data.googleResult))} />
-          {:else if data.googleResult === 'connected'}
-            <Notice tone="success" message={ui('Google connected.')} />
+          {#if form?.scope !== 'google' && !googleActionError && !googlePending}
+            {#if googleCallbackMessage(data.googleResult)}
+              <ErrorNotice message={ui(googleCallbackMessage(data.googleResult))} />
+            {:else if data.googleResult === 'connected'}
+              <Notice tone="success" message={ui('Google connected.')} />
+            {/if}
           {/if}
           {#if googleActionError}<ErrorNotice message={ui(googleActionError)} />{/if}
           {#if form?.scope === 'google'}
@@ -412,7 +427,7 @@
                   message={ui(googleErrorMessage(connection.error))}
                 />{/if}
               <div class="integration-actions">
-                {#if connection?.status !== 'connected'}
+                {#if connection?.status !== 'connected' || connection?.migration_available}
                   <GoogleConnectionDialog
                     service={item.service}
                     label={connection?.email ? 'Reconnect' : `Connect ${item.title}`}
@@ -484,27 +499,22 @@
                 />{/if}
             </section>
           {/each}
-          <details class="connection-settings google-advanced">
-            <summary>{ui('Advanced options')}</summary>
-            {#each googleAccounts as account (account.email)}
-              <div class="google-account-access">
-                <strong>{account.email}</strong>
-                <GoogleConnectionDialog
-                  service={account.service}
-                  accountEmail={account.email}
-                  label="Remove all Google access"
-                  revoke
-                  onManage={onGoogleManage}
-                  disabled={googlePending}
-                />
-              </div>
-            {/each}
-            <a
-              href="https://myaccount.google.com/connections"
-              target="_blank"
-              rel="noopener noreferrer">{ui('Google Account connections')}</a
-            >
-          </details>
+          {#if googleAccounts.length}<details class="connection-settings google-advanced">
+              <summary>{ui('Advanced options')}</summary>
+              {#each googleAccounts as account (account.email)}
+                <div class="google-account-access">
+                  <strong>{account.email}</strong>
+                  <GoogleConnectionDialog
+                    service={account.service}
+                    accountEmail={account.email}
+                    label="Revoke shared Google access"
+                    revoke
+                    onManage={onGoogleManage}
+                    disabled={googlePending}
+                  />
+                </div>
+              {/each}
+            </details>{/if}
         </div>{/if}
     </div>
   </div>
@@ -740,10 +750,6 @@
     font-size: var(--crm-text-sm);
     overflow-wrap: anywhere;
     min-width: 0;
-  }
-  .google-advanced > a {
-    font-size: var(--crm-text-xs);
-    text-decoration: underline;
   }
   .connection-settings > form {
     display: grid;

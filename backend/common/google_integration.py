@@ -17,6 +17,13 @@ from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2.id_token import verify_oauth2_token
 from rest_framework.exceptions import ValidationError
 
+from common.google_oauth_config import (
+    authorization_client,
+    client_config,
+    grant_project,
+    independent_disconnect,
+    stored_client,
+)
 from common.models import GoogleConnection
 
 GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send"
@@ -45,15 +52,15 @@ class GoogleError(Exception):
         self.revoked = revoked
 
 
-def configured():
+def configured(service=None):
     try:
         cipher()
     except (ValueError, TypeError):
         return False
-    return bool(
-        settings.GOOGLE_INTEGRATION_CLIENT_ID
-        and settings.GOOGLE_INTEGRATION_CLIENT_SECRET
-    )
+    if service:
+        return authorization_client(service) is not None
+    # Existing shared grants must keep syncing during a partial migration.
+    return any(client_config(key).configured for key in ("legacy", "gmail", "calendar"))
 
 
 def cipher():
@@ -80,10 +87,11 @@ def redirect_uri():
 def begin(profile, service):
     if service not in SCOPES:
         raise ValidationError("Unknown Google service.")
-    if not configured():
+    if not configured(service):
         raise ValidationError(
             "Google connections need configuration by the CRM administrator."
         )
+    client = authorization_client(service)
     state = secrets.token_urlsafe(32)
     verifier = secrets.token_urlsafe(64)
     GoogleConnection.objects.update_or_create(
@@ -94,11 +102,13 @@ def begin(profile, service):
             "oauth_state_hash": hashlib.sha256(state.encode()).hexdigest(),
             "encrypted_verifier": encrypt(verifier),
             "oauth_started_at": timezone.now(),
+            "pending_client_id": client.client_id,
+            "pending_project_id": client.project_id,
         },
     )
     query = urlencode(
         {
-            "client_id": settings.GOOGLE_INTEGRATION_CLIENT_ID,
+            "client_id": client.client_id,
             "redirect_uri": redirect_uri(),
             "response_type": "code",
             "access_type": "offline",
@@ -119,13 +129,13 @@ def begin(profile, service):
     }
 
 
-def token_request(payload):
+def token_request(payload, client):
     try:
         response = requests.post(
             "https://oauth2.googleapis.com/token",
             data={
-                "client_id": settings.GOOGLE_INTEGRATION_CLIENT_ID,
-                "client_secret": settings.GOOGLE_INTEGRATION_CLIENT_SECRET,
+                "client_id": client.client_id,
+                "client_secret": client.secret,
                 **payload,
             },
             timeout=20,
@@ -157,6 +167,7 @@ def clear_unusable_connection(conn):
         row.mail_activity.all().delete()
         row.mirrors.all().delete()
         row.encrypted_refresh_token = row.encrypted_verifier = row.oauth_state_hash = ""
+        row.pending_client_id = row.pending_project_id = ""
         row.history_id = row.initial_history_id = row.mail_page_token = ""
         row.oauth_started_at = row.last_sync = row.sync_started_at = None
         row.scopes = []
@@ -173,12 +184,22 @@ def revoke_google_account(conn):
     implicitly when disconnecting just Gmail or Calendar.
     """
     identity = Q(subject=conn.subject) if conn.subject else Q(email__iexact=conn.email)
-    connections = list(
-        GoogleConnection.objects.filter(identity, org=conn.org, profile=conn.profile)
-    )
+    connections = [
+        row
+        for row in GoogleConnection.objects.filter(
+            identity, org=conn.org, profile=conn.profile
+        )
+        if grant_project(row) == grant_project(conn)
+    ]
+    revoke_connections(connections)
+
+
+def revoke_connections(connections, *, allow_unusable=False):
+    """Only called for an explicitly confirmed project or an isolated service."""
     sources = [row for row in connections if row.encrypted_refresh_token]
-    if not sources:
+    if not sources and not allow_unusable:
         raise GoogleError("Remove access in your Google Account, then disconnect here.")
+    revoked = False
     try:
         for source in sources:
             response = requests.post(
@@ -187,6 +208,7 @@ def revoke_google_account(conn):
                 timeout=20,
             )
             if response.status_code == 200:
+                revoked = True
                 break
             # An expired Gmail token does not prove Calendar's token is revoked.
             if (
@@ -207,6 +229,30 @@ def revoke_google_account(conn):
                 pk=row.pk, generation=row.generation
             ).delete()
 
+    return revoked
+
+
+def disconnect(conn):
+    if independent_disconnect(conn):
+        # An already revoked/expired token cannot be revoked again. Allow local
+        # cleanup without claiming that Google confirmed removal of its grant.
+        return revoke_connections([conn], allow_unusable=True)
+    if (
+        conn.oauth_client_id
+        and conn.oauth_client_id != client_config("legacy").client_id
+    ):
+        # A removed/misconfigured dedicated client must not silently turn revocation
+        # into local-only deletion. Preserve the token so the operation can be retried.
+        raise GoogleError(
+            "Google connections need configuration by the CRM administrator."
+        )
+    # Never revoke an old shared grant implicitly, even after new clients are configured.
+    with transaction.atomic():
+        GoogleConnection.objects.select_for_update().filter(
+            pk=conn.pk, generation=conn.generation
+        ).delete()
+    return False
+
 
 def complete(profile, code, state):
     if not isinstance(state, str) or not state or not isinstance(code, str) or not code:
@@ -225,22 +271,37 @@ def complete(profile, code, state):
         if not conn:
             raise ValidationError("The Google authorization expired. Connect again.")
         verifier = decrypt(conn.encrypted_verifier)
+        client = stored_client(conn.pending_client_id)
+        project_id = conn.pending_project_id
+        if client is None or (project_id and project_id != client.project_id):
+            raise GoogleError(
+                "Google connections need configuration by the CRM administrator."
+            )
         generation = conn.generation
         conn.oauth_state_hash = conn.encrypted_verifier = ""
-        conn.save(update_fields=["oauth_state_hash", "encrypted_verifier"])
+        conn.pending_client_id = conn.pending_project_id = ""
+        conn.save(
+            update_fields=[
+                "oauth_state_hash",
+                "encrypted_verifier",
+                "pending_client_id",
+                "pending_project_id",
+            ]
+        )
     tokens = token_request(
         {
             "grant_type": "authorization_code",
             "code": code,
             "code_verifier": verifier,
             "redirect_uri": redirect_uri(),
-        }
+        },
+        client,
     )
     try:
         identity = verify_oauth2_token(
             tokens.get("id_token", ""),
             GoogleRequest(),
-            settings.GOOGLE_INTEGRATION_CLIENT_ID,
+            client.client_id,
         )
     except Exception:
         raise GoogleError(
@@ -266,7 +327,12 @@ def complete(profile, code, state):
     with transaction.atomic():
         conn = (
             GoogleConnection.objects.select_for_update()
-            .filter(pk=conn.pk, generation=generation)
+            .filter(
+                pk=conn.pk,
+                generation=generation,
+                oauth_state_hash="",
+                pending_client_id="",
+            )
             .first()
         )
         if not conn:
@@ -280,6 +346,8 @@ def complete(profile, code, state):
         conn.email = identity["email"].lower()
         conn.subject = identity["sub"]
         conn.encrypted_refresh_token = encrypt(refresh)
+        conn.oauth_client_id = client.client_id
+        conn.oauth_project_id = project_id
         conn.scopes = scopes
         conn.status = "connected"
         conn.error = ""
@@ -294,12 +362,18 @@ def complete(profile, code, state):
 
 class GoogleAPI:
     def __init__(self, conn):
+        client = stored_client(conn.oauth_client_id)
+        if client is None:
+            raise GoogleError(
+                "Google connections need configuration by the CRM administrator."
+            )
         try:
             result = token_request(
                 {
                     "grant_type": "refresh_token",
                     "refresh_token": decrypt(conn.encrypted_refresh_token),
-                }
+                },
+                client,
             )
         except GoogleError as exc:
             if exc.revoked:
@@ -345,9 +419,10 @@ def connection_status(profile):
         for row in GoogleConnection.objects.filter(org=profile.org, profile=profile)
     }
     result = {}
-    enabled = configured()
     for service in SCOPES:
         row = rows.get(service)
+        enabled = configured(service)
+        target = authorization_client(service)
         result["google_calendar" if service == "calendar" else service] = {
             "configured": enabled,
             "status": row.status
@@ -357,6 +432,14 @@ def connection_status(profile):
             "last_sync": row.last_sync if row else None,
             "error": row.error if row else "",
             "syncing": bool(row and row.sync_started_at),
+            "independent_disconnect": bool(row and independent_disconnect(row)),
+            "migration_available": bool(
+                row
+                and row.encrypted_refresh_token
+                and target
+                and target.client_id
+                != (row.oauth_client_id or client_config("legacy").client_id)
+            ),
             "can_send": bool(
                 row and row.status == "connected" and GMAIL_SEND_SCOPE in row.scopes
             ),

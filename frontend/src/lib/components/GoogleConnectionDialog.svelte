@@ -20,7 +20,7 @@
   let submitting = $state(false);
   const title = $derived(
     revoke
-      ? 'Remove all Google access'
+      ? 'Revoke shared Google access'
       : service === 'gmail'
         ? 'Connect Gmail'
         : 'Connect Google Calendar'
@@ -69,7 +69,7 @@
       <Dialog.Description class={revoke ? undefined : 'sr-only'}
         >{ui(
           revoke
-            ? 'Disconnect Gmail and Google Calendar for this Google account.'
+            ? 'Remove permissions for integrations that share this Google project.'
             : 'Connect only if you want to use this integration.'
         )}</Dialog.Description
       >
@@ -84,7 +84,7 @@
         </p>
         <p>
           {ui(
-            'Cached Gmail and Calendar data for this account in your current profile will be removed. Your original Google emails, events and CRM records stay intact.'
+            'Cached data for the affected connections in this profile will be removed. Your original Google emails, events and CRM records stay intact.'
           )}
         </p>
       {:else}
@@ -141,7 +141,11 @@
         >
         <button type="submit" class="v2-btn v2-btn-primary" disabled={submitting}
           >{ui(
-            submitting ? 'Please wait…' : revoke ? 'Remove all Google access' : 'Continue to Google'
+            submitting
+              ? 'Please wait…'
+              : revoke
+                ? 'Revoke shared Google access'
+                : 'Continue to Google'
           )}</button
         >
       </div>

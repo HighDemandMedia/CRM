@@ -535,7 +535,7 @@ export const articles = [
       },
       {
         title: 'Disconnect or remove Google access',
-        text: 'Disconnect removes this service’s connection and cached data from your current CRM profile. Advanced options → Remove all Google access also revokes HDM permissions at Google and may disconnect other HDM integrations for the same Google account. Original Google data, separate CRM records and internal comments remain. If Google rejects an expired or revoked refresh permission, the CRM clears that connection’s private cache when it detects the rejection. The initial 90-day import is not an automatic deletion deadline.'
+        text: 'Disconnect removes the connection and cached messages from this profile. For an independent Gmail connection, it also revokes Gmail access at Google; Calendar and CRM sign-in stay separate. Older shared connections use Advanced options → Revoke shared Google access, which can affect other HDM integrations using that Google project. Revocation may also affect the same Google account connected to that service in another organization. Original Google messages, CRM records and internal comments remain. Expired or revoked grants clear their private cache when detected. The initial 90-day import is not a deletion deadline.'
       },
       {
         title: 'Privacy and troubleshooting',
@@ -564,7 +564,7 @@ export const articles = [
       },
       {
         title: 'Disconnect or remove Google access',
-        text: 'Disconnect removes Calendar credentials and cached Google events from this profile, keeping CRM appointments and original Google events. Advanced options → Remove all Google access revokes HDM permissions for that Google account and may also disconnect Gmail or other HDM integrations. Review the confirmation before continuing.'
+        text: 'Disconnect removes Calendar credentials and cached events from this profile, keeping CRM appointments and original Google events. Independent Calendar connections also revoke Calendar access at Google without revoking Gmail or CRM sign-in. Older shared connections retain a separate Revoke shared Google access action under Advanced options. Revocation can affect the same Google account connected to Calendar in another organization.'
       },
       {
         title: 'Limits and conflicts',

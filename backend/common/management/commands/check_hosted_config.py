@@ -9,9 +9,13 @@ from django.core.management.base import BaseCommand, CommandError
 from django.core.validators import EmailValidator
 from django.db import connection
 
+from common.google_oauth_config import isolation_errors
+
 
 def validate_settings(config):
     errors = []
+    for service in ("gmail", "calendar"):
+        errors.extend(isolation_errors(service, config))
     if config.ENV_TYPE != "prod" or config.DEBUG:
         errors.append("Set ENV_TYPE=prod and DEBUG=False.")
     if len(config.SECRET_KEY.encode()) < 50 or config.SECRET_KEY.startswith(

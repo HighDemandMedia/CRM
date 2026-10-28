@@ -61,7 +61,7 @@ export const actions = {
   googleManage: async ({ cookies, request }) => {
     const form = await request.formData();
     try {
-      await apiRequest(
+      const result = await apiRequest(
         '/integrations/google/',
         {
           method: 'POST',
@@ -84,7 +84,9 @@ export const actions = {
           form.get('operation') === 'revoke'
             ? 'Google access removed. Reconnect any HDM integration you want to use again.'
             : form.get('operation') === 'disconnect'
-              ? 'Disconnected. Cached Google data has been removed from the CRM.'
+              ? result?.revoked
+                ? 'Disconnected. Google permission and cached data have been removed for this service.'
+                : 'Disconnected. Cached Google data has been removed from the CRM.'
               : 'Synchronization requested. Check the connection status and last sync time for progress.'
       };
     } catch (err) {
