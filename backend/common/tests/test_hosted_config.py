@@ -55,6 +55,39 @@ def test_insecure_hosted_settings_rejected(config, name, value):
         validate_settings(config)
 
 
+@pytest.fixture
+def ses_config(config):
+    config.EMAIL_BACKEND = "django_ses.SESBackend"
+    config.AWS_SES_REGION_NAME = "us-east-1"
+    config.DEFAULT_FROM_EMAIL = "HDM CRM <info@example.com>"
+    return config
+
+
+def test_ses_allows_existing_credential_chain(ses_config):
+    validate_settings(ses_config)
+
+
+def test_ses_allows_dedicated_credentials(ses_config):
+    ses_config.AWS_SES_ACCESS_KEY_ID = "ses-test-key"
+    ses_config.AWS_SES_SECRET_ACCESS_KEY = "ses-test-secret"
+    validate_settings(ses_config)
+
+
+@pytest.mark.parametrize(
+    "name,value",
+    [
+        ("AWS_SES_REGION_NAME", ""),
+        ("DEFAULT_FROM_EMAIL", "noreply@localhost"),
+        ("AWS_SES_ACCESS_KEY_ID", "only-key"),
+        ("AWS_SES_SECRET_ACCESS_KEY", "only-secret"),
+    ],
+)
+def test_ses_rejects_incomplete_configuration(ses_config, name, value):
+    setattr(ses_config, name, value)
+    with pytest.raises(CommandError):
+        validate_settings(ses_config)
+
+
 @pytest.mark.parametrize(
     "role,row_security,allowed",
     [

@@ -84,11 +84,14 @@ Pooling uses psycopg 3's `psycopg_pool` through Django's PostgreSQL backend. It 
 
 | Variable | Default | Required | Purpose |
 | --- | --- | --- | --- |
-| `EMAIL_BACKEND` | `django.core.mail.backends.console.EmailBackend` | No | Django email backend. The default prints outbound mail to stdout instead of sending it. Setting `ENV_TYPE=prod` overrides this unconditionally to `django_ses.SESBackend`, regardless of what this variable is set to. See [Email and Celery](../self-hosting/email-and-celery.md#amazon-ses). |
+| `EMAIL_BACKEND` | `django.core.mail.backends.console.EmailBackend` | No | Django email backend. The default prints outbound mail to stdout instead of sending it. `ENV_TYPE=prod` defaults to `django_ses.SESBackend` only when this variable is absent; an explicit backend is preserved. See [Email and Celery](../self-hosting/email-and-celery.md#amazon-ses). |
 | `DEFAULT_FROM_EMAIL` | `noreply@localhost` | No | `From` address on outbound mail. |
 | `ADMIN_EMAIL` | `admin@localhost` in settings | Only for optional Django superuser bootstrap | Returned as `admin_email` by the user-list API. The bootstrap command independently requires an explicitly configured email and password; it does not use the settings fallback. |
-| `AWS_SES_REGION_NAME` | `ap-south-1` | No, unless `ENV_TYPE=prod` | Only read when `"django_ses"` appears in `EMAIL_BACKEND`. True if you set `EMAIL_BACKEND=django_ses.SESBackend` directly, or unconditionally true once `ENV_TYPE=prod` forces that backend. Under `ENV_TYPE=prod`, `server_settings.py` requires this variable outright (`os.environ[...]`, no default) before `settings.py`'s own conditional read ever runs, so the default above is effectively unreachable in that mode. |
-| `AWS_SES_REGION_ENDPOINT` | `email.<AWS_SES_REGION_NAME>.amazonaws.com` | No, unless `ENV_TYPE=prod` | Same condition and the same `ENV_TYPE=prod`-makes-it-required caveat as `AWS_SES_REGION_NAME` above. |
+| `AWS_SES_REGION_NAME` | `ap-south-1` | For SES, explicitly set the verified region | Read only when the SES backend is selected. HDM uses `us-east-1`. |
+| `AWS_SES_REGION_ENDPOINT` | `email.<AWS_SES_REGION_NAME>.amazonaws.com` | No | SES regional endpoint. Omit instead of setting an empty string. |
+| `AWS_SES_ACCESS_KEY_ID` | absent | With dedicated SES credentials | SES-only access key; does not replace S3 credentials. If neither dedicated key is set, django-ses retains its existing credential-chain behavior. |
+| `AWS_SES_SECRET_ACCESS_KEY` | absent | With dedicated SES credentials | Secret paired with the SES key. Keep backend-only. A partial pair is rejected by the hosted configuration check. |
+| `AWS_SES_CONFIGURATION_SET` | unset | No | Existing SES configuration set for delivery monitoring; leave empty until created. |
 
 ### Celery and Redis
 

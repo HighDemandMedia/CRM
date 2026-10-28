@@ -1,9 +1,12 @@
 """Fail closed when a hosted CRM is configured like local development."""
 
+from email.utils import parseaddr
 from urllib.parse import urlsplit
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
+from django.core.validators import EmailValidator
 from django.db import connection
 
 
@@ -50,6 +53,21 @@ def validate_settings(config):
         ):
             if not getattr(config, name, "").strip():
                 errors.append(f"Set {name} in the private mail environment group.")
+    elif backend == "django_ses.SESBackend":
+        if not getattr(config, "AWS_SES_REGION_NAME", "").strip():
+            errors.append("Set AWS_SES_REGION_NAME to the verified identity's region.")
+        ses_key = getattr(config, "AWS_SES_ACCESS_KEY_ID", "").strip()
+        ses_secret = getattr(config, "AWS_SES_SECRET_ACCESS_KEY", "").strip()
+        if bool(ses_key) != bool(ses_secret):
+            errors.append(
+                "Set both AWS_SES_ACCESS_KEY_ID and AWS_SES_SECRET_ACCESS_KEY."
+            )
+        try:
+            EmailValidator(allowlist=[])(
+                parseaddr(getattr(config, "DEFAULT_FROM_EMAIL", ""))[1]
+            )
+        except ValidationError:
+            errors.append("Set DEFAULT_FROM_EMAIL to a valid SES-verified sender.")
     elif backend in (
         "django.core.mail.backends.console.EmailBackend",
         "django.core.mail.backends.locmem.EmailBackend",

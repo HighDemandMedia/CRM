@@ -262,8 +262,18 @@ if "django_ses" in EMAIL_BACKEND:
     AWS_SES_REGION_ENDPOINT = os.environ.get(
         "AWS_SES_REGION_ENDPOINT", f"email.{AWS_SES_REGION_NAME}.amazonaws.com"
     )
-    # Uses AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY from env if set;
-    # otherwise falls back to IAM role credentials.
+    # Keep mail credentials separate from S3. An absent pair retains the
+    # existing django-ses credential-chain behavior for other installations.
+    if os.environ.get("AWS_SES_ACCESS_KEY_ID") or os.environ.get(
+        "AWS_SES_SECRET_ACCESS_KEY"
+    ):
+        AWS_SES_ACCESS_KEY_ID = os.environ.get("AWS_SES_ACCESS_KEY_ID", "").strip()
+        AWS_SES_SECRET_ACCESS_KEY = os.environ.get(
+            "AWS_SES_SECRET_ACCESS_KEY", ""
+        ).strip()
+    AWS_SES_CONFIGURATION_SET = (
+        os.environ.get("AWS_SES_CONFIGURATION_SET", "").strip() or None
+    )
 
 
 # celery Tasks

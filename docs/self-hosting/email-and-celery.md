@@ -16,15 +16,10 @@ setting it. To send real email, set `EMAIL_BACKEND` to a working Django email ba
 commonly `django_ses.SESBackend` (see [Amazon SES](#amazon-ses) below); `django_ses` is always in
 `INSTALLED_APPS`, so the package is available regardless of which backend you choose.
 
-There is a second, coarser way `EMAIL_BACKEND` gets set to SES: if you set `ENV_TYPE=prod`,
-`backend/crm/server_settings.py` is imported and hardcodes `EMAIL_BACKEND = "django_ses.SESBackend"`
-unconditionally, overriding whatever `EMAIL_BACKEND` you set directly. `ENV_TYPE=prod` also requires
-`AWS_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SES_REGION_NAME`,
-`AWS_SES_REGION_ENDPOINT` and `SENTRY_DSN` to already be set (a plain `KeyError` at import time if
-any is missing) and hardcodes `SESSION_COOKIE_DOMAIN = ".bottlecrm.io"`. See
-[Production deployment](production-deploy.md#static-files) for the full consequences. If you only
-want SES for email and don't want the S3/Sentry/cookie-domain side effects that come with
-`ENV_TYPE=prod`, set `EMAIL_BACKEND=django_ses.SESBackend` directly instead and leave `ENV_TYPE=dev`.
+With `ENV_TYPE=prod`, `server_settings.py` preserves an explicit `EMAIL_BACKEND`
+and defaults to SES only when it is absent. Production storage configuration is
+independent of the chosen mail backend. Do not switch mail providers just by
+changing the environment type. See [SES migration](ses-system-sender.md).
 
 `DEFAULT_FROM_EMAIL` (default `noreply@localhost`) is the sender address used on every outbound
 message; `ADMIN_EMAIL` (default `admin@localhost`) is separate and is what
@@ -32,20 +27,14 @@ message; `ADMIN_EMAIL` (default `admin@localhost`) is separate and is what
 
 ## Amazon SES
 
-Once `EMAIL_BACKEND` resolves to `django_ses.SESBackend`, whichever of the two paths above got you
-there; `crm/settings.py` reads `AWS_SES_REGION_NAME` (default `ap-south-1`) and
-`AWS_SES_REGION_ENDPOINT` (default `email.{AWS_SES_REGION_NAME}.amazonaws.com`, computed from
-whatever you set for the region). AWS credentials are read implicitly by `django-ses`/`boto3` from
-`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` if you set them; if you don't, `boto3` falls back to
-IAM role credentials, which is the intended path when running inside AWS (EC2/ECS instance role)
-rather than with long-lived access keys in the environment.
+Set `EMAIL_BACKEND=django_ses.SESBackend` only after verifying the identity,
+production access, credentials and delivery in the intended region. Set
+`AWS_SES_REGION_NAME` explicitly; HDM uses `us-east-1`.
 
-The Celery tasks that actually send mail; `send_welcome_email` and `send_magic_link_email` in
-`backend/common/tasks.py`: catch `botocore.exceptions.ClientError` around the `msg.send()` call and
-log the failure rather than letting the task raise, specifically because SES can reject a send (an
-unverified sender identity, a suppressed recipient address, being outside the SES sandbox) in ways
-that are the mail provider's problem, not a bug in the task. Check the worker's logs, not the Celery
-task result, if an expected email never arrives.
+Use `AWS_SES_ACCESS_KEY_ID` and `AWS_SES_SECRET_ACCESS_KEY` for a dedicated sender
+without changing the S3 keys. An absent dedicated pair preserves django-ses's
+existing credential chain. Never grant mail permissions to an unrelated storage
+user just to make delivery work. See [the staged migration and rollback procedure](ses-system-sender.md).
 
 ## Broker and result backend
 
