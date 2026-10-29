@@ -53,3 +53,14 @@ export function timedCards(events) {
   flush();
   return result;
 }
+
+// Wall-clock input values remain local; formatting must not shift their timezone.
+export function formatClockTime(value, locale = 'en-US') {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return '';
+  const [hour, minute] = value.split(':').map(Number);
+  return new Date(2000, 0, 1, hour, minute).toLocaleTimeString(locale, {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+}

@@ -418,7 +418,7 @@ export const articles = [
       },
       {
         title: 'Gmail and Google Calendar',
-        text: 'Profile → Integrations shows separate Gmail and Google Calendar cards. Connect each service using your own Google account and accept its permissions. Setup required means the CRM owner must configure the Google integration; Reconnect required means authorization needs to be renewed. Manage connections and Sync now here, rather than inside record email tabs. Saving an email access preference or using Google to sign in does not connect Gmail or synchronize calendars.'
+        text: 'Profile → Integrations shows separate Gmail and Google Calendar cards. Connect each service using your own Google account and accept its permissions. Setup required means the CRM owner must configure the Google integration; Reconnect required means authorization needs to be renewed. Manage connections here; synchronization runs automatically. Saving an email access preference or using Google to sign in does not connect Gmail or synchronize calendars.'
       }
     ]
   },
@@ -539,7 +539,7 @@ export const articles = [
       },
       {
         title: 'Privacy and troubleshooting',
-        text: 'Only you can read your connected mailbox through the CRM, even if another user is an administrator. Current record access is checked again when opening a message. Connections belong to your user profile in the selected organization. Manage connection status and Sync now in Profile → Integrations. Automated CRM notifications use the separate system sender and do not require every user to connect Gmail.'
+        text: 'Only you can read your connected mailbox through the CRM, even if another user is an administrator. Current record access is checked again when opening a message. Connections belong to your user profile in the selected organization. Manage connection status in Profile → Integrations; synchronization runs automatically. Automated CRM notifications use the separate system sender and do not require every user to connect Gmail.'
       }
     ]
   },
@@ -547,20 +547,20 @@ export const articles = [
     slug: 'google-calendar',
     category: 'Scheduling',
     title: 'Connect and synchronize Google Calendar',
-    summary: 'Hosted appointments, meeting notes and two-way updates.',
+    summary: 'Appointments, guest responses and availability across calendars.',
     sections: [
       {
         title: 'Connect your calendar',
         steps: [
           'Open Profile → Integrations → Connect Google Calendar and authorize your own account.',
-          'Choose the calendar. The primary calendar is selected by default. Use a writable calendar to send CRM appointments to Google.',
+          'CRM appointments use your connected calendar. Select additional calendars for availability in Profile → Integrations; their private event details are not shown.',
           'Create appointments from Calendar or Schedule event on a record. The host must be the user with the connected calendar.',
-          'Allow about five minutes for background sync or use Sync now in Profile → Integrations. Check the connection status if an appointment does not appear.'
+          'Google notifications trigger background updates automatically. Scheduled sync remains a fallback; check the connection status if an appointment does not appear.'
         ]
       },
       {
         title: 'What synchronizes',
-        text: 'Google events appear in your CRM calendar. Hosted CRM appointments synchronize title, start/end times and meeting notes in both directions; meeting notes become the Google event description. General contact notes are not exported. The sync window covers the previous 90 days and next 365 days. Google-only events are private to their connected user; shared host availability shows busy times without exposing private details.'
+        text: 'Google events appear in your CRM calendar. Hosted CRM appointments synchronize titles, start/end times and guest responses. Internal CRM notes stay private and are never sent to Google or guests. The sync window covers the previous 90 days and next 365 days. Google-only events are private to their connected user; shared host availability shows busy times without exposing private details.'
       },
       {
         title: 'Disconnect or remove Google access',
@@ -568,7 +568,7 @@ export const articles = [
       },
       {
         title: 'Limits and conflicts',
-        text: 'Calendar permissions still control CRM changes. This sync does not send invitation emails or add Google invitees. Edit all-day events in Google. If both sides changed, the CRM reports a conflict instead of overwriting them; align the Google event with the desired CRM details and sync again. Disconnecting removes the CRM connection and cached Google data, not appointments or Google events. Switching calendars can leave previously exported events in the old calendar.'
+        text: 'Calendar permissions still control CRM changes. New appointments send Google invitations to guests; rescheduling and cancellation update the same event. Without a connected writable calendar, guests receive an email with response buttons and a calendar attachment; use the buttons to record the response in CRM. Google may require a guest to respond before displaying an invitation. Edit all-day events in Google. If both sides changed, the CRM reports a conflict instead of overwriting them; align the Google event with the desired CRM details and sync again. Disconnecting removes the CRM connection and cached Google data, not appointments or Google events. A calendar with linked CRM appointments cannot be switched to another destination.'
       }
     ]
   },

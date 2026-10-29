@@ -1292,6 +1292,11 @@ class PackApplication(BaseOrgModel):
 
 
 class SalesAppointment(QuotaModelMixin):
+    invitation_provider = models.CharField(
+        max_length=8, blank=True, default="", db_default=""
+    )
+    guest_responses = models.JSONField(default=dict, blank=True, db_default={})
+
     objects = QuotaManager()
 
     contacts = models.ManyToManyField(
@@ -1384,6 +1389,7 @@ class OrganizationInvitation(QuotaModelMixin):
 # Keep integration models in their own module while registering with this app.
 from common.appointment_email_models import AppointmentEmailDelivery  # noqa: E402, F401
 from common.google_models import (  # noqa: E402, F401
+    GoogleAvailabilityCalendar,
     GoogleCalendarEvent,
     GoogleCalendarMirror,
     GoogleConnection,

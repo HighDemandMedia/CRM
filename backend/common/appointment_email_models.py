@@ -26,6 +26,9 @@ class AppointmentEmailDelivery(models.Model):
     contact = models.ForeignKey(
         "contacts.Contact", null=True, blank=True, on_delete=models.CASCADE
     )
+    company = models.ForeignKey(
+        "accounts.Account", null=True, blank=True, on_delete=models.CASCADE
+    )
     # Only public appointment details. Never store internal_notes or attendee lists.
     payload = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -45,8 +48,21 @@ class AppointmentEmailDelivery(models.Model):
             ),
             models.CheckConstraint(
                 condition=(
-                    models.Q(profile__isnull=False, contact__isnull=True)
-                    | models.Q(profile__isnull=True, contact__isnull=False)
+                    models.Q(
+                        profile__isnull=False,
+                        contact__isnull=True,
+                        company__isnull=True,
+                    )
+                    | models.Q(
+                        profile__isnull=True,
+                        contact__isnull=False,
+                        company__isnull=True,
+                    )
+                    | models.Q(
+                        profile__isnull=True,
+                        contact__isnull=True,
+                        company__isnull=False,
+                    )
                 ),
                 name="appointment_email_recipient",
             ),

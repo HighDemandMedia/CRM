@@ -114,30 +114,15 @@ expire and require reconnecting. See [Google's scope documentation](https://deve
 
 ## Calendar behavior
 
-- Polls every five minutes. Calendar navigation reads the cache and does not wait
-  for Google. Sync covers the previous 90 days and next 365 days, including timed,
-  all-day and recurring instances. Google events are shown only to their owner.
-- Exports the connected user's hosted CRM appointments, subject to Calendar
-  permissions. Title, start, end and **meeting notes → Google description** sync
-  in both directions. General contact notes are never exported. Connecting a host
-  can publish the notes of existing hosted appointments in that window.
-- Google changes to a linked appointment update the CRM appointment and attendee
-  Appointment property through the same Calendar helper. Existing CRM appointments
-  are not duplicated in the calendar cache display.
-- Edit details, reschedule and cancel actions work on writable Google events.
-  All-day Google events are opened in Google for editing.
-- The CRM does not add invitees or send invitation/update emails as part of sync.
-  Google notes may be visible to people who already have access to that event.
-- Cached Google busy times are considered when creating or moving CRM appointments.
-  Other hosts' availability exposes busy intervals, not their private event details.
-- Stable external IDs and ETags make retries idempotent and detect concurrent edits.
-  If both sides changed since the last sync, neither is overwritten. Align the
-  conflicting event's title, dates and notes in Google with the desired CRM values
-  (or cancel it on both sides) and sync again. The connection shows the conflict.
-- Switching calendars with existing mirrors requires disconnecting first. Disconnect
-  deletes CRM cached Google data and credentials, not the user's events in Google
-  or their CRM appointments. Reconnecting to the same calendar reuses stable IDs.
-  Switching to a different calendar leaves the previous Google events in place.
+- Google push notifications queue bounded background sync; scheduled polling remains a recovery fallback. UI reads the cache and checks revisions automatically. Covers the previous 90 days and next 365 days, including all-day and recurring instances.
+- One writable calendar receives hosted CRM appointments. Up to ten additional readable calendars contribute availability only: their cached titles are `Busy`, with no descriptions or event links, and they are excluded from the event display.
+- New appointments created with a connected writable host calendar use native Google invitations (`sendUpdates=all`). Guest responses synchronize to CRM; reschedule and cancel use the same external event ID. Legacy appointments are not retroactively invited.
+- Title and time synchronize both ways. Internal CRM notes are neither exported nor overwritten by Google descriptions. Google event descriptions remain separate from internal notes.
+- Without a connected writable calendar, guests receive branded email with signed Accept/Maybe/Decline links and an ICS attachment. Updates and cancellation reuse the same UID and increase sequence. Response links require POST confirmation; link previews do not accept invitations. Native ICS reply emails are not ingested: guests use the email buttons to record their response in CRM.
+- Existing Google guest/calendar settings determine whether an invitation appears before RSVP. The CRM cannot force automatic insertion into a guest's calendar.
+- Stable IDs and ETags avoid duplicate events. Concurrent meeting edits report a conflict; RSVP-only changes do not conflict with a pending CRM edit.
+- Destination changes with existing mirrors require disconnecting first. Reconnecting to the same destination reuses IDs. Other destinations leave old Google events intact. Extra availability calendars can be changed independently.
+- Disconnect clears local Google caches and credentials, not Google events or CRM appointments.
 
 ## Disconnecting and retention
 
@@ -204,7 +189,7 @@ deployment is required for these Google Console changes.
    completion without evidence.
 4. Reconnect test accounts after publication to obtain fresh offline grants,
    then verify real Gmail import, explicit send/reply/forward, and Calendar
-   create/edit/notes synchronization in both directions. Validate the separate
+   create/edit/cancellation synchronization and guest responses. Internal notes must stay private. Validate the separate
    system sender as well. This review did not perform those live round trips.
 
 At this review, Google still shows **data access not verified**, with **5 / 100**
@@ -213,7 +198,7 @@ Testing grants have a seven-day refresh-token expiry for these scopes; publishin
 does not prove previously issued tokens have been renewed. Production tokens can
 still be revoked or expire for other reasons.
 
-### Prepared scope justifications
+### Historical scope justifications (superseded)
 
 Sensitive scopes (Calendar events and Gmail send):
 

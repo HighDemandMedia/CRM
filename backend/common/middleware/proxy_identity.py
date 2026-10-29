@@ -23,6 +23,7 @@ SIGNED_PATHS = frozenset(
         "/api/auth/password/invitation/",
         "/api/auth/password/change/",
         "/api/auth/magic-link/request/",
+        "/api/appointment-response/",
     }
 )
 HEADER_NAMES = ("IP", "TIME", "SIGNATURE")

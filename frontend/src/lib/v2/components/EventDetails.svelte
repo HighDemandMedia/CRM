@@ -39,6 +39,12 @@
   export function close() {
     if (panel?.matches(':popover-open')) panel.hidePopover();
   }
+  export function refresh(records) {
+    if (!event || mode !== 'details' || busy) return;
+    const current = records.find((record) => record.id === event.id && record.type === event.type);
+    if (current) event = current;
+    else close();
+  }
   export async function open(record, anchor) {
     if (busy) return;
     event = record;
@@ -68,7 +74,11 @@
     top = Math.max(16, Math.min(rect.top - 12, window.innerHeight - panel.offsetHeight - 16));
   }
   const time = (value) =>
-    new Date(value).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' });
+    new Date(value).toLocaleTimeString(locale(), {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
 
   async function manage(operation) {
     if (busy) return;
@@ -193,6 +203,16 @@
                   ? resolve(`/accounts/${person.id}`)
                   : resolve(`/contacts/${person.id}`)}>{person.name}<ArrowUpRight size={15} /></a
               >{/if}
+            {#if person.response}<span class="response-status" data-response={person.response}
+                >{ui(
+                  {
+                    needsAction: 'Pending',
+                    accepted: 'Accepted',
+                    tentative: 'Maybe',
+                    declined: 'Declined'
+                  }[person.response] || 'Pending'
+                )}</span
+              >{/if}
           </div>
         </div>
         {#if person.language || person.phone || person.email}<div class="contact-info">
@@ -259,7 +279,11 @@
               >
             </fieldset>
             <p class="v2-sub">
-              {ui('Meeting notes are shared as the Google Calendar description when connected.')}
+              {ui(
+                event.type === 'google'
+                  ? 'Visible in Google Calendar.'
+                  : 'Only visible to your team.'
+              )}
             </p>
             <button class="v2-btn" type="button" onclick={() => (mode = 'details')}
               >{ui('Cancel')}</button
@@ -352,6 +376,23 @@
 </div>
 
 <style>
+  .response-status {
+    display: block;
+    width: fit-content;
+    margin-top: 5px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: var(--crm-surface-subtle);
+    color: var(--crm-text-muted);
+    font-size: var(--crm-text-xs);
+  }
+  .response-status[data-response='accepted'] {
+    color: var(--v2-moss);
+  }
+  .response-status[data-response='declined'] {
+    color: var(--crm-danger);
+  }
+
   .event-actions {
     display: flex;
     flex-wrap: wrap;

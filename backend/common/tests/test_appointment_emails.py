@@ -68,10 +68,14 @@ def test_creation_is_private_branded_bilingual_and_idempotent(meeting):
         assert "linear-gradient(135deg,#AC0F0B,#CA4618)" in html
         assert "background-color:#292D30" in html
         if message.to == ["client@example.com"]:
-            assert message.subject == "Cita confirmada · HDM CRM"
+            assert message.subject == "Invitación a una cita · HDM CRM"
             assert "10/11/2026 · 10:00" in message.body
             assert "America/New_York" in message.body
-            assert "https://crm.example.com" not in message.body + html
+            assert (
+                "https://crm.example.com/appointment-response?token="
+                in message.body + html
+            )
+            assert "/calendar" not in message.body + html
             assert '<html lang="es"' in html
         else:
             assert "https://crm.example.com/calendar" in html

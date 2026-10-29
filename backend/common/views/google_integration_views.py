@@ -113,28 +113,75 @@ class GoogleConnectionView(APIView):
             calendar_id = serializers.CharField(max_length=1024).run_validation(
                 request.data.get("calendar_id")
             )
+            extras = serializers.ListField(
+                child=serializers.CharField(max_length=1024), max_length=10
+            ).run_validation(request.data.get("availability_calendar_ids", []))
+            api = GoogleAPI(conn)
             try:
-                item = GoogleAPI(conn).get(
+                item = api.get(
                     "calendar/v3/users/me/calendarList/" + quote(calendar_id, safe="")
                 )
+                if item.get("accessRole") not in ("owner", "writer"):
+                    raise serializers.ValidationError(
+                        "Choose a calendar you can edit for CRM appointments."
+                    )
+                calendar_id = item.get("id") or calendar_id
+                extra_items = {}
+                for extra_id in dict.fromkeys(extras):
+                    extra = api.get(
+                        "calendar/v3/users/me/calendarList/" + quote(extra_id, safe="")
+                    )
+                    if extra.get("accessRole") not in ("owner", "writer", "reader"):
+                        raise serializers.ValidationError(
+                            "This calendar does not allow availability synchronization."
+                        )
+                    key = extra.get("id") or extra_id
+                    if key != calendar_id:
+                        extra_items[key] = extra
             except GoogleError as exc:
                 raise serializers.ValidationError(str(exc))
             with transaction.atomic():
+                generation = conn.generation
                 conn = GoogleConnection.objects.select_for_update().get(pk=conn.pk)
-                if conn.mirrors.exists() and conn.calendar_id != calendar_id:
+                if conn.generation != generation or conn.status != "connected":
+                    raise serializers.ValidationError(
+                        "Connection changed. Reload and try again."
+                    )
+                # Google returns the real ID for the special 'primary' alias.
+                same_primary = conn.calendar_id == calendar_id or (
+                    conn.calendar_id == "primary" and item.get("primary") is True
+                )
+                if conn.mirrors.exists() and not same_primary:
                     raise serializers.ValidationError(
                         "Disconnect Calendar before switching a calendar with linked CRM appointments."
                     )
-                conn.events.all().delete()
+                if not same_primary:
+                    conn.events.filter(calendar_id="").delete()
+                    from common.google_calendar_push import reset_calendar_state
+
+                    reset_calendar_state(conn)
                 conn.calendar_id, conn.calendar_name = (
                     calendar_id,
                     item.get("summary", "")[:255],
                 )
-                conn.calendar_writable = item.get("accessRole") in ("owner", "writer")
-                from common.google_calendar_push import reset_calendar_state
-
-                reset_calendar_state(conn)
+                conn.calendar_writable = True
+                for source in conn.availability_calendars.exclude(
+                    calendar_id__in=extra_items
+                ):
+                    conn.events.filter(calendar_id=source.calendar_id).delete()
+                    source.delete()
+                for key, extra in extra_items.items():
+                    conn.availability_calendars.get_or_create(
+                        calendar_id=key,
+                        defaults={
+                            "org": conn.org,
+                            "calendar_name": extra.get("summary", "")[:255],
+                        },
+                    )
+                # Reject an in-flight sync against the previous selection.
                 conn.generation = uuid.uuid4()
+                conn.calendar_watch_expires_at = None
+                conn.availability_calendars.update(calendar_watch_expires_at=None)
                 conn.last_sync = conn.sync_started_at = None
                 conn.save()
         elif operation != "sync":
@@ -163,13 +210,32 @@ class GoogleCalendarListView(APIView):
                         "id": item["id"],
                         "name": item.get("summary", "Calendar"),
                         "writable": item.get("accessRole") in ("owner", "writer"),
+                        "primary": bool(item.get("primary")),
+                        "readable": item.get("accessRole")
+                        in ("owner", "writer", "reader"),
                     }
                     for item in data.get("items", [])
                     if not item.get("deleted")
                 )
                 token = data.get("nextPageToken")
                 if not token:
-                    return Response({"calendars": rows, "selected": conn.calendar_id})
+                    selected = conn.calendar_id
+                    if selected == "primary":
+                        selected = next(
+                            (r["id"] for r in rows if r["primary"]), selected
+                        )
+                    return Response(
+                        {
+                            "calendars": rows,
+                            "selected": selected,
+                            "availability": list(
+                                conn.availability_calendars.values_list(
+                                    "calendar_id", flat=True
+                                )
+                            ),
+                            "destination_locked": conn.mirrors.exists(),
+                        }
+                    )
             raise GoogleError("Too many calendars to list.")
         except GoogleError as exc:
             raise serializers.ValidationError(str(exc))
@@ -204,7 +270,10 @@ class GoogleEventsView(APIView):
                 {"events": [], "status": "disconnected", "revision": revision}
             )
         records = conn.events.filter(
-            org=request.profile.org, starts_at__lt=end, ends_at__gt=start
+            calendar_id="",
+            org=request.profile.org,
+            starts_at__lt=end,
+            ends_at__gt=start,
         ).exclude(external_id__in=conn.mirrors.values("external_id"))
         return Response(
             {
@@ -248,6 +317,7 @@ class GoogleEventsView(APIView):
         event = get_object_or_404(
             GoogleCalendarEvent,
             pk=pk,
+            calendar_id="",
             org=request.profile.org,
             connection__profile=request.profile,
             connection__status="connected",

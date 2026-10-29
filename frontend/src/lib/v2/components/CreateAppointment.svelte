@@ -5,7 +5,7 @@
   let showAvailability = $state(true);
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
-  const { ui, locale } = useI18n();
+  const { ui } = useI18n();
 
   import WeekAvailability from '$lib/v2/components/WeekAvailability.svelte';
   let unavailable = $state(true);
@@ -14,19 +14,8 @@
   import { page } from '$app/state';
   import { resolve } from '$app/paths';
   import { enhance } from '$app/forms';
-  const dealSources = [
-    ['META', 'Meta'],
-    ['GOOGLE', 'Google'],
-    ['TIKTOK', 'TikTok'],
-    ['ORGANIC', 'Organic'],
-    ['CALL', 'Call'],
-    ['CUSTOMER_REFERAL', 'Customer Referal'],
-    ['EMPLOYER_REFERAL', 'Employer Referal'],
-    ['WALK_IN', 'Walk In']
-  ];
   let createDeal = $state(true),
-    dealName = $state(''),
-    dealSource = $state('');
+    dealName = $state('');
   import { dateKey } from '$lib/v2/calendar.js';
   /** @type {{hosts:any[],defaultHost?:string|null,selected:Date,onCreated:()=>void, action?:string, defaultAttendee?:{id:string,name:string,type:string},iconOnly?:boolean}} */
   let {
@@ -89,12 +78,6 @@
     const d = new Date(`${date}T${time}`);
     return Number.isFinite(d.getTime()) ? d.toISOString() : '';
   };
-
-  const summary = $derived(
-    date && iso(start) && iso(end)
-      ? `${new Date(`${date}T12:00:00`).toLocaleDateString(locale(), { month: 'short', day: 'numeric' })} · ${start} – ${end}`
-      : ''
-  );
 
   let attendees = $state(/** @type {any[]} */ ([]));
   let search = $state('');
@@ -171,7 +154,6 @@
     error = '';
     createDeal = canCreateDeal;
     dealName = external ? `${external.name} - Deal` : '';
-    dealSource = '';
     showAvailability = window.matchMedia('(min-width: 900px)').matches;
     open = true;
     dialog.showModal();
@@ -289,7 +271,7 @@
           />{/if}
         <div class="schedule-section">
           <h3><Clock3 size={15} />{ui('Date and time')}</h3>
-          <div class="times">
+          <div class="date-row">
             <label
               >{ui('Date *')}<input
                 class="v2-input"
@@ -297,20 +279,6 @@
                 required
                 bind:value={date}
               /></label
-            >
-            <label
-              >{ui('Duration')}<select
-                class="v2-input"
-                value={durationMinutes()}
-                onchange={(e) => setDuration(e.currentTarget.value)}
-              >
-                {#if ![15, 30, 45, 60, 90, 120].includes(durationMinutes())}<option
-                    value={durationMinutes()}>{ui('Custom')}</option
-                  >{/if}
-                {#each [15, 30, 45, 60, 90, 120] as duration (duration)}<option value={duration}
-                    >{duration} min</option
-                  >{/each}
-              </select></label
             >
           </div>
           <div class="times">
@@ -330,6 +298,20 @@
                 bind:value={end}
               /></label
             >
+            <label
+              >{ui('Duration')}<select
+                class="v2-input"
+                value={durationMinutes()}
+                onchange={(e) => setDuration(e.currentTarget.value)}
+              >
+                {#if ![15, 30, 45, 60, 90, 120].includes(durationMinutes())}<option
+                    value={durationMinutes()}>{ui('Custom')}</option
+                  >{/if}
+                {#each [15, 30, 45, 60, 90, 120] as duration (duration)}<option value={duration}
+                    >{duration} min</option
+                  >{/each}
+              </select></label
+            >
           </div>
 
           <input type="hidden" name="starts_at" value={iso(start)} /><input
@@ -337,9 +319,6 @@
             name="ends_at"
             value={iso(end)}
           />
-          <span class="time-zone"
-            >{Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll('_', ' ')}</span
-          >
         </div>
         <div
           class="attendee-search"
@@ -442,7 +421,7 @@
               placeholder={ui('Add an agenda or details')}></textarea></label
           >
           <p class="v2-sub">
-            {ui('Meeting notes are shared as the Google Calendar description when connected.')}
+            {ui('Only visible to your team.')}
           </p>
         </details>
         {#if external}<label class="create-deal-toggle"
@@ -465,14 +444,6 @@
               placeholder={ui('Attendee name - Deal')}
             /></label
           >
-          <label
-            >{ui('Deal source')}<select class="v2-input" name="deal_source" bind:value={dealSource}
-              ><option value="">{ui('Use attendee source')}</option
-              >{#each dealSources as [value, label] (value)}<option {value}>{label}</option
-                >{/each}</select
-            ></label
-          >
-          <p class="deal-defaults">{ui('Owner: selected Host · Prospecting · Medium priority')}</p>
         {/if}
       </fieldset>
       <div class="availability-pane" class:is-collapsed={!showAvailability}>
@@ -502,7 +473,6 @@
     </div>
     {#if error}<Notice message={ui(error)} />{/if}
     <div class="actions">
-      <span class="selection-summary">{summary}</span>
       <button class="v2-btn" type="button" disabled={busy} onclick={() => dialog.close()}
         >{ui('Cancel')}</button
       ><button class="v2-btn v2-btn-primary" disabled={busy || !hosts.length || unavailable}
@@ -582,17 +552,15 @@
   }
 
   .create-deal-toggle {
+    padding: 12px;
+    border-radius: var(--crm-radius-md);
+    background: var(--crm-surface-subtle);
     display: flex;
     align-items: center;
     gap: var(--crm-space-2);
   }
   .create-deal-toggle input {
     width: 16px;
-  }
-  .deal-defaults {
-    font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
-    margin: 0;
   }
 
   dialog.overlap-confirm {
@@ -677,7 +645,7 @@
   dialog {
     margin: auto;
     width: min(1160px, calc(100vw - 32px));
-    height: min(780px, 92dvh);
+    height: min(740px, 92dvh);
     box-sizing: border-box;
     max-height: 92dvh;
     overflow: hidden;
@@ -699,7 +667,7 @@
     border: 0;
     padding: 0;
     display: grid;
-    gap: 16px;
+    gap: 14px;
     min-width: 0;
     padding: var(--crm-space-5);
     overflow-y: auto;
@@ -719,7 +687,7 @@
   }
   .times {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(80px, 0.75fr);
     gap: var(--crm-space-3);
   }
   .actions {
@@ -741,12 +709,6 @@
     flex: 1;
     min-height: 0;
     overflow: hidden;
-  }
-  .selection-summary {
-    margin-right: auto;
-    align-self: center;
-    font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
   }
   .schedule-dialog[open] {
     display: flex;
@@ -785,7 +747,7 @@
     display: grid;
     gap: 12px;
     border-block: 1px solid var(--crm-border-soft);
-    padding-block: 16px;
+    padding-block: 14px;
   }
   .schedule-section h3 {
     display: flex;
@@ -794,10 +756,6 @@
     font-size: var(--crm-text-sm);
     font-weight: 600;
     margin: 0;
-  }
-  .time-zone {
-    font-size: var(--crm-text-xs);
-    color: var(--crm-text-muted);
   }
   .optional-notes {
     border-bottom: 1px solid var(--crm-border-soft);
@@ -901,11 +859,14 @@
     .actions .v2-btn {
       min-height: 44px;
     }
-    .selection-summary {
-      display: none;
-    }
   }
   @media (max-width: 480px) {
+    .times {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .times label:last-child {
+      grid-column: 1 / -1;
+    }
     .schedule-dialog {
       width: 100%;
       max-width: 100%;

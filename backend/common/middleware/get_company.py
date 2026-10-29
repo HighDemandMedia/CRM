@@ -74,6 +74,7 @@ class GetProfileAndOrg:
         auth_skip_paths = [
             "/api/integrations/google/gmail/push/",
             "/api/integrations/google/calendar/push/",
+            "/api/appointment-response/",
             "/api/auth/password/login/",
             "/api/auth/password/reset/request/",
             "/api/auth/password/reset/confirm/",

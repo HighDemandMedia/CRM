@@ -354,7 +354,8 @@ const handleSession = async ({ event, resolve }) => {
     '/bounce',
     '/portal',
     '/csat',
-    '/invite'
+    '/invite',
+    '/appointment-response'
   ];
 
   // Define semi-protected routes (auth required, but no org)

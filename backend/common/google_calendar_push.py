@@ -46,13 +46,14 @@ def stop_watch(api, channel_id, resource):
         logger.warning("Calendar watch could not be stopped")
 
 
-def renew_watch(conn, api):
+def renew_watch(conn, api, source=None):
+    source = source if source is not None else conn
     if not push_configured():
         return
     now = timezone.now()
     if (
-        conn.calendar_watch_expires_at
-        and conn.calendar_watch_expires_at > now + timedelta(days=1)
+        source.calendar_watch_expires_at
+        and source.calendar_watch_expires_at > now + timedelta(days=1)
     ):
         return
     channel_id = uuid.uuid4().hex
@@ -60,7 +61,7 @@ def renew_watch(conn, api):
         result = api.request(
             "POST",
             "calendar/v3/calendars/"
-            + quote(conn.calendar_id, safe="")
+            + quote(source.calendar_id, safe="")
             + "/events/watch",
             body={
                 "id": channel_id,
@@ -87,15 +88,24 @@ def renew_watch(conn, api):
     except (GoogleError, KeyError, ValueError, TypeError, OverflowError):
         logger.warning("Calendar watch renewal failed for connection %s", conn.pk)
         return
-    updated = GoogleConnection.objects.filter(
-        pk=conn.pk, generation=conn.generation, status="connected"
-    ).update(
+    rows = (
+        GoogleConnection.objects.filter(
+            pk=conn.pk, generation=conn.generation, status="connected"
+        )
+        if source is conn
+        else type(source).objects.filter(
+            pk=source.pk,
+            connection__generation=conn.generation,
+            connection__status="connected",
+        )
+    )
+    updated = rows.update(
         calendar_watch_id=channel_id,
         calendar_watch_resource=resource,
         calendar_watch_expires_at=expires,
     )
     if updated:
-        stop_watch(api, conn.calendar_watch_id, conn.calendar_watch_resource)
+        stop_watch(api, source.calendar_watch_id, source.calendar_watch_resource)
     else:
         stop_watch(api, channel_id, resource)
 

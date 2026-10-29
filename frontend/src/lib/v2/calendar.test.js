@@ -36,3 +36,14 @@ it('uses the appointment end time to detect overlaps', async () => {
   expect(cards[1].duration).toBe(30);
   expect(cards.map((c) => c.lanes)).toEqual([2, 2]);
 });
+
+it('formats selected slots in 12-hour time without changing local hours', async () => {
+  const { formatClockTime } = await import('./calendar.js');
+  expect(formatClockTime('00:00')).toBe('12:00 AM');
+  expect(formatClockTime('12:00')).toBe('12:00 PM');
+  expect(formatClockTime('13:30')).toBe('1:30 PM');
+  expect(formatClockTime('23:59')).toBe('11:59 PM');
+  expect(formatClockTime('13:30', 'es-US')).toContain('1:30');
+  expect(formatClockTime('')).toBe('');
+  expect(formatClockTime('25:00')).toBe('');
+});

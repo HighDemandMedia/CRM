@@ -93,12 +93,12 @@
             {#if service === 'gmail'}<MailIcon size={22} />{:else}<CalendarIcon size={22} />{/if}
           </span>
           <div>
-            <h3>{ui(service === 'gmail' ? 'Email conversations' : 'Events and meeting notes')}</h3>
+            <h3>{ui(service === 'gmail' ? 'Email conversations' : 'Calendar events')}</h3>
             <p>
               {ui(
                 service === 'gmail'
                   ? 'HDM reads and stores emails linked to your CRM contacts, syncing automatically. View conversations and send messages from your private mailbox.'
-                  : 'HDM lists calendars, stores events and automatically syncs appointments and meeting notes both ways. Notes are visible to people with access to the Google event.'
+                  : 'HDM syncs appointments and guest responses with Google. Selected calendars check availability. Internal notes stay private.'
               )}
             </p>
           </div>

@@ -98,6 +98,7 @@
       const result = await response.json();
       if (!stopped) {
         events = result.events;
+        details?.refresh(events);
         googleError = result.googleError || '';
         revision = result.calendarRevision;
         failure = '';

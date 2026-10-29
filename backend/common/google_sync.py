@@ -2,7 +2,6 @@
 
 import base64
 import hashlib
-import html
 import json
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
@@ -269,12 +268,24 @@ def sync_gmail(conn, api):
     return bool(backfill or more_history)
 
 
+def public_snapshot(appointment):
+    return {
+        "title": appointment.title,
+        "start": appointment.starts_at.astimezone(dt_timezone.utc).isoformat(),
+        "end": appointment.ends_at.astimezone(dt_timezone.utc).isoformat(),
+    }
+
+
 def fingerprint(appointment):
+    from common.appointment_invitations import guests
+
     return hashlib.sha256(
         json.dumps(
             [
                 appointment.title,
-                appointment.internal_notes,
+                sorted(guests(appointment))
+                if appointment.invitation_provider == "google"
+                else [],
                 appointment.starts_at.isoformat(),
                 appointment.ends_at.isoformat(),
                 bool(appointment.cancelled_at),
@@ -313,7 +324,7 @@ def event_times(event, calendar_timezone="UTC"):
 def sync_mirrors(conn, api, base, writable):
     if not writable:
         return
-    # Only the connected user's own hosted events are exported; no invite email is sent.
+    # Export only the connected user's hosted events. The selected destination owns invitations.
     appointments = calendar_scoped(
         SalesAppointment.objects.filter(
             org=conn.org,
@@ -380,10 +391,33 @@ def sync_mirrors(conn, api, base, writable):
                 continue
             payload = {
                 "summary": appointment.title,
-                "description": html.escape(appointment.internal_notes),
+                "description": "",
                 "start": {"dateTime": appointment.starts_at.isoformat()},
                 "end": {"dateTime": appointment.ends_at.isoformat()},
             }
+            from common.appointment_invitations import guests, update_google_responses
+
+            if appointment.invitation_provider == "google":
+                current_responses = {
+                    g.get("email", "").lower(): g.get("responseStatus", "needsAction")
+                    for g in (remote or {}).get("attendees", [])
+                }
+                payload.update(
+                    attendees=[
+                        {
+                            **g,
+                            "responseStatus": current_responses.get(
+                                email, "needsAction"
+                            ),
+                        }
+                        for email, g in guests(appointment).items()
+                    ],
+                    guestsCanModify=False,
+                    guestsCanInviteOthers=False,
+                    guestsCanSeeOtherGuests=False,
+                )
+                if remote and remote.get("status") != "cancelled":
+                    update_google_responses(appointment, remote)
             local_changed = mirror and mirror.fingerprint != fingerprint(appointment)
             remote_changed = (
                 ((remote.get("etag", "") if remote else "") != mirror.etag)
@@ -398,27 +432,25 @@ def sync_mirrors(conn, api, base, writable):
                 # Google may change the tombstone etag after our DELETE.
                 # Acknowledging it must not cancel/log the appointment again.
                 local_changed = remote_changed = False
-            if (
-                local_changed
-                and remote_changed
-                and remote
-                and remote.get("status") != "cancelled"
-            ):
+            if remote_changed and remote and remote.get("status") != "cancelled":
                 remote_start, remote_end, _ = event_times(remote)
-                parser = PlainHTML()
-                parser.feed(remote.get("description", ""))
+                remote_content = {
+                    "title": remote.get("summary", ""),
+                    "start": remote_start.astimezone(dt_timezone.utc).isoformat(),
+                    "end": remote_end.astimezone(dt_timezone.utc).isoformat(),
+                }
                 if (
-                    remote.get("summary", ""),
-                    "".join(parser.parts).strip(),
-                    remote_start,
-                    remote_end,
-                ) == (
-                    appointment.title,
-                    appointment.internal_notes,
-                    appointment.starts_at,
-                    appointment.ends_at,
-                ) and not appointment.cancelled_at:
-                    local_changed = remote_changed = False
+                    mirror
+                    and mirror.public_snapshot
+                    and remote_content == mirror.public_snapshot
+                ):
+                    # An RSVP changes Google's etag, not the meeting. Allow a pending CRM edit.
+                    remote_changed = False
+                elif (
+                    remote_content == public_snapshot(appointment)
+                    and not appointment.cancelled_at
+                ):
+                    remote_changed = False
             if local_changed and remote_changed:
                 # Do not overwrite either side when both changed since the last sync.
                 raise GoogleError(
@@ -460,9 +492,6 @@ def sync_mirrors(conn, api, base, writable):
                         )
                     appointment.starts_at, appointment.ends_at = start, end
                     appointment.title = (remote.get("summary") or "Google event")[:255]
-                    parser = PlainHTML()
-                    parser.feed(remote.get("description", ""))
-                    appointment.internal_notes = "".join(parser.parts).strip()[:10000]
                 appointment.change_history = [
                     *appointment.change_history,
                     {
@@ -516,7 +545,16 @@ def sync_mirrors(conn, api, base, writable):
                 save_mirror(conn, appointment, external_id, remote)
         if write:
             method, url, options = write
-            result = api.request(method, url, params={"sendUpdates": "none"}, **options)
+            result = api.request(
+                method,
+                url,
+                params={
+                    "sendUpdates": "all"
+                    if appointment.invitation_provider == "google"
+                    else "none"
+                },
+                **options,
+            )
             with transaction.atomic():
                 if (
                     not GoogleConnection.objects.select_for_update()
@@ -544,6 +582,7 @@ def save_mirror(conn, appointment, external_id, remote):
             "external_id": external_id,
             "etag": (remote or {}).get("etag", ""),
             "fingerprint": fingerprint(appointment),
+            "public_snapshot": public_snapshot(appointment),
         },
     )
 
@@ -556,19 +595,37 @@ def sync_calendar(conn, api):
     writable = calendar.get("accessRole") in ("owner", "writer")
     base = "calendar/v3/calendars/" + quote(conn.calendar_id, safe="")
     sync_mirrors(conn, api, base, writable)
+    sync_calendar_events(conn, api, conn, calendar, base)
+    from common.google_calendar_push import renew_watch
+
+    for source in conn.availability_calendars.all():
+        renew_watch(conn, api, source=source)
+        metadata = api.get(
+            "calendar/v3/users/me/calendarList/" + quote(source.calendar_id, safe="")
+        )
+        sync_calendar_events(
+            conn,
+            api,
+            source,
+            metadata,
+            "calendar/v3/calendars/" + quote(source.calendar_id, safe=""),
+        )
+
+
+def sync_calendar_events(conn, api, source, calendar, base):
     now = timezone.now()
     window_start, window_end = now - timedelta(days=90), now + timedelta(days=365)
     # Rebaseline daily so unchanged recurring instances enter the rolling window.
     full = (
-        not conn.calendar_sync_token
-        or not conn.calendar_full_synced_at
-        or conn.calendar_full_synced_at < now - timedelta(days=1)
+        not source.calendar_sync_token
+        or not source.calendar_full_synced_at
+        or source.calendar_full_synced_at < now - timedelta(days=1)
     )
     params = {"singleEvents": "true", "maxResults": 2500}
     if full:
         params.update(timeMin=window_start.isoformat(), timeMax=window_end.isoformat())
     else:
-        params["syncToken"] = conn.calendar_sync_token
+        params["syncToken"] = source.calendar_sync_token
     rows, removed, token = [], [], ""
     for _ in range(4):
         try:
@@ -576,8 +633,8 @@ def sync_calendar(conn, api):
         except GoogleError as exc:
             if exc.status == 410 and not full:
                 # Preserve the existing cache until the replacement finishes.
-                conn.calendar_sync_token = ""
-                return sync_calendar(conn, api)
+                source.calendar_sync_token = ""
+                return sync_calendar_events(conn, api, source, calendar, base)
             raise
         for event in data.get("items", []):
             if event.get("status") == "cancelled":
@@ -596,16 +653,24 @@ def sync_calendar(conn, api):
             parser.feed(event.get("description", ""))
             rows.append(
                 {
-                    "description": "".join(parser.parts).strip(),
+                    "description": "".join(parser.parts).strip()
+                    if source is conn
+                    else "",
                     "external_id": event["id"],
-                    "title": (event.get("summary") or "Busy")[:1024],
+                    "title": (event.get("summary") or "Busy")[:1024]
+                    if source is conn
+                    else "Busy",
                     "starts_at": start,
                     "ends_at": end,
                     "all_day": all_day,
                     "start_date": event.get("start", {}).get("date", ""),
                     "end_date": event.get("end", {}).get("date", ""),
-                    "href": href,
-                    "busy": event.get("transparency") != "transparent",
+                    "href": href if source is conn else "",
+                    "busy": event.get("transparency") != "transparent"
+                    and not any(
+                        a.get("self") and a.get("responseStatus") == "declined"
+                        for a in event.get("attendees", [])
+                    ),
                 }
             )
         if not data.get("nextPageToken"):
@@ -623,20 +688,37 @@ def sync_calendar(conn, api):
             .exists()
         ):
             return
+        if (
+            source is not conn
+            and not conn.availability_calendars.filter(pk=source.pk).exists()
+        ):
+            return
+        # Empty calendar_id is the backwards-compatible primary partition.
+        calendar_key = "" if source is conn else source.calendar_id
+        records = conn.events.filter(calendar_id=calendar_key)
         ids = []
         for row in rows:
             external_id = row.pop("external_id")
             ids.append(external_id)
             GoogleCalendarEvent.objects.update_or_create(
-                connection=conn, org=conn.org, external_id=external_id, defaults=row
+                connection=conn,
+                org=conn.org,
+                calendar_id=calendar_key,
+                external_id=external_id,
+                defaults=row,
             )
         if full:
-            conn.events.exclude(external_id__in=ids).delete()
+            records.exclude(external_id__in=ids).delete()
         elif removed:
-            conn.events.filter(external_id__in=removed).delete()
-        GoogleConnection.objects.filter(pk=conn.pk).update(
-            calendar_writable=writable,
+            records.filter(external_id__in=removed).delete()
+        updates = dict(
             calendar_name=calendar.get("summary", "Google Calendar")[:255],
             calendar_sync_token=token,
-            calendar_full_synced_at=now if full else conn.calendar_full_synced_at,
+            calendar_full_synced_at=now if full else source.calendar_full_synced_at,
         )
+        if source is conn:
+            updates["calendar_writable"] = calendar.get("accessRole") in (
+                "owner",
+                "writer",
+            )
+        type(source).objects.filter(pk=source.pk).update(**updates)

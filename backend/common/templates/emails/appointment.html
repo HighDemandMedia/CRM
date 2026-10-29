@@ -10,5 +10,6 @@
   <tr><td style="padding:0 16px 12px;color:{{ email_theme.graphite }};">{{ value }}</td></tr>
   {% endfor %}
 </table>
+{% if responses %}<p>{% for response in responses %}<a href="{{ response.url }}" style="display:inline-block;padding:10px 14px;margin:12px 8px 0 0;border:1px solid #AC0F0B;border-radius:6px;color:#AC0F0B;text-decoration:none;">{{ response.label }}</a>{% endfor %}</p>{% endif %}
 {% endblock %}
 {% block button_link %}{% if link %}{% include "emails/button.html" with url=link label=button_label %}{% endif %}{% endblock %}

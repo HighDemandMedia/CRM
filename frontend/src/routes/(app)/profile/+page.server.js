@@ -72,6 +72,7 @@ export const actions = {
                 String(form.get(key) || '')
               ])
             ),
+            availability_calendar_ids: form.getAll('availability_calendar_ids').map(String),
             confirm_revoke: form.get('confirm_revoke') === 'yes'
           }
         },

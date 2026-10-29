@@ -1,10 +1,13 @@
 <script>
+  import imgGmail from '$lib/assets/images/gmail.png';
+  import imgCalendar from '$lib/assets/images/google-calendar.png';
+  import CalendarConnectionSettings from '$lib/components/CalendarConnectionSettings.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import ErrorNotice from '$lib/components/ErrorNotice.svelte';
   import GoogleConnectionDialog from '$lib/components/GoogleConnectionDialog.svelte';
   import { googleErrorMessage, googleCallbackMessage } from '$lib/utils/google-feedback.js';
   import { useI18n } from '$lib/i18n/context.js';
-  const { ui, locale } = useI18n();
+  const { ui } = useI18n();
 
   import { resolve } from '$app/paths';
   import { replaceState } from '$app/navigation';
@@ -13,7 +16,7 @@
   import LanguageSelect from '$lib/v2/components/LanguageSelect.svelte';
   import { enhance } from '$app/forms';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import { Mail, CalendarDays, Link2, UserRound } from '@lucide/svelte';
+  import { Link2, UserRound } from '@lucide/svelte';
 
   /** @type {{data:any, form:any}} */
   let { data, form } = $props();
@@ -32,10 +35,6 @@
           ) === index
       )
   );
-  let calendars = $state(/** @type {any[]} */ ([])),
-    selectedCalendar = $state('primary'),
-    calendarError = $state('');
-  let loadingCalendars = $state(false);
   let googlePending = $state(false);
   let googleActionError = $state('');
   const onGoogleManage = () => {
@@ -64,22 +63,6 @@
       }
     };
   };
-  async function loadCalendars() {
-    calendarError = '';
-    loadingCalendars = true;
-    try {
-      const response = await fetch('/profile/google/calendars');
-      const result = await response.json();
-      if (!response.ok) throw new Error(googleErrorMessage(result.error));
-      if (!Array.isArray(result.calendars)) throw new Error('Invalid calendar response');
-      calendars = result.calendars;
-      selectedCalendar = result.selected;
-    } catch (err) {
-      calendarError = googleErrorMessage(err);
-    } finally {
-      loadingCalendars = false;
-    }
-  }
   let name = $derived(`${p.user_details.first_name} ${p.user_details.last_name}`.trim());
   let activeTab = $state('info');
   const tabs = [
@@ -381,122 +364,76 @@
             <section class="integration" aria-labelledby={`integration-${item.key}`}>
               <div class="integration-heading">
                 <div class="service-icon">
-                  {#if item.service === 'gmail'}<Mail size={21} />{:else}<CalendarDays
-                      size={21}
-                    />{/if}
+                  <img
+                    src={item.service === 'gmail' ? imgGmail : imgCalendar}
+                    alt=""
+                    width="28"
+                    height="28"
+                  />
                 </div>
                 <div>
                   <h3 id={`integration-${item.key}`}>{item.title}</h3>
                   <p>{connection?.email || ui('No account connected')}</p>
+                  <span
+                    class="connection-status"
+                    class:connected={connection?.configured && connection?.status === 'connected'}
+                  >
+                    <span class="status-dot" aria-hidden="true"></span>
+                    {!connection?.configured
+                      ? ui('Setup required')
+                      : connection?.status === 'connected'
+                        ? ui('Connected')
+                        : connection?.status === 'reconnect'
+                          ? ui('Reconnect required')
+                          : ui('Not connected')}
+                  </span>
                 </div>
-                <span
-                  class="status-badge"
-                  class:connected={connection?.configured && connection?.status === 'connected'}
-                  >{!connection?.configured
-                    ? ui('Setup required')
-                    : connection?.status === 'connected'
-                      ? ui('Connected')
-                      : connection?.status === 'reconnect'
-                        ? ui('Reconnect required')
-                        : ui('Not connected')}</span
-                >
+                <div class="integration-actions">
+                  {#if connection?.status !== 'connected' || connection?.migration_available}
+                    <GoogleConnectionDialog
+                      service={item.service}
+                      label={connection?.email ? 'Reconnect' : `Connect ${item.title}`}
+                      disabled={!connection?.configured || googlePending}
+                    />
+                  {/if}
+                  {#if connection?.email}
+                    <form method="POST" action="?/googleManage" use:enhance={onGoogleManage}>
+                      <input type="hidden" name="service" value={item.service} />
+                      <button
+                        class="v2-btn v2-btn-sm"
+                        disabled={googlePending}
+                        name="operation"
+                        value="disconnect"
+                        aria-label={ui(
+                          item.service === 'gmail'
+                            ? 'Disconnect Gmail'
+                            : 'Disconnect Google Calendar'
+                        )}>{ui('Disconnect')}</button
+                      >
+                    </form>
+                  {/if}
+                </div>
               </div>
-              <p class="help">
-                {item.service === 'gmail'
-                  ? ui('View contact emails. Your mailbox stays private.')
-                  : ui('Sync appointments and meeting notes in both directions.')}
-                <a
-                  href={resolve(
-                    item.service === 'gmail'
-                      ? '/help/knowledge/gmail-records'
-                      : '/help/knowledge/google-calendar'
-                  )}>{ui(item.service === 'gmail' ? 'Gmail guide' : 'Calendar guide')}</a
-                >
-              </p>
-              {#if connection?.last_sync}<p class="help">
-                  {ui('Last sync:')}
-                  {new Date(connection.last_sync).toLocaleString(locale())}
-                </p>{/if}
-              {#if item.service === 'calendar' && connection?.status === 'connected'}<p
-                  class="help"
-                >
-                  {ui('Calendar:')}
-                  {connection.calendar}
-                </p>{/if}
+              {#if connection?.status !== 'connected'}
+                <p class="help">
+                  {item.service === 'gmail'
+                    ? ui('View contact emails. Your mailbox stays private.')
+                    : ui('Sync appointments and guest responses.')}
+                  <a
+                    href={resolve(
+                      item.service === 'gmail'
+                        ? '/help/knowledge/gmail-records'
+                        : '/help/knowledge/google-calendar'
+                    )}>{ui(item.service === 'gmail' ? 'Gmail guide' : 'Calendar guide')}</a
+                  >
+                </p>
+              {/if}
               {#if connection?.error}<ErrorNotice
                   message={ui(googleErrorMessage(connection.error))}
                 />{/if}
-              <div class="integration-actions">
-                {#if connection?.status !== 'connected' || connection?.migration_available}
-                  <GoogleConnectionDialog
-                    service={item.service}
-                    label={connection?.email ? 'Reconnect' : `Connect ${item.title}`}
-                    disabled={!connection?.configured || googlePending}
-                  />
-                {/if}
-                {#if connection?.status === 'connected'}<form
-                    method="POST"
-                    action="?/googleManage"
-                    use:enhance={onGoogleManage}
-                  >
-                    <input type="hidden" name="service" value={item.service} /><button
-                      class="v2-btn v2-btn-primary v2-btn-sm"
-                      disabled={googlePending}
-                      name="operation"
-                      value="sync">{ui('Sync now')}</button
-                    >
-                  </form>{/if}
-                {#if connection?.email}
-                  <form method="POST" action="?/googleManage" use:enhance={onGoogleManage}>
-                    <input type="hidden" name="service" value={item.service} />
-                    <button
-                      class="v2-btn v2-btn-sm"
-                      disabled={googlePending}
-                      name="operation"
-                      value="disconnect"
-                      >{ui(
-                        item.service === 'gmail' ? 'Disconnect Gmail' : 'Disconnect Google Calendar'
-                      )}</button
-                    >
-                  </form>
-                {/if}
-              </div>
               {#if item.service === 'calendar' && connection?.status === 'connected'}
-                <details class="connection-settings">
-                  <summary>{ui('Choose calendar')}</summary>
-                  <button
-                    class="v2-btn v2-btn-sm"
-                    disabled={loadingCalendars || googlePending}
-                    onclick={loadCalendars}
-                    >{ui(loadingCalendars ? 'Loading…' : 'Load calendars')}</button
-                  >
-                  {#if item.service === 'calendar' && connection?.status === 'connected' && calendars.length}<form
-                      method="POST"
-                      action="?/googleManage"
-                      use:enhance={onGoogleManage}
-                    >
-                      <input type="hidden" name="service" value="calendar" /><input
-                        type="hidden"
-                        name="operation"
-                        value="calendar"
-                      /><label
-                        >{ui('Calendar')}<select
-                          class="v2-input"
-                          name="calendar_id"
-                          bind:value={selectedCalendar}
-                          >{#each calendars as calendar (calendar.id)}<option value={calendar.id}
-                              >{calendar.name}{calendar.writable ? '' : ui(' (read only)')}</option
-                            >{/each}</select
-                        ></label
-                      ><button class="v2-btn v2-btn-sm" disabled={googlePending}
-                        >{ui('Use this calendar')}</button
-                      >
-                    </form>{/if}
-                </details>
+                <CalendarConnectionSettings pending={googlePending} onManage={onGoogleManage} />
               {/if}
-              {#if item.service === 'calendar' && calendarError}<ErrorNotice
-                  message={ui(calendarError)}
-                />{/if}
             </section>
           {/each}
           {#if googleAccounts.length}<details class="connection-settings google-advanced">
@@ -751,22 +688,13 @@
     overflow-wrap: anywhere;
     min-width: 0;
   }
-  .connection-settings > form {
-    display: grid;
-    gap: var(--crm-space-3);
-    margin-top: var(--crm-space-3);
-  }
-  .connection-settings > form button {
-    justify-self: start;
-  }
-  .status-badge.connected {
+  .connection-status.connected {
     color: var(--v2-moss);
   }
   .integration-heading {
     display: flex;
     gap: var(--crm-space-3);
     align-items: center;
-    margin-bottom: var(--crm-space-2);
     flex-wrap: wrap;
   }
   .integration-heading > div:nth-child(2) {
@@ -779,21 +707,27 @@
     margin: var(--crm-space-1) 0 0;
   }
   .service-icon {
+    flex-shrink: 0;
     display: grid;
     place-items: center;
     width: 40px;
     height: 40px;
-    background: var(--v2-line-soft);
     border-radius: var(--crm-radius-md);
-    color: var(--v2-slate);
   }
-  .status-badge {
-    font-size: var(--crm-text-xs);
-    padding: var(--crm-space-1) var(--crm-space-2);
-    background: var(--v2-line-soft);
+  .connection-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: var(--crm-space-1);
     color: var(--v2-slate);
-    border-radius: var(--crm-radius-sm);
-    white-space: nowrap;
+    font-size: var(--crm-text-xs);
+  }
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
   }
   .integration .help a {
     font-size: var(--crm-text-xs);
@@ -811,10 +745,12 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--crm-space-2);
-    margin-top: var(--crm-space-3);
   }
 
   @container (max-width: 600px) {
+    .integration-actions {
+      flex-basis: 100%;
+    }
     .settings-group {
       grid-template-columns: 1fr;
     }

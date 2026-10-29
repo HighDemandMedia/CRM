@@ -527,13 +527,22 @@ def process_calendar_notification(
             generation=generation,
             service="calendar",
             status="connected",
-            calendar_watch_id=channel_id,
-            calendar_watch_resource=resource,
-            calendar_watch_expires_at__gt=timezone.now(),
             profile__is_active=True,
             profile__user__is_active=True,
         ).first()
-        if conn:
+        if conn and (
+            (
+                conn.calendar_watch_id == channel_id
+                and conn.calendar_watch_resource == resource
+                and conn.calendar_watch_expires_at
+                and conn.calendar_watch_expires_at > timezone.now()
+            )
+            or conn.availability_calendars.filter(
+                calendar_watch_id=channel_id,
+                calendar_watch_resource=resource,
+                calendar_watch_expires_at__gt=timezone.now(),
+            ).exists()
+        ):
             request_calendar_sync(conn)
     finally:
         clear_rls_context()

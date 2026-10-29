@@ -200,6 +200,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
     )
 
     def get_attendees(self, obj):
+        from common.appointment_invitations import response_for
+
         result = [
             {
                 "id": str(record.pk),
@@ -208,6 +210,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
                 "language": record.language or "",
                 "phone": record.phone or "",
                 "email": record.email or "",
+                "response": response_for(obj, record.email),
             }
             for record in external_attendees(obj)
             if permitted(self.context["request"].profile, record)
@@ -218,6 +221,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
                 "type": "user",
                 "name": profile.user.name or profile.user.email,
                 "email": profile.user.email,
+                "response": response_for(obj, profile.user.email),
             }
             for profile in obj.attendee_users.all()
             if profile.org_id == obj.org_id
@@ -334,7 +338,7 @@ def google_busy(org, host_id, start, end):
         busy=True,
         starts_at__lt=end,
         ends_at__gt=start,
-    ).exclude(external_id__in=mirrored)
+    ).exclude(calendar_id="", external_id__in=mirrored)
 
 
 def lock_host_and_check(
@@ -489,10 +493,10 @@ class SalesAppointmentView(APIView):
                 raise serializers.ValidationError(
                     "Select an attendee to create a deal, or uncheck Create a deal."
                 )
-            source = request.data.get("deal_source") or attendee.source
-            if source not in dict(CONTACT_SOURCES):
+            source = request.data.get("deal_source") or attendee.source or ""
+            if source and source not in dict(CONTACT_SOURCES):
                 raise serializers.ValidationError(
-                    "Select a Source for the deal; the attendee has no source."
+                    "Update the attendee source before creating a deal."
                 )
             name = request.data.get("deal_name") or f"{attendee.name} - Deal"
             name = serializers.CharField(max_length=255).run_validation(name)
@@ -534,8 +538,20 @@ class SalesAppointmentView(APIView):
             deal = Opportunity.objects.create(**deal_values)
             deal.assigned_to.add(values["host"])
             deal.contacts.add(*values.get("contacts", []))
+        from common.models import GoogleConnection
+
+        connected = GoogleConnection.objects.filter(
+            org=request.profile.org,
+            profile=values["host"],
+            service="calendar",
+            status="connected",
+            calendar_writable=True,
+        ).exists()
         appointment = serializer.save(
-            org=request.profile.org, created_by=request.user, deal=deal
+            org=request.profile.org,
+            created_by=request.user,
+            deal=deal,
+            invitation_provider="google" if connected else "email",
         )
         sync_attendee(appointment, request, "scheduled")
         queue_appointment_emails(appointment, "scheduled")

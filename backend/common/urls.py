@@ -1,5 +1,6 @@
 from django.urls import path
 
+from common.views.appointment_response_views import AppointmentResponseView
 from common.views.attachment_views import AttachmentDeleteView, AttachmentDownloadView
 from common.views.auth_views import (
     GoogleIdTokenView,
@@ -100,6 +101,11 @@ app_name = "api_common"
 
 
 urlpatterns = [
+    path(
+        "appointment-response/",
+        AppointmentResponseView.as_view(),
+        name="appointment_response",
+    ),
     path("record-import/<str:module>/", RecordImportView.as_view()),
     path("org/lifecycle/", OrganizationLifecycleView.as_view()),
     path("integrations/google/connect/<str:service>/", GoogleConnectView.as_view()),

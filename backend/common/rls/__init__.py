@@ -33,6 +33,7 @@ INSERT_POLICY = "org_insert_check"
 # Table names must match actual PostgreSQL table names (check via \dt)
 ORG_SCOPED_TABLES = [
     "google_connection",
+    "google_availability_calendar",
     "google_calendar_event",
     "google_mail_activity",
     "google_calendar_mirror",

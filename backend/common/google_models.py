@@ -59,12 +59,40 @@ class GoogleConnection(models.Model):
         ]
 
 
+class GoogleAvailabilityCalendar(models.Model):
+    """Read-only availability sources; never destinations for CRM invitations."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    org = models.ForeignKey("common.Org", on_delete=models.CASCADE)
+    connection = models.ForeignKey(
+        GoogleConnection,
+        on_delete=models.CASCADE,
+        related_name="availability_calendars",
+    )
+    calendar_id = models.CharField(max_length=1024)
+    calendar_name = models.CharField(max_length=255, blank=True)
+    calendar_sync_token = models.TextField(blank=True)
+    calendar_full_synced_at = models.DateTimeField(null=True, blank=True)
+    calendar_watch_id = models.CharField(max_length=64, blank=True)
+    calendar_watch_resource = models.CharField(max_length=1024, blank=True)
+    calendar_watch_expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "google_availability_calendar"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["connection", "calendar_id"], name="google_availability_unique"
+            )
+        ]
+
+
 class GoogleCalendarEvent(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     org = models.ForeignKey("common.Org", on_delete=models.CASCADE)
     connection = models.ForeignKey(
         GoogleConnection, on_delete=models.CASCADE, related_name="events"
     )
+    calendar_id = models.CharField(max_length=1024, default="", db_default="")
     external_id = models.CharField(max_length=1024)
     title = models.CharField(max_length=1024)
     starts_at = models.DateTimeField()
@@ -80,7 +108,7 @@ class GoogleCalendarEvent(models.Model):
         db_table = "google_calendar_event"
         constraints = [
             models.UniqueConstraint(
-                fields=["connection", "external_id"],
+                fields=["connection", "calendar_id", "external_id"],
                 name="google_calendar_event_unique",
             )
         ]
@@ -136,6 +164,7 @@ class GoogleCalendarMirror(models.Model):
     external_id = models.CharField(max_length=1024)
     etag = models.CharField(max_length=255, blank=True)
     fingerprint = models.CharField(max_length=64, blank=True)
+    public_snapshot = models.JSONField(default=dict, blank=True, db_default={})
 
     class Meta:
         db_table = "google_calendar_mirror"

@@ -65,6 +65,12 @@ def test_signed_identity_survives_body_parsing_and_ignores_spoofed_xff():
     assert request.body == BODY
 
 
+def test_appointment_response_accepts_signed_visitor_context():
+    request = signed_request(path="/api/appointment-response/", body=b"{}")
+    assert process(request).status_code == 200
+    assert client_ip(request) == "198.51.100.10"
+
+
 def test_two_visitors_behind_one_web_have_independent_limits():
     cache.clear()
     try:

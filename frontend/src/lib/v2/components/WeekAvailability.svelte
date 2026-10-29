@@ -5,7 +5,7 @@
   const { ui, locale } = useI18n();
 
   import { resolve } from '$app/paths';
-  import { dateKey } from '$lib/v2/calendar.js';
+  import { dateKey, formatClockTime } from '$lib/v2/calendar.js';
   import { onMount, tick, untrack } from 'svelte';
   import { ChevronLeft, ChevronRight } from '@lucide/svelte';
   let view = $state('week');
@@ -159,11 +159,10 @@
           title: s.title || 'Busy',
           top,
           height: Math.max(4, bottom - top),
-          label: `${a.toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' })} – ${b.toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' })}`
+          label: `${a.toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit', hour12: true })} – ${b.toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit', hour12: true })}`
         };
       });
   }
-  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 </script>
 
 <section class="week-picker" aria-label={ui('Host weekly availability')}>
@@ -211,7 +210,7 @@
       <div class="legend">
         <span><i class="busy-key"></i>{ui('Busy')}</span><span
           ><i class="selected-key"></i>{ui('Selected')}</span
-        ><span>{zone}</span>
+        >
       </div>
     </header>
     <div class="status" aria-live="polite">
@@ -247,7 +246,7 @@
                   onkeydown={(event) => navigateSlot(event, dayIndex * 48 + minute / 30)}
                   type="button"
                   disabled={disabled || loading || !!error || !host}
-                  aria-label={`Select ${day.toLocaleDateString(locale())} at ${time(minute)}`}
+                  aria-label={`Select ${day.toLocaleDateString(locale())} at ${formatClockTime(time(minute), locale())}`}
                   style:top={`${minute}px`}
                   onclick={() => choose(day, minute)}
                   ondragover={(e) => e.preventDefault()}
@@ -272,11 +271,13 @@
                   draggable={!disabled}
                   ondragstart={(e) => e.dataTransfer?.setData('text/plain', 'crm-selected-time')}
                   role="img"
-                  aria-label={`Selected ${start} to ${end}`}
+                  aria-label={`Selected ${formatClockTime(start, locale())} – ${formatClockTime(end, locale())}`}
                   style:top={`${minutes(start)}px`}
                   style:height={`${minutes(end) - minutes(start)}px`}
                 >
-                  <b>{start}</b><span> – {end}</span>
+                  <b>{formatClockTime(start, locale())}</b><span
+                    >{formatClockTime(end, locale())}</span
+                  >
                 </div>{/if}
             </div>
           {/each}
@@ -319,9 +320,6 @@
     display: flex;
     align-items: center;
     gap: 5px;
-  }
-  .legend span:last-child {
-    margin-left: auto;
   }
   i {
     width: 9px;
@@ -438,6 +436,13 @@
     cursor: grab;
     z-index: 2;
   }
+  .selection b,
+  .selection span {
+    display: block;
+    white-space: nowrap;
+    font-size: 10px;
+    line-height: 1.3;
+  }
   .selection.conflict {
     background: var(--crm-danger-bg);
     border-color: var(--crm-danger);
@@ -485,8 +490,5 @@
     grid-column: 1 / -1;
     margin-top: 0;
     gap: 12px;
-  }
-  .legend span:last-child {
-    display: none;
   }
 </style>

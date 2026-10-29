@@ -316,7 +316,6 @@ def test_expired_sync_token_rebuilds_without_losing_cache_on_failure(conn):
     api.get.side_effect = [
         {"accessRole": "reader"},
         GoogleError(status=410),
-        {"accessRole": "reader"},
         GoogleError(),
     ]
     with patch("common.google_sync.sync_mirrors"), pytest.raises(GoogleError):

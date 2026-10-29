@@ -429,7 +429,7 @@ def appointment(conn):
     )
 
 
-def test_calendar_export_includes_notes_and_no_invites(conn):
+def test_legacy_calendar_export_keeps_notes_private_and_does_not_reinvite(conn):
     conn.service = "calendar"
     conn.save()
     appt = appointment(conn)
@@ -438,13 +438,13 @@ def test_calendar_export_includes_notes_and_no_invites(conn):
     api.request.return_value = {"etag": "v1"}
     sync_mirrors(conn, api, "calendar/v3/calendars/primary", True)
     body = api.request.call_args.kwargs["body"]
-    assert body["description"] == "Meeting notes" and body["summary"] == "Meeting"
+    assert body["description"] == "" and body["summary"] == "Meeting"
     assert "attendees" not in body
     assert api.request.call_args.kwargs["params"] == {"sendUpdates": "none"}
     assert GoogleCalendarMirror.objects.get().appointment == appt
 
 
-def test_google_changes_update_crm_notes_and_time(conn):
+def test_google_changes_update_time_but_preserve_private_notes(conn):
     conn.service = "calendar"
     conn.save()
     appt = appointment(conn)
@@ -470,7 +470,7 @@ def test_google_changes_update_crm_notes_and_time(conn):
     appt.refresh_from_db()
     assert (
         appt.title == "Changed in Google"
-        and appt.internal_notes == "New notes"
+        and appt.internal_notes == "Meeting notes"
         and appt.starts_at == new_start
     )
     api.request.assert_not_called()
@@ -480,7 +480,7 @@ def test_google_changes_update_crm_notes_and_time(conn):
     assert "New notes" not in str(notice.payload)
 
 
-def test_google_notes_only_change_is_updated_not_rescheduled(conn):
+def test_google_description_change_does_not_change_private_notes_or_activity(conn):
     conn.service = "calendar"
     conn.save()
     appt = appointment(conn)
@@ -503,8 +503,8 @@ def test_google_notes_only_change_is_updated_not_rescheduled(conn):
     with patch("common.views.sales_appointment_views.sync_attendee") as sync:
         sync_mirrors(conn, api, "calendar/v3/calendars/primary", True)
     appt.refresh_from_db()
-    assert appt.internal_notes == "Updated notes"
-    assert sync.call_args.args[2] == "updated"
+    assert appt.internal_notes == "Meeting notes"
+    sync.assert_not_called()
     assert not AppointmentEmailDelivery.objects.filter(appointment=appt).exists()
 
 
@@ -750,10 +750,7 @@ def test_calendar_notes_escape_markup_on_export(conn):
     api.get.side_effect = GoogleError(status=404)
     api.request.return_value = {"etag": "v1"}
     sync_mirrors(conn, api, "calendar/v3/calendars/primary", True)
-    assert (
-        api.request.call_args.kwargs["body"]["description"]
-        == "Budget &lt; 100 &amp; literal &lt;tag&gt;"
-    )
+    assert api.request.call_args.kwargs["body"]["description"] == ""
 
 
 @pytest.mark.django_db(transaction=True)

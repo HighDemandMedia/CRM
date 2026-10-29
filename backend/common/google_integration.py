@@ -163,6 +163,7 @@ def clear_unusable_connection(conn):
         )
         if not row:
             return
+        row.availability_calendars.all().delete()
         row.events.all().delete()
         row.mail_activity.all().delete()
         row.mirrors.all().delete()
@@ -340,6 +341,7 @@ def complete(profile, code, state):
         )
         if not conn:
             raise GoogleError("Connection changed. Connect again.")
+        conn.availability_calendars.all().delete()
         conn.events.all().delete()
         conn.mirrors.all().delete()
         conn.mail_activity.all().delete()

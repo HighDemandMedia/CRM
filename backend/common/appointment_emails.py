@@ -13,6 +13,8 @@ from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from accounts.models import Account
+from common.appointment_invitations import calendar_attachment, rsvp_link
 from common.links import frontend_url
 from common.models import AppointmentEmailDelivery, Profile, SalesAppointment
 from common.rbac import calendar_scoped
@@ -45,8 +47,22 @@ def queue_appointment_emails(
     contacts = Contact.objects.filter(
         pk__in=contact_ids, org_id=appointment.org_id, is_active=True
     )
+    company_ids = list(appointment.companies.values_list("pk", flat=True))
+    if appointment.company_id:
+        company_ids.append(appointment.company_id)
+    companies = Account.objects.filter(
+        pk__in=company_ids, org_id=appointment.org_id, is_active=True
+    )
     recipients = [("profile", p, p.user.email) for p in profiles]
     recipients.extend(("contact", c, c.email) for c in contacts)
+    recipients.extend(("company", c, c.email) for c in companies)
+    # Native Google invitations own guest delivery; keep the internal host notice.
+    if appointment.invitation_provider == "google":
+        recipients = [
+            r
+            for r in recipients
+            if r[0] == "profile" and r[1].pk == appointment.host_id
+        ]
     payload = {
         "title": appointment.title,
         "organization": appointment.org.name or "High Demand Media CRM",
@@ -122,6 +138,19 @@ def _recipient(row):
             profile.language or profile.user.ui_language,
             profile.timezone or row.payload["timezone"],
         )
+    if row.company_id:
+        company = row.company
+        if not (
+            company.org_id == row.org_id
+            and company.is_active
+            and (company.email or "").strip().lower() == row.email
+            and (
+                appointment.company_id == company.pk
+                or appointment.companies.filter(pk=company.pk).exists()
+            )
+        ):
+            return None
+        return (company.name, "en", row.payload["timezone"])
     contact = row.contact
     if not contact or not (
         contact.org_id == row.org_id
@@ -144,11 +173,13 @@ def _message(row, recipient):
     name, language, zone = recipient
     spanish = language == "es"
     headings = {
-        "scheduled": ("Appointment confirmed", "Cita confirmada"),
+        "scheduled": ("Appointment invitation", "Invitación a una cita"),
         "rescheduled": ("Appointment rescheduled", "Cita reprogramada"),
         "cancelled": ("Appointment cancelled", "Cita cancelada"),
     }
     heading = headings[row.action][int(spanish)]
+    if row.action == "scheduled" and row.profile_id == row.appointment.host_id:
+        heading = "Cita programada" if spanish else "Appointment scheduled"
     try:
         tz = ZoneInfo(zone)
     except (ValueError, KeyError):
@@ -183,6 +214,11 @@ def _message(row, recipient):
             )
     greeting = f"{'Hola' if spanish else 'Hi'} {name},"
     link = frontend_url("/calendar") if row.profile_id else ""
+    invite = (
+        row.appointment.invitation_provider == "email"
+        and row.profile_id != row.appointment.host_id
+    )
+    respond_link = rsvp_link(row) if invite and row.action != "cancelled" else ""
     html = render_to_string(
         "emails/appointment.html",
         {
@@ -192,6 +228,16 @@ def _message(row, recipient):
             "greeting": greeting,
             "details": details,
             "link": link,
+            "responses": [
+                {"label": label, "url": respond_link + "&response=" + value}
+                for value, label in [
+                    ("accepted", "Aceptar" if spanish else "Accept"),
+                    ("tentative", "Quizás" if spanish else "Maybe"),
+                    ("declined", "Rechazar" if spanish else "Decline"),
+                ]
+            ]
+            if respond_link
+            else [],
             "button_label": "Abrir calendario" if spanish else "Open calendar",
         },
     )
@@ -200,8 +246,24 @@ def _message(row, recipient):
     )
     if link:
         text += f"\n\n{link}"
+    if respond_link:
+        text += "\n\n" + ("Responder: " if spanish else "Respond: ") + respond_link
     message = EmailMultiAlternatives(f"{heading} · HDM CRM", text, to=[row.email])
     message.attach_alternative(html, "text/html")
+    if invite:
+        from email.message import MIMEPart
+
+        content, method = calendar_attachment(row)
+        attachment = MIMEPart()
+        attachment.set_content(
+            content,
+            subtype="calendar",
+            charset="utf-8",
+            params={"method": method},
+            disposition="attachment",
+            filename="invitation.ics",
+        )
+        message.attach(attachment)
     return message
 
 

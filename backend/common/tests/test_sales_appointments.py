@@ -384,7 +384,7 @@ def test_event_creates_associated_deal(admin_client, admin_profile, org_a, kind)
 
 
 @pytest.mark.django_db
-def test_event_deal_missing_source_is_atomic_and_optional(
+def test_event_deal_invalid_source_is_atomic_and_missing_source_is_optional(
     admin_client, admin_profile, org_a
 ):
     from contacts.models import Contact
@@ -400,17 +400,22 @@ def test_event_deal_missing_source_is_atomic_and_optional(
         "contact": str(attendee.pk),
     }
     assert (
-        admin_client.post("/api/sales-appointments/", body, format="json").status_code
+        admin_client.post(
+            "/api/sales-appointments/",
+            {**body, "deal_source": "INVALID"},
+            format="json",
+        ).status_code
         == 400
     )
     assert not SalesAppointment.objects.exists() and not Opportunity.objects.exists()
     response = admin_client.post(
         "/api/sales-appointments/",
-        {**body, "deal_source": "GOOGLE", "deal_name": "Custom deal"},
+        {**body, "deal_name": "Custom deal"},
         format="json",
     )
     assert response.status_code == 201, response.data
     assert Opportunity.objects.get().name == "Custom deal"
+    assert Opportunity.objects.get().lead_source == ""
     response = admin_client.post(
         "/api/sales-appointments/",
         {
@@ -527,7 +532,11 @@ def test_internal_meeting_visible_to_invited_user(
     # An internal-only event cannot create a deal.
     body.update(create_deal=True, allow_overlap=True)
     assert (
-        admin_client.post("/api/sales-appointments/", body, format="json").status_code
+        admin_client.post(
+            "/api/sales-appointments/",
+            {**body, "deal_source": "INVALID"},
+            format="json",
+        ).status_code
         == 400
     )
 

@@ -211,6 +211,7 @@ class RequireOrgContext:
     EXEMPT_EXACT_PATHS = [
         "/api/integrations/google/gmail/push/",
         "/api/integrations/google/calendar/push/",
+        "/api/appointment-response/",
         "/healthz/",
         "/api/packs/",
         "/api/auth/logout/",
