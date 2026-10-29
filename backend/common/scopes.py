@@ -67,6 +67,8 @@ API_RESOURCES = frozenset(
         "accounts",
         "activities",
         "api-settings",
+        # Public RSVP requires a signed invitation, not an API credential.
+        "appointment-response",
         # Downloads and deletion both check the parent record's permissions.
         # Deletion additionally requires attachments:write on scoped tokens.
         "attachments",
