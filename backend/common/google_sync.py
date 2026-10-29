@@ -125,6 +125,7 @@ def sync_gmail(conn, api):
     baseline = api.get("gmail/v1/users/me/profile")["historyId"]
     ids, deleted = set(), set()
     cursor = conn.history_id
+    more_history = False
     if cursor:
         try:
             data = api.get(
@@ -132,6 +133,7 @@ def sync_gmail(conn, api):
                 {"startHistoryId": cursor, "maxResults": 50},
             )
             history = data.get("history", [])
+            more_history = bool(data.get("nextPageToken") and history)
             for change in history:
                 for key in ("messagesAdded", "labelsAdded", "labelsRemoved"):
                     ids.update(item["message"]["id"] for item in change.get(key, []))
@@ -253,6 +255,7 @@ def sync_gmail(conn, api):
         mail_page_token=initial_next or "",
         initial_history_id=baseline if initial_next else "",
     )
+    return bool(initial_next or more_history)
 
 
 def fingerprint(appointment):

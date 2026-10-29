@@ -7,6 +7,8 @@
 
   import EmailActivity from '$lib/components/EmailActivity.svelte';
   import RecordEmails from '$lib/components/RecordEmails.svelte';
+  import RecordMailWatcher from '$lib/components/RecordMailWatcher.svelte';
+  let mailStatus = $state(null);
   let recordTab = $state('activity'),
     selectedThread = $state('');
   let conversationRequest = $state(0);
@@ -60,6 +62,13 @@
   let noteBusy = $state(false);
   let noteError = $state('');
 </script>
+
+<RecordMailWatcher
+  kind="contact"
+  id={contact.id}
+  active={recordTab !== 'notes'}
+  onStatus={(status) => (mailStatus = { ...status, recordId: contact.id })}
+/>
 
 {#if scheduled}<div class="scheduled-message" role="status">
     {ui('Event scheduled.')} <a href={resolve('/calendar')}>{ui('View calendar')}</a>
@@ -148,6 +157,7 @@
     <RecordTabs bind:active={recordTab} recordId={contact.id}>
       {#snippet emails()}{#key contact.id}<RecordEmails
             active={recordTab === 'emails'}
+            liveStatus={mailStatus?.recordId === contact.id ? mailStatus : null}
             kind="contact"
             recipient={contact.email || ''}
             id={contact.id}

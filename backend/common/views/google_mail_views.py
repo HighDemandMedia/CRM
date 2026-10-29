@@ -1,5 +1,6 @@
 """Paginated messages and conversations scoped to contact/company records."""
 
+import hashlib
 import json
 
 from django.db.models import Count, Max, OuterRef, Subquery
@@ -27,7 +28,7 @@ class MailQuery(serializers.Serializer):
     contact = IdentifierField(required=False)
     thread = serializers.CharField(max_length=128, required=False)
     view = serializers.ChoiceField(
-        choices=["conversations", "messages"], default="conversations"
+        choices=["conversations", "messages", "status"], default="conversations"
     )
 
 
@@ -54,6 +55,20 @@ class RecordMailView(APIView):
         if params.get("contact"):
             contacts = contacts.filter(pk=params["contact"])
         rows = mail_rows(request.profile, contacts)
+        if params["view"] == "status":
+            # Small permission-scoped fingerprint; never read/decrypt message bodies.
+            stats = rows.aggregate(total=Count("id"), changed=Max("updated_at"))
+            revision = hashlib.sha256(
+                f"{stats['total']}:{stats['changed']}".encode()
+            ).hexdigest()
+            return Response(
+                {
+                    "revision": revision,
+                    "connection": connection_status(request.profile)["gmail"],
+                },
+                headers={"Cache-Control": "private, no-store"},
+            )
+
         offset, page_size = params["offset"], 20
         if params.get("thread"):
             page = list(

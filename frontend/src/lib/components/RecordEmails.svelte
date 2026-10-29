@@ -8,7 +8,7 @@
   import EmailComposer from './EmailComposer.svelte';
   import EmailActivity from './EmailActivity.svelte';
   const { ui, exactTime } = useI18n();
-  /** @type {{kind:'contact'|'company',id:string,contacts?:any[],initialThread?:string,initialRequest?:number,composeRequest?:number,recipient?:string,active?:boolean}} */
+  /** @type {{kind:'contact'|'company',id:string,contacts?:any[],initialThread?:string,initialRequest?:number,composeRequest?:number,recipient?:string,active?:boolean,liveStatus?:any}} */
   let {
     kind,
     id,
@@ -17,7 +17,8 @@
     initialRequest = 0,
     composeRequest = 0,
     recipient = '',
-    active = true
+    active = true,
+    liveStatus = null
   } = $props();
   let composing = $state(false);
   let thread = $state(''),
@@ -30,6 +31,28 @@
   let next = $state(/** @type {number|null} */ (null));
   let busy = $state(false),
     error = $state('');
+  let appliedRevision = '';
+  let attemptedStatus;
+  let refreshing = $state(false);
+  $effect(() => {
+    if (liveStatus?.connection) connection = liveStatus.connection;
+    if (
+      active &&
+      liveStatus?.revision &&
+      liveStatus.revision !== appliedRevision &&
+      liveStatus !== attemptedStatus &&
+      !busy &&
+      !refreshing
+    ) {
+      const revision = liveStatus.revision;
+      untrack(() => {
+        attemptedStatus = liveStatus;
+        void load(false, true).then((success) => {
+          if (success) appliedRevision = revision;
+        });
+      });
+    }
+  });
   let searchTimer;
   let controller,
     requestVersion = 0;
@@ -62,13 +85,15 @@
     clearTimeout(searchTimer);
     controller?.abort();
   });
-  async function load(more = false) {
+  async function load(more = false, quiet = false) {
     controller?.abort();
     controller = new AbortController();
     const version = ++requestVersion;
-    busy = true;
+    if (quiet) refreshing = true;
+    else busy = true;
     error = '';
-    if (!more) {
+    const loadedCount = items.length;
+    if (!more && !quiet) {
       items = [];
       next = null;
     }
@@ -81,16 +106,30 @@
       if (!response.ok) throw new Error();
       const result = await response.json();
       if (version !== requestVersion) return;
+      // Refresh all pages already loaded without clearing rows or collapsing messages.
+      while (quiet && result.next_offset !== null && result.results.length < loadedCount) {
+        query.set('offset', String(result.next_offset));
+        const page = await fetch(`${endpoint}?${query}`, { signal: controller.signal });
+        if (!page.ok) throw new Error();
+        const extra = await page.json();
+        if (version !== requestVersion) return;
+        result.results.push(...extra.results);
+        result.next_offset = extra.next_offset;
+      }
       const combined = more ? [...items, ...result.results] : result.results;
       items = [...new Map(combined.map((item) => [item.id, item])).values()];
       lastLoaded = Date.now();
       connection = result.connection;
       next = result.next_offset;
+      return true;
     } catch (err) {
-      if (version === requestVersion && err.name !== 'AbortError')
+      if (!quiet && version === requestVersion && err.name !== 'AbortError')
         error = 'Could not load emails. Please try again.';
     } finally {
-      if (version === requestVersion) busy = false;
+      if (version === requestVersion) {
+        busy = false;
+        refreshing = false;
+      }
     }
   }
   function filter(event) {

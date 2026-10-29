@@ -3,6 +3,7 @@
 import uuid
 
 from django.db import models
+from django.db.models.functions import Now
 
 
 class GoogleConnection(models.Model):
@@ -27,6 +28,10 @@ class GoogleConnection(models.Model):
     initial_history_id = models.CharField(max_length=64, blank=True)
     mail_page_token = models.TextField(blank=True)
     mail_contacts_fingerprint = models.CharField(max_length=64, blank=True)
+    mail_sync_requested_at = models.DateTimeField(null=True, blank=True)
+    mail_watch_expires_at = models.DateTimeField(null=True, blank=True)
+    mail_watch_renewed_at = models.DateTimeField(null=True, blank=True)
+    mail_watch_topic = models.CharField(max_length=255, blank=True, db_default="")
     last_sync = models.DateTimeField(null=True, blank=True)
     error = models.CharField(max_length=255, blank=True)
     status = models.CharField(max_length=20, default="disconnected")
@@ -95,6 +100,7 @@ class GoogleMailActivity(models.Model):
     encrypted_body = models.TextField(blank=True)
     direction = models.CharField(max_length=8)
     occurred_at = models.DateTimeField()
+    updated_at = models.DateTimeField(auto_now=True, db_default=Now())
 
     class Meta:
         db_table = "google_mail_activity"

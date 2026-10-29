@@ -483,6 +483,34 @@ def flush_expired_refresh_tokens():
     return count
 
 
+@shared_task(autoretry_for=(Exception,), retry_backoff=True, max_retries=5)
+def process_gmail_notification(email, history_id, project_id):
+    from common.google_push import request_mail_sync
+    from common.models import GoogleConnection
+
+    # The provider identifies a mailbox, never a tenant. Resolve it under each
+    # active tenant's RLS context; the same mailbox may have separate memberships.
+    for org_id in (
+        Org.objects.filter(is_active=True, closing_at__isnull=True)
+        .values_list("pk", flat=True)
+        .iterator()
+    ):
+        set_rls_context(org_id)
+        try:
+            for conn in GoogleConnection.objects.filter(
+                org_id=org_id,
+                service="gmail",
+                status="connected",
+                email__iexact=email,
+                oauth_project_id=project_id,
+                profile__is_active=True,
+                profile__user__is_active=True,
+            ):
+                request_mail_sync(conn, history_id)
+        finally:
+            clear_rls_context()
+
+
 @shared_task(soft_time_limit=240, time_limit=270)
 @organization_job
 def sync_google_connection(org_id, connection_id):
@@ -511,17 +539,47 @@ def sync_google_connection(org_id, connection_id):
             return
         conn = rows.select_related("profile__user", "profile__org", "org").get()
         api = GoogleAPI(conn)
-        (sync_gmail if conn.service == "gmail" else sync_calendar)(conn, api)
-        rows.filter(generation=conn.generation).update(
-            last_sync=timezone.now(), error="", sync_started_at=None
-        )
+        if conn.service == "gmail":
+            from common.google_push import renew_watch
+
+            renew_watch(conn, api)
+            more = sync_gmail(conn, api)
+        else:
+            sync_calendar(conn, api)
+            more = False
+        # Clear only notifications covered by this job. A notification received
+        # after it started must trigger another pass, even when the lock was busy.
+        from django.db import transaction
+
+        with transaction.atomic():
+            current = (
+                rows.select_for_update().filter(generation=conn.generation).first()
+            )
+            if not current:
+                return
+            requested = current.mail_sync_requested_at
+            pending_push = bool(requested and requested > now)
+            current.last_sync = timezone.now()
+            current.error = ""
+            current.sync_started_at = None
+            if not pending_push:
+                current.mail_sync_requested_at = None
+            current.save(
+                update_fields=[
+                    "last_sync",
+                    "error",
+                    "sync_started_at",
+                    "mail_sync_requested_at",
+                ]
+            )
+
         # Continue a large initial import in short jobs; normal updates run every five minutes.
         pending = (
             rows.filter(generation=conn.generation, service="gmail")
             .exclude(mail_page_token="")
             .exists()
         )
-        if pending:
+        if pending or more or pending_push:
             sync_google_connection.apply_async(
                 args=[org_id, connection_id], countdown=5
             )

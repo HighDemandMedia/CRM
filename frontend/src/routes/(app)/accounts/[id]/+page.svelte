@@ -10,6 +10,8 @@
   import RecordTabs from '$lib/v2/components/RecordTabs.svelte';
   import EmailActivity from '$lib/components/EmailActivity.svelte';
   import RecordEmails from '$lib/components/RecordEmails.svelte';
+  import RecordMailWatcher from '$lib/components/RecordMailWatcher.svelte';
+  let mailStatus = $state(null);
   let recordTab = $state('activity'),
     selectedThread = $state('');
   let conversationRequest = $state(0);
@@ -50,6 +52,13 @@
 
   let overdueDeals = $derived(account.overdue_deal_count ?? 0);
 </script>
+
+<RecordMailWatcher
+  kind="company"
+  id={account.id}
+  active={recordTab !== 'notes'}
+  onStatus={(status) => (mailStatus = { ...status, recordId: account.id })}
+/>
 
 {#if scheduled}<div class="scheduled-message" role="status">
     {ui('Event scheduled.')} <a href={resolve('/calendar')}>{ui('View calendar')}</a>
@@ -174,6 +183,7 @@
         <RecordTabs bind:active={recordTab} recordId={account.id}>
           {#snippet emails()}{#key account.id}<RecordEmails
                 active={recordTab === 'emails'}
+                liveStatus={mailStatus?.recordId === account.id ? mailStatus : null}
                 kind="company"
                 recipient={account.email || ''}
                 id={account.id}

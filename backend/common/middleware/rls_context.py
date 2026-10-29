@@ -209,6 +209,7 @@ class RequireOrgContext:
     # health check return 403 and the service read as down. Exact match: nothing
     # should hang off /healthz/.
     EXEMPT_EXACT_PATHS = [
+        "/api/integrations/google/gmail/push/",
         "/healthz/",
         "/api/packs/",
         "/api/auth/logout/",

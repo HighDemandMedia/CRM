@@ -164,6 +164,10 @@ are read at startup and require restarting the affected services after a change.
 | `GOOGLE_GMAIL_CLIENT_ID` | *(empty)* | When enabling isolated integrations | Dedicated Gmail OAuth client ID. |
 | `GOOGLE_GMAIL_CLIENT_SECRET` | *(empty)* | When enabling isolated integrations | Dedicated Gmail OAuth client secret; backend-only. |
 | `GOOGLE_GMAIL_PROJECT_ID` | *(empty)* | When enabling isolated integrations | Actual project for the dedicated Gmail client; separate from Calendar and sign-in. |
+| `GOOGLE_GMAIL_PUSH_TOPIC` | *(empty)* | For Gmail push | Full Pub/Sub topic in the dedicated Gmail project. Set all four push variables together. |
+| `GOOGLE_GMAIL_PUSH_SUBSCRIPTION` | *(empty)* | For Gmail push | Exact full Pub/Sub subscription resource allowed to deliver notifications. |
+| `GOOGLE_GMAIL_PUSH_AUDIENCE` | *(empty)* | For Gmail push | Exact HTTPS API webhook URL configured as the authenticated push token audience. |
+| `GOOGLE_GMAIL_PUSH_SERVICE_ACCOUNT` | *(empty)* | For Gmail push | Exact service account email authorized to authenticate Pub/Sub delivery; no private key needed. |
 | `GOOGLE_CALENDAR_CLIENT_ID` | *(empty)* | When enabling isolated integrations | Dedicated Calendar OAuth client ID. |
 | `GOOGLE_CALENDAR_CLIENT_SECRET` | *(empty)* | When enabling isolated integrations | Dedicated Calendar OAuth client secret; backend-only. |
 | `GOOGLE_CALENDAR_PROJECT_ID` | *(empty)* | When enabling isolated integrations | Actual project for the dedicated Calendar client; separate from Gmail and sign-in. |

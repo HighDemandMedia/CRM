@@ -355,6 +355,10 @@ def complete(profile, code, state):
         conn.initial_history_id = ""
         conn.mail_page_token = ""
         conn.last_sync = conn.sync_started_at = None
+        conn.mail_sync_requested_at = conn.mail_watch_expires_at = (
+            conn.mail_watch_renewed_at
+        ) = None
+        conn.mail_watch_topic = ""
         conn.calendar_id, conn.calendar_name = "primary", "Primary calendar"
         conn.save()
     return conn
