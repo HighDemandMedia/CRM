@@ -171,6 +171,9 @@ def clear_unusable_connection(conn):
         row.history_id = row.initial_history_id = row.mail_page_token = ""
         row.oauth_started_at = row.last_sync = row.sync_started_at = None
         row.scopes = []
+        from common.google_calendar_push import reset_calendar_state
+
+        reset_calendar_state(row)
         row.status = "reconnect"
         row.error = "Reconnect Google to restore access."
         row.generation = uuid.uuid4()
@@ -359,6 +362,9 @@ def complete(profile, code, state):
             conn.mail_watch_renewed_at
         ) = None
         conn.mail_watch_topic = ""
+        from common.google_calendar_push import reset_calendar_state
+
+        reset_calendar_state(conn)
         conn.calendar_id, conn.calendar_name = "primary", "Primary calendar"
         conn.save()
     return conn

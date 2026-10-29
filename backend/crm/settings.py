@@ -639,6 +639,8 @@ GOOGLE_GMAIL_CLIENT_SECRET = os.environ.get("GOOGLE_GMAIL_CLIENT_SECRET", "")
 GOOGLE_GMAIL_PROJECT_ID = os.environ.get("GOOGLE_GMAIL_PROJECT_ID", "")
 # Leave empty until the authenticated Pub/Sub subscription is provisioned.
 GOOGLE_GMAIL_PUSH_TOPIC = os.environ.get("GOOGLE_GMAIL_PUSH_TOPIC", "")
+# HTTPS API endpoint; blank keeps local installations on the polling fallback.
+GOOGLE_CALENDAR_PUSH_URL = os.environ.get("GOOGLE_CALENDAR_PUSH_URL", "")
 GOOGLE_GMAIL_PUSH_SUBSCRIPTION = os.environ.get("GOOGLE_GMAIL_PUSH_SUBSCRIPTION", "")
 GOOGLE_GMAIL_PUSH_AUDIENCE = os.environ.get("GOOGLE_GMAIL_PUSH_AUDIENCE", "")
 GOOGLE_GMAIL_PUSH_SERVICE_ACCOUNT = os.environ.get(

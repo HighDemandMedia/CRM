@@ -24,6 +24,14 @@ class GoogleConnection(models.Model):
     calendar_id = models.CharField(max_length=1024, default="primary")
     calendar_name = models.CharField(max_length=255, default="Primary calendar")
     calendar_writable = models.BooleanField(default=False)
+    calendar_sync_token = models.TextField(blank=True, db_default="")
+    calendar_full_synced_at = models.DateTimeField(null=True, blank=True)
+    calendar_sync_requested_at = models.DateTimeField(null=True, blank=True)
+    calendar_watch_id = models.CharField(max_length=64, blank=True, db_default="")
+    calendar_watch_resource = models.CharField(
+        max_length=1024, blank=True, db_default=""
+    )
+    calendar_watch_expires_at = models.DateTimeField(null=True, blank=True)
     history_id = models.CharField(max_length=64, blank=True)
     initial_history_id = models.CharField(max_length=64, blank=True)
     mail_page_token = models.TextField(blank=True)

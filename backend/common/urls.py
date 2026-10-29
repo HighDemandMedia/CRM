@@ -28,7 +28,7 @@ from common.views.google_integration_views import (
     GoogleMailBodyView,
 )
 from common.views.google_mail_views import RecordMailActionView, RecordMailView
-from common.views.google_push_views import GmailPushView
+from common.views.google_push_views import CalendarPushView, GmailPushView
 from common.views.help_views import HelpRequestView
 from common.views.invitation_views import (
     AcceptInvitationView,
@@ -106,6 +106,7 @@ urlpatterns = [
     path("integrations/google/callback/", GoogleCallbackView.as_view()),
     path("integrations/google/", GoogleConnectionView.as_view()),
     path("integrations/google/gmail/push/", GmailPushView.as_view()),
+    path("integrations/google/calendar/push/", CalendarPushView.as_view()),
     path("integrations/google/calendars/", GoogleCalendarListView.as_view()),
     path("integrations/google/events/", GoogleEventsView.as_view()),
     path("integrations/google/events/<uuid:pk>/", GoogleEventsView.as_view()),

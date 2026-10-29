@@ -5,6 +5,15 @@ import { listAccounts } from '$lib/server/v2/accounts.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ cookies, url }) {
+  if (url.searchParams.get('view') === 'status') {
+    try {
+      const status = await apiRequest('/integrations/google/events/?view=status', {}, { cookies });
+      return json(status, { headers: { 'Cache-Control': 'private, no-store' } });
+    } catch (cause) {
+      const status = [401, 403, 404].includes(cause?.status) ? cause.status : 503;
+      error(status, 'Calendar status unavailable.');
+    }
+  }
   const permissions = await apiRequest('/permissions/me/', {}, { cookies });
   if (!permissions.rules?.calendar?.view || permissions.rules.calendar.view === 'none')
     error(403, 'Your permission set does not include Calendar.');
@@ -83,6 +92,7 @@ export async function GET({ cookies, url }) {
   return json(
     {
       googleError: google.error || '',
+      calendarRevision: google.revision ?? null,
       events: [
         ...(google.events ?? []),
         ...legacy,

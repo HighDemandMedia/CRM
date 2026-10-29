@@ -511,6 +511,34 @@ def process_gmail_notification(email, history_id, project_id):
             clear_rls_context()
 
 
+@shared_task(autoretry_for=(Exception,), retry_backoff=True, max_retries=5)
+@organization_job
+def process_calendar_notification(
+    org_id, connection_id, generation, channel_id, resource
+):
+    from common.google_calendar_push import request_calendar_sync
+    from common.models import GoogleConnection
+
+    set_rls_context(org_id)
+    try:
+        conn = GoogleConnection.objects.filter(
+            pk=connection_id,
+            org_id=org_id,
+            generation=generation,
+            service="calendar",
+            status="connected",
+            calendar_watch_id=channel_id,
+            calendar_watch_resource=resource,
+            calendar_watch_expires_at__gt=timezone.now(),
+            profile__is_active=True,
+            profile__user__is_active=True,
+        ).first()
+        if conn:
+            request_calendar_sync(conn)
+    finally:
+        clear_rls_context()
+
+
 @shared_task(soft_time_limit=240, time_limit=270)
 @organization_job
 def sync_google_connection(org_id, connection_id):
@@ -545,6 +573,9 @@ def sync_google_connection(org_id, connection_id):
             renew_watch(conn, api)
             more = sync_gmail(conn, api)
         else:
+            from common.google_calendar_push import renew_watch as renew_calendar_watch
+
+            renew_calendar_watch(conn, api)
             sync_calendar(conn, api)
             more = False
         # Clear only notifications covered by this job. A notification received
@@ -557,23 +588,28 @@ def sync_google_connection(org_id, connection_id):
             )
             if not current:
                 return
-            requested = current.mail_sync_requested_at
+            requested_field = (
+                "mail_sync_requested_at"
+                if conn.service == "gmail"
+                else "calendar_sync_requested_at"
+            )
+            requested = getattr(current, requested_field)
             pending_push = bool(requested and requested > now)
             current.last_sync = timezone.now()
             current.error = ""
             current.sync_started_at = None
             if not pending_push:
-                current.mail_sync_requested_at = None
+                setattr(current, requested_field, None)
             current.save(
                 update_fields=[
                     "last_sync",
                     "error",
                     "sync_started_at",
-                    "mail_sync_requested_at",
+                    requested_field,
                 ]
             )
 
-        # Continue a large initial import in short jobs; normal updates run every five minutes.
+        # Continue large imports and changes received in flight in short jobs.
         pending = (
             rows.filter(generation=conn.generation, service="gmail")
             .exclude(mail_page_token="")

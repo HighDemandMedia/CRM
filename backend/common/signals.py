@@ -12,6 +12,20 @@ from django.dispatch import receiver
 from common.models import Activity, Org
 
 
+@receiver(post_save, sender="common.SalesAppointment")
+def appointment_calendar_changed(sender, instance, raw=False, **kwargs):
+    if raw or getattr(instance, "_from_google_sync", False):
+        return
+    from django.db import transaction
+
+    from common.google_calendar_push import request_host_sync
+
+    # Avoid appointment -> connection locks inside the writing transaction;
+    # synchronization locks in the reverse order and reads only committed data.
+    org_id, host_id = instance.org_id, instance.host_id
+    transaction.on_commit(lambda: request_host_sync(org_id, host_id))
+
+
 def deleting_organization(origin):
     # A tenant deletion must not recreate activity rows after Django's cascade
     # collector has already enumerated the tenant's history.

@@ -14,6 +14,7 @@
   /** @type {EventDetails} */
   let details;
   import { onMount, tick } from 'svelte';
+  import { watchResourceStatus } from '$lib/utils/watch-resource-status.js';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import { ChevronLeft, ChevronRight, Building2, UserRound } from '@lucide/svelte';
@@ -83,26 +84,52 @@
       end: end.toISOString()
     });
     refresh;
+    let stopped = false;
+    let revision = null;
     const controller = new AbortController();
     busy = true;
     failure = '';
     events = [];
-    fetch(`${resolve('/calendar/events')}?${query}`, { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Could not load appointments.');
-        const result = await response.json();
-        if (!controller.signal.aborted) {
-          events = result.events;
-          googleError = result.googleError || '';
-        }
+    async function loadEvents() {
+      const response = await fetch(`${resolve('/calendar/events')}?${query}`, {
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error('Could not load appointments.');
+      const result = await response.json();
+      if (!stopped) {
+        events = result.events;
+        googleError = result.googleError || '';
+        revision = result.calendarRevision;
+        failure = '';
+      }
+    }
+    let stopWatching = () => {};
+    loadEvents()
+      .then(() => {
+        if (stopped) return;
+        stopWatching = watchResourceStatus({
+          endpoint: `${resolve('/calendar/events')}?view=status`,
+          onStatus: async (status) => {
+            if (status.revision !== revision) await loadEvents();
+          },
+          onUnavailable: () => {
+            events = [];
+            failure = 'Could not load appointments. Please try again.';
+            details?.close();
+          }
+        });
       })
       .catch(() => {
-        if (!controller.signal.aborted) failure = 'Could not load appointments. Please try again.';
+        if (!stopped) failure = 'Could not load appointments. Please try again.';
       })
       .finally(() => {
-        if (!controller.signal.aborted) busy = false;
+        if (!stopped) busy = false;
       });
-    return () => controller.abort();
+    return () => {
+      stopped = true;
+      controller.abort();
+      stopWatching();
+    };
   });
 </script>
 

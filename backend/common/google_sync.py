@@ -471,6 +471,7 @@ def sync_mirrors(conn, api, base, writable):
                         "email": conn.email,
                     },
                 ]
+                appointment._from_google_sync = True
                 appointment.save()
                 sync_attendee(
                     appointment,
@@ -555,19 +556,37 @@ def sync_calendar(conn, api):
     writable = calendar.get("accessRole") in ("owner", "writer")
     base = "calendar/v3/calendars/" + quote(conn.calendar_id, safe="")
     sync_mirrors(conn, api, base, writable)
-    params = {
-        "singleEvents": "true",
-        "timeMin": (timezone.now() - timedelta(days=90)).isoformat(),
-        "timeMax": (timezone.now() + timedelta(days=365)).isoformat(),
-        "maxResults": 2500,
-    }
-    rows = []
+    now = timezone.now()
+    window_start, window_end = now - timedelta(days=90), now + timedelta(days=365)
+    # Rebaseline daily so unchanged recurring instances enter the rolling window.
+    full = (
+        not conn.calendar_sync_token
+        or not conn.calendar_full_synced_at
+        or conn.calendar_full_synced_at < now - timedelta(days=1)
+    )
+    params = {"singleEvents": "true", "maxResults": 2500}
+    if full:
+        params.update(timeMin=window_start.isoformat(), timeMax=window_end.isoformat())
+    else:
+        params["syncToken"] = conn.calendar_sync_token
+    rows, removed, token = [], [], ""
     for _ in range(4):
-        data = api.get(base + "/events", params)
+        try:
+            data = api.get(base + "/events", params)
+        except GoogleError as exc:
+            if exc.status == 410 and not full:
+                # Preserve the existing cache until the replacement finishes.
+                conn.calendar_sync_token = ""
+                return sync_calendar(conn, api)
+            raise
         for event in data.get("items", []):
             if event.get("status") == "cancelled":
+                removed.append(event["id"])
                 continue
             start, end, all_day = event_times(event, calendar.get("timeZone", "UTC"))
+            if start >= window_end or end <= window_start:
+                removed.append(event["id"])
+                continue
             href = event.get("htmlLink", "")
             if not href.startswith(
                 "https://www.google.com/calendar/"
@@ -590,6 +609,7 @@ def sync_calendar(conn, api):
                 }
             )
         if not data.get("nextPageToken"):
+            token = data.get("nextSyncToken", "")
             break
         params["pageToken"] = data["nextPageToken"]
     else:
@@ -610,8 +630,13 @@ def sync_calendar(conn, api):
             GoogleCalendarEvent.objects.update_or_create(
                 connection=conn, org=conn.org, external_id=external_id, defaults=row
             )
-        conn.events.exclude(external_id__in=ids).delete()
+        if full:
+            conn.events.exclude(external_id__in=ids).delete()
+        elif removed:
+            conn.events.filter(external_id__in=removed).delete()
         GoogleConnection.objects.filter(pk=conn.pk).update(
             calendar_writable=writable,
             calendar_name=calendar.get("summary", "Google Calendar")[:255],
+            calendar_sync_token=token,
+            calendar_full_synced_at=now if full else conn.calendar_full_synced_at,
         )

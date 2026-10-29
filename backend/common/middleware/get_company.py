@@ -73,6 +73,7 @@ class GetProfileAndOrg:
         # Skip JWT validation for authentication endpoints that don't need org context
         auth_skip_paths = [
             "/api/integrations/google/gmail/push/",
+            "/api/integrations/google/calendar/push/",
             "/api/auth/password/login/",
             "/api/auth/password/reset/request/",
             "/api/auth/password/reset/confirm/",

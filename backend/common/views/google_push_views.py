@@ -1,11 +1,13 @@
-"""Pub/Sub entry point: no CRM cookie or tenant supplied by the caller is trusted."""
+"""Google change callbacks: authenticate hints before processing tenant data."""
 
 import base64
 import binascii
 import json
 import logging
+import uuid
 
 from django.conf import settings
+from django.core import signing
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport.requests import Request
 from google.oauth2.id_token import verify_oauth2_token
@@ -87,5 +89,53 @@ class GmailPushView(APIView):
         except Exception:
             # Acknowledge only after durable queueing. Pub/Sub retries a 503.
             logger.error("Gmail push queue unavailable")
+            return Response(status=503)
+        return Response(status=204)
+
+
+class CalendarPushView(APIView):
+    authentication_classes = ()
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        from common.google_calendar_push import (
+            TOKEN_SALT,
+            WATCH_SECONDS,
+            push_configured,
+        )
+        from common.tasks import process_calendar_notification
+
+        if not push_configured():
+            return Response(status=503)
+        token = request.headers.get("X-Goog-Channel-Token", "")
+        if not token or len(token) > 256:
+            return Response(status=401)
+        try:
+            org_id, connection_id, generation, channel_id = signing.loads(
+                token, salt=TOKEN_SALT, max_age=WATCH_SECONDS
+            )
+            connection_id = str(uuid.UUID(connection_id))
+            generation = str(uuid.UUID(generation))
+        except (signing.BadSignature, ValueError, TypeError):
+            return Response(status=401)
+        resource = request.headers.get("X-Goog-Resource-ID", "")
+        state = request.headers.get("X-Goog-Resource-State", "")
+        if (
+            channel_id != request.headers.get("X-Goog-Channel-ID")
+            or not resource
+            or len(resource) > 1024
+            or state not in ("sync", "exists", "not_exists")
+        ):
+            return Response(status=400)
+        # Google's initial handshake may arrive before watch() returns. The
+        # registering task already performs a sync after storing the resource ID.
+        if state == "sync":
+            return Response(status=204)
+        try:
+            process_calendar_notification.delay(
+                org_id, connection_id, generation, channel_id, resource
+            )
+        except Exception:
+            logger.error("Calendar push queue unavailable")
             return Response(status=503)
         return Response(status=204)

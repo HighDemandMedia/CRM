@@ -131,6 +131,9 @@ class GoogleConnectionView(APIView):
                     item.get("summary", "")[:255],
                 )
                 conn.calendar_writable = item.get("accessRole") in ("owner", "writer")
+                from common.google_calendar_push import reset_calendar_state
+
+                reset_calendar_state(conn)
                 conn.generation = uuid.uuid4()
                 conn.last_sync = conn.sync_started_at = None
                 conn.save()
@@ -177,6 +180,18 @@ class GoogleEventsView(APIView):
 
     def get(self, request):
         require(request.profile, "calendar", "view")
+        conn = GoogleConnection.objects.filter(
+            org=request.profile.org, profile=request.profile, service="calendar"
+        ).first()
+        revision = (
+            f"{conn.generation}:{conn.last_sync}:{conn.status}:{conn.error}:{conn.calendar_writable}"
+            if conn
+            else "disconnected"
+        )
+        if request.query_params.get("view") == "status":
+            return Response(
+                {"revision": revision}, headers={"Cache-Control": "private, no-store"}
+            )
         field = serializers.DateTimeField()
         start, end = (
             field.run_validation(request.query_params.get("start")),
@@ -184,17 +199,17 @@ class GoogleEventsView(APIView):
         )
         if end <= start or end - start > timedelta(days=43):
             raise serializers.ValidationError("Invalid calendar range.")
-        conn = GoogleConnection.objects.filter(
-            org=request.profile.org, profile=request.profile, service="calendar"
-        ).first()
         if not conn:
-            return Response({"events": [], "status": "disconnected"})
+            return Response(
+                {"events": [], "status": "disconnected", "revision": revision}
+            )
         records = conn.events.filter(
             org=request.profile.org, starts_at__lt=end, ends_at__gt=start
         ).exclude(external_id__in=conn.mirrors.values("external_id"))
         return Response(
             {
                 "status": conn.status,
+                "revision": revision,
                 "last_sync": conn.last_sync,
                 "error": conn.error,
                 "events": [

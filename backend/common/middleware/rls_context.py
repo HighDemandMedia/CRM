@@ -210,6 +210,7 @@ class RequireOrgContext:
     # should hang off /healthz/.
     EXEMPT_EXACT_PATHS = [
         "/api/integrations/google/gmail/push/",
+        "/api/integrations/google/calendar/push/",
         "/healthz/",
         "/api/packs/",
         "/api/auth/logout/",

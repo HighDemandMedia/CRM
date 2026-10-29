@@ -171,6 +171,7 @@ are read at startup and require restarting the affected services after a change.
 | `GOOGLE_CALENDAR_CLIENT_ID` | *(empty)* | When enabling isolated integrations | Dedicated Calendar OAuth client ID. |
 | `GOOGLE_CALENDAR_CLIENT_SECRET` | *(empty)* | When enabling isolated integrations | Dedicated Calendar OAuth client secret; backend-only. |
 | `GOOGLE_CALENDAR_PROJECT_ID` | *(empty)* | When enabling isolated integrations | Actual project for the dedicated Calendar client; separate from Gmail and sign-in. |
+| `GOOGLE_CALENDAR_PUSH_URL` | *(empty)* | For Calendar push | Public HTTPS API endpoint ending in `/api/integrations/google/calendar/push/`. Blank disables watch registration; scheduled sync remains available. See the Calendar push runbook. |
 
 ### Docker bootstrap (not read by `crm/settings.py`)
 
