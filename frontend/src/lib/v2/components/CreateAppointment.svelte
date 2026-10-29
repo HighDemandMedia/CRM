@@ -1,4 +1,5 @@
 <script>
+  import RecordAction from './RecordAction.svelte';
   import { CalendarDays, Clock3, X, ChevronDown, Plus } from '@lucide/svelte';
   const id = $props.id();
   let showAvailability = $state(true);
@@ -27,14 +28,15 @@
     dealName = $state(''),
     dealSource = $state('');
   import { dateKey } from '$lib/v2/calendar.js';
-  /** @type {{hosts:any[],defaultHost?:string|null,selected:Date,onCreated:()=>void, action?:string, defaultAttendee?:{id:string,name:string,type:string}}} */
+  /** @type {{hosts:any[],defaultHost?:string|null,selected:Date,onCreated:()=>void, action?:string, defaultAttendee?:{id:string,name:string,type:string},iconOnly?:boolean}} */
   let {
     hosts: allHosts,
     defaultHost,
     selected,
     onCreated,
     action = '?/create',
-    defaultAttendee
+    defaultAttendee,
+    iconOnly = false
   } = $props();
   let hosts = $derived(
     allHosts.filter((person) => page.data.permissions?.calendar_host_ids?.includes(person.id))
@@ -159,29 +161,35 @@
       controller.abort();
     };
   });
+  function openAppointment() {
+    date = dateKey(selected);
+    if (defaultAttendee) {
+      attendees = [{ ...defaultAttendee }];
+      search = '';
+    }
+    host = defaultHost || hosts[0]?.id || '';
+    error = '';
+    createDeal = canCreateDeal;
+    dealName = external ? `${external.name} - Deal` : '';
+    dealSource = '';
+    showAvailability = window.matchMedia('(min-width: 900px)').matches;
+    open = true;
+    dialog.showModal();
+    titleInput?.focus();
+  }
 </script>
 
-{#if page.data.permissions?.rules?.calendar?.create === true}
-  <button
-    class="v2-btn v2-btn-primary"
-    onclick={() => {
-      date = dateKey(selected);
-      if (defaultAttendee) {
-        attendees = [{ ...defaultAttendee }];
-        search = '';
-      }
-      host = defaultHost || hosts[0]?.id || '';
-      error = '';
-      createDeal = canCreateDeal;
-      dealName = external ? `${external.name} - Deal` : '';
-      dealSource = '';
-      showAvailability = window.matchMedia('(min-width: 900px)').matches;
-      open = true;
-      dialog.showModal();
-      titleInput?.focus();
-    }}><Plus size={16} />{ui('Schedule event')}</button
-  >
-{/if}
+{#snippet trigger()}
+  {#if iconOnly}<RecordAction
+      icon={CalendarDays}
+      label={ui('Schedule event')}
+      onclick={openAppointment}
+    />
+  {:else}<button class="v2-btn v2-btn-primary" onclick={openAppointment}
+      ><Plus size={16} />{ui('Schedule event')}</button
+    >{/if}
+{/snippet}
+{#if page.data.permissions?.rules?.calendar?.create === true}{@render trigger()}{/if}
 <dialog
   class="schedule-dialog"
   aria-labelledby={`${id}-title`}

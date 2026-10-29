@@ -1,4 +1,7 @@
 <script>
+  import RecordAction from '$lib/v2/components/RecordAction.svelte';
+  import { Mail, StickyNote } from '@lucide/svelte';
+  let recordTabs;
   import RecordDisclosure from '$lib/v2/components/RecordDisclosure.svelte';
   import RecordActivityEntry from '$lib/v2/components/RecordActivityEntry.svelte';
   import { useI18n } from '$lib/i18n/context.js';
@@ -84,8 +87,15 @@
         onemail={composeEmail}
       >
         {#snippet actions()}
-          <CompanyActions company={account} disabled={editingProperties} />
+          <RecordAction
+            icon={StickyNote}
+            label={ui('Add note')}
+            onclick={() => recordTabs?.openNotes()}
+          />
+          <RecordAction icon={Mail} label={ui('New email')} onclick={composeEmail} />
+
           <CreateAppointment
+            iconOnly
             hosts={data.hosts}
             defaultHost={data.defaultHost}
             selected={new Date()}
@@ -96,6 +106,7 @@
               void invalidateAll();
             }}
           />
+          <CompanyActions company={account} disabled={editingProperties} />
         {/snippet}
       </RecordIdentity>
     {/snippet}
@@ -180,7 +191,7 @@
         </ContactAssociations>
       </section>
       <section class="v2-card company-journal" aria-label={ui('Company notes and activity')}>
-        <RecordTabs bind:active={recordTab} recordId={account.id}>
+        <RecordTabs bind:this={recordTabs} bind:active={recordTab} recordId={account.id}>
           {#snippet emails()}{#key account.id}<RecordEmails
                 active={recordTab === 'emails'}
                 liveStatus={mailStatus?.recordId === account.id ? mailStatus : null}

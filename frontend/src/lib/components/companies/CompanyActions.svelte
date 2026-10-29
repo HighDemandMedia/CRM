@@ -1,4 +1,5 @@
 <script>
+  import RecordAction from '$lib/v2/components/RecordAction.svelte';
   import { resolve } from '$app/paths';
   import { can } from '$lib/v2/permissions.js';
   import { page } from '$app/state';
@@ -7,6 +8,7 @@
   import {
     Trash2,
     ChevronDown,
+    Ellipsis,
     Merge,
     ListTodo,
     Ticket,
@@ -22,15 +24,30 @@
   let mergeOpen = $state(false);
 </script>
 
-{#if list || can(page.data.permissions, 'companies', 'delete') || page.data.role === 'ADMIN' || page.data.isSuperAdmin || can(page.data.permissions, 'tasks', 'create') || can(page.data.permissions, 'tickets', 'create')}
+{#if !list}
+  {#if can(page.data.permissions, 'tasks', 'create')}<RecordAction
+      icon={ListTodo}
+      label={ui('Create task')}
+      {disabled}
+      href={resolve(`/tasks/new?account=${encodeURIComponent(company.id)}`)}
+    />{/if}
+  {#if can(page.data.permissions, 'tickets', 'create')}<RecordAction
+      icon={Ticket}
+      label={ui('Create ticket')}
+      {disabled}
+      href={resolve(`/tickets/new?account=${encodeURIComponent(company.id)}`)}
+    />{/if}
+{/if}
+
+{#if list || can(page.data.permissions, 'companies', 'delete') || page.data.role === 'ADMIN' || page.data.isSuperAdmin}
   <Dropdown.Root>
     <Dropdown.Trigger
-      class={list ? 'v2-btn compact-company-actions' : 'v2-btn'}
+      class={list ? 'v2-btn compact-company-actions' : 'v2-btn record-more-actions'}
       {disabled}
-      aria-label={`Actions for ${company.name}`}
+      aria-label={list ? `Actions for ${company.name}` : ui('More actions')}
+      title={list ? undefined : ui('More actions')}
     >
-      {ui('Actions')}
-      <ChevronDown size={13} />
+      {#if list}{ui('Actions')} <ChevronDown size={13} />{:else}<Ellipsis size={18} />{/if}
     </Dropdown.Trigger>
     <Dropdown.Content align="start" class={list ? undefined : 'record-actions-menu'}>
       {#if list}
@@ -47,7 +64,7 @@
           >
         {/if}
       {/if}
-      {#if can(page.data.permissions, 'tasks', 'create')}
+      {#if list && can(page.data.permissions, 'tasks', 'create')}
         <Dropdown.Item
           >{#snippet child({ props })}<a
               {...props}
@@ -56,7 +73,7 @@
             >{/snippet}</Dropdown.Item
         >
       {/if}
-      {#if can(page.data.permissions, 'tickets', 'create')}
+      {#if list && can(page.data.permissions, 'tickets', 'create')}
         <Dropdown.Item
           >{#snippet child({ props })}<a
               {...props}

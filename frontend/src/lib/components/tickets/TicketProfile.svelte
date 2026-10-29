@@ -1,4 +1,8 @@
 <script>
+  import RecordAction from '$lib/v2/components/RecordAction.svelte';
+  import { StickyNote, Pencil, CircleCheck, RotateCcw, Archive } from '@lucide/svelte';
+  import { can } from '$lib/v2/permissions.js';
+  let recordTabs;
   import Notice from '$lib/components/Notice.svelte';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import { useI18n } from '$lib/i18n/context.js';
@@ -62,25 +66,46 @@
   {#snippet crumb()}<a href={resolve('/tickets')}>{ui('Tickets')}</a><span
       >{ticket.ticket_code}</span
     ><span class="status">{statusLabel(ticket.status)}</span>{/snippet}
-  {#snippet actions()}{#if ticket.is_open}<button
-        class="v2-btn v2-btn-primary"
-        onclick={() => (resolving = true)}>{ui('Resolve')}</button
-      >{:else}<form method="POST" action="?/setStatus" use:enhance>
-        <button class="v2-btn" name="status" value="New">{ui('Reopen')}</button>
-      </form>{/if}{#if ticket.status === 'Resolved'}<form
-        method="POST"
-        action="?/setStatus"
-        use:enhance
-      >
-        <button class="v2-btn" name="status" value="Closed">{ui('Close')}</button>
-      </form>{/if}{/snippet}
+  {#snippet actions()}
+    {#if can(page.data.permissions, 'tickets', 'edit')}
+      <RecordAction icon={Pencil} label={ui('Edit')} disabled={editing} onclick={edit} />
+      {#if ticket.is_open}<RecordAction
+          primary
+          icon={CircleCheck}
+          label={ui('Resolve')}
+          onclick={() => (resolving = true)}
+        />
+      {:else}<form method="POST" action="?/setStatus" use:enhance>
+          <RecordAction
+            type="submit"
+            name="status"
+            value="New"
+            icon={RotateCcw}
+            label={ui('Reopen')}
+          />
+        </form>{/if}
+      {#if ticket.status === 'Resolved'}<form method="POST" action="?/setStatus" use:enhance>
+          <RecordAction
+            type="submit"
+            name="status"
+            value="Closed"
+            icon={Archive}
+            label={ui('Close')}
+          />
+        </form>{/if}
+    {/if}
+    {#if data.canReply}<RecordAction
+        icon={StickyNote}
+        label={ui('Add note')}
+        onclick={() => recordTabs?.openNotes()}
+      />{/if}
+  {/snippet}
 </PageHeader>
 {#if form?.error}<Notice message={ui(form.error)} />{/if}
 <div class="hdm-profile">
   <aside class="hdm-panel">
     <div class="heading">
       <h2>{ui('Properties')}</h2>
-      {#if !editing}<button class="v2-btn" onclick={edit}>{ui('Edit')}</button>{/if}
     </div>
     {#if editing}<form
         method="POST"
@@ -125,7 +150,7 @@
           <p class="body">{ticket.resolution_note}</p>
         </div>{/if}
     </section>
-    <RecordTabs>
+    <RecordTabs bind:this={recordTabs}>
       {#snippet notes()}<div class="notes">
           {#each data.conversation.filter((entry) => entry.kind === 'note') as entry (entry.id)}<article
             >

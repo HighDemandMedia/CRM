@@ -1,5 +1,6 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
+from zoneinfo import ZoneInfo
 
 import pytest
 from django.utils import timezone
@@ -133,7 +134,15 @@ def test_pagination_exposes_older_threads_and_messages(admin_client, conn, org_a
 
 @pytest.mark.parametrize(
     "params",
-    [{"offset": "-1"}, {"offset": "bad"}, {"direction": "bad"}, {"contact": "invalid"}],
+    [
+        {"offset": "-1"},
+        {"offset": "bad"},
+        {"direction": "bad"},
+        {"contact": "invalid"},
+        {"date_from": "bad"},
+        {"date_to": "2026-02-30"},
+        {"date_from": "2026-11-02", "date_to": "2026-11-01"},
+    ],
 )
 def test_invalid_filters_are_rejected(admin_client, conn, org_a, params):
     contact = Contact.objects.create(org=org_a, email="client@example.com")
@@ -305,3 +314,42 @@ def test_message_list_paginates_one_thread_without_duplicates(
         admin_client.get(endpoint(company, "company"), {"view": "invalid"}).status_code
         == 400
     )
+
+
+@pytest.mark.parametrize("kind", ["contact", "company"])
+def test_date_filter_uses_full_organization_day_and_preserves_message_filters(
+    admin_client, conn, org_a, kind
+):
+    org_a.timezone = "America/New_York"
+    org_a.save(update_fields=["timezone"])
+    company = Account.objects.create(org=org_a, name="Date test")
+    contact = Contact.objects.create(
+        org=org_a, email="date@example.com", account=company
+    )
+    record = contact if kind == "contact" else company
+    tz = ZoneInfo("America/New_York")
+    start = datetime(2026, 11, 1, tzinfo=tz)
+    end = datetime(2026, 11, 1, 23, 59, 59, 999999, tzinfo=tz)
+    for mid, at, direction in [
+        ("before", start - timedelta(microseconds=1), "received"),
+        ("start", start, "received"),
+        ("end", end, "sent"),
+        ("after", end + timedelta(microseconds=1), "sent"),
+    ]:
+        message(conn, contact, message_id=mid, thread=mid, at=at, direction=direction)
+    query = {"view": "messages", "date_from": "2026-11-01", "date_to": "2026-11-01"}
+    response = admin_client.get(endpoint(record, kind), query)
+    assert response.status_code == 200, response.data
+    assert [row["thread_id"] for row in response.data["results"]] == ["end", "start"]
+    filtered = admin_client.get(
+        endpoint(record, kind), {**query, "direction": "sent", "q": "Private message"}
+    )
+    assert [row["thread_id"] for row in filtered.data["results"]] == ["end"]
+    for boundary, expected in [
+        ("date_from", ["after", "end", "start"]),
+        ("date_to", ["end", "start", "before"]),
+    ]:
+        result = admin_client.get(
+            endpoint(record, kind), {"view": "messages", boundary: "2026-11-01"}
+        )
+        assert [row["thread_id"] for row in result.data["results"]] == expected

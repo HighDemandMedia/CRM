@@ -2,9 +2,11 @@
 
 import hashlib
 import json
+from datetime import datetime, time
 
 from django.db.models import Count, Max, OuterRef, Subquery
 from django.db.models.functions import Lower, Trim
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -27,9 +29,22 @@ class MailQuery(serializers.Serializer):
     )
     contact = IdentifierField(required=False)
     thread = serializers.CharField(max_length=128, required=False)
+    date_from = serializers.DateField(required=False)
+    date_to = serializers.DateField(required=False)
     view = serializers.ChoiceField(
         choices=["conversations", "messages", "status"], default="conversations"
     )
+
+    def validate(self, attrs):
+        if (
+            attrs.get("date_from")
+            and attrs.get("date_to")
+            and attrs["date_from"] > attrs["date_to"]
+        ):
+            raise serializers.ValidationError(
+                {"date_to": "End date must be on or after start date."}
+            )
+        return attrs
 
 
 class RecordMailView(APIView):
@@ -79,6 +94,19 @@ class RecordMailView(APIView):
             results = [mail_summary(row) for row in page[:page_size]]
         else:
             matching = rows
+            # The request's active timezone is the organization's day, including DST.
+            if params.get("date_from"):
+                matching = matching.filter(
+                    occurred_at__gte=timezone.make_aware(
+                        datetime.combine(params["date_from"], time.min)
+                    )
+                )
+            if params.get("date_to"):
+                matching = matching.filter(
+                    occurred_at__lte=timezone.make_aware(
+                        datetime.combine(params["date_to"], time.max)
+                    )
+                )
             if params["direction"] != "all":
                 matching = matching.filter(direction=params["direction"])
             if params["q"]:

@@ -3,11 +3,11 @@
   import { untrack, onDestroy } from 'svelte';
   import { SvelteURLSearchParams } from 'svelte/reactivity';
   import { resolve } from '$app/paths';
-  import { Mail, ArrowLeft, ListFilter } from '@lucide/svelte';
+  import { ArrowLeft, ListFilter } from '@lucide/svelte';
   import { useI18n } from '$lib/i18n/context.js';
   import EmailComposer from './EmailComposer.svelte';
   import EmailActivity from './EmailActivity.svelte';
-  const { ui, exactTime } = useI18n();
+  const { ui } = useI18n();
   /** @type {{kind:'contact'|'company',id:string,contacts?:any[],initialThread?:string,initialRequest?:number,composeRequest?:number,recipient?:string,active?:boolean,liveStatus?:any}} */
   let {
     kind,
@@ -24,8 +24,12 @@
   let thread = $state(''),
     search = $state(''),
     direction = $state('all'),
-    contact = $state('');
+    contact = $state(''),
+    dateFrom = $state(''),
+    dateTo = $state('');
   let appliedSearch = $state('');
+  let appliedDateFrom = '',
+    appliedDateTo = '';
   let items = $state(/** @type {any[]} */ ([]));
   let connection = $state(/** @type {any} */ (null));
   let next = $state(/** @type {number|null} */ (null));
@@ -98,6 +102,8 @@
       next = null;
     }
     const query = new SvelteURLSearchParams({ direction, q: appliedSearch, view: 'messages' });
+    if (appliedDateFrom) query.set('date_from', appliedDateFrom);
+    if (appliedDateTo) query.set('date_to', appliedDateTo);
     if (thread) query.set('thread', thread);
     if (contact) query.set('contact', contact);
     if (more && next !== null) query.set('offset', String(next));
@@ -138,6 +144,19 @@
     appliedSearch = search.trim();
     void load();
   }
+  function datesChanged(event) {
+    if (!event.currentTarget.form.reportValidity()) return;
+    appliedDateFrom = dateFrom;
+    appliedDateTo = dateTo;
+    appliedSearch = search.trim();
+    void load();
+  }
+  function clearFilters() {
+    direction = 'all';
+    contact = dateFrom = dateTo = appliedDateFrom = appliedDateTo = '';
+    appliedSearch = search.trim();
+    void load();
+  }
   function openThread(value) {
     thread = value;
     void load();
@@ -152,23 +171,11 @@
 </script>
 
 <section class="record-emails" aria-label={ui('Emails')}>
-  <div class="mail-status">
-    <div>
-      <strong><Mail size={16} /> {connection?.email || ui('Gmail')}</strong>
-      <p>{ui('Only you can see your connected mailbox.')}</p>
-      {#if connection?.last_sync}<p>{ui('Last sync:')} {exactTime(connection.last_sync)}</p>{/if}
-    </div>
-    {#if connection?.status === 'connected'}<button
-        type="button"
-        class="v2-btn v2-btn-primary v2-btn-sm"
-        onclick={() => (composing = true)}>{ui('New email')}</button
-      >{/if}
-    {#if connection && connection.status !== 'connected'}
-      <a class="v2-btn v2-btn-sm" href={resolve('/profile?tab=integrations')}
-        >{ui(connection.status === 'reconnect' ? 'Reconnect Gmail' : 'Connect Gmail')}</a
-      >
-    {/if}
-  </div>
+  {#if connection && connection.status !== 'connected'}
+    <a class="v2-btn v2-btn-sm" href={resolve('/profile?tab=integrations')}>
+      {ui(connection.status === 'reconnect' ? 'Reconnect Gmail' : 'Connect Gmail')}
+    </a>
+  {/if}
   {#if connection?.error}<p class="v2-error" role="status">{ui(connection.error)}</p>{/if}
   {#if thread}
     <button type="button" class="v2-btn v2-btn-sm" onclick={() => openThread('')}
@@ -188,7 +195,9 @@
       />
       <details class="mail-filter-menu">
         <summary class="v2-btn v2-btn-sm"
-          ><ListFilter size={15} />{ui('Filters')}{#if direction !== 'all' || contact}<span
+          ><ListFilter size={15} />{ui(
+            'Filters'
+          )}{#if direction !== 'all' || contact || dateFrom || dateTo}<span
               aria-label={ui('Active filters')}>•</span
             >{/if}</summary
         >
@@ -207,6 +216,29 @@
               ><option value="sent">{ui('Sent')}</option>
             </select></label
           >
+          <label
+            >{ui('Start date')}<input
+              class="v2-input"
+              type="date"
+              bind:value={dateFrom}
+              max={dateTo || '9999-12-31'}
+              onchange={datesChanged}
+            /></label
+          >
+          <label
+            >{ui('End date')}<input
+              class="v2-input"
+              type="date"
+              bind:value={dateTo}
+              min={dateFrom || '0001-01-01'}
+              onchange={datesChanged}
+            /></label
+          >
+          {#if direction !== 'all' || contact || dateFrom || dateTo}<button
+              type="button"
+              class="v2-btn v2-btn-sm"
+              onclick={clearFilters}>{ui('Clear filters')}</button
+            >{/if}
           {#if kind === 'company'}<label
               >{ui('Contact')}<select
                 class="v2-input"
@@ -286,28 +318,6 @@
     gap: var(--crm-space-3);
     min-width: 0;
   }
-  .mail-status {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--crm-space-3);
-    flex-wrap: wrap;
-    padding-bottom: var(--crm-space-3);
-    border-bottom: 1px solid var(--v2-line);
-  }
-  .mail-status strong {
-    display: flex;
-    align-items: center;
-    gap: var(--crm-space-2);
-    flex-wrap: wrap;
-  }
-  .mail-status p {
-    font-size: var(--crm-text-xs);
-    color: var(--v2-slate);
-  }
-  .mail-status p {
-    margin: var(--crm-space-2) 0 0;
-  }
   .mail-filters {
     display: flex;
     align-items: end;
@@ -340,12 +350,24 @@
     top: calc(100% + var(--crm-space-2));
     z-index: 5;
     width: min(16rem, 75vw);
+    max-height: 60vh;
+    overflow-y: auto;
     padding: var(--crm-space-3);
     display: grid;
     gap: var(--crm-space-3);
     background: var(--v2-card);
     border: 1px solid var(--v2-line);
     border-radius: var(--crm-radius-md);
+  }
+  @media (max-width: 640px) {
+    .mail-filter-menu[open] {
+      flex: 1 1 100%;
+    }
+    .filter-options {
+      position: static;
+      width: 100%;
+      margin-top: var(--crm-space-2);
+    }
   }
   .mail-filters > .mail-search {
     width: auto;

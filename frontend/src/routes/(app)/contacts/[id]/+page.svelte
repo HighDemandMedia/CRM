@@ -1,4 +1,7 @@
 <script>
+  import RecordAction from '$lib/v2/components/RecordAction.svelte';
+  import { Mail, StickyNote } from '@lucide/svelte';
+  let recordTabs;
   import Notice from '$lib/components/Notice.svelte';
   import RecordActivityEntry from '$lib/v2/components/RecordActivityEntry.svelte';
   import RecordDisclosure from '$lib/v2/components/RecordDisclosure.svelte';
@@ -91,13 +94,15 @@
         onemail={composeEmail}
       >
         {#snippet actions()}
-          <ContactActions
-            showEdit={false}
-            {contact}
-            disabled={editingProperties}
-            onEdit={openEditor}
+          <RecordAction
+            icon={StickyNote}
+            label={ui('Add note')}
+            onclick={() => recordTabs?.openNotes()}
           />
+          <RecordAction icon={Mail} label={ui('New email')} onclick={composeEmail} />
+
           <CreateAppointment
+            iconOnly
             hosts={data.hosts}
             defaultHost={data.defaultHost}
             selected={new Date()}
@@ -107,6 +112,12 @@
               scheduled = true;
               void invalidateAll();
             }}
+          />
+          <ContactActions
+            showEdit={false}
+            {contact}
+            disabled={editingProperties}
+            onEdit={openEditor}
           />
         {/snippet}
       </RecordIdentity>
@@ -154,7 +165,7 @@
     </div>
   </section>
   <main class="contact-center hdm-panel">
-    <RecordTabs bind:active={recordTab} recordId={contact.id}>
+    <RecordTabs bind:this={recordTabs} bind:active={recordTab} recordId={contact.id}>
       {#snippet emails()}{#key contact.id}<RecordEmails
             active={recordTab === 'emails'}
             liveStatus={mailStatus?.recordId === contact.id ? mailStatus : null}

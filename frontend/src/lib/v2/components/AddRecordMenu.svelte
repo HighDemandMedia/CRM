@@ -57,6 +57,7 @@
       />
     </DropdownMenu.Trigger>
     <DropdownMenu.Content
+      class="w-(--bits-dropdown-menu-anchor-width)"
       align="end"
       onCloseAutoFocus={(event) => {
         if (openingDialog) event.preventDefault();

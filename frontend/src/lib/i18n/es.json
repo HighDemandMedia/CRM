@@ -1,4 +1,5 @@
 {
+  "More actions": "Más acciones",
   "Add email": "Añadir email",
   "Add phone": "Añadir teléfono",
   "Workspace": "Espacio de trabajo",
@@ -354,6 +355,9 @@
   "Form name": "Nombre del formulario",
   "Form sections": "Secciones del formulario",
   "From": "Desde",
+  "Clear filters": "Limpiar filtros",
+  "Start date": "Fecha inicial",
+  "End date": "Fecha final",
   "From <form id=\"contact-form\">. Leave blank only when the page has one form.": "Se obtiene de <form id=\"contact-form\">. Déjalo vacío solo si la página tiene un único formulario.",
   "From:": "De:",
   "Full name": "Nombre completo",

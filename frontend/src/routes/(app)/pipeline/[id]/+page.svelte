@@ -1,4 +1,10 @@
 <script>
+  import RecordAction from '$lib/v2/components/RecordAction.svelte';
+  import * as Dropdown from '$lib/components/ui/dropdown-menu/index.js';
+  import { StickyNote, ChevronDown, Trash2 } from '@lucide/svelte';
+  import { can } from '$lib/v2/permissions.js';
+  let recordTabs;
+  let deleteDialog;
   import { useI18n } from '$lib/i18n/context.js';
   const { exactTime, ui, money, longDate } = useI18n();
 
@@ -54,6 +60,27 @@
     {#if deal.account.id}<a href={resolve(`/accounts/${deal.account.id}`)}>{deal.account.name}</a
       >{/if}
   {/snippet}
+  {#snippet actions()}
+    {#if can(page.data.permissions, 'deals', 'edit')}<RecordAction
+        icon={Pencil}
+        label={ui('Edit')}
+        disabled={editingProperties}
+        onclick={() => (editingProperties = true)}
+      />{/if}
+    <RecordAction
+      icon={StickyNote}
+      label={ui('Add note')}
+      onclick={() => recordTabs?.openNotes()}
+    />
+    {#if can(page.data.permissions, 'deals', 'delete')}<Dropdown.Root>
+        <Dropdown.Trigger class="v2-btn">{ui('Actions')}<ChevronDown size={13} /></Dropdown.Trigger>
+        <Dropdown.Content align="end"
+          ><Dropdown.Item variant="destructive" onclick={() => deleteDialog?.open()}
+            ><Trash2 size={14} />{ui('Delete')}</Dropdown.Item
+          ></Dropdown.Content
+        >
+      </Dropdown.Root>{/if}
+  {/snippet}
 </PageHeader>
 
 <div class="deal-layout">
@@ -86,7 +113,7 @@
     <div class="v2-scroll">
       <div class="v2-pad" style="padding-top:14px;padding-bottom:32px">
         <section class="v2-card deal-journal" aria-label={ui('Deal notes and activity')}>
-          <RecordTabs>
+          <RecordTabs bind:this={recordTabs}>
             {#snippet notes()}{#key deal.id}<DealNotes notes={data.notes} />{/key}{/snippet}
             {#snippet activity()}<div class="deal-history">
                 <Timeline events={data.activity} />
@@ -175,12 +202,6 @@
 
     <div class="properties-heading">
       <h2>{ui('Properties')}</h2>
-      <button
-        class="v2-btn"
-        type="button"
-        disabled={editingProperties}
-        onclick={() => (editingProperties = true)}><Pencil size={13} />{ui('Edit')}</button
-      >
     </div>
     {#if editingProperties}
       <DealForm
@@ -232,7 +253,7 @@
       response. Filling it means two more cross-module requests per page load
       for a rail nobody asked for. Add it back deliberately if it earns them.
     -->
-    <DeleteRecord kind="deal" id={deal.id} />
+    <DeleteRecord bind:this={deleteDialog} kind="deal" id={deal.id} showTrigger={false} />
   </aside>
 </div>
 

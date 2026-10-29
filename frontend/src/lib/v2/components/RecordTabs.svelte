@@ -1,10 +1,19 @@
 <script>
+  import { tick } from 'svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
   /** @type {{notes: import('svelte').Snippet, activity: import('svelte').Snippet, emails?:import('svelte').Snippet, active?:string, recordId?:string}} */
   let { notes, activity, emails, active = $bindable('activity'), recordId = '' } = $props();
   const id = $props.id();
   let buttons = $state([]);
+  let root;
+  export async function openNotes() {
+    active = 'notes';
+    await tick();
+    const panel = root?.querySelector('[role="tabpanel"]:not([hidden])');
+    panel?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+    (panel?.querySelector('textarea') || panel)?.focus({ preventScroll: true });
+  }
   let emailsVisited = $state(false);
   let previousRecordId;
   $effect(() => {
@@ -37,7 +46,7 @@
   }
 </script>
 
-<div class="record-tabs">
+<div class="record-tabs" bind:this={root}>
   <div
     class="tabs"
     role="tablist"

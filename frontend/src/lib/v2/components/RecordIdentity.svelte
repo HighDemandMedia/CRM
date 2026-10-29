@@ -236,7 +236,7 @@
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--crm-space-2);
+    gap: 6px;
     margin-top: var(--crm-space-3);
   }
   .identity-actions :global(.v2-btn) {
@@ -245,6 +245,22 @@
     font-size: var(--crm-text-xs);
     max-width: 100%;
     white-space: normal;
+  }
+  .identity-actions :global(.record-action),
+  .identity-actions :global(.record-more-actions) {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 0;
+  }
+  @media (pointer: coarse) {
+    .identity-actions :global(.record-action),
+    .identity-actions :global(.record-more-actions) {
+      width: 44px;
+      height: 44px;
+      min-height: 44px;
+    }
   }
   button:disabled {
     opacity: 0.5;

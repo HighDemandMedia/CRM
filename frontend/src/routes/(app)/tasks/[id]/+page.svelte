@@ -1,4 +1,9 @@
 <script>
+  import RecordAction from '$lib/v2/components/RecordAction.svelte';
+  import * as Dropdown from '$lib/components/ui/dropdown-menu/index.js';
+  import { StickyNote, ChevronDown, Trash2 } from '@lucide/svelte';
+  let recordTabs;
+  let deleteForm = $state();
   import Notice from '$lib/components/Notice.svelte';
   import { recordValidation } from '$lib/components/creation/validation.js';
   import { canChooseOwner } from '$lib/v2/permissions.js';
@@ -76,17 +81,29 @@
       ><button class="v2-btn" disabled={busy} onclick={() => (editing = false)}
         >{ui('Cancel')}</button
       >
-    {:else}<button class="v2-btn" onclick={edit}><Pencil size={14} />{ui('Edit')}</button>
+    {:else}<RecordAction icon={Pencil} label={ui('Edit')} onclick={edit} />
+      <RecordAction
+        icon={StickyNote}
+        label={ui('Add note')}
+        onclick={() => recordTabs?.openNotes()}
+      />
       <form method="POST" action="?/toggle" use:enhance>
-        <input type="hidden" name="done" value={task.is_done ? 'false' : 'true'} /><button
-          class="v2-btn v2-btn-primary"
+        <input type="hidden" name="done" value={task.is_done ? 'false' : 'true'} /><RecordAction
+          primary
           type="submit"
-          >{#if task.is_done}<RotateCcw size={15} />{ui('Reopen')}{:else}<CircleCheck
-              size={15}
-            />{ui('Complete task')}{/if}</button
-        >
+          icon={task.is_done ? RotateCcw : CircleCheck}
+          label={ui(task.is_done ? 'Reopen' : 'Complete task')}
+        />
       </form>
     {/if}
+    {#if data.canDelete}<Dropdown.Root>
+        <Dropdown.Trigger class="v2-btn">{ui('Actions')}<ChevronDown size={13} /></Dropdown.Trigger>
+        <Dropdown.Content align="end"
+          ><Dropdown.Item variant="destructive" onclick={() => deleteForm?.requestSubmit()}
+            ><Trash2 size={14} />{ui('Delete')}</Dropdown.Item
+          ></Dropdown.Content
+        >
+      </Dropdown.Root>{/if}
   {/snippet}
 </PageHeader>
 <StageRuleNotice issue={form?.stageRequirements} />
@@ -118,7 +135,7 @@
         <p class="body">{task.description || 'No description.'}</p>{/if}
     </section>
     <section class="panel journal">
-      <RecordTabs>
+      <RecordTabs bind:this={recordTabs}>
         {#snippet notes()}
           <form
             method="POST"
@@ -267,9 +284,13 @@
       </section>
     {/if}
 
-    {#if data.canDelete}<form class="delete" method="POST" action="?/delete" use:enhance>
-        <button type="submit" class="v2-btn">{ui('Delete')}</button>
-      </form>{/if}
+    {#if data.canDelete}<form
+        bind:this={deleteForm}
+        hidden
+        method="POST"
+        action="?/delete"
+        use:enhance
+      ></form>{/if}
   </aside>
 </div>
 
@@ -367,14 +388,6 @@
   }
   .associated small {
     margin: 0 0 var(--crm-space-1);
-  }
-  .delete {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: var(--crm-space-6);
-  }
-  .delete button {
-    color: var(--v2-rust);
   }
   .attachments {
     padding: 0;

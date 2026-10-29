@@ -48,3 +48,21 @@ it('forwards the message view and preserves explicit conversation requests', asy
     { cookies: {} }
   );
 });
+
+it('forwards date boundaries alongside direction and search without accepting identity overrides', async () => {
+  vi.mocked(apiRequest).mockResolvedValue({ results: [] });
+  await GET(
+    event(
+      'contact',
+      '?view=messages&date_from=2026-11-01&date_to=2026-11-02&direction=sent&q=proposal&profile=other'
+    )
+  );
+  const query = new URL(vi.mocked(apiRequest).mock.calls[0][0], 'http://api').searchParams;
+  expect(Object.fromEntries(query)).toEqual({
+    view: 'messages',
+    date_from: '2026-11-01',
+    date_to: '2026-11-02',
+    direction: 'sent',
+    q: 'proposal'
+  });
+});
