@@ -264,15 +264,139 @@ def test_mail_initial_pagination_resumes_without_skipping_history(conn):
     sync_gmail(conn, api)
     conn.refresh_from_db()
     assert (
-        conn.history_id == ""
+        conn.history_id == "h0"
         and conn.mail_page_token == "next"
         and conn.initial_history_id == "h0"
     )
     api.get.side_effect = [{"historyId": "h1"}, {"messages": []}]
     sync_gmail(conn, api)
     conn.refresh_from_db()
-    assert conn.history_id == "h0" and not conn.mail_page_token
+    assert conn.history_id == "h1" and not conn.mail_page_token
+    assert not conn.initial_history_id
     assert api.get.call_args.args[1]["pageToken"] == "next"
+
+
+@pytest.mark.parametrize("legacy_cursor", [False, True])
+def test_new_reply_is_saved_before_historical_import_finishes(conn, legacy_cursor):
+    Contact.objects.create(
+        org=conn.org, first_name="Client", email="client@example.com"
+    )
+    api = Mock()
+    api.get.side_effect = [
+        {"historyId": "100"},
+        {"messages": [], "nextPageToken": "older-page"},
+    ]
+    assert sync_gmail(conn, api)
+    conn.refresh_from_db()
+    if legacy_cursor:
+        # Production jobs from before this fix left history_id empty until all
+        # historical pages finished. They must resume without reconnecting.
+        conn.history_id = ""
+        conn.save(update_fields=["history_id"])
+
+    def response(path, params=None):
+        if path.endswith("/history"):
+            assert params["startHistoryId"] == "100"
+            return {
+                "historyId": "110",
+                "history": [
+                    {"id": "110", "messagesAdded": [{"message": {"id": "reply"}}]}
+                ],
+            }
+        if path.endswith("/messages"):
+            assert params["pageToken"] == "older-page"
+            assert params["maxResults"] == 10
+            return {"messages": [{"id": "old-mail"}], "nextPageToken": "more-old-mail"}
+        if path.endswith("/reply"):
+            return {
+                "id": "reply",
+                "labelIds": ["INBOX"],
+                "internalDate": "1700000000000",
+                "payload": {
+                    "headers": [{"name": "From", "value": "client@example.com"}]
+                },
+            }
+        if path.endswith("/old-mail"):
+            assert GoogleMailActivity.objects.filter(
+                message_id="reply", direction="received"
+            ).exists()
+            return {"labelIds": ["DRAFT"]}
+        raise AssertionError(path)
+
+    api.get.side_effect = response
+    assert sync_gmail(conn, api)
+    conn.refresh_from_db()
+    assert conn.history_id == "110"
+    assert conn.mail_page_token == "more-old-mail"
+    assert conn.initial_history_id == "110"
+
+
+def test_live_history_pages_take_priority_without_losing_backfill_cursor(conn):
+    Contact.objects.create(
+        org=conn.org, first_name="Client", email="client@example.com"
+    )
+    api = Mock()
+    api.get.side_effect = [{"historyId": "100"}, {"nextPageToken": "older-page"}]
+    sync_gmail(conn, api)
+    conn.refresh_from_db()
+    api.get.reset_mock()
+    api.get.side_effect = [
+        {
+            "historyId": "200",
+            "nextPageToken": "history-page",
+            "history": [{"id": "120"}],
+        }
+    ]
+    assert sync_gmail(conn, api)
+    api.get.assert_called_once_with(
+        "gmail/v1/users/me/history", {"startHistoryId": "100", "maxResults": 50}
+    )
+    conn.refresh_from_db()
+    assert conn.history_id == "120"
+    assert conn.initial_history_id == "120"
+    assert conn.mail_page_token == "older-page"
+
+
+def test_expired_history_restarts_bounded_backfill_at_current_baseline(conn):
+    Contact.objects.create(
+        org=conn.org, first_name="Client", email="client@example.com"
+    )
+    api = Mock()
+    api.get.side_effect = [{"historyId": "100"}, {}]
+    sync_gmail(conn, api)
+    conn.refresh_from_db()
+    api.get.side_effect = [
+        GoogleError(status=404),
+        {"historyId": "200"},
+        {"nextPageToken": "new-page"},
+    ]
+    assert sync_gmail(conn, api)
+    conn.refresh_from_db()
+    assert conn.history_id == conn.initial_history_id == "200"
+    assert conn.mail_page_token == "new-page"
+
+
+def test_failed_live_fetch_does_not_advance_either_cursor(conn):
+    Contact.objects.create(
+        org=conn.org, first_name="Client", email="client@example.com"
+    )
+    api = Mock()
+    api.get.side_effect = [{"historyId": "100"}, {"nextPageToken": "older-page"}]
+    sync_gmail(conn, api)
+    conn.refresh_from_db()
+    api.get.side_effect = [
+        {
+            "historyId": "200",
+            "history": [{"messagesAdded": [{"message": {"id": "reply"}}]}],
+        },
+        {"nextPageToken": "next-old-page"},
+        GoogleError(status=503),
+    ]
+    with pytest.raises(GoogleError):
+        sync_gmail(conn, api)
+    conn.refresh_from_db()
+    assert conn.history_id == conn.initial_history_id == "100"
+    assert conn.mail_page_token == "older-page"
 
 
 def test_html_mail_becomes_text_without_remote_content():

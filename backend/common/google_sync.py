@@ -94,6 +94,10 @@ def message_body(api, message_id, payload):
     return readable_mail_body("\n".join(html), is_html=True)
 
 
+# Bound historical work so it cannot hold up notifications for other mailboxes.
+GMAIL_BACKFILL_PAGE_SIZE = 10
+
+
 def sync_gmail(conn, api):
     require(conn.profile, "contacts", "view")
     emails = {
@@ -122,9 +126,13 @@ def sync_gmail(conn, api):
     if not emails:
         # No customer matches are possible; do not enumerate the user's mailbox.
         return
-    baseline = api.get("gmail/v1/users/me/profile")["historyId"]
+    # During backfill, keep consuming live history instead of waiting for the
+    # entire 90-day mailbox scan. initial_history_id also resumes older jobs
+    # which have a backfill cursor but no live history cursor yet.
+    cursor = conn.history_id or conn.initial_history_id
+    backfill = not conn.history_id or bool(conn.initial_history_id)
+    baseline = cursor or api.get("gmail/v1/users/me/profile")["historyId"]
     ids, deleted = set(), set()
-    cursor = conn.history_id
     more_history = False
     if cursor:
         try:
@@ -150,29 +158,32 @@ def sync_gmail(conn, api):
             if exc.status != 404:
                 raise
             cursor = ""
+            backfill = True
             conn.mail_activity.all().delete()
             conn.initial_history_id = ""
             conn.mail_page_token = ""
-    initial_next = None
-    if not cursor:
-        # Resume a 50-message page each run; large inboxes cannot monopolize a worker.
+            baseline = api.get("gmail/v1/users/me/profile")["historyId"]
+    live_ids = ids.copy()
+    initial_next = conn.mail_page_token
+    if backfill and not more_history:
+        # Catch up on live changes before spending time on historical pages.
         if not conn.initial_history_id:
             conn.initial_history_id = baseline
             GoogleConnection.objects.filter(
                 pk=conn.pk, generation=conn.generation
             ).update(initial_history_id=baseline)
-        baseline = conn.initial_history_id
         data = api.get(
             "gmail/v1/users/me/messages",
             {
                 "q": "newer_than:90d -in:spam -in:trash -in:drafts",
-                "maxResults": 50,
+                "maxResults": GMAIL_BACKFILL_PAGE_SIZE,
                 **({"pageToken": conn.mail_page_token} if conn.mail_page_token else {}),
             },
         )
         ids.update(item["id"] for item in data.get("messages", []))
         initial_next = data.get("nextPageToken")
-    for message_id in ids - deleted:
+        backfill = bool(initial_next)
+    for message_id in sorted(live_ids - deleted) + sorted(ids - live_ids - deleted):
         try:
             message = api.get(
                 "gmail/v1/users/me/messages/" + quote(message_id, safe=""),
@@ -251,11 +262,11 @@ def sync_gmail(conn, api):
                 )
     conn.mail_activity.filter(message_id__in=deleted).delete()
     GoogleConnection.objects.filter(pk=conn.pk, generation=conn.generation).update(
-        history_id=baseline if not initial_next else "",
+        history_id=baseline,
         mail_page_token=initial_next or "",
-        initial_history_id=baseline if initial_next else "",
+        initial_history_id=baseline if backfill else "",
     )
-    return bool(initial_next or more_history)
+    return bool(backfill or more_history)
 
 
 def fingerprint(appointment):

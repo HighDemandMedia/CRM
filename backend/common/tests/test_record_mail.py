@@ -176,10 +176,11 @@ def test_new_contact_restarts_bounded_history_import_without_clearing_cache(
     sync_gmail(conn, api)
     conn.refresh_from_db()
     assert conn.mail_contacts_fingerprint != old_fingerprint
-    assert conn.mail_page_token == "page2" and conn.history_id == ""
+    assert conn.mail_page_token == "page2" and conn.history_id == "h2"
+    assert conn.initial_history_id == "h2"
     assert GoogleMailActivity.objects.filter(pk=cached.pk).exists()
     assert api.get.call_args.args[0].endswith("/messages")
-    assert api.get.call_args.args[1]["maxResults"] == 50
+    assert api.get.call_args.args[1]["maxResults"] == 10
 
 
 def test_cc_is_separate_and_still_matches_contacts(conn, org_a):
