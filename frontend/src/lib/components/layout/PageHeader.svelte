@@ -39,7 +39,7 @@
 </script>
 
 <header
-  class="sticky top-0 z-10 flex flex-col gap-3 bg-[color:var(--bg)] px-7 pt-6 md:px-8 {tabs
+  class="sticky top-0 z-10 flex flex-col gap-3 bg-[color:var(--bg)] px-8 pt-6 {tabs
     ? 'pb-0'
     : 'pb-4'}"
 >
@@ -109,7 +109,7 @@
   {/if}
 
   {#if tabs}
-    <div class="-mx-7 mt-1 border-t border-[color:var(--border-faint)] px-7 md:-mx-8 md:px-8">
+    <div class="-mx-8 mt-1 border-t border-[color:var(--border-faint)] px-8">
       {@render tabs()}
     </div>
   {/if}

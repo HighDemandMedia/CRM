@@ -81,6 +81,17 @@ describe('notification history pagination', () => {
     expect(data.pagination.page).toBe(1);
     expect(data.pagination.status).toBe('all');
   });
+  it('preserves the actual actor name from the API and handles system notifications', async () => {
+    vi.mocked(apiRequest).mockResolvedValue({
+      count: 2,
+      results: [
+        { id: 'actor', actor: { user_details: { name: 'Jamie', email: 'jamie@example.com' } } },
+        { id: 'system', actor: null }
+      ]
+    });
+    const data = await getNotifications({ cookies: /** @type {any} */ ({}) });
+    expect(data.results.map((row) => row.actor_name)).toEqual(['Jamie', '']);
+  });
 });
 
 it('opens the Contact linked to a website submission', () => {

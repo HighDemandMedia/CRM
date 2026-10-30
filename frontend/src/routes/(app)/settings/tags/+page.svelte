@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, locale } = useI18n();
@@ -174,8 +175,8 @@
         onclick={() => (status = filter.key)}>{filter.label}<span>{filter.count}</span></button
       >{/each}
   </div>
-  <div class="toolbar">
-    <label class="search"
+  <div class="toolbar crm-settings-toolbar">
+    <label class="crm-search"
       ><Search size={16} /><input
         aria-label={ui('Search tags')}
         type="search"
@@ -183,19 +184,24 @@
         bind:value={query}
       /></label
     >
-    <select
-      class="v2-input object-filter"
-      aria-label={ui('Filter tags by object')}
-      bind:value={object}
-      ><option value="">{ui('All objects')}</option
-      >{#each objectOptions as [key, label] (key)}<option value={key}>{label}</option
-        >{/each}</select
-    >
+    <div class="object-filter">
+      <SearchableSelect
+        label={ui('Filter tags by object')}
+        bind:value={object}
+        placeholder={ui('All objects')}
+        options={objectOptions.map(([value, label]) => ({ value, label }))}
+      />
+    </div>
   </div>
   {#if error && !panel}<Notice message={ui(error)} />{/if}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard access to horizontal scrolling.) -->
-  <div class="tag-table" role="region" aria-label={ui('Tags list')} tabindex="0">
-    <table>
+  <div
+    class="tag-table crm-settings-table-wrap"
+    role="region"
+    aria-label={ui('Tags list')}
+    tabindex="0"
+  >
+    <table class="crm-settings-table">
       <thead
         ><tr>
           <th
@@ -303,12 +309,14 @@
         {#if panel === 'merge'}
           <div class="merge-source"><span>{ui('Merge')}</span><TagBadge tag={selected} /></div>
           <label class="field"
-            >{ui('Into')}<select class="v2-input" bind:value={destination} required disabled={busy}
-              ><option value="">{ui('Select the tag to keep')}</option
-              >{#each mergeTargets as target (target.id)}<option value={target.id}
-                  >{target.name}</option
-                >{/each}</select
-            ></label
+            >{ui('Into')}<SearchableSelect
+              label={ui('Into')}
+              bind:value={destination}
+              required
+              disabled={busy}
+              placeholder={ui('Select the tag to keep')}
+              options={mergeTargets.map((target) => ({ value: target.id, label: target.name }))}
+            /></label
           >
           {#if into}<p class="merge-info">
               {ui('Records tagged')} <strong>{selected.name}</strong>
@@ -394,6 +402,7 @@
     border-bottom: 1px solid var(--v2-line);
     flex-shrink: 0;
     overflow-x: auto;
+    margin-bottom: var(--crm-space-4);
   }
   .status-filters button {
     border: 0;
@@ -425,31 +434,6 @@
     gap: 10px;
     padding: 18px 0;
     flex-shrink: 0;
-  }
-  .search {
-    display: flex;
-    align-items: center;
-    gap: var(--crm-space-2);
-    border: 1px solid var(--v2-line);
-    background: var(--v2-card);
-    padding: 0 var(--crm-space-3);
-    border-radius: var(--crm-button-radius);
-    color: var(--v2-slate);
-    width: min(320px, 100%);
-  }
-  .search input {
-    border: 0;
-    background: transparent;
-    width: 100%;
-    padding: 10px 0;
-    min-width: 0;
-    color: var(--v2-ink);
-    font-size: var(--crm-text-sm);
-    outline: 0;
-  }
-  .search:focus-within {
-    outline: 2px solid var(--v2-slate);
-    outline-offset: 2px;
   }
   .object-filter {
     width: 180px;
@@ -607,22 +591,5 @@
     align-items: center;
     font-size: var(--crm-text-sm);
     margin-top: var(--crm-space-5);
-  }
-  @media (max-width: 600px) {
-    .tag-settings {
-      padding: 0 var(--crm-space-4) var(--crm-space-4);
-    }
-    .colors {
-      grid-template-columns: repeat(6, 30px);
-    }
-    .status-filters {
-      gap: var(--crm-space-3);
-    }
-    .search {
-      width: 100%;
-    }
-    .object-filter {
-      width: 100%;
-    }
   }
 </style>

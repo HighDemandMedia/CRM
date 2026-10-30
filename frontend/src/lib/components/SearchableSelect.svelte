@@ -26,6 +26,7 @@
     compactLabel || choices.find((option) => option.value === value)?.label || value || placeholder
   );
   async function choose(next) {
+    if (disabled || nativeSelect?.matches(':disabled')) return;
     value = next;
     open = false;
     await tick();
@@ -83,7 +84,7 @@
       class="form-select-popover"
       aria-label={label}
     >
-      <ChoiceList options={choices} {value} {label} bind:query onchange={choose} />
+      <ChoiceList options={choices} {value} {label} {disabled} bind:query onchange={choose} />
     </Popover.Content>
   </Popover.Root>
 </div>

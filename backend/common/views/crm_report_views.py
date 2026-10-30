@@ -32,6 +32,7 @@ from common.rbac import (
     scope_for,
     scoped,
 )
+from common.report_metrics import object_metrics
 from contacts.models import Contact
 from opportunity.models import Opportunity
 from tasks.models import Task
@@ -151,7 +152,7 @@ def base_records(profile, key):
                 output_field=models.CharField(),
             )
         )
-    if key in ("contacts", "tickets"):
+    if key in ("contacts", "companies", "tickets"):
         qs = qs.filter(merged_at__isnull=True)
     if configured(profile):
         qs = qs.filter(
@@ -227,7 +228,12 @@ class CRMReportView(APIView):
             raise PermissionDenied("Your role cannot view this object.")
         model, label, path, state_field, dates, groups = CONFIG[key]
         field = params.get("date_field") or next(iter(dates))
-        group = params.get("group_by") or next(iter(groups))
+        group = params.get("group_by") or {
+            "contacts": "source",
+            "companies": "industry",
+            "tasks": "priority",
+            "tickets": "priority",
+        }.get(key, next(iter(groups)))
         if field not in dates or group not in groups:
             raise ValidationError(
                 "Choose an available date and breakdown for this object."
@@ -372,9 +378,13 @@ class CRMReportView(APIView):
                 if bucket == "month"
                 else cursor + timedelta(days=7 if bucket == "week" else 1)
             )
-        status_counts = {
-            state_labels.get(r[state_field], r[state_field]) or "Not set": r["count"]
+        counts_by_state = {
+            r[state_field]: r["count"]
             for r in current.order_by().values(state_field).annotate(count=Count("pk"))
+        }
+        status_counts = {
+            state_labels.get(key, key) or "Not set": count
+            for key, count in counts_by_state.items()
         }
         # Never sum different currencies or call a current deal amount collected revenue.
         amounts = money_totals(current, org.default_currency) if key == "deals" else []
@@ -386,6 +396,29 @@ class CRMReportView(APIView):
             if key == "deals"
             else []
         )
+        metrics = object_metrics(current, key, total, now=timezone.now(), today=today)
+        if key == "deals":
+            from opportunity.workflow import CLOSED_STAGES
+
+            metrics = [
+                {
+                    "key": "open_value",
+                    "label": "Open pipeline value",
+                    "unit": "money",
+                    "amounts": money_totals(
+                        current.exclude(stage__in=CLOSED_STAGES), org.default_currency
+                    ),
+                    "definition": "Current value of open deals in this selection, separated by currency.",
+                },
+                {
+                    "key": "won_value",
+                    "label": "Won deal value",
+                    "unit": "money",
+                    "amounts": won_amounts,
+                    "definition": "Current value of won deals in this selection. This is not collected revenue.",
+                },
+                *metrics,
+            ]
         result = {
             "objects": objects,
             "object": key,
@@ -420,6 +453,10 @@ class CRMReportView(APIView):
                 "statuses": status_counts,
             },
             "breakdown": breakdown,
+            "metrics": metrics,
+            "state_breakdown": [
+                {**s, "count": counts_by_state.get(s["key"], 0)} for s in states
+            ],
             "series": series,
             "page": page,
             "page_size": PAGE_SIZE,
@@ -454,6 +491,13 @@ class CRMReportView(APIView):
                 row("Deal value", a["currency"], a["amount"])
             for a in won_amounts:
                 row("Currently won deal value", a["currency"], a["amount"])
+            for item in metrics:
+                if item["unit"] == "money":
+                    for amount in item["amounts"]:
+                        row(item["label"], amount["currency"], amount["amount"])
+                else:
+                    row(item["label"], item["value"], item["unit"])
+                row("Definition", item["definition"])
             row()
             row(groups[group], "Records")
             for item in breakdown:

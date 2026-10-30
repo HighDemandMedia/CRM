@@ -531,20 +531,4 @@
     margin: 0.75rem 1rem;
     font-size: var(--crm-text-sm);
   }
-  @media (max-width: 600px) {
-    :global(.email-composer),
-    :global(.email-composer.is-expanded) {
-      right: 0.5rem;
-      width: calc(100vw - 1rem);
-      max-height: calc(100dvh - 1rem);
-    }
-    .field-row {
-      padding-left: 0.75rem;
-      gap: 0.375rem;
-    }
-    .icon-button {
-      width: 2.25rem;
-      height: 2.25rem;
-    }
-  }
 </style>

@@ -118,11 +118,11 @@
     <section class="organizations" aria-label={ui('Usage by organization')}>
       <div class="table-heading">
         <h2>{ui('Usage by organization')}</h2>
-        <form method="GET">
+        <form method="GET" class="crm-control-toolbar">
           <label class="sr-only" for="usage-search">{ui('Search organizations')}</label>
           <input
             id="usage-search"
-            class="v2-input"
+            class="v2-input crm-search-input"
             name="q"
             type="search"
             maxlength="100"
@@ -387,21 +387,5 @@
   }
   .infrastructure a {
     margin-top: var(--crm-space-2);
-  }
-  @container crm-workspace (max-width: 900px) {
-    .metrics {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .database-metric {
-      grid-column: 1 / -1;
-    }
-  }
-  @media (max-width: 767px) {
-    .usage-page {
-      padding: var(--crm-space-4);
-    }
-    .infrastructure {
-      grid-template-columns: 1fr;
-    }
   }
 </style>

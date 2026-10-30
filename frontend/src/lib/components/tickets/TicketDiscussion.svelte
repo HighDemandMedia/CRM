@@ -68,7 +68,7 @@
 
 <section class="rounded-lg border border-[var(--border-default)] bg-[var(--surface-default)] p-4">
   <Tabs.Root bind:value={activeTab} class="w-full">
-    <Tabs.List class="mb-4 grid w-full grid-cols-3 sm:w-[480px]">
+    <Tabs.List class="mb-4 grid w-[480px] grid-cols-3">
       <Tabs.Trigger value="replies" class="gap-2">
         <MessageSquare class="h-4 w-4" />
         Replies

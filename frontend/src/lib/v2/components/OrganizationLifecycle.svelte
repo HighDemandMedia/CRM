@@ -47,7 +47,7 @@
       <p role="status">{ui('Organization access updated.')}</p>
     {/if}
     <Dialog.Content
-      class="max-h-[90dvh] overflow-y-auto sm:max-w-[520px]"
+      class="max-h-[90dvh] max-w-[520px] overflow-y-auto"
       showCloseButton={!busy}
       portalProps={{}}
     >

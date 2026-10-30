@@ -1,6 +1,10 @@
 <script>
-  import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
+  import { SvelteURLSearchParams } from 'svelte/reactivity';
 
+  import { parseDate } from '@internationalized/date';
+  import DateRangeDialog from '$lib/v2/components/DateRangeDialog.svelte';
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
+  import ReportMetric from '$lib/v2/components/ReportMetric.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import '$lib/v2/styles/module-layout.css';
   import { useI18n } from '$lib/i18n/context.js';
@@ -19,11 +23,40 @@
   let report = $derived(data.report);
   let chosen = $derived(report?.objects.find((item) => item.key === report.object));
   let busy = $derived(Boolean(navigating.to));
-  let start = $state(''),
-    end = $state('');
+  let customRangeOpen = $state(false);
+  let ranges = $derived.by(() => {
+    if (!report) return [];
+    const today = parseDate(report.today);
+    const month = today.set({ day: 1 });
+    return [
+      {
+        value: '30',
+        label: ui('Last 30 days'),
+        start: today.subtract({ days: 29 }).toString(),
+        end: today.toString()
+      },
+      { value: 'month', label: ui('This month'), start: month.toString(), end: today.toString() },
+      {
+        value: 'last_month',
+        label: ui('Last month'),
+        start: month.subtract({ months: 1 }).toString(),
+        end: month.subtract({ days: 1 }).toString()
+      },
+      {
+        value: 'year',
+        label: ui('This year'),
+        start: today.set({ month: 1, day: 1 }).toString(),
+        end: today.toString()
+      }
+    ];
+  });
+  let rangePreset = $derived(
+    ranges.find((item) => item.start === report?.start && item.end === report?.end)?.value ||
+      'custom'
+  );
+  let rangeSelection = $state('');
   $effect(() => {
-    start = report?.start || '';
-    end = report?.end || '';
+    if (!customRangeOpen) rangeSelection = rangePreset;
   });
   let peak = $derived(Math.max(1, ...(report?.series || []).map((item) => item.count)));
   let axisStep = $derived.by(() => {
@@ -54,10 +87,10 @@
   let periodLabel = $derived(report ? `${shortDate(report.start)} – ${shortDate(report.end)}` : '');
   let exportUrl = $derived(`/api/reports/export?${page.url.searchParams}`);
   let chartTable = $state(false);
-  const number = (value) => new Intl.NumberFormat('en-US').format(value);
+  const number = (value) => new Intl.NumberFormat(locale()).format(value);
   function money(value, currency) {
     try {
-      return new Intl.NumberFormat('en-US', {
+      return new Intl.NumberFormat(locale(), {
         style: 'currency',
         currency,
         maximumFractionDigits: 2
@@ -98,39 +131,17 @@
   function changeObject(value) {
     update({ object: value, date_field: '', group_by: '', owner: '', stage: '' });
   }
-  function datesChanged() {
-    if (start && end && start <= end) update({ start, end, interval: 'auto' });
-  }
   function preset(value) {
-    if (!value) return;
-    const today = new Date(`${report.today}T12:00:00Z`);
-    let first = new SvelteDate(today),
-      last = new SvelteDate(today);
-    if (value === '30') first.setUTCDate(first.getUTCDate() - 29);
-    if (value === 'month') first.setUTCDate(1);
-    if (value === 'last_month') {
-      first.setUTCDate(1);
-      first.setUTCMonth(first.getUTCMonth() - 1);
-      last.setUTCDate(0);
+    if (value === 'custom') {
+      customRangeOpen = true;
+      return;
     }
-    if (value === 'year') {
-      first.setUTCMonth(0, 1);
-    }
-    update({
-      start: first.toISOString().slice(0, 10),
-      end: last.toISOString().slice(0, 10),
-      interval: 'auto'
-    });
+    const range = ranges.find((item) => item.value === value);
+    if (range) update({ start: range.start, end: range.end, interval: 'auto' });
   }
 </script>
 
-<PageHeader title={ui('Reports')}>
-  {#snippet actions()}{#if report?.can_export}<a
-        class="v2-btn"
-        href={resolve(asInternalPath(exportUrl))}
-        download><Download size={15} />{ui('Export report')}</a
-      >{/if}{/snippet}
-</PageHeader>
+<PageHeader title={ui('Reports')} compact />
 <div class="reports crm-module-body crm-pill-controls" aria-busy={busy}>
   {#if data.reportError}
     <Notice title={ui('Could not open this report')} message={data.reportError}>
@@ -139,162 +150,109 @@
         >{/snippet}
     </Notice>
   {:else if report}
-    <div class="report-controls crm-panel">
-      <div class="filters">
-        <label
-          >{ui('Object')}<select
-            class="v2-input"
-            value={report.object}
-            onchange={(e) => changeObject(e.currentTarget.value)}
-            disabled={busy}
-            >{#each report.objects as item (item.key)}<option value={item.key}>{item.label}</option
-              >{/each}</select
-          ></label
-        >
-        <label
-          >{ui('Date to use')}<select
-            class="v2-input"
-            value={report.date_field}
-            onchange={(e) => update({ date_field: e.currentTarget.value })}
-            disabled={busy}
-            >{#each chosen.dates as item (item.key)}<option value={item.key}>{item.label}</option
-              >{/each}</select
-          ></label
-        >
-        <label
-          >{ui('From')}<input
-            class="v2-input"
-            type="date"
-            bind:value={start}
-            max={end || undefined}
-            onchange={datesChanged}
-            disabled={busy}
-          /></label
-        >
-        <label
-          >{ui('To')}<input
-            class="v2-input"
-            type="date"
-            bind:value={end}
-            min={start || undefined}
-            onchange={datesChanged}
-            disabled={busy}
-          /></label
-        >
-        <label
-          ><span class="v2-sr-only">{ui('Quick range')}</span><select
-            class="v2-input"
-            value=""
-            onchange={(e) => preset(e.currentTarget.value)}
-            disabled={busy}
-            ><option value="">{ui('Choose dates')}</option><option value="30"
-              >{ui('Last 30 days')}</option
-            ><option value="month">{ui('This month')}</option><option value="last_month"
-              >{ui('Last month')}</option
-            ><option value="year">{ui('This year')}</option></select
-          ></label
-        >
+    <div class="report-controls crm-panel crm-control-toolbar">
+      <div class="filter-field">
+        <SearchableSelect
+          label={ui('Object')}
+          value={report.object}
+          options={report.objects.map((item) => ({ value: item.key, label: ui(item.label) }))}
+          disabled={busy}
+          onchange={changeObject}
+        />
       </div>
-      <div class="secondary-filters">
-        {#if canFilterOwners(page.data.permissions, 'reports') && canFilterOwners(page.data.permissions, report.object === 'events' ? 'calendar' : report.object)}
-          <label
-            ><span class="v2-sr-only">{report.object === 'events' ? ui('Host') : ui('Owner')}</span
-            ><select
-              class="v2-input"
-              value={report.owner}
-              onchange={(e) => update({ owner: e.currentTarget.value })}
-              disabled={busy}
-              ><option value=""
-                >{ui('All accessible')}
-                {report.object === 'events' ? ui('hosts') : ui('owners')}</option
-              >{#each report.owners as item (item.id)}<option value={item.id}>{item.name}</option
-                >{/each}</select
-            ></label
-          >
-        {/if}
-        <label
-          ><span class="v2-sr-only">{report.object === 'events' ? ui('Status') : ui('Stage')}</span
-          ><select
-            class="v2-input"
-            value={report.stage}
-            onchange={(e) => update({ stage: e.currentTarget.value })}
+      <div class="filter-field">
+        <SearchableSelect
+          label={ui('Date to use')}
+          value={report.date_field}
+          options={chosen.dates.map((item) => ({ value: item.key, label: ui(item.label) }))}
+          disabled={busy}
+          onchange={(value) => update({ date_field: value })}
+        />
+      </div>
+      <div class="filter-field">
+        <SearchableSelect
+          label={ui('Choose dates')}
+          bind:value={rangeSelection}
+          options={[...ranges, { value: 'custom', label: ui('Custom') }]}
+          disabled={busy}
+          onchange={preset}
+        />
+      </div>
+      {#if canFilterOwners(page.data.permissions, 'reports') && canFilterOwners(page.data.permissions, report.object === 'events' ? 'calendar' : report.object)}
+        <div class="filter-field">
+          <SearchableSelect
+            label={report.object === 'events' ? ui('Host') : ui('Owner')}
+            value={report.owner}
+            placeholder={report.object === 'events' ? ui('All hosts') : ui('All owners')}
+            options={report.owners.map((item) => ({ value: item.id, label: item.name }))}
             disabled={busy}
-            ><option value=""
-              >{ui('All')} {report.object === 'events' ? 'statuses' : ui('stages')}</option
-            >{#each report.stages as item (item.key)}<option value={item.key}>{item.label}</option
-              >{/each}</select
-          ></label
-        >
+            onchange={(value) => update({ owner: value })}
+          />
+        </div>
+      {/if}
+      <div class="filter-field">
+        <SearchableSelect
+          label={report.object === 'events' ? ui('Status') : ui('Stage')}
+          value={report.stage}
+          placeholder={report.object === 'events' ? ui('All statuses') : ui('All stages')}
+          options={report.stages.map((item) => ({ value: item.key, label: ui(item.label) }))}
+          disabled={busy}
+          onchange={(value) => update({ stage: value })}
+        />
       </div>
     </div>
+    {#if customRangeOpen}<DateRangeDialog
+        bind:open={customRangeOpen}
+        start={report.start}
+        end={report.end}
+        onapply={(start, end) => update({ start, end, interval: 'auto' })}
+      />{/if}
     <div class="period-heading">
-      <h2>{report.label}<span>{periodLabel}</span></h2>
+      <h2>{ui(report.label)}<span>{periodLabel}</span></h2>
       {#if busy}<span role="status">{ui('Updating…')}</span>{/if}
     </div>
-    <div class="metrics crm-stat-grid">
+    <div
+      class="metrics crm-stat-grid"
+      style={`--metric-columns:${1 + (report.metrics?.length || 0)}`}
+    >
       <section class="metric crm-stat crm-panel">
-        <span>{ui('Records in period')}</span><strong>{number(report.summary.count)}</strong><small
-          >{report.date_label}</small
-        >
-      </section>
-      <section class="metric crm-stat crm-panel">
-        <span>{ui('Previous period')}</span><strong>{number(report.summary.previous_count)}</strong
-        ><small>{shortDate(report.previous_start)} – {shortDate(report.previous_end)}</small>
-      </section>
-      <section class="metric crm-stat crm-panel">
-        <span>{ui('Change in records')}</span><strong
-          >{report.summary.change_percent === null
-            ? '—'
-            : `${report.summary.change_percent > 0 ? '+' : ''}${report.summary.change_percent}%`}</strong
-        ><small
-          >{report.summary.previous_count === 0
+        <span>{ui('Records in selection')}</span><strong>{number(report.summary.count)}</strong>
+        <small title={`${shortDate(report.previous_start)} – ${shortDate(report.previous_end)}`}>
+          {report.summary.change_percent === null
             ? ui('No previous records to compare')
-            : `${number(report.summary.count - report.summary.previous_count)} records vs. previous period`}</small
-        >
+            : `${report.summary.change_percent > 0 ? '+' : ''}${number(report.summary.change_percent)}% · ${ui('vs. previous period')}`}
+        </small>
       </section>
-      {#if report.object === 'deals'}
-        <section class="metric crm-stat crm-panel">
-          <span>{ui('Deal value in period')}</span>
-          <div class="amounts">
-            {#each report.summary.amounts as item (item.currency)}<strong
-                >{money(item.amount, item.currency)} <small>{item.currency}</small></strong
-              >{:else}<strong>—</strong>{/each}
-          </div>
-          <small>{ui('Current amounts · all included stages')}</small>
-        </section>
-      {/if}
+      {#each report.metrics || [] as metric (metric.key)}<ReportMetric {metric} />{/each}
     </div>
-    {#if report.object === 'deals' && report.summary.won_amounts.length}<div class="won-value">
-        <span>{ui('Currently won in this selection')}</span
-        >{#each report.summary.won_amounts as item (item.currency)}<b
-            >{money(item.amount, item.currency)} {item.currency}</b
-          >{/each}
-      </div>{/if}
     <div class="charts">
       <section class="chart-panel crm-panel">
-        <div class="panel-heading">
+        <div class="panel-heading crm-control-toolbar">
           <div>
-            <h3>{ui('Records over time')}</h3>
-            <p>{report.date_label}</p>
+            <h3>{ui(report.label)} · {ui('Trend')}</h3>
+            <p>{ui(report.date_label)}</p>
           </div>
-          <select
-            class="v2-input"
-            aria-label={ui('Time interval')}
-            value={report.interval}
-            onchange={(e) => update({ interval: e.currentTarget.value })}
-            disabled={busy}
-            ><option
-              value="day"
-              disabled={(new Date(report.end).getTime() - new Date(report.start).getTime()) /
-                86400000 >
-                365}>{ui('Day')}</option
-            ><option
-              value="week"
-              disabled={(new Date(report.end).getTime() - new Date(report.start).getTime()) /
-                86400000 >
-                2561}>{ui('Week')}</option
-            ><option value="month">{ui('Month')}</option></select
-          >
+          <div class="chart-control">
+            <SearchableSelect
+              label={ui('Time interval')}
+              value={report.interval}
+              options={[
+                ...((new Date(report.end).getTime() - new Date(report.start).getTime()) /
+                  86400000 <=
+                365
+                  ? [{ value: 'day', label: ui('Day') }]
+                  : []),
+                ...((new Date(report.end).getTime() - new Date(report.start).getTime()) /
+                  86400000 <=
+                2561
+                  ? [{ value: 'week', label: ui('Week') }]
+                  : []),
+                { value: 'month', label: ui('Month') }
+              ]}
+              disabled={busy}
+              onchange={(value) => update({ interval: value })}
+            />
+          </div>
         </div>
         {#if report.summary.count}
           <div
@@ -377,22 +335,22 @@
           </div>{/if}
       </section>
       <section class="chart-panel breakdown crm-panel">
-        <div class="panel-heading">
-          <h3>{ui('Breakdown')}</h3>
-          <select
-            class="v2-input"
-            aria-label={ui('Breakdown')}
-            value={report.group_by}
-            onchange={(e) => update({ group_by: e.currentTarget.value })}
-            disabled={busy}
-            >{#each chosen.groups as item (item.key)}<option value={item.key}>{item.label}</option
-              >{/each}</select
-          >
+        <div class="panel-heading crm-control-toolbar">
+          <h3>{ui(report.group_label)}</h3>
+          <div class="chart-control">
+            <SearchableSelect
+              label={ui('Breakdown')}
+              value={report.group_by}
+              options={chosen.groups.map((item) => ({ value: item.key, label: ui(item.label) }))}
+              disabled={busy}
+              onchange={(value) => update({ group_by: value })}
+            />
+          </div>
         </div>
         <div class="breakdown-list">
           {#each report.breakdown as item (item.key)}<div class="group-row">
               <div>
-                <span title={item.label}>{item.label}</span><strong
+                <span title={ui(item.label)}>{ui(item.label)}</span><strong
                   >{number(item.count)}
                   <small>{Math.round((item.count / report.summary.count) * 100)}%</small></strong
                 >
@@ -402,10 +360,32 @@
         </div>
       </section>
     </div>
+    {#if report.group_by !== (report.object === 'events' ? 'event_status' : ['tasks', 'tickets'].includes(report.object) ? 'status' : 'stage')}
+      <section class="state-panel crm-panel">
+        <h3>{ui('Current stages')}</h3>
+        <div class="state-grid">
+          {#each report.state_breakdown || [] as state (state.key)}
+            <button
+              class="state-item"
+              disabled={busy || !state.count}
+              onclick={() => update({ stage: state.key })}
+              aria-label={`${ui(state.label)}: ${number(state.count)}`}
+            >
+              <span>{ui(state.label)}</span><strong>{number(state.count)}</strong>
+              <span class="track"
+                ><span
+                  style={`width:${report.summary.count ? (state.count / report.summary.count) * 100 : 0}%`}
+                ></span></span
+              >
+            </button>
+          {/each}
+        </div>
+      </section>
+    {/if}
     <section class="records-panel crm-panel">
-      <div class="panel-heading">
+      <div class="panel-heading crm-control-toolbar">
         <h3>{ui('Included records')} <span>{number(report.summary.count)}</span></h3>
-        <span>{report.date_label}</span>
+        <span>{ui(report.date_label)}</span>
       </div>
       <div class="records-scroll">
         <table>
@@ -424,7 +404,8 @@
                   ><a class="record-link" href={resolve(asInternalPath(item.url))}
                     >{item.name || 'Unnamed record'}</a
                   ></td
-                ><td>{item.state || '—'}</td><td>{item.owners.join(', ') || ui('Unassigned')}</td
+                ><td>{item.state ? ui(item.state) : '—'}</td><td
+                  >{item.owners.join(', ') || ui('Unassigned')}</td
                 >{#if report.object === 'deals'}<td
                     >{item.amount === null ? '—' : money(item.amount, item.currency)}
                     {item.currency}</td
@@ -437,19 +418,24 @@
           >
         </table>
       </div>
-      {#if report.pages > 1}<div class="pagination">
-          <span>{ui('Page')} {report.page} {ui('of')} {number(report.pages)}</span><button
-            class="v2-btn"
-            aria-label={ui('Previous page')}
-            disabled={busy || report.page <= 1}
-            onclick={() => update({ page: report.page - 1 })}><ChevronLeft size={16} /></button
-          ><button
-            class="v2-btn"
-            aria-label={ui('Next page')}
-            disabled={busy || report.page >= report.pages}
-            onclick={() => update({ page: report.page + 1 })}><ChevronRight size={16} /></button
-          >
-        </div>{/if}
+      <div class="pagination crm-control-toolbar">
+        {#if report.can_export}<a
+            class="v2-btn export"
+            href={resolve(asInternalPath(exportUrl))}
+            download><Download size={15} />{ui('Export report')}</a
+          >{/if}
+        <span>{ui('Page')} {report.page} {ui('of')} {number(report.pages)}</span><button
+          class="v2-btn"
+          aria-label={ui('Previous page')}
+          disabled={busy || report.page <= 1}
+          onclick={() => update({ page: report.page - 1 })}><ChevronLeft size={16} /></button
+        ><button
+          class="v2-btn"
+          aria-label={ui('Next page')}
+          disabled={busy || report.page >= report.pages}
+          onclick={() => update({ page: report.page + 1 })}><ChevronRight size={16} /></button
+        >
+      </div>
     </section>
   {/if}
 </div>
@@ -462,44 +448,72 @@
     color: var(--crm-text);
   }
   .report-controls {
-    padding: var(--crm-space-4);
-  }
-  .filters,
-  .secondary-filters {
     display: flex;
-    gap: var(--crm-space-3);
+    flex-wrap: nowrap;
     align-items: end;
-    flex-wrap: wrap;
+    gap: var(--crm-space-3);
+    padding: var(--crm-space-3) var(--crm-space-4);
   }
-  .filters label {
-    flex: 1;
-    min-width: 140px;
-  }
-  label {
+  .filter-field {
     display: grid;
-    gap: var(--crm-space-1);
-    font-size: var(--crm-text-xs);
-    color: var(--crm-text);
-  }
-  .v2-input {
-    width: 100%;
+    gap: 4px;
+    flex: 1 1 0;
     min-width: 0;
-    max-width: 100%;
-    min-height: 38px;
+    font-size: var(--crm-text-xs);
+  }
+  .chart-control {
+    width: 155px;
+  }
+  .metrics {
+    grid-template-columns: repeat(var(--metric-columns), minmax(0, 1fr));
+  }
+  .export {
+    margin-right: auto;
+  }
+  .state-panel {
+    padding: var(--crm-space-4);
+    margin-bottom: var(--crm-space-4);
+  }
+  .state-panel h3 {
     font-size: var(--crm-text-sm);
-    background: var(--v2-surface, var(--crm-surface));
+    margin: 0 0 12px;
   }
-  .secondary-filters {
-    padding: 14px 0 0;
+  .state-grid {
+    display: flex;
+    gap: var(--crm-space-4);
+    overflow-x: auto;
   }
-  .secondary-filters label {
-    min-width: 175px;
+  .state-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    min-width: 130px;
+    flex: 1;
+    text-align: left;
+    font-size: var(--crm-text-xs);
+    padding: 4px;
+    border-radius: var(--crm-radius-sm);
+  }
+  .state-item:hover:not(:disabled) {
+    background: var(--crm-surface-subtle);
+  }
+  .state-item:focus-visible {
+    outline: 2px solid var(--crm-focus);
+  }
+  .state-item .track {
+    grid-column: 1 / -1;
+  }
+  .state-item .track > span {
+    display: block;
+    height: 100%;
+    background: var(--crm-primary);
+    border-radius: inherit;
   }
   .period-heading {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: var(--crm-space-6) 0 var(--crm-space-4);
+    margin: var(--crm-space-3) 0;
   }
   .period-heading h2 {
     font-size: var(--crm-text-sm);
@@ -516,33 +530,11 @@
     font-weight: 400;
     color: var(--v2-slate);
   }
-  .amounts {
-    display: grid;
-    gap: 7px;
-  }
-  .amounts strong {
-    font-size: var(--crm-text-xl);
-  }
-  .amounts small {
-    font-size: var(--crm-text-xs);
-    margin-left: 7px;
-    letter-spacing: 0;
-  }
-  .won-value {
-    display: flex;
-    gap: var(--crm-space-3);
-    flex-wrap: wrap;
-    margin-top: 14px;
-    font-size: var(--crm-text-sm);
-  }
-  .won-value span {
-    color: var(--v2-slate);
-  }
   .charts {
     display: grid;
     grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
     gap: var(--crm-space-4);
-    margin: var(--crm-space-5) 0;
+    margin: var(--crm-space-4) 0;
   }
   .chart-panel {
     padding: 0 var(--crm-space-5) var(--crm-space-5);
@@ -573,10 +565,6 @@
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     margin: var(--crm-space-1) 0 0;
-  }
-  .panel-heading select {
-    width: auto;
-    max-width: 180px;
   }
   .time-chart {
     --plot-height: 190px;
@@ -819,7 +807,7 @@
     color: var(--v2-slate);
     font-weight: 650;
     white-space: nowrap;
-    background: var(--crm-surface-subtle);
+    background: var(--crm-surface-secondary);
     font-size: var(--crm-text-xs);
   }
   th,
@@ -873,9 +861,7 @@
   .v2-btn {
     gap: 7px;
   }
-  button:disabled,
-  select:disabled,
-  input:disabled {
+  button:disabled {
     opacity: 0.6;
   }
   button:focus-visible,
@@ -883,52 +869,11 @@
     outline: 2px solid var(--crm-focus);
     outline-offset: 3px;
   }
-  @media (max-width: 1050px) {
-    .charts {
-      grid-template-columns: 1fr;
-    }
 
-    .filters label {
-      min-width: 150px;
-    }
-    .metric {
-      padding: var(--crm-space-4);
-    }
-  }
-  @media (max-width: 600px) {
-    .filters {
-      gap: var(--crm-space-3);
-    }
-    .filters label {
-      min-width: 125px;
-    }
-    .metrics {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .metric:last-child:nth-child(odd) {
-      grid-column: 1 / -1;
-    }
-    .metric strong {
-      font-size: var(--crm-text-xl);
-    }
-    .secondary-filters label {
-      flex: 1;
-      min-width: 120px;
-    }
-  }
   .records-panel > .panel-heading {
     border-bottom: 0;
   }
   .records-scroll {
     position: relative;
-  }
-  .amounts small {
-    border: 0;
-    padding: 0;
-  }
-  @container crm-workspace (max-width: 52rem) {
-    .charts {
-      grid-template-columns: 1fr;
-    }
   }
 </style>

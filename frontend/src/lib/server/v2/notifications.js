@@ -48,6 +48,7 @@ import { resolvedLink } from '$lib/v2/notification-content.js';
 function toRow(/** @type {any} */ n) {
   return {
     ...n,
+    actor_name: n.actor?.user_details?.name || n.actor?.user_details?.email || n.actor?.name || '',
     known_verb: PRODUCED_VERBS.includes(n.verb),
     resolved_link: resolvedLink(n.link)
   };

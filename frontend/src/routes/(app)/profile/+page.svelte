@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import imgGmail from '$lib/assets/images/gmail.png';
   import imgCalendar from '$lib/assets/images/google-calendar.png';
   import CalendarConnectionSettings from '$lib/components/CalendarConnectionSettings.svelte';
@@ -139,11 +140,7 @@
 </script>
 
 <div class="profile-shell crm-settings-fields">
-  <PageHeader title={data.onboarding ? ui('Complete your profile') : ui('Profile')}>
-    {#snippet sub()}{data.onboarding
-        ? ui('Confirm your name, language and time zone before you start.')
-        : ui('Your details, preferences and connected accounts')}{/snippet}
-  </PageHeader>
+  <PageHeader title={data.onboarding ? ui('Complete your profile') : ui('Profile')} />
 
   {#if !data.onboarding}<div
       class="profile-tabs crm-preferences-tabs"
@@ -174,12 +171,11 @@
         aria-labelledby={data.onboarding ? 'personal-information-title' : 'profile-tab-info'}
         hidden={activeTab !== 'info'}
         tabindex="0"
-        class="profile-panel personal crm-preferences-card"
+        class="profile-panel personal crm-preferences-card crm-settings-surface"
       >
-        <div class="section-heading">
+        <div class="section-heading crm-settings-section-title">
           <div>
             <h2 id="personal-information-title">{ui('Personal information')}</h2>
-            <p class="section-description">{ui('Manage your details and personal preferences.')}</p>
           </div>
         </div>
         <form class="details-form" method="POST" action="?/edit" use:enhance={onEdit}>
@@ -224,9 +220,15 @@
               <div class="field-group">
                 <label
                   >{ui('CRM language')}
-                  <select class="v2-input" name="ui_language" bind:value={editUiLanguage}>
-                    <option value="en">English</option><option value="es">Español</option>
-                  </select>
+                  <SearchableSelect
+                    label={ui('CRM language')}
+                    name="ui_language"
+                    bind:value={editUiLanguage}
+                    options={[
+                      { value: 'en', label: 'English' },
+                      { value: 'es', label: 'Español' }
+                    ]}
+                  />
                 </label>
                 <p class="help">
                   {ui(
@@ -236,19 +238,13 @@
               </div>
               <LanguageSelect bind:value={editLanguage} />
               <label class="wide"
-                >{ui('Time zone')}<select
-                  class="v2-input"
+                >{ui('Time zone')}<SearchableSelect
+                  label={ui('Time zone')}
                   name="timezone"
                   bind:value={editTimezone}
-                >
-                  <option value=""
-                    >{ui('Organization default ·')}
-                    {p.organization_timezone.replaceAll('_', ' ')}</option
-                  >
-                  {#each data.timezones as zone (zone.name)}<option value={zone.name}
-                      >{zone.label}</option
-                    >{/each}
-                </select></label
+                  placeholder={`${ui('Organization default ·')} ${p.organization_timezone.replaceAll('_', ' ')}`}
+                  options={data.timezones.map((zone) => ({ value: zone.name, label: zone.label }))}
+                /></label
               >
             </div>
             {#if p.teams.length}<div class="team-summary">
@@ -336,9 +332,9 @@
           aria-labelledby="profile-tab-integrations"
           hidden={activeTab !== 'integrations'}
           tabindex="0"
-          class="profile-panel crm-preferences-card"
+          class="profile-panel crm-preferences-card crm-settings-surface"
         >
-          <div class="section-heading">
+          <div class="section-heading crm-settings-section-title">
             <h2 id="integration-title"><Link2 size={17} />{ui('Connected accounts')}</h2>
           </div>
           {#if !p.integrations?.gmail?.configured || !p.integrations?.google_calendar?.configured}
@@ -519,11 +515,8 @@
     font-weight: 500;
     color: var(--v2-ink);
   }
-  .section-heading .section-description {
-    margin: var(--crm-space-2) 0 0;
-  }
   .integration {
-    max-width: 680px;
+    max-width: none;
   }
 
   .profile-tabs {
@@ -642,19 +635,13 @@
     gap: var(--crm-space-2);
     margin-top: 18px;
   }
-  .section-description {
-    color: var(--v2-slate);
-    font-size: var(--crm-text-xs);
-    line-height: 1.6;
-    margin: 0 0 var(--crm-space-4);
-  }
   .integration {
-    padding: var(--crm-space-5);
-    border: 1px solid var(--v2-line);
-    border-radius: var(--crm-radius-md);
+    padding: var(--crm-space-4);
+    border: 0;
+    border-bottom: 1px solid var(--v2-line-soft);
   }
   .integration + .integration {
-    margin-top: var(--crm-space-4);
+    margin-top: 0;
   }
   .connection-settings {
     margin-top: var(--crm-space-4);
@@ -745,28 +732,5 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--crm-space-2);
-  }
-
-  @container (max-width: 600px) {
-    .integration-actions {
-      flex-basis: 100%;
-    }
-    .settings-group {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (max-width: 600px) {
-    .profile-layout {
-      padding: 14px;
-    }
-    .profile-tabs {
-      gap: var(--crm-space-4);
-      padding: 0 14px;
-    }
-    .profile-tabs button {
-      font-size: var(--crm-text-xs);
-      gap: 5px;
-    }
   }
 </style>

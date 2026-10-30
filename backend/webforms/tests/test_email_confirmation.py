@@ -513,3 +513,16 @@ def test_legacy_nested_values_remain_readable_after_form_edit(form):
     rows = submission_rows(row)
     assert {"label": "Message", "value": "Private message"} in rows
     assert {"label": "Legacy details", "value": "Budget: 1000\nApproved: Yes"} in rows
+
+
+def test_staff_email_preference_does_not_disable_guest_confirmation(
+    form, admin_profile
+):
+    enable(form)
+    admin_profile.notification_preferences = {"webform.submitted": {"email": False}}
+    admin_profile.save(update_fields=["notification_preferences"])
+    row = submit(form)
+    mail.outbox.clear()
+    deliver(row)
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == ["pat@example.com"]

@@ -3,7 +3,6 @@
   const { ui } = useI18n();
 
   import { page } from '$app/state';
-  import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import Pill from './Pill.svelte';
@@ -41,9 +40,6 @@
     }))
   );
   const active = (href) => page.url.pathname === href || page.url.pathname.startsWith(`${href}/`);
-  let selected = $derived(
-    groups.flatMap((group) => group.items).find((item) => active(item.href))?.href || ''
-  );
 </script>
 
 <aside class="preferences-sidebar">
@@ -69,23 +65,6 @@
       </details>
     {/each}
   </nav>
-  <label class="mobile-preferences"
-    >{ui('Section')}
-    <select
-      class="v2-input"
-      value={selected}
-      onchange={(event) => goto(resolve(asInternalPath(event.currentTarget.value)))}
-    >
-      {#if !selected}<option value="" disabled>{ui('Choose a section')}</option>{/if}
-      {#each groups as group (group.label)}<optgroup label={ui(group.label)}
-          >{#each group.items as item (item.key)}<option value={item.href}
-              >{ui(item.label)}{item.access === 'read' ? ` · ${ui('Read only')}` : ''}{item.beta
-                ? ' · Beta'
-                : ''}</option
-            >{/each}</optgroup
-        >{/each}
-    </select>
-  </label>
 </aside>
 
 <style>
@@ -174,49 +153,8 @@
     background: var(--crm-action-active-bg);
   }
   summary:focus-visible,
-  a:focus-visible,
-  select:focus-visible {
+  a:focus-visible {
     outline: 2px solid var(--crm-focus);
     outline-offset: 2px;
-  }
-  .mobile-preferences {
-    display: none;
-  }
-  @media (max-width: 1100px) and (min-width: 1024px) {
-    .preferences-sidebar {
-      flex-basis: 186px;
-      padding-inline: 9px;
-    }
-  }
-  @media (max-width: 1023px) {
-    .preferences-sidebar {
-      flex: none;
-      padding: 10px var(--crm-space-4);
-      border-right: 0;
-      border-bottom: 1px solid var(--v2-line);
-      overflow: visible;
-    }
-    .preferences-heading {
-      padding: 0 0 var(--crm-space-2);
-    }
-    nav {
-      display: none;
-    }
-    .mobile-preferences {
-      display: flex;
-      align-items: center;
-      gap: var(--crm-space-3);
-      font-size: var(--crm-text-xs);
-    }
-    select {
-      flex: 1;
-      min-width: 0;
-      padding: var(--crm-space-2);
-      border: 1px solid var(--v2-line);
-      border-radius: var(--crm-button-radius);
-      background: var(--crm-surface);
-      color: var(--v2-ink);
-      font: inherit;
-    }
   }
 </style>

@@ -192,14 +192,9 @@
     total={data.totals.count}
     shown={rows.length}
   />{:else}
-  <PageHeader compact title={ui('Tickets')}
-    >{#snippet sub()}{data.totals.count}
-      {data.totals.count === 1
-        ? ui('ticket')
-        : ui('tickets')}{/snippet}{#snippet actions()}<AddRecordMenu
-        module="tickets"
-      />{/snippet}</PageHeader
-  >
+  <PageHeader compact title={ui('Tickets')}>
+    {#snippet actions()}<AddRecordMenu module="tickets" />{/snippet}
+  </PageHeader>
   <div class="object-workspace crm-list-workspace" class:is-list={view === 'list'}>
     <div class="object-filters">
       <input
@@ -583,10 +578,5 @@
   dialog textarea {
     width: 100%;
     margin: 10px 0;
-  }
-  @media (max-width: 700px) {
-    .search {
-      flex-basis: 100%;
-    }
   }
 </style>

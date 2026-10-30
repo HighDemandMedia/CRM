@@ -8,6 +8,8 @@ export async function load({ cookies, url }) {
   return { day: await apiRequest(`/dashboard/day-summary/?${params}`, {}, { cookies }) };
 }
 export const actions = {
+  create: ({ cookies, request }) =>
+    calendarActions.create(/** @type {any} */ ({ cookies, request })),
   manage: ({ cookies, request }) =>
     calendarActions.manage(/** @type {any} */ ({ cookies, request })),
   complete: async (event) => {

@@ -121,7 +121,7 @@
     side="right"
     aria-labelledby={titleId}
     class={cn(
-      'border-border/50 bg-background/95 w-[480px] overflow-hidden border-l p-0 backdrop-blur-xl sm:max-w-[480px]',
+      'border-border/50 bg-background/95 w-[480px] max-w-[480px] overflow-hidden border-l p-0 backdrop-blur-xl',
       className
     )}
   >

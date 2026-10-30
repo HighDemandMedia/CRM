@@ -359,16 +359,7 @@
     border: 1px solid var(--v2-line);
     border-radius: var(--crm-radius-md);
   }
-  @media (max-width: 640px) {
-    .mail-filter-menu[open] {
-      flex: 1 1 100%;
-    }
-    .filter-options {
-      position: static;
-      width: 100%;
-      margin-top: var(--crm-space-2);
-    }
-  }
+
   .mail-filters > .mail-search {
     width: auto;
   }

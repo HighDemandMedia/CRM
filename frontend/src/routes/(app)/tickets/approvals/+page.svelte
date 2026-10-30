@@ -342,21 +342,4 @@
   /* At 414px the desktop row leaves the ticket title about five words per
      line while the reason text takes half the width. Stack instead: the
      question first, the answer under it. */
-  @media (max-width: 768px) {
-    .v2-approval {
-      flex-wrap: wrap;
-    }
-    .v2-approval-actions {
-      width: 100%;
-      margin-top: var(--crm-space-3);
-      justify-content: flex-end;
-    }
-    /* flex:1 so the reason fills the row and reads from the left margin.
-       Right-aligned prose in a flex-end container looks like a caption. */
-    .v2-approval-reason {
-      flex: 1;
-      max-width: none;
-      text-align: left;
-    }
-  }
 </style>

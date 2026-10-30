@@ -208,7 +208,7 @@
     padding: 0.375rem;
     text-decoration: underline;
   }
-  @media (max-width: 700px), (pointer: coarse) {
+  @media (pointer: coarse) {
     .actions-visibility {
       margin-block: 6px 10px;
       background: var(--crm-surface-subtle);

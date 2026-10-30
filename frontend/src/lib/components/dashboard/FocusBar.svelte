@@ -59,8 +59,7 @@
 
 {#if visibleItems.length > 0}
   <div
-    class="relative overflow-hidden rounded-[var(--radius-lg)] border px-4 py-3 backdrop-blur-sm transition-all duration-300 sm:px-6
-      {hasUrgentItems
+    class="relative overflow-hidden rounded-[var(--radius-lg)] border px-6 py-3 backdrop-blur-sm transition-all duration-300 {hasUrgentItems
       ? 'border-[var(--task-overdue)]/30 bg-[var(--task-overdue-bg)] dark:border-[var(--task-overdue)]/20 dark:bg-[var(--task-overdue)]/10'
       : 'border-[var(--border-default)] bg-[var(--surface-raised)]/50 dark:bg-[var(--surface-raised)]/30'}"
   >
@@ -69,9 +68,9 @@
       class="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent dark:via-white/[0.02]"
     ></div>
 
-    <div class="relative flex items-center gap-3 sm:gap-5">
+    <div class="relative flex items-center gap-5">
       <!-- Label with icon - Orange accent -->
-      <div class="hidden items-center gap-2 sm:flex">
+      <div class="flex items-center gap-2">
         <div
           class="flex size-7 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary-light)] dark:bg-[var(--color-primary-default)]/15"
         >
@@ -83,14 +82,14 @@
       </div>
 
       <!-- Divider -->
-      <div class="hidden h-6 w-px bg-[var(--border-default)]/50 sm:block"></div>
+      <div class="block h-6 w-px bg-[var(--border-default)]/50"></div>
 
       <!-- Items -->
-      <div class="flex flex-1 items-center gap-1 overflow-x-auto sm:gap-2">
+      <div class="flex flex-1 items-center gap-2 overflow-x-auto">
         {#each visibleItems as item (item.href)}
           <a
             href={resolve(asInternalPath(item.href))}
-            class="group flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 transition-all duration-200 hover:bg-white/50 sm:gap-2.5 sm:px-4 dark:hover:bg-white/5"
+            class="group flex items-center gap-2.5 rounded-[var(--radius-md)] px-4 py-2 transition-all duration-200 hover:bg-white/50 dark:hover:bg-white/5"
           >
             <div
               class="flex size-8 items-center justify-center rounded-[var(--radius-md)] transition-transform duration-200 group-hover:scale-110 {item.bgClass}"
@@ -101,7 +100,7 @@
               <span class="text-base font-bold text-[var(--text-primary)] tabular-nums"
                 >{item.count}</span
               >
-              <span class="hidden text-xs font-medium text-[var(--text-secondary)] sm:inline"
+              <span class="inline text-xs font-medium text-[var(--text-secondary)]"
                 >{item.label}</span
               >
             </div>

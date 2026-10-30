@@ -602,9 +602,4 @@
     gap: var(--crm-space-2);
     padding-bottom: var(--crm-space-6);
   }
-  @media (max-width: 700px) {
-    .page-row {
-      flex-wrap: wrap;
-    }
-  }
 </style>

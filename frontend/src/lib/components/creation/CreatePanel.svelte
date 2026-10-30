@@ -263,15 +263,8 @@
       animation: none;
     }
   }
-  @media (max-width: 600px) {
-    .body {
-      padding: 0 var(--crm-space-4);
-    }
-    header {
-      padding: var(--crm-space-4);
-    }
-  }
-  @media (max-width: 1024px), (pointer: coarse) {
+
+  @media (pointer: coarse) {
     .create-panel {
       --crm-control-height: var(--crm-target-size);
       --crm-control-padding-y: var(--crm-space-2);

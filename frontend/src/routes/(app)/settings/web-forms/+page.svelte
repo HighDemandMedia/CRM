@@ -33,8 +33,6 @@
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
-  import SettingsCrumb from '$lib/v2/components/SettingsCrumb.svelte';
-  import StatCard from '$lib/v2/components/StatCard.svelte';
   import Pill from '$lib/v2/components/Pill.svelte';
   import NextAction from '$lib/v2/components/NextAction.svelte';
   import EmptyState from '$lib/v2/components/EmptyState.svelte';
@@ -75,11 +73,9 @@
   );
 </script>
 
-<PageHeader title={ui('Web forms')}>
-  {#snippet crumb()}<SettingsCrumb />{/snippet}
+<PageHeader title={ui('Web forms')} compact>
   {#snippet sub()}
     <Pill>Beta</Pill>
-    {ui('Turn website enquiries into contacts and notify your team.')}
   {/snippet}
   {#snippet actions()}
     {#if data.canManage}
@@ -90,27 +86,26 @@
   {/snippet}
 </PageHeader>
 
-<div class="v2-pad crm-preferences-body crm-preferences-summary">
-  <div class="v2-stats">
-    <StatCard label={ui('Published')} value={count(totals.published)} tone="ink" />
-    <StatCard
-      label={ui('Drafts')}
-      value={count(drafts)}
-      tone="slate"
-      detail={drafts ? 'Not receiving submissions' : 'None'}
-    />
-    <StatCard label={ui('Submissions, 30 days')} value={count(totals.submissions_30d)} tone="ink" />
-    <StatCard
-      label={ui('Spam blocked, 30 days')}
-      value={count(totals.spam_30d)}
-      tone="slate"
-      detail={totals.spam_30d ? 'No record created' : 'None'}
-    />
-  </div>
-</div>
-
 <div class="v2-scroll">
   <div class="v2-pad crm-preferences-body">
+    <dl class="crm-settings-metrics">
+      <div>
+        <dt>{ui('Published')}</dt>
+        <dd>{count(totals.published)}</dd>
+      </div>
+      <div>
+        <dt>{ui('Drafts')}</dt>
+        <dd>{count(drafts)}</dd>
+      </div>
+      <div>
+        <dt>{ui('Submissions, 30 days')}</dt>
+        <dd>{count(totals.submissions_30d)}</dd>
+      </div>
+      <div>
+        <dt>{ui('Spam blocked, 30 days')}</dt>
+        <dd>{count(totals.spam_30d)}</dd>
+      </div>
+    </dl>
     {#if actionError}
       <div style="margin-bottom:16px">
         <NextAction label={ui('That did not work')} text={actionError} tone="rust" />
@@ -172,8 +167,8 @@
         {/snippet}
       </EmptyState>
     {:else}
-      <div class="v2-table-wrap">
-        <table class="v2-table">
+      <div class="v2-table-wrap crm-settings-table-wrap">
+        <table class="v2-table crm-settings-table">
           <thead>
             <tr>
               <th>{ui('Form')}</th>

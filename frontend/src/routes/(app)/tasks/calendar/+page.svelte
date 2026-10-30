@@ -345,14 +345,4 @@
     border: 1px solid var(--v2-line);
     background: var(--v2-card);
   }
-
-  @media (max-width: 767px) {
-    .v2-cal-grid-wrap,
-    .v2-cal-head {
-      display: none;
-    }
-    .v2-cal-agenda {
-      display: block;
-    }
-  }
 </style>

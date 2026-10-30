@@ -28,7 +28,6 @@ def _eligible(profile, org):
         and profile.is_active
         and profile.removed_at is None
         and profile.user.is_active
-        and profile.notify_in_app
     )
 
 

@@ -827,6 +827,24 @@ class ProfileSelfUpdateSerializer(serializers.Serializer):
     notify_in_app = serializers.BooleanField(required=False)
     notify_mentions = serializers.BooleanField(required=False)
     notify_comments = serializers.BooleanField(required=False)
+    notification_preferences = serializers.JSONField(required=False)
+
+    def validate_notification_preferences(self, value):
+        from common.notification_preferences import CHANNELS, TOPIC_KEYS
+
+        if not isinstance(value, dict) or set(value) - TOPIC_KEYS:
+            raise serializers.ValidationError("Choose valid notification topics.")
+        for channels in value.values():
+            if (
+                not isinstance(channels, dict)
+                or set(channels) - set(CHANNELS)
+                or any(type(enabled) is not bool for enabled in channels.values())
+            ):
+                raise serializers.ValidationError(
+                    "Each notification channel must be true or false."
+                )
+        return value
+
     email_integration_mode = serializers.ChoiceField(
         choices=["send", "read_send"], required=False, allow_blank=True
     )

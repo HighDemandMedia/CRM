@@ -4,7 +4,7 @@
   import ExportDialog from '$lib/v2/components/ExportDialog.svelte';
   import { listViewPreference } from '$lib/v2/list-view-preference.svelte.js';
   import { useI18n } from '$lib/i18n/context.js';
-  const { ui, locale, count, relativeDays } = useI18n();
+  const { ui, locale, relativeDays } = useI18n();
 
   import { can } from '$lib/v2/permissions.js';
   import { showStageRequirements } from '$lib/components/pipelines/feedback.js';
@@ -97,7 +97,6 @@
       moving = false;
     }
   }
-  let totals = $derived(data.totals);
   let tasks = $derived(data.tasks);
 
   /** Rows with a save in flight, so the tick can show it is thinking. */
@@ -121,12 +120,6 @@
 {/snippet}
 
 <PageHeader compact title={ui('Tasks')}>
-  {#snippet sub()}
-    <span class="v2-num">{count(totals.open)}</span>
-    {ui('open ·')}
-    <span class="v2-num" style="color:var(--v2-rust)">{count(totals.overdue)}</span>
-    {ui('overdue')}
-  {/snippet}
   {#snippet actions()}
     <AddRecordMenu module="tasks" />
   {/snippet}
@@ -432,11 +425,4 @@
   /* Checking a task off is the main reason this page gets opened on a phone,
      and the target was the 17px icon itself. Grown to 40px and pulled back by
      the overhang, so the target changes but the layout does not. */
-  @media (max-width: 768px) {
-    .v2-tick {
-      min-width: 40px;
-      min-height: 40px;
-      margin: -9px 0 -9px -11px;
-    }
-  }
 </style>

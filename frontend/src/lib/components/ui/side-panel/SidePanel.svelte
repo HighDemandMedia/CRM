@@ -29,14 +29,14 @@
     type="button"
     onclick={reopen}
     aria-label="Show side panel"
-    class="fixed top-1/2 right-0 z-30 hidden h-16 w-3 -translate-y-1/2 items-center justify-center rounded-l-md border border-r-0 border-[color:var(--border)] bg-[color:var(--bg-card)] text-[color:var(--text-subtle)] hover:bg-[color:var(--bg-hover)] hover:text-[color:var(--text)] xl:flex"
+    class="fixed top-1/2 right-0 z-30 flex h-16 w-3 -translate-y-1/2 items-center justify-center rounded-l-md border border-r-0 border-[color:var(--border)] bg-[color:var(--bg-card)] text-[color:var(--text-subtle)] hover:bg-[color:var(--bg-hover)] hover:text-[color:var(--text)]"
   >
     <ChevronLeft class="size-3.5" />
   </button>
 {:else}
   <aside
     class={cn(
-      'fixed top-0 right-0 z-20 hidden h-screen w-[380px] flex-col border-l border-[color:var(--border-faint)] bg-[color:var(--bg-card)] xl:flex',
+      'fixed top-0 right-0 z-20 flex h-screen w-[380px] flex-col border-l border-[color:var(--border-faint)] bg-[color:var(--bg-card)]',
       className
     )}
   >

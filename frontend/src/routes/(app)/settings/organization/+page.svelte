@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, shortDate } = useI18n();
@@ -71,19 +72,20 @@
 </script>
 
 <div class="organization-shell crm-settings-fields">
-  <PageHeader title={data.onboarding ? ui('Welcome to your organization') : ui('Organization')}
-    >{#snippet sub()}{data.onboarding
-        ? ui('Complete your company details and confirm your currency, country and time zone.')
-        : ui('Organization information and regional defaults')}{/snippet}</PageHeader
-  >
+  <PageHeader title={data.onboarding ? ui('Welcome to your organization') : ui('Organization')} />
   <div class="v2-scroll">
     <div class="organization-content crm-settings-content crm-preferences-body">
-      <form class="crm-preferences-card" method="POST" action="?/save" use:enhance={save}>
+      <form
+        class="crm-preferences-card crm-settings-surface"
+        method="POST"
+        action="?/save"
+        use:enhance={save}
+      >
         {#if data.onboarding}<input type="hidden" name="onboarding" value="1" />{/if}
         <fieldset disabled={!data.can_edit || busy}>
           {#each sections as section (section)}
             <section>
-              <h2>{section.title}</h2>
+              <h2 class="crm-settings-section-title">{section.title}</h2>
               <div class="fields">
                 {#each section.fields as [key, label, type] (key)}
                   <label
@@ -108,17 +110,15 @@
             </section>
           {/each}
           <section>
-            <h2>{ui('Regional defaults')}</h2>
+            <h2 class="crm-settings-section-title">{ui('Regional defaults')}</h2>
             <div class="fields">
               <label
-                >{ui('Currency')}<select
-                  class="v2-input"
+                >{ui('Currency')}<SearchableSelect
+                  label={ui('Currency')}
                   name="default_currency"
                   bind:value={draft.default_currency}
-                  >{#each CURRENCY_CODES.filter((c) => c.value) as currency (currency.value)}<option
-                      value={currency.value}>{currency.label}</option
-                    >{/each}</select
-                ></label
+                  options={CURRENCY_CODES.filter((c) => c.value)}
+                /></label
               >
               <label
                 >{ui('Default country')}<CountrySelect
@@ -128,14 +128,12 @@
                 /></label
               >
               <label class="wide"
-                >{ui('Time zone')}<select
-                  class="v2-input"
+                >{ui('Time zone')}<SearchableSelect
+                  label={ui('Time zone')}
                   name="timezone"
                   bind:value={draft.timezone}
-                  >{#each data.timezones as timezone (timezone.name)}<option value={timezone.name}
-                      >{timezone.label}</option
-                    >{/each}</select
-                ></label
+                  options={data.timezones.map((zone) => ({ value: zone.name, label: zone.label }))}
+                /></label
               >
             </div>
           </section>
@@ -204,8 +202,7 @@
   }
   section + section {
     margin-top: var(--crm-space-5);
-    padding-top: var(--crm-space-5);
-    border-top: 1px solid var(--v2-line-soft);
+    padding-top: var(--crm-space-4);
   }
   h2 {
     margin: 0 0 var(--crm-space-4);
@@ -248,15 +245,5 @@
   dd {
     margin: 0;
     overflow-wrap: anywhere;
-  }
-  @container (max-width: 600px) {
-    .fields {
-      grid-template-columns: 1fr;
-    }
-  }
-  @media (max-width: 600px) {
-    .organization-content {
-      padding: var(--crm-space-4) var(--crm-page-gutter);
-    }
   }
 </style>

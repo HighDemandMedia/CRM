@@ -174,20 +174,4 @@
     outline: 2px solid var(--crm-focus);
     outline-offset: 3px;
   }
-  @media (max-width: 1000px) {
-    .article-layout {
-      grid-template-columns: 1fr;
-    }
-    aside {
-      display: none;
-    }
-  }
-  @media (max-width: 600px) {
-    .article-layout {
-      padding: 23px var(--crm-space-4);
-    }
-    h1 {
-      font-size: var(--crm-text-xl);
-    }
-  }
 </style>

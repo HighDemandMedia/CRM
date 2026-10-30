@@ -240,3 +240,194 @@ def test_custom_reminder_window(admin_client, admin_user, org_a):
         "Custom 7",
         "Custom 364",
     }
+
+
+def test_weekly_deals_use_remaining_week_and_keep_owner_scope(
+    admin_client, admin_user, regular_user, org_a, org_b, monkeypatch
+):
+    from datetime import date
+
+    # Thursday across a year boundary; Sunday belongs to this same week.
+    today = date(2026, 12, 31)
+    monkeypatch.setattr(
+        "common.views.today_summary_views.timezone.localdate", lambda *args: today
+    )
+    for name, due, org, owner, stage in [
+        ("Today", today, org_a, admin_user, "PROPOSAL"),
+        ("Sunday", today + timedelta(days=3), org_a, admin_user, "PROPOSAL"),
+        ("Next week", today + timedelta(days=4), org_a, admin_user, "PROPOSAL"),
+        ("Overdue", today - timedelta(days=1), org_a, admin_user, "PROPOSAL"),
+        ("Closed", today, org_a, admin_user, "CLOSED_WON"),
+        ("Other tenant", today, org_b, admin_user, "PROPOSAL"),
+        ("Colleague", today, org_a, regular_user, "PROPOSAL"),
+    ]:
+        Opportunity.objects.create(
+            org=org,
+            created_by=owner,
+            name=name,
+            closed_on=due,
+            stage=stage,
+            currency="EUR",
+        )
+    data = admin_client.get(URL).data
+    assert data["week_end"] == "2027-01-03"
+    assert {row["name"] for row in data["weekly_deals"]} == {"Today", "Sunday"}
+    assert data["counts"]["weekly_deals"] == 2
+    assert all(row["currency"] == "EUR" for row in data["weekly_deals"])
+    assert {
+        row["name"]
+        for row in admin_client.get(URL, {"user": "all"}).data["weekly_deals"]
+    } == {"Today", "Sunday", "Colleague"}
+
+
+def test_preview_caps_do_not_hide_totals_or_today_tasks(
+    admin_client, admin_user, org_a
+):
+    today = timezone.localdate()
+    for i in range(9):
+        Task.objects.create(
+            org=org_a,
+            created_by=admin_user,
+            title=f"Backlog {i}",
+            due_date=today - timedelta(days=1),
+            status="New",
+            priority="Low",
+        )
+    urgent = Task.objects.create(
+        org=org_a,
+        created_by=admin_user,
+        title="High priority",
+        due_date=today - timedelta(days=1),
+        status="New",
+        priority="High",
+    )
+    current = Task.objects.create(
+        org=org_a,
+        created_by=admin_user,
+        title="Today",
+        due_date=today,
+        status="New",
+        priority="High",
+    )
+    data = admin_client.get(URL).data
+    assert data["counts"]["tasks"] == 11
+    assert data["counts"]["overdue"] == 10
+    assert len(data["tasks"]) == 7
+    assert data["tasks"][0]["id"] == str(urgent.pk)
+    assert data["tasks"][0]["can_complete"] is True
+    assert [row["id"] for row in data["tasks_today"]] == [str(current.pk)]
+
+
+def test_remaining_meeting_not_hidden_by_completed_agenda(
+    admin_client, admin_user, org_a
+):
+    host = Profile.objects.get(org=org_a, user=admin_user)
+    # Use a fixed midday so all 22 appointments remain in the same local day.
+    midday = timezone.make_aware(datetime.combine(timezone.localdate(), time(12)))
+    from unittest.mock import patch
+
+    for i in range(21):
+        SalesAppointment.objects.create(
+            org=org_a,
+            created_by=admin_user,
+            host=host,
+            title=f"Finished {i}",
+            starts_at=midday - timedelta(hours=3),
+            ends_at=midday - timedelta(hours=2),
+        )
+    upcoming = SalesAppointment.objects.create(
+        org=org_a,
+        created_by=admin_user,
+        host=host,
+        title="Next meeting",
+        starts_at=midday + timedelta(hours=1),
+        ends_at=midday + timedelta(hours=2),
+    )
+    with patch("common.views.today_summary_views.timezone.now", return_value=midday):
+        data = admin_client.get(URL).data
+    assert data["counts"]["events"] == 22
+    assert data["events"][0]["id"] == f"appointment:{upcoming.pk}"
+
+
+def test_preview_preserves_role_visibility_and_completion_permission(
+    user_client, regular_user, admin_user, admin_profile, org_a
+):
+    from common.models import CRMRole
+    from common.rbac import default_rules
+
+    member = Profile.objects.get(org=org_a, user=regular_user)
+    rules = default_rules("own")
+    rules["tasks"]["stage"] = "none"
+    rules["deals"]["view"] = "none"
+    member.access_role = CRMRole.objects.create(
+        org=org_a, name="Today read only", rules=rules
+    )
+    member.save()
+    today = timezone.localdate()
+    own = Task.objects.create(
+        org=org_a,
+        created_by=regular_user,
+        title="Read only",
+        status="New",
+        priority="High",
+        due_date=today,
+    )
+    own.assigned_to.add(member)
+    hidden = Task.objects.create(
+        org=org_a,
+        created_by=admin_user,
+        title="Other owner",
+        status="New",
+        priority="High",
+        due_date=today,
+    )
+    hidden.assigned_to.add(admin_profile)
+    deal = Opportunity.objects.create(
+        org=org_a,
+        created_by=regular_user,
+        name="Hidden module",
+        stage="PROPOSAL",
+        closed_on=today,
+    )
+    deal.assigned_to.add(member)
+    data = user_client.get(URL).data
+    assert [row["id"] for row in data["tasks"]] == [str(own.pk)]
+    assert data["tasks"][0]["can_complete"] is False
+    assert data["weekly_deals"] == []
+    assert data["counts"]["weekly_deals"] == 0
+    assert (
+        user_client.patch(
+            f"/api/tasks/{own.pk}/", {"status": "Completed"}, format="json"
+        ).status_code
+        == 403
+    )
+
+
+def test_ticket_preview_prioritizes_within_the_organization_day(
+    admin_client, admin_user, org_a
+):
+    from datetime import UTC
+    from unittest.mock import patch
+
+    org_a.timezone = "America/New_York"
+    org_a.save(update_fields=["timezone"])
+    # Both are Oct 28 locally, but the urgent ticket falls on Oct 29 in UTC.
+    for name, due, priority in [
+        ("Low", datetime(2026, 10, 28, 20, tzinfo=UTC), "Low"),
+        ("Urgent", datetime(2026, 10, 29, 2, tzinfo=UTC), "Urgent"),
+    ]:
+        Case.objects.create(
+            org=org_a,
+            created_by=admin_user,
+            name=name,
+            due_at=due,
+            priority=priority,
+            status="New",
+        )
+    with patch(
+        "common.views.today_summary_views.timezone.now",
+        return_value=datetime(2026, 10, 29, 12, tzinfo=UTC),
+    ):
+        data = admin_client.get(URL).data
+    assert [row["name"] for row in data["tickets"]] == ["Urgent", "Low"]
+    assert all(row["overdue"] for row in data["tickets"])

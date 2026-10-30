@@ -46,11 +46,22 @@ def create(
     if recipient is None or not getattr(recipient, "is_active", True):
         return None
 
-    if not recipient.notify_in_app:
+    from common.notification_preferences import channels_for
+
+    if recipient.removed_at is not None or not recipient.user.is_active:
         return None
-    if verb.endswith(".mentioned") and not recipient.notify_mentions:
+    if (
+        entity is not None
+        and getattr(entity, "org_id", recipient.org_id) != recipient.org_id
+    ):
         return None
-    if verb.endswith(".commented") and not recipient.notify_comments:
+    channels = channels_for(recipient, verb)
+    # Web-form email uses its existing outbox, independent of in-app delivery.
+    email_pending = channels["email"] and verb != "webform.submitted"
+    if (
+        not any(channels[key] for key in ("popup", "browser", "bell"))
+        and not email_pending
+    ):
         return None
 
     entity_type = ""
@@ -65,6 +76,8 @@ def create(
         org=recipient.org,
         recipient=recipient,
         verb=verb,
+        channels=channels,
+        email_pending=email_pending,
         actor=actor,
         entity_type=entity_type,
         entity_id=entity_id,

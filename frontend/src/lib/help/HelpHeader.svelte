@@ -53,10 +53,4 @@
     outline: 2px solid var(--crm-focus);
     outline-offset: 3px;
   }
-  @media (max-width: 600px) {
-    .help-tabs {
-      margin: 0 var(--crm-space-4);
-      gap: 0 var(--crm-space-4);
-    }
-  }
 </style>

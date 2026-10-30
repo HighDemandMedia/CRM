@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { untrack } from 'svelte';
   import { enhance } from '$app/forms';
@@ -107,25 +108,17 @@
   }
 </script>
 
-<PageHeader title={ui('Creation forms')}
-  >{#snippet sub()}{ui(
-      'Choose the fields your team completes when creating a record.'
-    )}{/snippet}</PageHeader
->
+<PageHeader title={ui('Creation forms')} />
 <div class="v2-scroll v2-pad editor crm-preferences-body">
   <label class="object-select"
     >{ui('Object')}
-    <select
-      class="v2-input"
+    <SearchableSelect
+      label={ui('Object')}
       value={data.target_model}
       disabled={busy}
-      onchange={(event) =>
-        goto(resolve(`/settings/creation-forms?object=${event.currentTarget.value}`))}
-    >
-      {#each data.objects as object (object.value)}<option value={object.value}
-          >{ui(object.label)}</option
-        >{/each}
-    </select>
+      options={data.objects.map((object) => ({ ...object, label: ui(object.label) }))}
+      onchange={(value) => goto(resolve(`/settings/creation-forms?object=${value}`))}
+    />
   </label>
   {#if form?.error}<Notice message={ui(form.error)} />{/if}
   {#if form?.saved}<Notice
@@ -135,7 +128,7 @@
   {#if !data.can_edit}<p>{ui('Read only')}</p>{/if}
   <div class="panels">
     <section
-      class="panel crm-preferences-card"
+      class="panel crm-preferences-card crm-settings-surface"
       class:drop-available={overAvailable}
       aria-label={ui('Available properties')}
       ondragover={overProperties}
@@ -148,9 +141,9 @@
         finishDrag();
       }}
     >
-      <h2>{ui('Available properties')}</h2>
+      <h2 class="crm-settings-section-title">{ui('Available properties')}</h2>
       <input
-        class="v2-input"
+        class="v2-input crm-search-input"
         type="search"
         aria-label={ui('Search properties')}
         placeholder={ui('Search properties')}
@@ -175,7 +168,7 @@
     <form
       method="POST"
       action="?/save"
-      class="panel crm-preferences-card"
+      class="panel crm-preferences-card crm-settings-surface"
       use:enhance={() => {
         busy = true;
         return async ({ update }) => {
@@ -190,7 +183,7 @@
       <input type="hidden" name="target_model" value={data.target_model} />
       <input type="hidden" name="revision" value={revision} />
       <input type="hidden" name="selected" value={JSON.stringify(selected)} />
-      <h2>{ui('Fields in creation order')}</h2>
+      <h2 class="crm-settings-section-title">{ui('Fields in creation order')}</h2>
       <p class="hint">{ui('Required fields must be completed for new records.')}</p>
       <p class="sr-only" aria-live="polite">{announcement}</p>
       <ol
@@ -263,7 +256,9 @@
   .object-select {
     display: grid;
     gap: var(--crm-space-2);
-    max-width: 22rem;
+    color: var(--v2-slate);
+    font-size: var(--crm-text-xs);
+    max-width: 230px;
     margin-bottom: var(--crm-space-5);
   }
   .panels {
@@ -370,13 +365,5 @@
   }
   .dragging {
     opacity: 0.5;
-  }
-  @media (max-width: 1000px) {
-    .panels {
-      grid-template-columns: 1fr;
-    }
-    .available {
-      max-height: 15rem;
-    }
   }
 </style>

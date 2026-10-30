@@ -435,6 +435,8 @@ def purge_read_notifications(days=NOTIFICATION_PURGE_DAYS):
     the last org's id on a pooled connection would hand that tenant's context to
     whatever borrows the connection next.
     """
+    from django.db.models import Q
+
     cutoff = timezone.now() - timedelta(days=days)
     deleted = 0
     try:
@@ -444,9 +446,14 @@ def purge_read_notifications(days=NOTIFICATION_PURGE_DAYS):
             .iterator()
         ):
             set_rls_context(org_id)
-            removed, _ = Notification.objects.filter(
-                read_at__isnull=False, read_at__lt=cutoff
-            ).delete()
+            removed, _ = (
+                Notification.objects.filter(org_id=org_id)
+                .filter(
+                    Q(read_at__isnull=False, read_at__lt=cutoff)
+                    | Q(channels__bell=False, created_at__lt=cutoff)
+                )
+                .delete()
+            )
             deleted += removed
     finally:
         clear_rls_context()
@@ -803,3 +810,19 @@ from common.password_reset import (  # noqa: F401,E402
     send_password_changed_email,
     send_password_reset_email,
 )
+
+
+@shared_task
+def send_pending_notification_emails():
+    from common.notification_emails import deliver_notification_emails
+
+    for org in Org.objects.filter(is_active=True, closing_at__isnull=True).iterator():
+        try:
+            set_rls_context(org.pk)
+            deliver_notification_emails(org)
+        except Exception:
+            logger.exception(
+                "Notification email scan failed for organization %s", org.pk
+            )
+        finally:
+            clear_rls_context()

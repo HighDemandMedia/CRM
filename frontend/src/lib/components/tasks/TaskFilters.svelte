@@ -191,25 +191,14 @@
     display: grid;
     gap: 6px;
   }
-  @media (min-width: 701px) {
-    .task-filters {
-      display: contents;
-    }
-    .crm-module-field {
-      flex: 0 1 10rem;
-    }
-    .search-field {
-      flex: 1 1 12rem;
-    }
+
+  .task-filters {
+    display: contents;
   }
-  @media (max-width: 700px) {
-    .task-filters {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      width: 100%;
-    }
-    details {
-      grid-column: 1;
-    }
+  .crm-module-field {
+    flex: 0 1 10rem;
+  }
+  .search-field {
+    flex: 1 1 12rem;
   }
 </style>

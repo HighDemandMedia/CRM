@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -92,18 +93,19 @@
         <p class="person">{member.name}<span>{member.email}</span></p>
         <input type="hidden" name="profileId" value={member.id} />
         <label for={`role-select-${member.id}`}>{ui('Permission set')}</label>
-        <select
+        <SearchableSelect
           id={`role-select-${member.id}`}
-          class="v2-input"
+          label={ui('Permission set')}
           name="role_id"
           bind:value={selectedRole}
           disabled={busy}
           required
-        >
-          {#if !selectedRole}<option value="" disabled>{ui('Choose role')}</option>{/if}
-          {#if isSuperAdmin}<option value="ADMIN">{ui('Admin')}</option>{/if}
-          {#each roles as role (role.id)}<option value={role.id}>{role.name}</option>{/each}
-        </select>
+          placeholder={selectedRole ? '' : ui('Choose role')}
+          options={[
+            ...(isSuperAdmin ? [{ value: 'ADMIN', label: ui('Admin') }] : []),
+            ...roles.map((role) => ({ value: role.id, label: role.name }))
+          ]}
+        />
         {#if error}<Notice message={ui(error)} />{/if}
         <div class="access-summary">
           <span>{ui('Record access')}</span><strong
@@ -167,9 +169,6 @@
     font-size: var(--crm-text-xs);
     font-weight: 500;
     margin-bottom: 7px;
-  }
-  select {
-    width: 100%;
   }
   .access-summary {
     display: flex;

@@ -3,7 +3,7 @@
   import { asInternalPath } from '$lib/utils/paths.js';
   import { untrack } from 'svelte';
   import { page } from '$app/stores';
-  import { afterNavigate, goto } from '$app/navigation';
+  import { goto } from '$app/navigation';
 
   import * as Sidebar from '$lib/components/ui/sidebar/index.js';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
@@ -161,13 +161,6 @@
           if (item.key && !openDropdowns[item.key]) openDropdowns[item.key] = true;
         });
       }
-    }
-  });
-
-  // Close mobile sidebar after navigation
-  afterNavigate(() => {
-    if (sidebar.isMobile) {
-      sidebar.setOpenMobile(false);
     }
   });
 

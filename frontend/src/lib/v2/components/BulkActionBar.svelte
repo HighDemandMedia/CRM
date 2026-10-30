@@ -142,18 +142,4 @@
     background: var(--v2-card);
   }
   /* Phone: dock above the tab bar, full width, comfortable tap targets. */
-  @media (max-width: 768px) {
-    .v2-bulkbar {
-      position: fixed;
-      left: 8px;
-      right: 8px;
-      bottom: calc(var(--v2-tabbar-h, 56px) + 8px);
-      z-index: 40;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
-    }
-    .v2-bulkbar :global(.v2-btn),
-    .v2-bulkbar .v2-input {
-      min-height: 44px;
-    }
-  }
 </style>

@@ -206,7 +206,7 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={(v) => onOpenChange?.(v)}>
-  <Dialog.Content class="sm:max-w-3xl">
+  <Dialog.Content class="max-w-3xl">
     <Dialog.Header>
       <Dialog.Title class="flex items-center gap-2">
         <Upload class="h-4 w-4" />

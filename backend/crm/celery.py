@@ -42,6 +42,11 @@ app.conf.beat_schedule = {
         "schedule": crontab(minute="*"),
         "options": {"expires": 60},
     },
+    "send-notification-emails": {
+        "task": "common.tasks.send_pending_notification_emails",
+        "schedule": crontab(minute="*"),
+        "options": {"expires": 60},
+    },
     "retry-webform-emails": {
         "task": "webforms.tasks.retry_pending_webform_emails",
         "schedule": crontab(minute="*/5"),

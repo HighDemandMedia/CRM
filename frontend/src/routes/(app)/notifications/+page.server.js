@@ -13,20 +13,17 @@ export async function load({ cookies, url }) {
     getNotifications({ cookies, url }),
     apiRequest('/profile/', {}, { cookies })
   ]);
-  return { ...feed, preferences };
+  return { ...feed, preferences: preferences.user_obj?.notification_settings };
 }
 
 /** @type {import('./$types').Actions} */
 export const actions = {
   preferences: async ({ cookies, request }) => {
     const form = await request.formData();
-    const body = Object.fromEntries(
-      ['notify_in_app', 'notify_mentions', 'notify_comments'].map((key) => [
-        key,
-        form.get(key) === 'on'
-      ])
-    );
     try {
+      const raw = form.get('notification_preferences');
+      if (typeof raw !== 'string' || raw.length > 10000) throw new Error('Invalid preferences.');
+      const body = { notification_preferences: JSON.parse(raw) };
       await apiRequest('/profile/', { method: 'PATCH', body }, { cookies });
       return { scope: 'preferences', saved: true };
     } catch (err) {

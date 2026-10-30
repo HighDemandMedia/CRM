@@ -330,12 +330,4 @@
      width, but an absolutely positioned menu does not: at 260px min-width it
      runs off a 320px viewport when its trigger sits mid-row. Anchoring it to
      the left edge and letting it use the full width keeps it on screen. */
-  @media (max-width: 768px) {
-    .v2-menu {
-      position: fixed;
-      left: 8px;
-      right: 8px;
-      min-width: 0;
-    }
-  }
 </style>

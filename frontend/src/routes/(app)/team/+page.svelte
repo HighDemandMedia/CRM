@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import '$lib/v2/styles/access-list.css';
   import { useI18n } from '$lib/i18n/context.js';
@@ -87,7 +88,7 @@
     />
   </div>
 {:else}
-  <PageHeader title={ui('Users & Teams')}>
+  <PageHeader title={ui('Users & Teams')} compact>
     {#snippet sub()}<span
         >{data.active.length}
         {ui('active ·')}
@@ -120,8 +121,8 @@
           {form.invited}.
         </p>{:else if form?.error}<Notice message={ui(form.error)} />{/if}
 
-      <div class="toolbar">
-        <label class="search"
+      <div class="toolbar crm-settings-toolbar">
+        <label class="crm-search"
           ><Search size={16} /><input
             type="search"
             aria-label={`Search ${activeTab}`}
@@ -134,33 +135,41 @@
           /></label
         >
         {#if activeTab === 'users'}
-          <select
-            class="v2-input filter"
-            aria-label={ui('Filter users by status')}
-            bind:value={status}
-            ><option value="all">{ui('All statuses')}</option><option value="active"
-              >{ui('Active')}</option
-            ><option value="inactive">{ui('Deactivated')}</option></select
-          >
-          <select class="v2-input filter" aria-label={ui('Filter users by role')} bind:value={role}
-            ><option value="">{ui('All roles')}</option
-            >{#each [...new Set(members.map(roleName))] as name (name)}<option value={name}
-                >{name}</option
-              >{/each}</select
-          >
-          <select
-            class="v2-input filter"
-            aria-label={ui('Filter users by team')}
-            bind:value={teamFilter}
-            ><option value="">{ui('All teams')}</option>{#each data.teams as t (t.id)}<option
-                value={t.id}>{t.name}</option
-              >{/each}</select
-          >
+          <div class="filter">
+            <SearchableSelect
+              label={ui('Filter users by status')}
+              bind:value={status}
+              options={[
+                { value: 'all', label: ui('All statuses') },
+                { value: 'active', label: ui('Active') },
+                { value: 'inactive', label: ui('Deactivated') }
+              ]}
+            />
+          </div>
+          <div class="filter">
+            <SearchableSelect
+              label={ui('Filter users by role')}
+              bind:value={role}
+              placeholder={ui('All roles')}
+              options={[...new Set(members.map(roleName))].map((name) => ({
+                value: name,
+                label: name
+              }))}
+            />
+          </div>
+          <div class="filter">
+            <SearchableSelect
+              label={ui('Filter users by team')}
+              bind:value={teamFilter}
+              placeholder={ui('All teams')}
+              options={data.teams.map((t) => ({ value: t.id, label: t.name }))}
+            />
+          </div>
         {/if}
       </div>
       {#if activeTab === 'users'}
-        <div class="table-wrap">
-          <table class="access-table">
+        <div class="table-wrap crm-settings-table-wrap">
+          <table class="access-table crm-settings-table">
             <thead
               ><tr
                 ><th>{ui('User')}</th><th>{ui('Permission set')}</th><th>{ui('Teams')}</th><th
@@ -226,8 +235,8 @@
           </table>
         </div>
       {:else if activeTab === 'teams'}
-        <div class="table-wrap">
-          <table class="access-table teams-table">
+        <div class="table-wrap crm-settings-table-wrap">
+          <table class="access-table teams-table crm-settings-table">
             <thead
               ><tr
                 ><th>{ui('Team')}</th><th>{ui('Members')}</th><th
@@ -288,8 +297,8 @@
           </table>
         </div>
       {:else}
-        <div class="table-wrap">
-          <table class="access-table">
+        <div class="table-wrap crm-settings-table-wrap">
+          <table class="access-table crm-settings-table">
             <thead
               ><tr
                 ><th>{ui('Email')}</th><th>{ui('Permission set')}</th><th>{ui('Status')}</th><th
@@ -509,26 +518,5 @@
     padding: var(--crm-space-3) 14px;
     border-radius: var(--crm-radius-md);
     background: var(--v2-hover);
-  }
-  @media (max-width: 900px) {
-    .access-table {
-      min-width: 700px;
-    }
-    .teams-table {
-      min-width: 520px;
-    }
-    .team-tabs a {
-      display: none;
-    }
-    .team-content {
-      padding: var(--crm-space-4);
-    }
-    .team-tabs {
-      padding: 0 var(--crm-space-4);
-      gap: 18px;
-    }
-    .search {
-      width: 100%;
-    }
   }
 </style>

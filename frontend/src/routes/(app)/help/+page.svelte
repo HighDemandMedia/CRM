@@ -608,42 +608,4 @@
   .suggested-guides :global(svg) {
     flex-shrink: 0;
   }
-  @media (max-width: 1000px) {
-    .help-layout {
-      grid-template-columns: 1fr;
-    }
-    .request-types {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .request-types button {
-      align-items: flex-start;
-    }
-    .request-types button > :global(svg:last-child) {
-      display: none;
-    }
-    .guide-link {
-      margin-top: var(--crm-space-3);
-    }
-    .support-address {
-      display: none;
-    }
-  }
-  @media (max-width: 640px) {
-    .help-layout {
-      padding: var(--crm-space-5) var(--crm-space-4);
-    }
-    .request-types {
-      grid-template-columns: 1fr;
-    }
-    .field-pair {
-      grid-template-columns: 1fr;
-    }
-    .request-panel {
-      padding: 18px;
-    }
-    .form-footer {
-      align-items: flex-start;
-      flex-direction: column;
-    }
-  }
 </style>

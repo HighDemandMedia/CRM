@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -155,21 +156,18 @@
 
 <PageHeader title={ui('Pipelines')} />
 <div class="pipeline-settings v2-scroll crm-preferences-body">
-  <div class="toolbar">
+  <div class="toolbar crm-settings-toolbar">
     <label
-      >{ui('Object')}<select
-        class="v2-input"
+      >{ui('Object')}<SearchableSelect
+        label={ui('Object')}
         bind:value={target}
         disabled={busy}
+        options={data.objects}
         onchange={() => {
           expanded = '';
           error = '';
         }}
-      >
-        {#each data.objects as object (object.value)}<option value={object.value}
-            >{object.label}</option
-          >{/each}
-      </select></label
+      /></label
     >
     {#if data.can_edit}<button
         class="v2-btn v2-btn-primary add-stage"
@@ -182,8 +180,8 @@
         }}><Plus size={16} />{ui('Add stage')}</button
       >{/if}
   </div>
-  <div class="table-wrap">
-    <table>
+  <div class="table-wrap crm-settings-table-wrap">
+    <table class="crm-settings-table">
       <thead
         ><tr
           ><th>{ui('Order')}</th><th>{ui('Stage name')}</th><th>{ui('Internal name')}</th><th
@@ -384,20 +382,17 @@
             )}
           </p>
           <label
-            >{ui('Move records to')}<select
-              class="v2-input"
+            >{ui('Move records to')}<SearchableSelect
+              label={ui('Move records to')}
               bind:value={destination}
               required={Boolean(removing.record_count)}
-            >
-              <option value=""
-                >{removing.record_count
-                  ? ui('Select a destination')
-                  : ui('No records to move')}</option
-              >
-              {#each stages.filter((stage) => stage.key !== removing.key) as stage (stage.key)}<option
-                  value={stage.key}>{stage.label}</option
-                >{/each}
-            </select></label
+              placeholder={removing.record_count
+                ? ui('Select a destination')
+                : ui('No records to move')}
+              options={stages
+                .filter((stage) => stage.key !== removing.key)
+                .map((stage) => ({ value: stage.key, label: stage.label }))}
+            /></label
           >
           <p class="hint">
             {ui(
@@ -558,13 +553,5 @@
     display: block;
     overflow-wrap: anywhere;
     margin-top: 3px;
-  }
-  @media (max-width: 850px) {
-    .rules {
-      grid-template-columns: 1fr;
-    }
-    .pipeline-settings {
-      padding: var(--crm-space-4);
-    }
   }
 </style>

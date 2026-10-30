@@ -249,10 +249,4 @@
     margin-top: var(--crm-space-6);
     padding-bottom: var(--crm-space-10);
   }
-  @media (max-width: 720px) {
-    .pair,
-    .triple {
-      grid-template-columns: 1fr;
-    }
-  }
 </style>

@@ -78,6 +78,8 @@
   --crm-shadow-md: 0 4px 16px rgb(0 0 0 / 10%);
   --crm-shadow-lg: 0 16px 48px rgb(0 0 0 / 16%);
   --crm-control-height: 2.5rem;
+  --crm-toolbar-control-height: 2.125rem;
+  --crm-search-width: 16rem;
   --crm-control-padding-x: var(--crm-space-4);
   --crm-control-padding-y: var(--crm-space-2);
   --crm-control-gap: var(--crm-space-2);

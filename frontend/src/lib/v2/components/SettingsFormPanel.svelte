@@ -95,10 +95,4 @@
     gap: 8px;
     margin-top: 16px;
   }
-
-  @media (max-width: 768px) {
-    .v2-sfp-fields {
-      grid-template-columns: 1fr;
-    }
-  }
 </style>

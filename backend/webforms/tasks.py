@@ -12,6 +12,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from common.models import Org
+from common.notification_preferences import channels_for
 from common.organization_lifecycle import organization_job
 from common.tasks import clear_rls_context, send_email, set_rls_context
 from webforms.email_content import confirmation_email, internal_email
@@ -76,7 +77,9 @@ def _deliver(submission_id, org_id):
                 [
                     p
                     for p in recipients(submission)
-                    if p.user.email and str(p.pk) not in submission.email_delivered_to
+                    if p.user.email
+                    and str(p.pk) not in submission.email_delivered_to
+                    and channels_for(p, "webform.submitted")["email"]
                 ]
                 if form.notify_email
                 else []

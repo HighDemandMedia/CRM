@@ -37,7 +37,7 @@
         <h2>{ui('Learn your CRM')}</h2>
         <p>{ui('Guides for the High Demand Media workflows, settings and tools.')}</p>
       </div>
-      <label class="search"
+      <label class="crm-search"
         ><Search size={17} /><input
           type="search"
           aria-label={ui('Search guides')}
@@ -101,27 +101,6 @@
     font-size: var(--crm-text-sm);
     color: var(--v2-slate);
     margin: var(--crm-space-2) 0 0;
-  }
-  .search {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    min-width: 260px;
-    padding: 11px 13px;
-    background: var(--crm-surface);
-    border: 1px solid var(--v2-line);
-    border-radius: var(--crm-radius-md);
-    color: var(--v2-slate);
-  }
-  .search input {
-    min-width: 0;
-    width: 100%;
-    outline: 0;
-    background: none;
-    font-size: var(--crm-text-sm);
-  }
-  .search:focus-within {
-    outline: 2px solid var(--crm-focus);
   }
   .categories {
     display: flex;
@@ -222,16 +201,5 @@
   button:focus-visible {
     outline: 2px solid var(--crm-focus);
     outline-offset: 3px;
-  }
-  @media (max-width: 600px) {
-    .knowledge {
-      padding: var(--crm-space-6) var(--crm-space-4);
-    }
-    .search {
-      width: 100%;
-    }
-    .articles {
-      grid-template-columns: 1fr;
-    }
   }
 </style>

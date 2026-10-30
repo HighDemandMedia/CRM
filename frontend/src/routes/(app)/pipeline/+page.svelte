@@ -498,14 +498,19 @@
     />{/if}
 {/snippet}
 
-<PageHeader compact title={ui('Deals')}>
-  {#snippet sub()}<span class="v2-num">{count(data.totals.count)}</span>
-    {data.totals.count === 1 ? ui('deal') : ui('deals')}{#if data.view === 'pipeline'}
-      &nbsp;· <PipelineTotal
-        currency={data.org.currency}
-        values={data.totals.money_totals}
-        label={ui('Total deal amount')}
-      />{/if}{/snippet}
+{#snippet pipelineSummary()}
+  <PipelineTotal
+    currency={data.org.currency}
+    values={data.totals.money_totals}
+    label={ui('Total deal amount')}
+  />
+{/snippet}
+
+<PageHeader
+  compact
+  title={ui('Deals')}
+  sub={data.view === 'pipeline' ? pipelineSummary : undefined}
+>
   {#snippet actions()}
     <AddRecordMenu module="deals" />
   {/snippet}
@@ -970,14 +975,6 @@
   }
   .advanced-row input {
     min-width: 0;
-  }
-  @media (max-width: 1024px) {
-    .advanced-panel {
-      position: fixed;
-      left: 24px;
-      right: 24px;
-      top: 20vh;
-    }
   }
 
   .contact-filters label {

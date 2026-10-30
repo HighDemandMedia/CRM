@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui, shortDate } = useI18n();
@@ -247,7 +248,7 @@
 </PageHeader>
 <div class="v2-scroll">
   <div class="v2-pad builder crm-preferences-body">
-    <nav class="top-nav" aria-label={ui('Form sections')}>
+    <nav class="top-nav crm-preferences-tabs" aria-label={ui('Form sections')}>
       <button class:active={!activity} onclick={() => (activity = false)}>{ui('Setup')}</button>
       <button class:active={activity} onclick={() => (activity = true)}
         >{ui('Submissions (')}{data.count ?? 0})</button
@@ -272,7 +273,7 @@
         <input type="hidden" name="configuration" value={JSON.stringify(config)} />
         <fieldset disabled={!data.canManage || busy}>
           {#if step === 1}
-            <section class="v2-card panel">
+            <section class="v2-card panel crm-settings-surface">
               <h2>{ui('How would you like to start?')}</h2>
               <div class="choices">
                 <label class:selected={!existing}
@@ -317,7 +318,7 @@
             </section>
           {:else if step === 2}
             {#if existing}
-              <section class="v2-card panel">
+              <section class="v2-card panel crm-settings-surface">
                 <h2>{ui('Match your website fields')}</h2>
                 <details>
                   <summary>{ui('Paste your form HTML to detect fields')}</summary>
@@ -334,27 +335,34 @@
                   {#if inspectError}<Notice message={inspectError} />{/if}
                   {#if detected.length}
                     {#if detected.length > 1}<label class="control"
-                        >{ui('Choose the form')}<select
-                          class="v2-input"
-                          bind:value={selectedForm}
-                          onchange={selectDetected}
-                          >{#each detected as item, i (item)}<option value={i}>{item.label}</option
-                            >{/each}</select
-                        ></label
+                        >{ui('Choose the form')}<SearchableSelect
+                          label={ui('Choose the form')}
+                          value={String(selectedForm)}
+                          onchange={(value) => {
+                            selectedForm = Number(value);
+                            selectDetected();
+                          }}
+                          options={detected.map((item, i) => ({
+                            value: String(i),
+                            label: item.label
+                          }))}
+                        /></label
                       >{/if}
                     {#each mappings as mapping (mapping.name)}
                       <label class="mapping"
-                        ><code>{mapping.name}</code><select
-                          class="v2-input"
+                        ><code>{mapping.name}</code><SearchableSelect
+                          label={mapping.name}
                           bind:value={mapping.property}
-                          ><option value="">{ui('Choose a CRM property')}</option><option
-                            value="skip">{ui('Skip this field')}</option
-                          >{#each options as opt (opt.value)}<option value={opt.value}
-                              >{opt.label}</option
-                            >{/each}{#each data.customFields as f (f.id)}<option
-                              value={`custom:${f.id}`}>{f.label}</option
-                            >{/each}</select
-                        ></label
+                          placeholder={ui('Choose a CRM property')}
+                          options={[
+                            { value: 'skip', label: ui('Skip this field') },
+                            ...options,
+                            ...data.customFields.map((f) => ({
+                              value: `custom:${f.id}`,
+                              label: f.label
+                            }))
+                          ]}
+                        /></label
                       >
                     {/each}
                     <button type="button" class="v2-btn v2-btn-primary" onclick={applyMappings}
@@ -376,7 +384,7 @@
                 >
               </section>
             {/if}
-            {#if !existing}<nav class="top-nav" aria-label={ui('Form editor')}>
+            {#if !existing}<nav class="top-nav crm-preferences-tabs" aria-label={ui('Form editor')}>
                 <button
                   type="button"
                   class:active={editorTab === 'fields'}
@@ -389,7 +397,10 @@
               </nav>{/if}
             <div class:editor-layout={!existing}>
               <div>
-                <section class="v2-card panel" hidden={!existing && editorTab !== 'fields'}>
+                <section
+                  class="v2-card panel crm-settings-surface"
+                  hidden={!existing && editorTab !== 'fields'}
+                >
                   <h2>{existing ? ui('Fields to send to the CRM') : ui('Contact form fields')}</h2>
                   {#each config.fields as row, i (row)}
                     <div class="field-row">
@@ -424,19 +435,21 @@
                       </div>
                       <div class="two">
                         <label class="control"
-                          >{ui('CRM property')}<select
-                            class="v2-input"
+                          >{ui('CRM property')}<SearchableSelect
+                            label={ui('CRM property')}
                             value={row.source === 'custom'
                               ? `custom:${row.custom_field}`
                               : row.lead_field}
-                            onchange={(e) => chooseField(row, e.currentTarget.value)}
-                            ><option value="">{ui('Select property')}</option
-                            >{#each options as opt (opt.value)}<option value={opt.value}
-                                >{opt.label}</option
-                              >{/each}{#each data.customFields as f (f.id)}<option
-                                value={`custom:${f.id}`}>{f.label}</option
-                              >{/each}</select
-                          ></label
+                            onchange={(value) => chooseField(row, value)}
+                            placeholder={ui('Select property')}
+                            options={[
+                              ...options,
+                              ...data.customFields.map((f) => ({
+                                value: `custom:${f.id}`,
+                                label: f.label
+                              }))
+                            ]}
+                          /></label
                         >
                         <label class="control"
                           >{existing ? ui('Website input name') : ui('Label')}<input
@@ -469,7 +482,10 @@
                   >
                 </section>
                 {#if !existing}
-                  <section class="v2-card panel" hidden={editorTab !== 'appearance'}>
+                  <section
+                    class="v2-card panel crm-settings-surface"
+                    hidden={editorTab !== 'appearance'}
+                  >
                     <h2>{ui('Appearance')}</h2>
                     <label class="control"
                       >{ui('Title')}<input
@@ -502,11 +518,15 @@
                           /></label
                         >{/each}
                       <label class="control"
-                        >{ui('Font')}<select class="v2-input" bind:value={config.appearance.font}
-                          ><option value="system">{ui('System')}</option><option value="arial"
-                            >Arial</option
-                          ><option value="georgia">Georgia</option></select
-                        ></label
+                        >{ui('Font')}<SearchableSelect
+                          label={ui('Font')}
+                          bind:value={config.appearance.font}
+                          options={[
+                            { value: 'system', label: ui('System') },
+                            { value: 'arial', label: 'Arial' },
+                            { value: 'georgia', label: 'Georgia' }
+                          ]}
+                        /></label
                       >
                       <label class="control"
                         >{ui('Maximum width (px)')}<input
@@ -527,13 +547,15 @@
                         /></label
                       >
                       <label class="control"
-                        >{ui('Columns')}<select
-                          class="v2-input"
-                          bind:value={config.appearance.columns}
-                          ><option value={1}>{ui('One')}</option><option value={2}
-                            >{ui('Two')}</option
-                          ></select
-                        ></label
+                        >{ui('Columns')}<SearchableSelect
+                          label={ui('Columns')}
+                          value={String(config.appearance.columns)}
+                          onchange={(value) => (config.appearance.columns = Number(value))}
+                          options={[
+                            { value: '1', label: ui('One') },
+                            { value: '2', label: ui('Two') }
+                          ]}
+                        /></label
                       >
                     </div>
                   </section>
@@ -566,14 +588,16 @@
                 </aside>{/if}
             </div>
           {:else if step === 3}
-            <section class="v2-card panel">
+            <section class="v2-card panel crm-settings-surface">
               <h2>{ui('Assign and notify')}</h2>
               <label class="control"
-                >{ui('Responsible user')}<select class="v2-input" bind:value={config.assign_to}
-                  ><option value={null}>{ui('Unassigned')}</option
-                  >{#each data.profiles as p (p.id)}<option value={p.id}>{p.name}</option
-                    >{/each}</select
-                ></label
+                >{ui('Responsible user')}<SearchableSelect
+                  label={ui('Responsible user')}
+                  value={config.assign_to || ''}
+                  onchange={(value) => (config.assign_to = value || null)}
+                  placeholder={ui('Unassigned')}
+                  options={data.profiles.map((p) => ({ value: p.id, label: p.name }))}
+                /></label
               >
               <label class="check"
                 ><input type="checkbox" bind:checked={config.notify_in_app} />{ui(
@@ -597,7 +621,7 @@
               </details>
               <p class="v2-hint">{ui('The responsible user is included automatically.')}</p>
             </section>
-            <section class="v2-card panel">
+            <section class="v2-card panel crm-settings-surface">
               <h2>{ui('After submission')}</h2>
               <label class="check"
                 ><input type="checkbox" bind:checked={config.send_confirmation_email} />{ui(
@@ -606,13 +630,14 @@
               >
               {#if !existing}
                 <label class="control"
-                  >{ui('On-screen confirmation')}<select
-                    class="v2-input"
+                  >{ui('On-screen confirmation')}<SearchableSelect
+                    label={ui('On-screen confirmation')}
                     bind:value={config.success_mode}
-                    ><option value="message">{ui('Show a message')}</option><option value="redirect"
-                      >{ui('Open a thank-you page')}</option
-                    ></select
-                  ></label
+                    options={[
+                      { value: 'message', label: ui('Show a message') },
+                      { value: 'redirect', label: ui('Open a thank-you page') }
+                    ]}
+                  /></label
                 >
                 {#if config.success_mode === 'redirect'}<label class="control"
                     >{ui('Thank-you page URL')}<input
@@ -631,19 +656,31 @@
                   {ui('Your website keeps its confirmation page.')}
                 </p>{/if}
             </section>
-            <details class="v2-card panel">
+            <details class="v2-card panel crm-settings-surface">
               <summary>{ui('More settings')}</summary>
               <label class="control"
-                >{ui('Source')}<select
-                  class="v2-input"
+                >{ui('Source')}<SearchableSelect
+                  label={ui('Source')}
                   bind:value={
                     config[config.target_model === 'Contact' ? 'contact_source' : 'lead_source']
                   }
-                  >{#each config.target_model === 'Contact' ? ['META', 'GOOGLE', 'TIKTOK', 'ORGANIC', 'CALL', 'CUSTOMER_REFERAL', 'EMPLOYER_REFERAL', 'WALK_IN'] : LEAD_SOURCES as source (source)}<option
-                      value={source}
-                      >{LEAD_SOURCE_LABEL[source] ?? source.replaceAll('_', ' ')}</option
-                    >{/each}</select
-                ></label
+                  options={(config.target_model === 'Contact'
+                    ? [
+                        'META',
+                        'GOOGLE',
+                        'TIKTOK',
+                        'ORGANIC',
+                        'CALL',
+                        'CUSTOMER_REFERAL',
+                        'EMPLOYER_REFERAL',
+                        'WALK_IN'
+                      ]
+                    : LEAD_SOURCES
+                  ).map((source) => ({
+                    value: source,
+                    label: LEAD_SOURCE_LABEL[source] ?? source.replaceAll('_', ' ')
+                  }))}
+                /></label
               >
               <details>
                 <summary>{ui('Tags')}</summary>{#each data.tags as tag (tag.id)}<label class="check"
@@ -660,13 +697,12 @@
                 )}</label
               >
               <label class="control"
-                >{ui('Visitor verification')}<select
-                  class="v2-input"
+                >{ui('Visitor verification')}<SearchableSelect
+                  label={ui('Visitor verification')}
                   bind:value={config.captcha_provider}
-                  ><option value="">{ui('Basic spam protection')}</option><option value="turnstile"
-                    >Cloudflare Turnstile</option
-                  ></select
-                ></label
+                  placeholder={ui('Basic spam protection')}
+                  options={[{ value: 'turnstile', label: 'Cloudflare Turnstile' }]}
+                /></label
               >
               {#if config.captcha_provider === 'turnstile'}<label class="control"
                   >{ui('Turnstile site key')}<input
@@ -756,7 +792,7 @@
           {/if}
         </section>
         {#if data.form.is_published && !dirty}
-          <section class="v2-card panel">
+          <section class="v2-card panel crm-settings-surface">
             <h2>{ui('Test the connection')}</h2>
             <p>{ui('Start a test, then send an enquiry from your published website.')}</p>
             <form method="POST" action="?/verify" use:enhance={verify}>
@@ -789,7 +825,7 @@
         <button class="v2-btn" onclick={() => (step = 3)}>{ui('Back')}</button>
       {/if}
     {:else}
-      <section class="v2-card panel">
+      <section class="v2-card panel crm-settings-surface">
         <h2>{ui('Received submissions')}</h2>
         {#if data.analytics?.totals}<p class="v2-hint">
             {ui('Last 30 days:')}
@@ -801,9 +837,9 @@
         {#if data.activityError}<p class="error">
             {data.activityError}
           </p>{:else if !data.submissions?.length}<p>{ui('No submissions yet.')}</p>{:else}<div
-            class="table-wrap"
+            class="table-wrap crm-settings-table-wrap"
           >
-            <table>
+            <table class="crm-settings-table">
               <thead
                 ><tr><th>{ui('Date')}</th><th>{ui('Status')}</th><th>{ui('Record')}</th></tr></thead
               ><tbody
@@ -1109,43 +1145,5 @@
     border: 1px solid var(--crm-border);
     background: var(--crm-surface);
     border-radius: var(--crm-radius-sm);
-  }
-  @container (max-width: 720px) {
-    .editor-layout {
-      grid-template-columns: 1fr;
-    }
-    .preview-card {
-      position: static;
-    }
-  }
-  @media (max-width: 950px) {
-    .editor-layout {
-      grid-template-columns: 1fr;
-    }
-    .preview-card {
-      position: static;
-    }
-  }
-  @media (max-width: 600px) {
-    .steps {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-    }
-    .choices,
-    .two {
-      grid-template-columns: 1fr;
-    }
-    .panel {
-      padding: var(--crm-space-4);
-    }
-    .wizard-footer {
-      flex-wrap: wrap;
-    }
-    .wizard-footer .v2-hint {
-      display: none;
-    }
-    .preview-head {
-      flex-wrap: wrap;
-    }
   }
 </style>

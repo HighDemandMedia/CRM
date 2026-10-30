@@ -54,12 +54,7 @@
 </script>
 
 {#if total > 0}
-  <div
-    class={cn(
-      'relative mt-6 flex flex-col items-center gap-4 px-1 sm:flex-row sm:justify-between',
-      className
-    )}
-  >
+  <div class={cn('relative mt-6 flex flex-row items-center justify-between gap-4 px-1', className)}>
     <!-- Left side: Results summary with refined typography -->
     <div class="flex items-center gap-2">
       <p class="text-muted-foreground text-sm">

@@ -1,6 +1,9 @@
 from datetime import datetime, time, timedelta
 
 from django.db.models import (
+    Case as DbCase,
+)
+from django.db.models import (
     DateField,
     DurationField,
     ExpressionWrapper,
@@ -8,8 +11,9 @@ from django.db.models import (
     IntegerField,
     Q,
     Value,
+    When,
 )
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, TruncDate
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers
@@ -21,9 +25,62 @@ from cases.models import Case
 from common.models import Profile, SalesAppointment
 from common.permissions import HasOrgContext, is_org_admin
 from common.platform_access import is_platform_owner
-from common.rbac import calendar_scoped, permitted
+from common.rbac import calendar_scoped, permitted, scoped
 from opportunity.models import Opportunity
 from tasks.models import Task
+
+PREVIEW_LIMIT = 7
+
+
+def priority_order():
+    return DbCase(
+        When(priority="Urgent", then=Value(0)),
+        When(priority="High", then=Value(1)),
+        When(priority="Low", then=Value(3)),
+        default=Value(2),
+        output_field=IntegerField(),
+    )
+
+
+def task_preview(rows, profile, today):
+    rows = list(
+        rows.annotate(priority_rank=priority_order()).order_by(
+            "due_date", "priority_rank", "pk"
+        )[:PREVIEW_LIMIT]
+    )
+    # One scope check for the preview, rather than one query per completion button.
+    completable = set(
+        scoped(
+            Task.objects.filter(pk__in=[row.pk for row in rows]), profile, "stage"
+        ).values_list("pk", flat=True)
+    )
+    return [
+        {
+            "id": str(row.pk),
+            "name": row.title,
+            "status": row.status,
+            "priority": row.priority,
+            "due": row.due_date,
+            "overdue": row.due_date < today,
+            "can_complete": row.pk in completable,
+        }
+        for row in rows
+    ]
+
+
+def deal_preview(rows, currency, today):
+    return [
+        {
+            "id": str(row.pk),
+            "name": row.name,
+            "stage": row.get_stage_display(),
+            "amount": row.amount,
+            "currency": row.currency or currency,
+            "due": row.closed_on,
+            "overdue": row.closed_on < today,
+        }
+        for row in rows.order_by("closed_on", "pk")[:PREVIEW_LIMIT]
+    ]
 
 
 class TodaySummaryView(APIView):
@@ -56,7 +113,9 @@ class TodaySummaryView(APIView):
             )
         elif not admin:
             return Response(status=403)
-        today = timezone.localdate()
+        now = timezone.now()
+        today = timezone.localdate(now)
+        week_end = today + timedelta(days=6 - today.weekday())
         start = timezone.make_aware(datetime.combine(today, time.min))
         end = timezone.make_aware(datetime.combine(today + timedelta(days=1), time.min))
         tasks = Task.objects.filter(org=org, due_date__lte=today).exclude(
@@ -79,6 +138,9 @@ class TodaySummaryView(APIView):
         deals = Opportunity.objects.filter(
             org=org, is_active=True, closed_on__lte=today
         ).exclude(stage__in=["CLOSED_WON", "CLOSED_LOST"])
+        weekly_deals = Opportunity.objects.filter(
+            org=org, is_active=True, closed_on__range=(today, week_end)
+        ).exclude(stage__in=["CLOSED_WON", "CLOSED_LOST"])
         tickets = Case.objects.filter(org=org, is_active=True, due_at__lt=end).exclude(
             status__in=["Resolved", "Closed", "Rejected", "Duplicate"]
         )
@@ -96,6 +158,7 @@ class TodaySummaryView(APIView):
 
             tasks, deals, tickets = mine(tasks), mine(deals), mine(tickets)
             reminders = mine(reminders)
+            weekly_deals = mine(weekly_deals)
             events = events.filter(host=selected)
         counts = {
             "events": events.count(),
@@ -103,6 +166,7 @@ class TodaySummaryView(APIView):
             "tasks": tasks.count(),
             "deals": deals.count(),
             "tickets": tickets.count(),
+            "weekly_deals": weekly_deals.count(),
         }
         counts["reminders"] = reminders.count()
         counts["overdue"] = (
@@ -111,9 +175,13 @@ class TodaySummaryView(APIView):
             + tickets.filter(due_at__lt=start).count()
         )
         agenda = []
-        for event in events.select_related("contact", "company", "host__user").order_by(
-            "starts_at", "pk"
-        )[:20]:
+        for event in (
+            events.select_related("contact", "company", "host__user")
+            .annotate(
+                finished=DbCase(When(ends_at__lte=now, then=Value(1)), default=Value(0))
+            )
+            .order_by("finished", "starts_at", "pk")[:20]
+        ):
             attendee = event.contact or event.company
             if attendee is not None and not permitted(request.profile, attendee):
                 attendee = None
@@ -143,6 +211,8 @@ class TodaySummaryView(APIView):
         return Response(
             {
                 "date": today.isoformat(),
+                "now": now.isoformat(),
+                "week_end": week_end.isoformat(),
                 "timezone": timezone.get_current_timezone_name(),
                 "selected_user": chosen,
                 "current_user": str(request.profile.pk),
@@ -156,38 +226,15 @@ class TodaySummaryView(APIView):
                 ],
                 "counts": counts,
                 "events": agenda,
-                "reminders": [
-                    {
-                        "id": str(row.pk),
-                        "name": row.title,
-                        "due": row.due_date,
-                        "priority": row.priority,
-                    }
-                    for row in reminders.order_by("due_date", "pk")[:10]
-                ],
-                "tasks": [
-                    {
-                        "id": str(row.pk),
-                        "name": row.title,
-                        "status": row.status,
-                        "priority": row.priority,
-                        "due": row.due_date,
-                        "overdue": row.due_date < today,
-                    }
-                    for row in tasks.order_by("due_date", "pk")[:5]
-                ],
-                "deals": [
-                    {
-                        "id": str(row.pk),
-                        "name": row.name,
-                        "stage": row.get_stage_display(),
-                        "amount": row.amount,
-                        "currency": row.currency or org.default_currency,
-                        "due": row.closed_on,
-                        "overdue": row.closed_on < today,
-                    }
-                    for row in deals.order_by("closed_on", "pk")[:5]
-                ],
+                "reminders": task_preview(reminders, request.profile, today),
+                "tasks": task_preview(tasks, request.profile, today),
+                # A separate bounded preview keeps today's tasks available even
+                # when a large overdue backlog fills the default preview.
+                "tasks_today": task_preview(
+                    tasks.filter(due_date=today), request.profile, today
+                ),
+                "deals": deal_preview(deals, org.default_currency, today),
+                "weekly_deals": deal_preview(weekly_deals, org.default_currency, today),
                 "tickets": [
                     {
                         "id": str(row.pk),
@@ -197,7 +244,12 @@ class TodaySummaryView(APIView):
                         "due": timezone.localtime(row.due_at).date(),
                         "overdue": row.due_at < start,
                     }
-                    for row in tickets.order_by("due_at", "pk")[:5]
+                    for row in tickets.annotate(
+                        due_day=TruncDate(
+                            "due_at", tzinfo=timezone.get_current_timezone()
+                        ),
+                        priority_rank=priority_order(),
+                    ).order_by("due_day", "priority_rank", "pk")[:PREVIEW_LIMIT]
                 ],
             }
         )

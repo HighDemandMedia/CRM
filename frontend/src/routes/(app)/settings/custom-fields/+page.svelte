@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import { asInternalPath } from '$lib/utils/paths.js';
 
   import { resolve } from '$app/paths';
@@ -130,9 +131,9 @@
     options = (property?.options ?? []).map((o) => ({ ...o }));
     error = '';
   }
-  function switchObject(event) {
+  function switchObject(value) {
     const url = new URL(page.url);
-    url.searchParams.set('object', event.currentTarget.value);
+    url.searchParams.set('object', value);
     query = '';
     goto(resolve(asInternalPath('/settings/custom-fields' + url.search + url.hash)), {
       keepFocus: true,
@@ -157,7 +158,8 @@
   }
 </script>
 
-<PageHeader title={ui('Properties')}>
+<PageHeader title={ui('Properties')} compact>
+  {#snippet sub()}{data.properties.length} {ui('properties')}{/snippet}
   {#snippet actions()}
     {#if data.can_edit}<button class="v2-btn v2-btn-primary" onclick={() => openEditor()}
         ><Plus size={16} /> {ui('Create property')}</button
@@ -166,33 +168,35 @@
 </PageHeader>
 
 <div class="catalog crm-preferences-body">
-  <div class="toolbar">
+  <div class="toolbar crm-settings-toolbar">
     <label class="object-field"
       >{ui('Object')}
-      <select class="v2-input" value={data.target_model} onchange={switchObject}>
-        {#each data.objects as object (object.value)}<option value={object.value}
-            >{object.label}</option
-          >{/each}
-      </select>
+      <SearchableSelect
+        label={ui('Object')}
+        value={data.target_model}
+        options={data.objects}
+        onchange={switchObject}
+      />
     </label>
-    <div class="search">
+    <div class="crm-search">
       <Search size={16} /><input
-        class="v2-input"
+        type="search"
         aria-label={ui('Search properties')}
         placeholder={ui('Search properties')}
         bind:value={query}
       />
     </div>
-    <select class="v2-input kind" aria-label={ui('Property origin')} bind:value={kind}>
-      <option value="all">{ui('All properties')}</option><option value="system"
-        >{ui('System properties')}</option
-      ><option value="custom">{ui('Custom properties')}</option>
-    </select>
-  </div>
-  <div class="summary">
-    <span>{rows.length} {ui('properties')}</span><span
-      >{data.record_count} {objectLabel.toLowerCase()}</span
-    >
+    <div class="kind">
+      <SearchableSelect
+        label={ui('Property origin')}
+        bind:value={kind}
+        options={[
+          { value: 'all', label: ui('All properties') },
+          { value: 'system', label: ui('System properties') },
+          { value: 'custom', label: ui('Custom properties') }
+        ]}
+      />
+    </div>
   </div>
   {#if form?.deactivate?.error || form?.activate?.error}<Notice
       message={form.deactivate?.error ?? form.activate?.error}
@@ -200,8 +204,13 @@
   {#if orderError}<Notice message={orderError} />{/if}
   {#if ordering}<p role="status">{ui('Saving order…')}</p>{/if}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex (The scroll region needs focus for keyboard scrolling.) -->
-  <div class="table-scroll" role="region" aria-label={ui('Properties list')} tabindex="0">
-    <table>
+  <div
+    class="table-scroll crm-settings-table-wrap"
+    role="region"
+    aria-label={ui('Properties list')}
+    tabindex="0"
+  >
+    <table class="crm-settings-table">
       <thead
         ><tr
           ><th>{ui('Property')}</th><th>{ui('Internal name')}</th><th>{ui('Field type')}</th><th
@@ -402,11 +411,12 @@
         </label>
         <label class="field"
           >{ui('Field type')}
-          <select class="v2-input" bind:value={fieldType} disabled={!editing.new}>
-            {#each Object.entries(FIELD_TYPE_LABEL) as [value, name] (value)}<option {value}
-                >{name}</option
-              >{/each}
-          </select>
+          <SearchableSelect
+            label={ui('Field type')}
+            bind:value={fieldType}
+            disabled={!editing.new}
+            options={Object.entries(FIELD_TYPE_LABEL).map(([value, label]) => ({ value, label }))}
+          />
           {#if !editing.new}<small>{ui('The type stays fixed to protect existing values.')}</small
             >{/if}
         </label>
@@ -533,8 +543,7 @@
     overflow-y: auto;
     padding: var(--crm-space-6) 30px;
   }
-  .toolbar,
-  .summary {
+  .toolbar {
     flex-shrink: 0;
   }
   .toolbar {
@@ -550,32 +559,8 @@
     color: var(--v2-slate);
     min-width: 210px;
   }
-  .toolbar .v2-input {
-    min-height: 40px;
-  }
-  .search {
-    position: relative;
-    margin-left: auto;
-  }
-  .search :global(svg) {
-    position: absolute;
-    left: 12px;
-    top: 12px;
-    color: var(--v2-slate);
-  }
-  .search input {
-    padding-left: 36px;
-    width: 250px;
-  }
   .kind {
     width: 165px;
-  }
-  .summary {
-    display: flex;
-    justify-content: space-between;
-    color: var(--v2-slate);
-    font-size: var(--crm-text-xs);
-    margin: var(--crm-space-6) 0 var(--crm-space-3);
   }
   .table-scroll {
     flex: 1;
@@ -679,17 +664,5 @@
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
     overflow-wrap: anywhere;
-  }
-  @media (max-width: 800px) {
-    .catalog {
-      padding: 18px;
-    }
-    .search {
-      margin-left: 0;
-    }
-    th,
-    td {
-      padding: var(--crm-space-3);
-    }
   }
 </style>

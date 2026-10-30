@@ -401,9 +401,13 @@ class ProfileView(APIView):
             "notify_in_app",
             "notify_mentions",
             "notify_comments",
+            "notification_preferences",
             "email_integration_mode",
         ):
             user_obj[field] = getattr(profile, field)
+        from common.notification_preferences import preferences_payload
+
+        user_obj["notification_settings"] = preferences_payload(profile)
         user_obj["photo_url"] = (
             profile.user.profile_image.url
             if profile.user.profile_image
@@ -471,6 +475,7 @@ class ProfileView(APIView):
                 "notify_in_app",
                 "notify_mentions",
                 "notify_comments",
+                "notification_preferences",
                 "email_integration_mode",
             )
             if field in data

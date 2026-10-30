@@ -71,7 +71,6 @@
     const date = page.url.searchParams.get('date');
     const requested = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? new Date(`${date}T12:00:00`) : null;
     selected = requested && Number.isFinite(requested.getTime()) ? requested : new Date();
-    if (window.matchMedia('(max-width: 700px)').matches) view = 'agenda';
     ready = true;
   });
   $effect(() => {
@@ -720,59 +719,5 @@
     text-align: center;
     padding: 48px 16px;
     color: var(--crm-text-muted);
-  }
-  @media (max-width: 1100px) {
-    .month .appointment {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2px;
-      height: auto;
-      min-height: 44px;
-      padding: 5px;
-    }
-    .month .appointment strong {
-      max-width: 100%;
-    }
-  }
-  @media (max-width: 700px) {
-    .calendar-scroll {
-      margin: var(--crm-space-2) var(--crm-space-3) var(--crm-space-4);
-    }
-    .event-legend {
-      order: 3;
-      flex-basis: 100%;
-    }
-    .period-heading {
-      order: -1;
-      flex-basis: 100%;
-    }
-    .jump-date {
-      flex: 1;
-      min-width: 120px;
-    }
-    .views {
-      margin-left: 0;
-      width: 100%;
-    }
-    .views .v2-btn {
-      flex: 1;
-      min-height: 40px;
-    }
-    .calendar-grid,
-    .month-weekdays {
-      min-width: 560px;
-    }
-    .calendar-meta {
-      padding-inline: 12px;
-    }
-    .calendar-toolbar {
-      padding-inline: 12px;
-      gap: 8px;
-    }
-    .agenda-day {
-      grid-template-columns: 44px minmax(0, 1fr);
-      gap: 8px;
-      padding: 12px;
-    }
   }
 </style>

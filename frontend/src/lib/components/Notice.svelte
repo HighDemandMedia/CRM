@@ -124,9 +124,4 @@
     justify-content: center;
     margin-top: var(--crm-space-5);
   }
-  @media (max-width: 480px) {
-    .page .notice-actions {
-      flex-direction: column;
-    }
-  }
 </style>

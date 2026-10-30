@@ -113,7 +113,7 @@
         <input type="hidden" name={extraKey} value={extraValue} />
       {/each}
 
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="grid grid-cols-2 gap-4">
         {#each activeDefs as defn (defn.id)}
           <div class="space-y-1.5">
             <Label for={`cf_${defn.key}`} class="text-xs">

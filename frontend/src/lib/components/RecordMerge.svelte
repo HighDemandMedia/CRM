@@ -139,7 +139,7 @@
   }}
 >
   <Dialog.Content
-    class="max-h-[90dvh] overflow-y-auto sm:max-w-3xl"
+    class="max-h-[90dvh] max-w-3xl overflow-y-auto"
     showCloseButton={!busy}
     onInteractOutside={(event) => {
       if (busy) event.preventDefault();

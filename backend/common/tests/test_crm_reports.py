@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from datetime import timezone as dt_timezone
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 
@@ -22,7 +23,11 @@ def stamp(model, row, value, field="created_at"):
 
 
 def get(client, **kwargs):
-    return client.get(URL, {**BASE, **kwargs})
+    with patch(
+        "common.views.crm_report_views.timezone.now",
+        return_value=datetime(2026, 10, 29, 12, tzinfo=dt_timezone.utc),
+    ):
+        return client.get(URL, {**BASE, **kwargs})
 
 
 @pytest.mark.django_db
@@ -47,7 +52,11 @@ class TestCRMReports:
         assert (
             len(data["series"]) == 30 and sum(r["count"] for r in data["series"]) == 23
         )
-        assert data["breakdown"][0]["label"] == "Qualified"
+        assert data["group_by"] == "source"
+        assert (
+            next(s for s in data["state_breakdown"] if s["key"] == "QUALIFIED")["count"]
+            == 23
+        )
         second = get(admin_client, page=2).data
         assert len(second["records"]) == 3
         assert not {r["id"] for r in data["records"]} & {
@@ -254,7 +263,7 @@ class TestCRMReports:
         for i in range(21):
             row = Contact.objects.create(org=org_a, first_name=f"Row {i}")
             stamp(Contact, row, datetime(2026, 9, 3, tzinfo=dt_timezone.utc))
-        response = get(admin_client, download="csv")
+        response = get(admin_client, download="csv", group_by="stage")
         assert response.status_code == 200
         text = response.content.decode("utf-8-sig")
         assert "Records,21" in text
@@ -282,3 +291,131 @@ class TestCRMReports:
 
     def test_auth_required(self, unauthenticated_client):
         assert get(unauthenticated_client).status_code in (401, 403)
+
+    @pytest.mark.parametrize(
+        "key,model,fields",
+        [
+            ("contacts", Contact, {"first_name": "Selected"}),
+            ("companies", Account, {"name": "Selected"}),
+        ],
+    )
+    def test_qualification_metrics_exclude_merged_and_respect_owner(
+        self, admin_client, org_a, admin_profile, user_profile, key, model, fields
+    ):
+        rows = [
+            model.objects.create(org=org_a, **fields, stage=stage)
+            for stage in ("QUALIFIED", "FOLLOW_UP", "LEAD")
+        ]
+        for row in rows:
+            stamp(model, row, datetime(2026, 9, 4, tzinfo=dt_timezone.utc))
+        rows[0].assigned_to.set([admin_profile, user_profile])
+        stamp(model, rows[2], datetime(2026, 9, 5, tzinfo=dt_timezone.utc), "merged_at")
+        report = get(admin_client, object=key).data
+        values = {item["key"]: item["value"] for item in report["metrics"]}
+        assert report["summary"]["count"] == 2
+        assert values == {"qualified": 50, "follow_up": 1, "unassigned": 1}
+        filtered = get(admin_client, object=key, owner=str(admin_profile.pk)).data
+        assert filtered["summary"]["count"] == 1
+        assert filtered["metrics"][0]["value"] == 100
+        assert filtered["metrics"][2]["value"] == 0
+
+    def test_deal_metrics_keep_currency_and_closed_denominator(
+        self, admin_client, org_a
+    ):
+        for stage, amount, currency in [
+            ("CLOSED_WON", 100, "USD"),
+            ("CLOSED_LOST", 50, "USD"),
+            ("PROSPECTING", 70, "EUR"),
+        ]:
+            row = Opportunity.objects.create(
+                org=org_a,
+                name=stage,
+                stage=stage,
+                amount=amount,
+                currency=currency,
+                closed_on=date(2026, 9, 2),
+            )
+            stamp(Opportunity, row, datetime(2026, 9, 4, tzinfo=dt_timezone.utc))
+        response = get(admin_client, object="deals")
+        assert response.status_code == 200, response.data
+        values = {item["key"]: item for item in response.data["metrics"]}
+        assert values["win_rate"]["value"] == 50
+        assert values["overdue"]["value"] == 1
+        assert values["open_value"]["amounts"] == [
+            {"currency": "EUR", "amount": "70", "count": 1}
+        ]
+        assert values["won_value"]["amounts"] == [
+            {"currency": "USD", "amount": "100", "count": 1}
+        ]
+        assert (
+            get(admin_client, object="deals", stage="PROSPECTING").data["metrics"][2][
+                "value"
+            ]
+            is None
+        )
+
+    def test_task_metrics_exclude_completed_from_overdue(self, admin_client, org_a):
+        for status, due in [
+            ("Completed", date(2026, 9, 1)),
+            ("New", date(2026, 9, 1)),
+            ("New", None),
+        ]:
+            row = Task.objects.create(
+                org=org_a, title="Report task", status=status, due_date=due
+            )
+            stamp(Task, row, datetime(2026, 9, 4, tzinfo=dt_timezone.utc))
+        report = get(admin_client, object="tasks").data
+        values = {item["key"]: item["value"] for item in report["metrics"]}
+        assert values == {"completion": 33.3, "overdue": 1, "unassigned": 3}
+
+    @pytest.mark.parametrize("resolved_hour, expected", [(16, 4), (12, 0)])
+    def test_ticket_resolution_ignores_missing_negative_and_reopened(
+        self, admin_client, org_a, resolved_hour, expected
+    ):
+        created = datetime(2026, 9, 4, 12, tzinfo=dt_timezone.utc)
+        due = datetime(2026, 9, 5, 12, tzinfo=dt_timezone.utc)
+        for status, hour in [
+            ("Resolved", resolved_hour),
+            ("Closed", None),
+            ("Resolved", 10),
+            ("New", 18),
+        ]:
+            row = Case.objects.create(
+                org=org_a, name="Report ticket", status=status, due_at=due
+            )
+            Case._base_manager.filter(pk=row.pk).update(
+                created_at=created,
+                resolved_at=created.replace(hour=hour) if hour is not None else None,
+            )
+        report = get(admin_client, object="tickets").data
+        values = {item["key"]: item["value"] for item in report["metrics"]}
+        assert values == {"active": 1, "overdue": 1, "resolution": expected}
+
+    def test_event_metrics_exclude_cancelled_duration(
+        self, admin_client, org_a, admin_profile, admin_user
+    ):
+        for cancelled in (False, True):
+            SalesAppointment.objects.create(
+                org=org_a,
+                host=admin_profile,
+                created_by=admin_user,
+                title="Report event",
+                starts_at=datetime(2026, 9, 4, 12, tzinfo=dt_timezone.utc),
+                ends_at=datetime(2026, 9, 4, 14, tzinfo=dt_timezone.utc),
+                cancelled_at=datetime(2026, 9, 3, tzinfo=dt_timezone.utc)
+                if cancelled
+                else None,
+            )
+        report = get(admin_client, object="events").data
+        values = {item["key"]: item["value"] for item in report["metrics"]}
+        assert values == {"upcoming": 0, "cancelled": 50, "hours": 2}
+
+    @pytest.mark.parametrize(
+        "key", ["contacts", "companies", "deals", "tasks", "tickets", "events"]
+    )
+    def test_empty_metric_rates_are_not_zero(self, admin_client, key):
+        response = get(admin_client, object=key)
+        assert response.status_code == 200, response.data
+        for item in response.data["metrics"]:
+            if item["unit"] == "percent":
+                assert item["value"] is None

@@ -1,0 +1,6 @@
+{% extends 'root_email_template_new.html' %}
+{% block preheader %}{{ message }}{% endblock %}
+{% block heading %}{{ heading }}{% endblock %}
+{% block content_body %}<p>{{ message }}</p><p>{{ organization }}</p>{% endblock %}
+{% block button_link %}<a class="btn-link" href="{{ url }}">{% if email_language == 'es' %}Abrir CRM{% else %}Open CRM{% endif %}</a>{% endblock %}
+{% block extra_content %}<a href="{{ preferences_url }}">{% if email_language == 'es' %}Preferencias de notificaciones{% else %}Notification preferences{% endif %}</a>{% endblock %}

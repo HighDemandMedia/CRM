@@ -90,9 +90,4 @@
   a :global(svg) {
     flex-shrink: 0;
   }
-  @media (max-width: 600px) {
-    section {
-      padding: var(--crm-space-4);
-    }
-  }
 </style>

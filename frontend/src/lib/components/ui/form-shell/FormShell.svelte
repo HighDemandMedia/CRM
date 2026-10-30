@@ -38,9 +38,7 @@
   <div
     class="fixed inset-x-0 bottom-0 z-20 border-t border-[color:var(--border-faint)] bg-[color:var(--bg)]/95 backdrop-blur-[1px]"
   >
-    <div
-      class="mx-auto flex max-w-[680px] flex-wrap items-center justify-between gap-3 px-7 py-3 md:px-8"
-    >
+    <div class="mx-auto flex max-w-[680px] flex-wrap items-center justify-between gap-3 px-8 py-3">
       {#if errorMessage}
         <ErrorNotice message={errorMessage} />
       {:else}
@@ -60,11 +58,7 @@
     {enctype}
     {onsubmit}
     use:enhance={useEnhance}
-    class={cn(
-      'mx-auto flex w-full max-w-[680px] flex-col',
-      'px-7 pt-4 pb-[88px] md:px-8',
-      className
-    )}
+    class={cn('mx-auto flex w-full max-w-[680px] flex-col', 'px-8 pt-4 pb-[88px]', className)}
   >
     {@render body()}
   </form>
@@ -74,11 +68,7 @@
     {action}
     {enctype}
     {onsubmit}
-    class={cn(
-      'mx-auto flex w-full max-w-[680px] flex-col',
-      'px-7 pt-4 pb-[88px] md:px-8',
-      className
-    )}
+    class={cn('mx-auto flex w-full max-w-[680px] flex-col', 'px-8 pt-4 pb-[88px]', className)}
   >
     {@render body()}
   </form>

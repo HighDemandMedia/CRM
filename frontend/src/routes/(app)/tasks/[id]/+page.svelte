@@ -410,16 +410,4 @@
     color: var(--v2-slate);
     font-size: var(--crm-text-xs);
   }
-  @container crm-workspace (max-width: 48rem) {
-    .task-profile {
-      grid-template-columns: 1fr;
-      grid-template-rows: max-content max-content;
-      overflow: auto;
-      padding: var(--crm-space-3);
-    }
-    main,
-    .properties {
-      overflow: visible;
-    }
-  }
 </style>

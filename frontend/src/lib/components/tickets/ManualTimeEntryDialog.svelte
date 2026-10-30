@@ -82,7 +82,7 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={(v) => onOpenChange?.(v)}>
-  <Dialog.Content class="sm:max-w-md">
+  <Dialog.Content class="max-w-md">
     <Dialog.Header>
       <Dialog.Title>Log time</Dialog.Title>
       <Dialog.Description>

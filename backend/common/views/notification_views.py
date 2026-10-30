@@ -26,6 +26,7 @@ Rules:
     - Mark-read is idempotent (re-marking does not move read_at backwards).
 """
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -42,7 +43,9 @@ MAX_LIMIT = 100
 
 
 def _user_qs(request):
-    return Notification.objects.filter(recipient=request.profile)
+    return Notification.objects.filter(
+        recipient=request.profile, org_id=request.profile.org_id
+    ).filter(Q(channels={}) | Q(channels__bell=True))
 
 
 def _parse_int(raw, default, *, lo=1, hi=MAX_LIMIT):
@@ -92,8 +95,15 @@ class NotificationListView(APIView):
             qs.order_by("-created_at", "-id")[offset : offset + limit], many=True
         ).data
 
+        delivery = {}
+        if params.get("delivery") == "true":
+            from common.notification_delivery import delivery_batch
+
+            delivery = delivery_batch(request.profile, params.get("cursor"))
+
         return Response(
             {
+                **delivery,
                 "count": total,
                 "unread_count": unread_count,
                 "results": results,

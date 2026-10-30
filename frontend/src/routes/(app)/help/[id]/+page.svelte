@@ -200,21 +200,4 @@
   .sent {
     color: var(--v2-moss);
   }
-  @media (max-width: 768px) {
-    .summary {
-      grid-template-columns: 1fr;
-    }
-    .message,
-    .message.staff {
-      margin-inline: 0;
-    }
-    .compose-actions,
-    .closed {
-      align-items: stretch;
-      flex-direction: column;
-    }
-    .compose-actions input {
-      max-width: none;
-    }
-  }
 </style>

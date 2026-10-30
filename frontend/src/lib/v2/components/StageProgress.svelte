@@ -52,7 +52,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  @media (min-width: 701px) and (pointer: fine) {
+  @media (pointer: fine) {
     :global([data-crm-density='compact']) .stage-progress {
       gap: 3px;
       padding: 0;

@@ -20,7 +20,7 @@
     asInternalPath(withoutBase(paginationHref(page.url, changes), base));
 </script>
 
-<nav class="pagination" aria-label={ui('Record pages')}>
+<nav class="pagination crm-control-toolbar" aria-label={ui('Record pages')}>
   <div class="page-overview">
     {#if showPagination}<span class="page-summary" aria-live="polite">
         {ui('Showing')}
@@ -110,27 +110,4 @@
     min-width: 5rem;
   }
   /* Leave a clear hit area for the shared mobile quick-create button. */
-  @media (max-width: 768px) {
-    .pagination {
-      padding-bottom: calc(var(--crm-space-2) + 4rem);
-    }
-  }
-  @media (max-width: 600px) {
-    .pagination {
-      padding-inline: var(--crm-space-3);
-    }
-    .page-overview {
-      flex-basis: 100%;
-      justify-content: space-between;
-    }
-    .rows-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
-    }
-  }
 </style>

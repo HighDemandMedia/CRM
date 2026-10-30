@@ -376,7 +376,7 @@
   .website-link:hover {
     text-decoration: underline;
   }
-  @media (max-width: 480px), (max-height: 680px) {
+  @media (max-height: 680px) {
     .login-page {
       justify-content: flex-start;
       padding: var(--crm-space-6) var(--crm-space-4);

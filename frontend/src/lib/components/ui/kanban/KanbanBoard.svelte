@@ -70,15 +70,6 @@
   let dragSourceColumn = $state(null);
   let dragOverColumn = $state(null);
 
-  // Mobile: selected column for single-column view
-  let mobileActiveColumn = $state('');
-
-  $effect(() => {
-    if (localColumns.length > 0 && !mobileActiveColumn) {
-      mobileActiveColumn = localColumns[0].id;
-    }
-  });
-
   // Pipeline statistics (only show stats bar if there's monetary value)
   const pipelineStats = $derived.by(() => {
     if (!localColumns || localColumns.length === 0) {
@@ -255,8 +246,6 @@
     localColumns.length > 0 ? [...localColumns].sort((a, b) => a.order - b.order) : []
   );
 
-  const activeMobileColumn = $derived(sortedColumns.find((c) => c.id === mobileActiveColumn));
-
   const totalCount = $derived(data?.total_items ?? data?.total_leads ?? data?.total_tasks ?? 0);
 </script>
 
@@ -312,7 +301,7 @@
 {:else}
   <div class="flex h-full flex-col">
     <!-- Desktop -->
-    <div class="hidden md:flex md:min-h-0 md:flex-1 md:flex-col">
+    <div class="flex min-h-0 flex-1 flex-col">
       <!-- Pipeline stats bar (only when monetary value > 0) -->
       {#if pipelineStats.totalValue > 0}
         <div
@@ -379,64 +368,6 @@
           />
         {/each}
       </div>
-    </div>
-
-    <!-- Mobile: tab-based single-column view -->
-    <div class="flex min-h-0 flex-1 flex-col md:hidden">
-      <div class="mb-3 overflow-x-auto">
-        <div class="flex gap-2 pb-2">
-          {#each sortedColumns as col (col.id)}
-            <button
-              class="shrink-0 rounded-md px-3 py-1.5 text-sm font-medium transition-colors
-                {mobileActiveColumn === col.id
-                ? 'bg-gray-800 text-white dark:bg-white dark:text-gray-900'
-                : 'bg-[var(--surface-sunken,#f1f2f4)] text-gray-700 hover:bg-gray-200 dark:bg-white/[0.06] dark:text-gray-300 dark:hover:bg-white/[0.1]'}"
-              onclick={() => (mobileActiveColumn = col.id)}
-            >
-              {col.name}
-              <span
-                class="ml-1.5 rounded px-1.5 py-px text-[11px] {mobileActiveColumn === col.id
-                  ? 'bg-white/20'
-                  : 'bg-gray-200/70 dark:bg-white/[0.08]'}"
-              >
-                {col.item_count}
-              </span>
-            </button>
-          {/each}
-        </div>
-      </div>
-
-      {#if activeMobileColumn}
-        <div class="space-y-2">
-          {#each activeMobileColumn.items as item (item.id)}
-            {#if CardComponent}
-              <CardComponent {item} onclick={() => onCardClick(item)} />
-            {:else}
-              <div
-                class="rounded-lg border border-black/[0.04] bg-white p-2.5 shadow-[0_1px_0_rgba(9,30,66,0.12)] dark:border-white/[0.06] dark:bg-white/[0.05]"
-                onclick={() => onCardClick(item)}
-                onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onCardClick(item)}
-                role="button"
-                tabindex="0"
-              >
-                <div class="font-medium text-gray-900 dark:text-gray-100">
-                  {item.title || item.name || 'Untitled'}
-                </div>
-              </div>
-            {/if}
-          {/each}
-
-          {#if onAddItem}
-            <button
-              type="button"
-              onclick={() => onAddItem(activeMobileColumn.id)}
-              class="flex w-full items-center justify-center gap-2 rounded-md px-2 py-2 text-[13px] font-medium text-gray-500 hover:bg-gray-200/70 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-gray-200"
-            >
-              Add a card
-            </button>
-          {/if}
-        </div>
-      {/if}
     </div>
   </div>
 {/if}

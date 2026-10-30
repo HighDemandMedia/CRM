@@ -10,7 +10,7 @@
 </script>
 
 <div
-  class="flex items-center gap-2 border-b border-[color:var(--border-faint)] px-7 py-2.5 md:px-8 {className}"
+  class="flex items-center gap-2 border-b border-[color:var(--border-faint)] px-8 py-2.5 {className}"
 >
   <div class="flex flex-wrap items-center gap-2">
     {@render children?.()}

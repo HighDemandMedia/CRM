@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import '$lib/v2/styles/access-list.css';
   import { useI18n } from '$lib/i18n/context.js';
@@ -129,7 +130,6 @@
 </script>
 
 <PageHeader title={ui('Roles & Permissions')}>
-  {#snippet sub()}{ui('Choose what each role can do and which records it can access.')}{/snippet}
   {#snippet actions()}{#if !data.forbidden && !editing}<button
         class="v2-btn v2-btn-primary"
         onclick={() => edit(null)}><Plus size={15} />{ui('New permission set')}</button
@@ -203,13 +203,12 @@
               </div>
               <input type="hidden" name="scope" value={editing.scope} />
             {:else}<label
-                >{ui('Access level')}<select
+                >{ui('Access level')}<SearchableSelect
+                  label={ui('Access level')}
                   name="scope"
-                  class="v2-input"
                   bind:value={editing.scope}
-                  >{#each scopes as [value, label] (value)}<option {value}>{label}</option
-                    >{/each}</select
-                ></label
+                  options={scopes.map(([value, label]) => ({ value, label }))}
+                /></label
               >{/if}
             <p>
               {editing.scope === 'own'
@@ -233,16 +232,16 @@
                 {#each settingsSections.filter((section) => !['profile', 'notifications', 'team', 'roles'].includes(section.key)) as section (section.key)}
                   <label
                     >{ui(section.label)}
-                    <select
-                      class="v2-input"
+                    <SearchableSelect
+                      label={ui(section.label)}
                       value={editing.settings_access[section.key] || 'none'}
-                      onchange={(event) =>
-                        (editing.settings_access[section.key] = event.currentTarget.value)}
-                    >
-                      <option value="none">{ui('No access')}</option>
-                      <option value="read">{ui('Read only')}</option>
-                      <option value="manage">{ui('Manage')}</option>
-                    </select>
+                      onchange={(value) => (editing.settings_access[section.key] = value)}
+                      options={[
+                        { value: 'none', label: ui('No access') },
+                        { value: 'read', label: ui('Read only') },
+                        { value: 'manage', label: ui('Manage') }
+                      ]}
+                    />
                   </label>
                 {/each}
               </div>
@@ -301,8 +300,8 @@
         </div>
       </form>
     {:else}
-      <div class="toolbar">
-        <label class="search"
+      <div class="toolbar crm-settings-toolbar">
+        <label class="crm-search"
           ><Search size={16} /><input
             type="search"
             aria-label={ui('Search permission sets')}
@@ -311,8 +310,8 @@
           /></label
         >
       </div>
-      <div class="table-wrap">
-        <table class="access-table roles-table">
+      <div class="table-wrap crm-settings-table-wrap">
+        <table class="access-table roles-table crm-settings-table">
           <caption class="sr-only">{ui('Permission sets')}</caption>
           <thead
             ><tr>
@@ -545,36 +544,5 @@
   .back:focus-visible {
     outline: 2px solid var(--v2-slate);
     outline-offset: 3px;
-  }
-  @media (max-width: 1000px) {
-    .permission-options {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-  @media (max-width: 900px) {
-    .access-list .search {
-      width: 100%;
-    }
-  }
-  @media (max-width: 650px) {
-    .identity,
-    .permission-options {
-      grid-template-columns: 1fr;
-    }
-    .roles-content {
-      padding: var(--crm-space-4);
-    }
-    .scope-panel {
-      flex-wrap: wrap;
-    }
-  }
-  @container (max-width: 36rem) {
-    .identity,
-    .permission-options {
-      grid-template-columns: 1fr;
-    }
-    .scope-panel {
-      flex-wrap: wrap;
-    }
   }
 </style>

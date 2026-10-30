@@ -3,13 +3,18 @@
   const { ui, locale, relativeTime } = useI18n();
 
   import { onMount } from 'svelte';
+  import { SvelteURLSearchParams } from 'svelte/reactivity';
   import { afterNavigate, goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import { Bell, X, Check } from '@lucide/svelte';
   import { resolvedLink, reminderLabel, reminderDetail } from '$lib/v2/notification-content.js';
   import { notificationRefreshDue } from '$lib/v2/notification-refresh.js';
-  import { announceReminders } from '$lib/v2/reminder-alerts.js';
+  import {
+    announceNotifications,
+    browserAlertsAllowed,
+    resetPendingAlerts
+  } from '$lib/v2/notification-alerts.js';
 
   let { collapsed = false } = $props();
   const id = $props.id();
@@ -26,6 +31,8 @@
   let alive = false;
   let generation = 0;
   let lastSuccess = null;
+  let deliveryCursor = '';
+  let deliveryTimer;
 
   async function refresh(force = false) {
     if (!alive || !notificationRefreshDue({ loading, lastSuccess, force })) return;
@@ -34,7 +41,9 @@
     controller = new AbortController();
     loading = true;
     try {
-      const response = await fetch(resolve('/api/notifications') + '/?limit=20', {
+      const params = new SvelteURLSearchParams({ limit: '20', delivery: 'true' });
+      if (deliveryCursor) params.set('cursor', deliveryCursor);
+      const response = await fetch(resolve('/api/notifications') + '/?' + params, {
         signal: controller.signal,
         cache: 'no-store'
       });
@@ -42,7 +51,18 @@
       const data = await response.json();
       if (!alive || version !== generation) return;
       rows = data.results || [];
-      announceReminders(rows, Date.now(), ui, locale());
+      await announceNotifications(
+        data.deliveries || [],
+        data.delivery_profile,
+        ui,
+        locale(),
+        Date.now(),
+        data.delivery_preferences
+      );
+      if (!alive || version !== generation) return;
+      deliveryCursor = data.delivery_cursor || '';
+      clearTimeout(deliveryTimer);
+      if (data.delivery_more) deliveryTimer = setTimeout(() => void refresh(true), 1000);
       unread = data.unread_count || 0;
       failure = '';
       lastSuccess = Date.now();
@@ -57,11 +77,22 @@
     alive = true;
     void refresh();
     const timer = setInterval(() => {
-      if (document.visibilityState === 'visible' && !writing && !loading) void refresh();
+      if (
+        (document.visibilityState === 'visible' || browserAlertsAllowed()) &&
+        !writing &&
+        !loading
+      )
+        void refresh();
     }, 45000);
     const resume = () => {
       if (document.visibilityState === 'visible' && !writing) void refresh();
     };
+    const preferencesChanged = () => {
+      resetPendingAlerts();
+      deliveryCursor = '';
+      void refresh(true);
+    };
+    window.addEventListener('crm-notification-preferences', preferencesChanged);
     document.addEventListener('visibilitychange', resume);
     window.addEventListener('focus', resume);
     return () => {
@@ -69,6 +100,8 @@
       generation++;
       controller?.abort();
       clearInterval(timer);
+      clearTimeout(deliveryTimer);
+      window.removeEventListener('crm-notification-preferences', preferencesChanged);
       document.removeEventListener('visibilitychange', resume);
       window.removeEventListener('focus', resume);
     };
@@ -424,7 +457,7 @@
     font-size: var(--crm-text-xs);
     text-decoration: none;
   }
-  @media (max-width: 767px), (pointer: coarse) {
+  @media (pointer: coarse) {
     header button,
     .read-actions button,
     footer a {

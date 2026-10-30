@@ -6,12 +6,9 @@
 
   import { resolve } from '$app/paths';
   import { dateKey, formatClockTime } from '$lib/v2/calendar.js';
-  import { onMount, tick, untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { ChevronLeft, ChevronRight } from '@lucide/svelte';
   let view = $state('week');
-  onMount(() => {
-    if (window.matchMedia('(max-width: 700px)').matches) view = 'day';
-  });
   /** @type {{host:string,date:string,start:string,end:string,blocked?:boolean,disabled?:boolean,conflicting?:boolean,refresh?:number,visible?:boolean}} */
   let {
     host,
@@ -474,14 +471,7 @@
   .status:empty {
     display: none;
   }
-  @media (max-width: 480px) {
-    header {
-      grid-template-columns: 1fr;
-    }
-    .availability-views {
-      grid-row: 2;
-    }
-  }
+
   .week-nav strong {
     text-align: center;
     font-size: var(--crm-text-xs);

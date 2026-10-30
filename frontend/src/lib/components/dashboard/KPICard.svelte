@@ -107,9 +107,7 @@
       </p>
 
       <!-- Value -->
-      <p
-        class="truncate text-2xl font-bold tracking-tight text-[var(--text-primary)] tabular-nums lg:text-3xl"
-      >
+      <p class="truncate text-3xl font-bold tracking-tight text-[var(--text-primary)] tabular-nums">
         {value}
       </p>
 

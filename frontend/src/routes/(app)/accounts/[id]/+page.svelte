@@ -68,7 +68,7 @@
   </div>{/if}
 
 <div class="v2-scroll company-layout">
-  <RecordDisclosure class="company-properties" title={ui('Properties')} collapseBelowRem={48}>
+  <RecordDisclosure class="company-properties" title={ui('Properties')}>
     {#snippet header()}
       <RecordIdentity
         name={account.name || `Company · ${account.id.slice(0, 8)}`}
@@ -293,24 +293,5 @@
   }
   .company-secondary {
     padding: 16px;
-  }
-  @container crm-workspace (max-width: 48rem) {
-    .company-layout {
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: max-content max-content;
-      padding: var(--crm-space-3);
-      gap: 14px;
-      overflow-y: auto;
-    }
-    .company-layout :global(.company-properties) {
-      padding: var(--crm-space-2) var(--crm-space-4);
-    }
-    .company-layout :global(.company-properties),
-    .company-content {
-      overflow: visible;
-    }
-    .company-content {
-      padding: 0;
-    }
   }
 </style>

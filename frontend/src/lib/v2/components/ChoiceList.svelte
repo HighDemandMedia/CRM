@@ -158,6 +158,10 @@
     font-size: var(--crm-text-sm);
     min-height: 28px;
   }
+  .choice-search input:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
   .choice-search:focus-within {
     box-shadow: inset 0 -2px var(--crm-focus);
   }
@@ -219,7 +223,7 @@
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
-  @media (max-width: 640px), (pointer: coarse) {
+  @media (pointer: coarse) {
     .choice-options button {
       min-height: 44px;
     }

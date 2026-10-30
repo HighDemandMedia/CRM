@@ -154,7 +154,7 @@
     error = '';
     createDeal = canCreateDeal;
     dealName = external ? `${external.name} - Deal` : '';
-    showAvailability = window.matchMedia('(min-width: 900px)').matches;
+    showAvailability = true;
     open = true;
     dialog.showModal();
     titleInput?.focus();
@@ -820,66 +820,8 @@
     min-width: 28px;
     min-height: 28px;
   }
-  @media (min-width: 900px) {
-    .schedule-body:has(.is-collapsed) {
-      grid-template-columns: minmax(340px, 1fr) 230px;
-    }
-  }
-  @media (max-width: 899px) {
-    .schedule-body {
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-    }
-    fieldset {
-      flex-shrink: 0;
-      overflow: visible;
-      border-right: 0;
-    }
-    .availability-pane {
-      flex-shrink: 0;
-      border-top: 1px solid var(--crm-border);
-    }
-    .availability-content:not([hidden]) {
-      height: 380px;
-      flex: none;
-    }
-    .schedule-dialog {
-      width: min(620px, calc(100vw - 24px));
-    }
-    .dialog-heading {
-      padding: 12px 16px;
-    }
-    fieldset {
-      padding: 16px;
-    }
-    .actions {
-      padding: 12px 16px;
-    }
-    .actions .v2-btn {
-      min-height: 44px;
-    }
-  }
-  @media (max-width: 480px) {
-    .times {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    }
-    .times label:last-child {
-      grid-column: 1 / -1;
-    }
-    .schedule-dialog {
-      width: 100%;
-      max-width: 100%;
-      height: 100dvh;
-      max-height: 100dvh;
-      border-radius: 0;
-      border: 0;
-    }
-    .actions {
-      padding-bottom: max(12px, env(safe-area-inset-bottom));
-    }
-    .actions .v2-btn-primary {
-      flex: 1;
-    }
+
+  .schedule-body:has(.is-collapsed) {
+    grid-template-columns: minmax(340px, 1fr) 230px;
   }
 </style>

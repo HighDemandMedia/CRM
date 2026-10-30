@@ -330,6 +330,7 @@ class Profile(BaseModel):
     notify_in_app = models.BooleanField(default=True)
     notify_mentions = models.BooleanField(default=True)
     notify_comments = models.BooleanField(default=True)
+    notification_preferences = models.JSONField(default=dict, blank=True)
     email_integration_mode = models.CharField(
         max_length=20,
         blank=True,
@@ -929,6 +930,11 @@ class Notification(BaseModel):
         related_name="notifications",
     )
     verb = models.CharField(max_length=64)
+    channels = models.JSONField(default=dict, blank=True)
+    email_pending = models.BooleanField(default=False, db_index=True)
+    email_sent_at = models.DateTimeField(null=True, blank=True)
+    email_attempted_at = models.DateTimeField(null=True, blank=True)
+    email_attempts = models.PositiveSmallIntegerField(default=0)
     actor = models.ForeignKey(
         Profile,
         on_delete=models.SET_NULL,

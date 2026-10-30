@@ -359,26 +359,4 @@
     min-height: 0;
     overflow-y: auto;
   }
-  @container crm-workspace (max-width: 48rem) {
-    .deal-layout {
-      display: block;
-      overflow-y: auto;
-    }
-    .deal-layout > .v2-main {
-      overflow: visible;
-      min-width: 0;
-    }
-    .deal-layout :global(.v2-scroll) {
-      overflow: visible;
-    }
-    .deal-properties {
-      width: auto;
-      margin: 0 15px var(--crm-space-5);
-      overflow: visible;
-    }
-    .deal-overview {
-      margin: var(--crm-space-3) 15px 0;
-      gap: var(--crm-space-4) var(--crm-space-6);
-    }
-  }
 </style>

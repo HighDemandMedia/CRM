@@ -1,37 +1,14 @@
 <script>
-  import { onMount } from 'svelte';
-  /** @type {{title:string, class?:string, collapseBelowRem?:number, expandForEditor?:boolean, header?:import('svelte').Snippet, children:import('svelte').Snippet}} */
-  let {
-    title,
-    class: className = '',
-    collapseBelowRem = 72,
-    expandForEditor = false,
-    header,
-    children
-  } = $props();
-  let element = $state();
+  /** @type {{title:string, class?:string, expandForEditor?:boolean, header?:import('svelte').Snippet, children:import('svelte').Snippet}} */
+  let { title, class: className = '', expandForEditor = false, header, children } = $props();
   let expanded = $state(true);
   $effect(() => {
     if (expandForEditor) expanded = true;
   });
-  onMount(() => {
-    // Match available record space, including when the main navigation is collapsed.
-    let previousNarrow;
-    const observer = new ResizeObserver(([entry]) => {
-      const rootSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
-      const narrow = entry.contentRect.width <= collapseBelowRem * rootSize;
-      if (narrow !== previousNarrow) {
-        if (!expandForEditor && !element.contains(document.activeElement)) expanded = !narrow;
-        previousNarrow = narrow;
-      }
-    });
-    observer.observe(element.parentElement);
-    return () => observer.disconnect();
-  });
 </script>
 
 {#if header}
-  <section bind:this={element} class="hdm-panel record-disclosure {className}">
+  <section class="hdm-panel record-disclosure {className}">
     {@render header()}
     <details bind:open={expanded}>
       <summary>{title}</summary>
@@ -39,7 +16,7 @@
     </details>
   </section>
 {:else}
-  <details bind:this={element} class="hdm-panel record-disclosure {className}" bind:open={expanded}>
+  <details class="hdm-panel record-disclosure {className}" bind:open={expanded}>
     <summary>{title}</summary>
     <div class="disclosure-body">{@render children()}</div>
   </details>

@@ -1,0 +1,110 @@
+/* Settings share the Users & Teams list rhythm. Explicit opt-in classes keep
+   editable tables, dialogs and object record pages outside these rules. */
+.v2-root .with-preferences {
+  --crm-settings-section-padding: var(--crm-space-4);
+}
+.v2-root .with-preferences .v2-header {
+  padding-bottom: var(--crm-space-2);
+}
+.v2-root .with-preferences .crm-preferences-body {
+  padding-top: var(--crm-space-2);
+}
+.v2-root .with-preferences [data-select-trigger] {
+  border-radius: var(--crm-button-radius);
+}
+.v2-root .with-preferences .crm-settings-content {
+  max-width: none;
+}
+.v2-root .with-preferences .crm-settings-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--crm-space-3);
+  margin-bottom: var(--crm-space-4);
+  padding-block: 0;
+}
+.v2-root .with-preferences .crm-settings-toolbar > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.v2-root .with-preferences .crm-settings-table-wrap,
+.v2-root .with-preferences .crm-settings-surface {
+  min-width: 0;
+  border: 1px solid var(--v2-line);
+  border-radius: var(--crm-radius-lg);
+  background: var(--v2-card);
+  box-shadow: none;
+}
+.v2-root .with-preferences .crm-settings-table-wrap {
+  overflow-x: auto;
+}
+.v2-root .with-preferences .crm-settings-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--crm-text-sm);
+}
+.v2-root .with-preferences .crm-settings-table th {
+  padding: var(--crm-space-3) var(--crm-space-4);
+  background: var(--crm-surface-secondary);
+  color: var(--v2-slate);
+  font-size: var(--crm-text-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.v2-root .with-preferences .crm-settings-table td {
+  padding: var(--crm-space-4);
+  border-top: 1px solid var(--v2-line-soft);
+  vertical-align: middle;
+}
+.v2-root .with-preferences .crm-settings-table tbody tr:hover > td {
+  background: var(--crm-surface-subtle);
+}
+.v2-root .with-preferences .crm-settings-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--crm-space-2);
+  margin: calc(-1 * var(--crm-settings-section-padding));
+  margin-bottom: var(--crm-space-4);
+  padding: var(--crm-space-3) var(--crm-settings-section-padding);
+  border-bottom: 1px solid var(--v2-line-soft);
+  border-radius: var(--crm-radius-lg) var(--crm-radius-lg) 0 0;
+  background: var(--crm-surface-subtle);
+  font-size: var(--crm-text-sm);
+  font-weight: 600;
+}
+.v2-root .with-preferences .crm-settings-section-title h2 {
+  font-size: var(--crm-text-sm);
+}
+.v2-root .with-preferences .crm-settings-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--crm-space-3) var(--crm-space-6);
+  margin: 0 0 var(--crm-space-4);
+  padding: var(--crm-space-3) var(--crm-space-4);
+  background: var(--v2-card);
+  border: 1px solid var(--v2-line);
+  border-radius: var(--crm-radius-lg);
+}
+.crm-settings-metrics > div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--crm-space-2);
+}
+.crm-settings-metrics dt {
+  color: var(--v2-slate);
+  font-size: var(--crm-text-xs);
+}
+.crm-settings-metrics dd {
+  margin: 0;
+  color: var(--v2-ink);
+  font-size: var(--crm-text-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.v2-root .with-preferences .crm-settings-legacy-form {
+  width: 100%;
+  max-width: none;
+  padding: var(--crm-space-4);
+}

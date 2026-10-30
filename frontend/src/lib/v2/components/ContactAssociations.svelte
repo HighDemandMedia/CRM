@@ -229,11 +229,7 @@
   .deal-details small {
     margin: 0 0 3px;
   }
-  @media (max-width: 500px) {
-    .deal-details {
-      grid-template-columns: 1fr;
-    }
-  }
+
   .association-summary {
     margin: 0 0 var(--crm-space-3);
   }

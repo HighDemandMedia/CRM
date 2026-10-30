@@ -770,28 +770,4 @@
       animation: none;
     }
   }
-  @media (max-width: 480px) {
-    header,
-    .content {
-      padding: 1rem;
-    }
-    .steps {
-      padding: 0 1rem 1rem;
-    }
-    footer {
-      padding: 0.75rem 1rem;
-      flex-wrap: wrap;
-    }
-    .footer-actions {
-      flex: 1;
-    }
-    .steps li {
-      gap: 0.35rem;
-      font-size: 0.8rem;
-    }
-    .template-card > button {
-      width: 100%;
-      justify-content: center;
-    }
-  }
 </style>

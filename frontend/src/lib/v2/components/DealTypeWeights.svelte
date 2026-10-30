@@ -130,10 +130,4 @@
     flex: none;
     text-align: right;
   }
-
-  @media (max-width: 768px) {
-    .weights {
-      grid-template-columns: 1fr;
-    }
-  }
 </style>

@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -62,12 +63,18 @@
         /></label
       >
       <label class="field"
-        >{ui('Permission set')}<select class="v2-input" bind:value={role} disabled={busy}
-          ><option value="">{ui('Member')}</option
-          >{#each roles.filter((r) => r.name !== 'Member') as r (r.id)}<option value={r.id}
-              >{r.name}</option
-            >{/each}{#if isSuperAdmin}<option value="ADMIN">{ui('Admin')}</option>{/if}</select
-        ><small>{ui('Record access:')} {scope}</small></label
+        >{ui('Permission set')}<SearchableSelect
+          label={ui('Permission set')}
+          bind:value={role}
+          disabled={busy}
+          placeholder={ui('Member')}
+          options={[
+            ...roles
+              .filter((r) => r.name !== 'Member')
+              .map((r) => ({ value: r.id, label: r.name })),
+            ...(isSuperAdmin ? [{ value: 'ADMIN', label: ui('Admin') }] : [])
+          ]}
+        /><small>{ui('Record access:')} {scope}</small></label
       >
       <input type="hidden" name="role" value={role === 'ADMIN' ? 'ADMIN' : 'USER'} />
       <input

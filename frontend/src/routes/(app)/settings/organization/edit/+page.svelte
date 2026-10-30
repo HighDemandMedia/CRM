@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -119,7 +120,7 @@
     />
   </div>
 {:else}
-  <PageHeader title={ui('Edit organization')} center>
+  <PageHeader title={ui('Edit organization')}>
     {#snippet crumb()}
       <a href={resolve('/settings')}>{ui('Settings')}</a>
       <ChevronRight size={12} />
@@ -128,7 +129,13 @@
   </PageHeader>
 
   <div class="v2-scroll v2-pad crm-preferences-body">
-    <form class="v2-form" method="POST" action="?/save" use:enhance={check} novalidate>
+    <form
+      class="v2-form crm-settings-legacy-form crm-settings-surface"
+      method="POST"
+      action="?/save"
+      use:enhance={check}
+      novalidate
+    >
       {#if result?.error}
         <Notice title={ui('Could not save changes')} message={result.error} />
       {/if}
@@ -268,16 +275,13 @@
       <div class="pair">
         <div class="v2-field">
           <label for="f-currency">{ui('Currency')}</label>
-          <select
+          <SearchableSelect
             id="f-currency"
+            label={ui('Currency')}
             name="default_currency"
-            class="v2-input"
             bind:value={form.default_currency}
-          >
-            {#each currencyOptions as c (c.value)}
-              <option value={c.value}>{c.label}</option>
-            {/each}
-          </select>
+            options={currencyOptions}
+          />
           <p class="v2-hint">
             {ui('Applied to new invoices and estimates. Existing ones keep theirs.')}
           </p>
@@ -296,11 +300,13 @@
 
       <div class="v2-field">
         <label for="f-timezone">{ui('Time zone')}</label>
-        <select id="f-timezone" name="timezone" class="v2-input" bind:value={form.timezone}>
-          {#each timezones as zone (zone.name)}
-            <option value={zone.name}>{zone.label}</option>
-          {/each}
-        </select>
+        <SearchableSelect
+          id="f-timezone"
+          label={ui('Time zone')}
+          name="timezone"
+          bind:value={form.timezone}
+          options={timezones.map((zone) => ({ value: zone.name, label: zone.label }))}
+        />
         <p class="v2-hint">
           {ui(
             'When a day starts for this organisation. Changing it moves what counts as due today and overdue, for everyone here.'
@@ -312,10 +318,16 @@
 
       <div class="v2-field">
         <label for="f-csat">{ui('Satisfaction surveys')}</label>
-        <select id="f-csat" name="csat_enabled" class="v2-input" bind:value={form.csat_enabled}>
-          <option value="true">{ui('Sending. A survey goes out after a ticket closes')}</option>
-          <option value="false">{ui('Off, no surveys, org-wide')}</option>
-        </select>
+        <SearchableSelect
+          id="f-csat"
+          label={ui('Satisfaction surveys')}
+          name="csat_enabled"
+          bind:value={form.csat_enabled}
+          options={[
+            { value: 'true', label: ui('Sending. A survey goes out after a ticket closes') },
+            { value: 'false', label: ui('Off, no surveys, org-wide') }
+          ]}
+        />
         <p class="v2-hint">
           {ui(
             'Off stops every survey org-wide. There is no per-team exception and no notice on the ticket.'
@@ -325,15 +337,16 @@
 
       <div class="v2-field">
         <label for="f-cascade">{ui('Close child tickets with the parent')}</label>
-        <select
+        <SearchableSelect
           id="f-cascade"
+          label={ui('Close child tickets with the parent')}
           name="auto_close_children_on_parent_close"
-          class="v2-input"
           bind:value={form.auto_close_children_on_parent_close}
-        >
-          <option value="true">{ui('Offer it on. The close prompt starts ticked')}</option>
-          <option value="false">{ui('Offer it off. The close prompt starts unticked')}</option>
-        </select>
+          options={[
+            { value: 'true', label: ui('Offer it on. The close prompt starts ticked') },
+            { value: 'false', label: ui('Offer it off. The close prompt starts unticked') }
+          ]}
+        />
         <p class="v2-hint">
           {ui(
             'Only sets how the prompt starts, and only on the mobile app, which is where closing a parent offers to close its open children. The person still confirms. Closing a parent on the web leaves its children open, with no prompt.'
@@ -366,11 +379,5 @@
     gap: 9px;
     margin-top: var(--crm-space-6);
     padding-bottom: var(--crm-space-10);
-  }
-  @media (max-width: 720px) {
-    .pair,
-    .triple {
-      grid-template-columns: 1fr;
-    }
   }
 </style>

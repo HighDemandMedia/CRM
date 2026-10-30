@@ -61,18 +61,6 @@
   overflow-wrap: anywhere;
   color: var(--crm-text);
 }
-@media (max-width: 700px) {
-  .crm-module-body,
-  .crm-module-toolbar {
-    padding-inline: var(--crm-space-3);
-  }
-  .crm-stat {
-    padding: var(--crm-space-4);
-  }
-  .crm-module-actions {
-    margin-left: 0;
-  }
-}
 
 .crm-panel-heading {
   display: flex;

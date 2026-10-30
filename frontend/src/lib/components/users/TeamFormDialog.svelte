@@ -95,7 +95,7 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={(o) => !o && handleClose()}>
-  <Dialog.Content class="sm:max-w-[500px]" portalProps={{}}>
+  <Dialog.Content class="max-w-[500px]" portalProps={{}}>
     <Dialog.Header class="">
       <Dialog.Title class="">{dialogTitle}</Dialog.Title>
       <Dialog.Description class="">
@@ -145,7 +145,7 @@
         </p>
       </div>
 
-      <Dialog.Footer class="gap-2 sm:gap-0">
+      <Dialog.Footer class="gap-0">
         <Button type="button" variant="outline" onclick={handleClose} disabled={isLoading}>
           Cancel
         </Button>

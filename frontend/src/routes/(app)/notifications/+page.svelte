@@ -9,6 +9,8 @@
   import { page } from '$app/state';
   import { reminderLabel, reminderDetail } from '$lib/v2/notification-content.js';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
+  import NotificationPreferences from '$lib/v2/components/NotificationPreferences.svelte';
 
   import { Bell, Check, ChevronLeft, ChevronRight } from '@lucide/svelte';
 
@@ -16,6 +18,7 @@
   let { data, form } = $props();
   let preferencesOpen = $derived(page.url.searchParams.get('tab') === 'preferences');
   let busy = $state(false);
+  let historyStatus = $derived(data.pagination.status);
   const submit = () => {
     busy = true;
     return async ({ update }) => {
@@ -63,8 +66,7 @@
   }
 </script>
 
-<PageHeader title={ui('Notifications')}>
-  {#snippet sub()}{data.totals.unread} {ui('unread')}{/snippet}
+<PageHeader title={ui('Notifications')} compact>
   {#snippet actions()}
     {#if !preferencesOpen}
       <form method="POST" action="?/readAll" use:enhance={submit}>
@@ -90,116 +92,135 @@
 <div class="v2-scroll">
   <div class="content crm-preferences-body crm-settings-content">
     {#if preferencesOpen}
-      <h2>{ui('Notification preferences')}</h2>
-      <p class="muted">{ui('Choose the notifications you receive in this organization.')}</p>
-      <form
-        class="preferences"
-        method="POST"
-        action="?/preferences&tab=preferences"
-        use:enhance={submit}
-      >
-        {#each [['notify_in_app', 'In-app notifications', 'Task reminders, upcoming events and other updates inside the CRM.'], ['notify_mentions', 'Mentions', 'When someone mentions you in a ticket.'], ['notify_comments', 'Ticket comments', 'New comments on tickets you follow.']] as [key, label, description] (key)}
-          <label class="preference"
-            ><span><strong>{label}</strong><small>{description}</small></span><input
-              type="checkbox"
-              name={key}
-              checked={data.preferences[key] ?? true}
-            /></label
-          >
-        {/each}
-        <button class="v2-btn save" disabled={busy}
-          >{busy ? ui('Saving…') : ui('Save preferences')}</button
-        >
-        {#if form?.scope === 'preferences'}<Notice
-            tone={form.message ? 'error' : 'success'}
-            message={ui(form.message || 'Preferences saved.')}
-          />{/if}
-      </form>
+      <NotificationPreferences settings={data.preferences} />
     {:else}
-      <nav class="filters" aria-label={ui('Filter notifications')}>
-        {#each [['all', 'All'], ['unread', 'Unread'], ['read', 'Read']] as [value, label] (value)}
-          <a
-            href={resolve(historyLink(value))}
-            class:selected={data.pagination.status === value}
-            aria-current={data.pagination.status === value ? 'page' : undefined}>{label}</a
-          >
-        {/each}
-      </nav>
       {#if error}<Notice message={ui(error)} />{/if}
       {#if form?.error}<Notice message={ui(form.error)} />{/if}
-      {#if data.results.length}
-        <ul class="feed">
-          {#each data.results as n (n.id)}
-            <li class:unread={!n.read_at}>
-              <span
-                class="indicator"
-                class:dot={!n.read_at}
-                aria-label={n.read_at ? ui('Read') : ui('Unread')}
-              ></span>
-              <div class="message">
-                <p>
-                  {#if reminderLabel(n)}<strong>{ui(reminderLabel(n))}:</strong>{:else}<strong
-                      >{n.actor?.name || 'The system'}</strong
-                    >
-                    {ui(phrase(n.verb))}{/if}
-                  {#if n.resolved_link}<a
-                      href={resolve(n.resolved_link)}
-                      onclick={(event) => openNotification(event, n)}
-                      >{n.entity_name || 'a ticket'}</a
-                    >{:else}{n.entity_name || 'a ticket'}{/if}
-                </p>
-                {#if reminderDetail(n, locale())}<p class="excerpt">
-                    {reminderDetail(n, locale())}
-                  </p>{/if}
-                {#if n.data?.comment_excerpt}<p class="excerpt">{n.data.comment_excerpt}</p>{/if}
-                <time
-                  datetime={n.created_at}
-                  title={new Date(n.created_at).toLocaleString(locale())}
-                  >{relativeTime(n.created_at)} · {n.read_at ? ui('Read') : ui('Unread')}</time
+      <div class="history-surface crm-settings-surface">
+        <div class="history-table-wrap">
+          <table class="crm-settings-table history-table">
+            <caption class="sr-only">{ui('Notification history')}</caption>
+            <thead
+              ><tr>
+                <th scope="col">
+                  <div class="notification-heading crm-control-toolbar">
+                    <span>{ui('Notification')}</span>
+                    <div class="status-filter">
+                      <SearchableSelect
+                        label={ui('Notification status')}
+                        bind:value={historyStatus}
+                        options={[
+                          { value: 'all', label: ui('All') },
+                          { value: 'unread', label: ui('Unread') },
+                          { value: 'read', label: ui('Read') }
+                        ]}
+                        onchange={(value) => goto(resolve(historyLink(value)), { noScroll: true })}
+                      />
+                    </div>
+                  </div>
+                </th>
+                <th scope="col" class="status-column">{ui('Status')}</th>
+                <th scope="col" class="date-column">{ui('Date')}</th>
+                <th scope="col" class="actions-column"
+                  ><span class="sr-only">{ui('Actions')}</span></th
                 >
-              </div>
-              {#if !n.read_at}
-                <form method="POST" action="?/read" use:enhance={submit}>
-                  <input type="hidden" name="id" value={n.id} />
-                  <button
-                    class="read-button"
-                    disabled={busy}
-                    aria-label={ui('Mark notification read')}
-                    title={ui('Mark read')}><Check size={16} /></button
+              </tr></thead
+            >
+            <tbody>
+              {#each data.results as n (n.id)}
+                <tr class:unread={!n.read_at}>
+                  <td class="message">
+                    <p>
+                      {#if reminderLabel(n)}<strong>{ui(reminderLabel(n))}:</strong>{:else}<strong
+                          >{n.actor_name || ui('The system')}</strong
+                        >
+                        {ui(phrase(n.verb))}{/if}
+                      {#if n.resolved_link}<a
+                          href={resolve(n.resolved_link)}
+                          onclick={(event) => openNotification(event, n)}
+                          >{n.entity_name || ui('Record')}</a
+                        >
+                      {:else}{n.entity_name || ui('Record')}{/if}
+                    </p>
+                    {#if reminderDetail(n, locale())}<p class="excerpt">
+                        {reminderDetail(n, locale())}
+                      </p>{/if}
+                    {#if n.data?.comment_excerpt}<p class="excerpt">
+                        {n.data.comment_excerpt}
+                      </p>{/if}
+                  </td>
+                  <td
+                    ><span class="read-status" class:is-unread={!n.read_at}>
+                      <span class="status-dot" aria-hidden="true"></span>{n.read_at
+                        ? ui('Read')
+                        : ui('Unread')}
+                    </span></td
                   >
-                </form>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-      {:else}
-        <div class="empty">
-          <Bell size={26} />
-          <h2>
-            {data.pagination.status === 'unread'
-              ? ui('You’re all caught up')
-              : ui('No notifications here')}
-          </h2>
-          <p>{ui('New notifications will appear here as they arrive.')}</p>
+                  <td
+                    ><time
+                      datetime={n.created_at}
+                      title={new Date(n.created_at).toLocaleString(locale())}
+                    >
+                      {relativeTime(n.created_at)}
+                    </time></td
+                  >
+                  <td class="row-actions">
+                    {#if !n.read_at}<form method="POST" action="?/read" use:enhance={submit}>
+                        <input type="hidden" name="id" value={n.id} />
+                        <button
+                          class="v2-btn v2-btn-sm read-button"
+                          disabled={busy}
+                          aria-label={ui('Mark notification read')}
+                          title={ui('Mark read')}><Check size={16} /></button
+                        >
+                      </form>{/if}
+                  </td>
+                </tr>
+              {:else}<tr
+                  ><td colspan="4"
+                    ><div class="empty">
+                      <Bell size={26} /><strong
+                        >{data.pagination.status === 'unread'
+                          ? ui('You’re all caught up')
+                          : ui('No notifications here')}</strong
+                      >
+                    </div></td
+                  ></tr
+                >{/each}
+            </tbody>
+          </table>
         </div>
-      {/if}
-      {#if data.pagination.pages > 1 || data.pagination.page > 1}
-        <nav class="pagination" aria-label={ui('Notification pages')}>
-          {#if data.pagination.page > 1}<a
-              class="v2-btn v2-btn-sm"
-              href={resolve(historyLink(data.pagination.status, data.pagination.page - 1))}
-              ><ChevronLeft size={14} />{ui('Previous')}</a
-            >{/if}
-          <span
-            >{ui('Page')} {data.pagination.page} · {data.totals.count} {ui('notifications')}</span
-          >
-          {#if data.pagination.page < data.pagination.pages}<a
-              class="v2-btn v2-btn-sm"
-              href={resolve(historyLink(data.pagination.status, data.pagination.page + 1))}
-              >{ui('Next')}<ChevronRight size={14} /></a
-            >{/if}
+        <nav class="history-pagination" aria-label={ui('Notification pages')}>
+          <span class="page-summary" aria-live="polite">
+            {ui('Showing')}
+            {data.results.length ? (data.pagination.page - 1) * data.pagination.size + 1 : 0}–{data
+              .results.length
+              ? (data.pagination.page - 1) * data.pagination.size + data.results.length
+              : 0}
+            {ui('of')}
+            {data.totals.count}
+          </span>
+          <div class="page-controls">
+            {#if data.pagination.page > 1}<a
+                class="v2-btn v2-btn-sm"
+                href={resolve(historyLink(data.pagination.status, data.pagination.page - 1))}
+                ><ChevronLeft size={14} />{ui('Previous')}</a
+              >
+            {:else}<button class="v2-btn v2-btn-sm" disabled
+                ><ChevronLeft size={14} />{ui('Previous')}</button
+              >{/if}
+            <span>{ui('Page')} {data.pagination.page} {ui('of')} {data.pagination.pages}</span>
+            {#if data.pagination.page < data.pagination.pages}<a
+                class="v2-btn v2-btn-sm"
+                href={resolve(historyLink(data.pagination.status, data.pagination.page + 1))}
+                >{ui('Next')}<ChevronRight size={14} /></a
+              >
+            {:else}<button class="v2-btn v2-btn-sm" disabled
+                >{ui('Next')}<ChevronRight size={14} /></button
+              >{/if}
+          </div>
         </nav>
-      {/if}
+      </div>
     {/if}
   </div>
 </div>
@@ -227,66 +248,51 @@
     padding: var(--crm-space-6);
     max-width: 1040px;
   }
-  .filters {
+  .history-surface {
+    overflow: hidden;
+  }
+  .notification-heading {
     display: flex;
-    gap: var(--crm-space-1);
-    margin-bottom: var(--crm-space-5);
-  }
-  .filters a {
-    padding: 7px 14px;
-    border-radius: var(--crm-radius-md);
-    text-decoration: none;
-    color: var(--v2-slate);
-    font-size: var(--crm-text-xs);
-  }
-  .filters a.selected {
-    background: var(--v2-line-soft);
-    color: var(--v2-ink);
-    font-weight: 600;
-  }
-  .feed {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  li {
-    display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: var(--crm-space-3);
-    padding: var(--crm-space-4) var(--crm-space-3);
-    border-bottom: 1px solid var(--v2-line-soft);
   }
-  li.unread {
-    background: var(--v2-line-soft);
-    border-radius: var(--crm-radius-md);
-  }
-  .indicator {
-    width: 6px;
-    height: 6px;
+  .status-filter {
+    width: 120px;
     flex: none;
-    margin-top: 7px;
-    border-radius: 50%;
   }
-  .dot {
-    background: var(--v2-ink);
+  .history-table-wrap {
+    overflow-x: auto;
   }
-  .message {
-    flex: 1;
-    min-width: 0;
+  .history-table {
+    table-layout: fixed;
+  }
+  .status-column {
+    width: 110px;
+  }
+  .date-column {
+    width: 160px;
+  }
+  .actions-column {
+    width: 64px;
   }
   .message p {
     margin: 0;
-    font-size: var(--crm-text-sm);
     line-height: 1.6;
     overflow-wrap: anywhere;
   }
+  .message strong {
+    font-weight: 500;
+  }
+  .unread .message strong {
+    font-weight: 600;
+  }
   .message a {
-    color: inherit;
-    text-decoration: underline;
+    color: var(--crm-link);
     text-underline-offset: 3px;
   }
   .message .excerpt {
     color: var(--v2-slate);
+    font-size: var(--crm-text-xs);
     margin-top: var(--crm-space-1);
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -294,85 +300,58 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+  .read-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--v2-slate);
+    font-size: var(--crm-text-xs);
+    white-space: nowrap;
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--crm-border);
+  }
+  .is-unread .status-dot {
+    background: var(--crm-primary);
+  }
   time {
-    display: block;
-    margin-top: 7px;
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
   }
   .read-button {
-    display: grid;
-    place-items: center;
-    border: 1px solid var(--v2-line);
-    background: transparent;
-    color: var(--v2-slate);
-    border-radius: var(--crm-radius-sm);
     width: 30px;
     height: 30px;
-    cursor: pointer;
+    padding: 0;
   }
-  .pagination {
+  .history-pagination,
+  .page-controls {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin-top: var(--crm-space-5);
+    gap: var(--crm-space-2);
     font-size: var(--crm-text-xs);
     color: var(--v2-slate);
+  }
+  .history-pagination {
+    padding: var(--crm-space-3) var(--crm-space-4);
+    border-top: 1px solid var(--v2-line-soft);
+  }
+  .page-summary {
+    margin-right: auto;
   }
   .empty {
     display: flex;
     flex-direction: column;
+    gap: var(--crm-space-3);
     align-items: center;
     text-align: center;
-    padding: 64px var(--crm-space-4);
+    padding: 48px var(--crm-space-4);
     color: var(--v2-slate);
   }
-  h2 {
-    font-size: var(--crm-text-base);
-    color: var(--v2-ink);
-  }
-  .empty p,
-  .muted {
-    font-size: var(--crm-text-sm);
-    color: var(--v2-slate);
-  }
-  .preferences {
-    max-width: 640px;
-  }
-  .preference {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--crm-space-5);
-    padding: 18px 0;
-    border-bottom: 1px solid var(--v2-line-soft);
-  }
-  .preference strong {
+  .empty strong {
     font-size: var(--crm-text-sm);
     font-weight: 500;
-  }
-  .preference small {
-    display: block;
-    color: var(--v2-slate);
-    margin-top: 5px;
-    font-size: var(--crm-text-xs);
-  }
-  .preference input {
-    accent-color: var(--v2-ink);
-    width: 17px;
-    height: 17px;
-  }
-  .save {
-    margin-top: var(--crm-space-5);
-  }
-  @media (max-width: 600px) {
-    .content {
-      padding: var(--crm-space-4);
-    }
-    .tabs {
-      padding-inline: var(--crm-space-4);
-    }
   }
 </style>

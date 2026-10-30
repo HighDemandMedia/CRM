@@ -119,7 +119,7 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={(v) => onOpenChange?.(v)}>
-  <Dialog.Content class="sm:max-w-lg">
+  <Dialog.Content class="max-w-lg">
     <Dialog.Header>
       <Dialog.Title class="flex items-center gap-2">
         <LinkIcon class="h-4 w-4" />

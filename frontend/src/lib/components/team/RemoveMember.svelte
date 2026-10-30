@@ -1,4 +1,5 @@
 <script>
+  import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import Notice from '$lib/components/Notice.svelte';
   import { useI18n } from '$lib/i18n/context.js';
   const { ui } = useI18n();
@@ -82,17 +83,20 @@
         >{/each}
     </div>
     <label
-      >{ui('Reassign their records to')}<select
-        class="v2-input"
+      >{ui('Reassign their records to')}<SearchableSelect
+        label={ui('Reassign their records to')}
         bind:value={reassign}
         disabled={busy}
-        ><option value="">{ui('Remove their assignment only')}</option
-        >{#each preview.candidates as person (person.id)}<option value={person.id}
-            >{person.name}{preview.candidates.filter((p) => p.name === person.name).length > 1
+        placeholder={ui('Remove their assignment only')}
+        options={preview.candidates.map((person) => ({
+          value: person.id,
+          label:
+            person.name +
+            (preview.candidates.filter((p) => p.name === person.name).length > 1
               ? ` · ${person.email}`
-              : ''}</option
-          >{/each}</select
-      ></label
+              : '')
+        }))}
+      /></label
     >
     <p class="hint">
       {ui(

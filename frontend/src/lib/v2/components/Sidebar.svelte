@@ -551,7 +551,7 @@
     padding-top: 6px;
     margin-top: 6px;
   }
-  @media (max-width: 767px), (pointer: coarse) {
+  @media (pointer: coarse) {
     .account-action {
       min-height: var(--crm-target-size);
     }

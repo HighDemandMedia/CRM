@@ -2,13 +2,17 @@
 
 ## Active HDM frontend — October 2026
 
+- Toolbar controls share `--crm-toolbar-control-height` (34px; 40px for coarse pointers), pill corners and 14px text. Use `crm-control-toolbar` or `crm-settings-toolbar` for filters/actions and `crm-search` for icon + input wrappers (256px default). Use `crm-search-input` for standalone searches. One focus indicator per control; search wrappers own their ring. Preserve separate primary, secondary and icon-button variants, and normal data-entry field sizing.
+
 The active Svelte CRM uses `frontend/src/lib/styles/design-tokens.css` as its source of truth. The older reference below is historical; do not introduce its previous palette or component stack into the active CRM.
 
 - Preserve Inter, the #F1F2F4 canvas, #292D30 navigation, existing red/orange action gradient and semantic status colors.
 - Use `--crm-page-gutter`, `--crm-panel-gap`, `--crm-border-soft`, `--crm-surface-subtle` and `--crm-panel-shadow` for the shared workspace rhythm.
 - Reuse `PageHeader`, `crm-panel`, `crm-panel-heading`, `crm-stat-grid` and `crm-list-workspace`. Lists connect filters, scrollable records and pagination in one surface; pipeline lanes remain independently scrollable.
 - Shared presentation lives in `lib/v2/styles/{v2,list-view,module-layout,pipeline,access-list}.css`. Keep field behavior, column sizes/reordering, permissions and API requests in their existing components and services.
-- Keep overflow inside dense tables and boards. At narrow widths, wrap actions and filters, stack panels and use existing record disclosures. Do not hide required actions or force page-wide horizontal scrolling.
+- Settings and notification history reuse `lib/v2/styles/preferences.css`: `crm-settings-surface`, `crm-settings-table` and `crm-settings-table-wrap` provide the Users & Teams table styling, including gray headers and shared cell spacing. Use the existing searchable select and pill buttons; keep totals in the table footer instead of repeating them below the page title. Extend these shared patterns before adding page-specific styling.
+- Keep settings copy concise. Avoid routine explanatory footnotes and duplicate subtitles; show contextual guidance only when needed to complete an action, resolve an error or understand a consequential choice. Notification preferences save on change with a brief status instead of separate Save/Cancel controls.
+- The authenticated CRM is desktop-only, with a 1280px minimum workspace width inside a viewport-sized horizontal scroll container. Keep overflow inside that container so mobile browsers do not automatically shrink the document. Narrow windows keep desktop navigation, tables, record panels and text sizes; do not add mobile/tablet layout breakpoints or automatic calendar-view changes. Preserve manual sidebar/disclosure controls, keyboard navigation, browser zoom, reduced motion and forced colors. Public forms, customer portals and invitation responses remain independently adaptable.
 - ReUI and KTUI were consulted as read-only visual references; no library code or dependencies were imported.
 
 ## Historical reference

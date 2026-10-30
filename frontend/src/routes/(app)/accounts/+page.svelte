@@ -501,14 +501,19 @@
     />{/if}
 {/snippet}
 
-<PageHeader compact title={ui('Companies')}>
-  {#snippet sub()}<span class="v2-num">{count(data.totals.count)}</span>
-    {data.totals.count === 1 ? ui('company') : ui('companies')}{#if data.view === 'pipeline'}
-      &nbsp;· <PipelineTotal
-        currency={data.org.currency}
-        values={data.totals.money_totals}
-        label={ui('Total annual revenue')}
-      />{/if}{/snippet}
+{#snippet pipelineSummary()}
+  <PipelineTotal
+    currency={data.org.currency}
+    values={data.totals.money_totals}
+    label={ui('Total annual revenue')}
+  />
+{/snippet}
+
+<PageHeader
+  compact
+  title={ui('Companies')}
+  sub={data.view === 'pipeline' ? pipelineSummary : undefined}
+>
   {#snippet actions()}
     <AddRecordMenu module="companies" />
   {/snippet}
@@ -936,14 +941,6 @@
   }
   .advanced-row input {
     min-width: 0;
-  }
-  @media (max-width: 1024px) {
-    .advanced-panel {
-      position: fixed;
-      left: 24px;
-      right: 24px;
-      top: 20vh;
-    }
   }
 
   .contact-filters label {

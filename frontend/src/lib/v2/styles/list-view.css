@@ -222,13 +222,6 @@
   flex: none;
   justify-content: flex-end;
 }
-@media (max-width: 700px) {
-  .hdm-list.hdm-list td {
-    padding-top: 10px;
-    padding-bottom: 10px;
-    height: 50px;
-  }
-}
 
 .list-column-tools {
   display: flex;
@@ -245,14 +238,6 @@
 }
 .hdm-list.hdm-list td:not([data-m='lead']) {
   min-width: 8rem;
-}
-@media (max-width: 700px) {
-  .list-column-tools {
-    padding-inline: var(--crm-space-3);
-  }
-  .hdm-list.hdm-list .list-row-actions a {
-    min-height: 2.75rem;
-  }
 }
 
 .hdm-list .reorder-column-heading {
@@ -296,17 +281,8 @@
   max-width: 12rem;
 }
 
-@media (max-width: 600px) {
-  .object-toolbar > label {
-    flex: 1 1 calc(50% - var(--crm-space-2));
-  }
-  .object-toolbar > label:has(select) {
-    max-width: none;
-  }
-}
-
 /* Density changes presentation only; touch targets stay comfortable. */
-@media (min-width: 701px) and (pointer: fine) {
+@media (pointer: fine) {
   :root[data-crm-density='compact'] .hdm-list.hdm-list td {
     height: 2.75rem;
     padding-block: var(--crm-space-1);
@@ -322,23 +298,11 @@
   gap: var(--crm-space-2);
   margin-left: auto;
 }
-@media (max-width: 700px) {
-  .object-toolbar .view-actions,
-  .object-filters .object-views,
-  .task-toolbar .object-views {
-    justify-content: flex-start;
-  }
-}
 
 .owner-filter {
   flex: 0 1 10.5rem;
   min-width: 0;
   max-width: 100%;
-}
-@media (max-width: 600px) {
-  .owner-filter {
-    flex: 1 1 calc(50% - var(--crm-space-2));
-  }
 }
 
 /* A single reusable workspace keeps filters and records visually connected. */
@@ -382,25 +346,10 @@
   border-top: 1px solid var(--crm-border-soft);
   padding-inline: var(--crm-space-4);
 }
-@media (max-width: 700px) {
-  .crm-list-workspace .object-toolbar,
-  .crm-list-workspace .object-filters,
-  .crm-list-workspace .task-toolbar {
-    padding-inline: var(--crm-space-3);
-  }
-}
 
 /* Compact task/ticket workspaces otherwise override the FAB clearance. */
-@media (max-width: 768px) {
-  .crm-list-workspace .list-scroll {
-    padding-bottom: 62px;
-  }
-  .crm-list-workspace .list-scroll > .pagination {
-    padding-bottom: var(--crm-space-2);
-  }
-}
 
-/* Compact shared toolbar, with touch targets retained on mobile. */
+/* Compact shared toolbar, with accessible targets on touch-enabled PCs. */
 .crm-list-workspace :is(.object-toolbar, .object-filters, .task-toolbar) {
   align-items: center;
   gap: 6px;
@@ -422,8 +371,8 @@
   min-width: 0;
 }
 .crm-list-workspace :is(.object-toolbar, .object-filters, .task-toolbar) :is(.v2-btn, .v2-input) {
-  min-height: 34px;
-  height: 34px;
+  min-height: var(--crm-toolbar-control-height);
+  height: var(--crm-toolbar-control-height);
   font-size: var(--crm-text-sm);
 }
 .hdm-list.hdm-list th.column-tools-heading {
@@ -462,7 +411,7 @@
   left: 6px;
   background: var(--crm-surface);
 }
-@media (max-width: 700px), (pointer: coarse) {
+@media (pointer: coarse) {
   .crm-list-workspace :is(.object-toolbar, .object-filters, .task-toolbar) :is(.v2-btn, .v2-input) {
     min-height: 40px;
     height: 40px;
