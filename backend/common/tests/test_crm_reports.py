@@ -341,12 +341,15 @@ class TestCRMReports:
         values = {item["key"]: item for item in response.data["metrics"]}
         assert values["win_rate"]["value"] == 50
         assert values["overdue"]["value"] == 1
-        assert values["open_value"]["amounts"] == [
-            {"currency": "EUR", "amount": "70", "count": 1}
-        ]
-        assert values["won_value"]["amounts"] == [
-            {"currency": "USD", "amount": "100", "count": 1}
-        ]
+        for key, currency, amount in [
+            ("open_value", "EUR", Decimal("70")),
+            ("won_value", "USD", Decimal("100")),
+        ]:
+            # Database engines preserve different decimal scales (70 vs 70.00).
+            assert [
+                (row["currency"], Decimal(row["amount"]), row["count"])
+                for row in values[key]["amounts"]
+            ] == [(currency, amount, 1)]
         assert (
             get(admin_client, object="deals", stage="PROSPECTING").data["metrics"][2][
                 "value"
