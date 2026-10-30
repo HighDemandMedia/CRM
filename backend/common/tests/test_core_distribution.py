@@ -73,6 +73,7 @@ def test_beat_only_schedules_active_workflows():
     assert scheduled == {
         "common.tasks.purge_deleted_attachment_files",
         "common.tasks.send_due_reminders",
+        "common.tasks.send_pending_notification_emails",
         "webforms.tasks.retry_pending_webform_emails",
         "common.tasks.schedule_google_sync",
         "opportunity.tasks.check_stale_opportunities",
