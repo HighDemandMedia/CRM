@@ -80,6 +80,11 @@ for (const [theme, tokens] of Object.entries({ light, dark })) {
           4.5
         );
       });
+      it(`${foreground} on hovered navigation meets AA`, () => {
+        expect(
+          contrast(color(tokens, foreground), color(tokens, 'nav-hover'))
+        ).toBeGreaterThanOrEqual(4.5);
+      });
     }
   });
 }

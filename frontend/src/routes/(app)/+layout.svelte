@@ -6,6 +6,7 @@
   import StageTransitionLayer from '$lib/components/pipelines/StageTransitionLayer.svelte';
   import CreateLayer from '$lib/components/creation/CreateLayer.svelte';
   import { Toaster } from 'svelte-sonner';
+  import { mode } from 'mode-watcher';
   import { onMount } from 'svelte';
   import { PanelLeftClose, PanelLeftOpen } from '@lucide/svelte';
   import { resolve } from '$app/paths';
@@ -52,7 +53,7 @@
 </svelte:head>
 
 <NavigationTiming enabled={data.performanceDiagnostics} />
-<Toaster position="top-right" closeButton />
+<Toaster theme={mode.current} position="top-right" closeButton />
 {#if navigating.to}<div class="navigation-progress" aria-hidden="true"></div>{/if}
 
 <div class="v2-desktop-viewport">

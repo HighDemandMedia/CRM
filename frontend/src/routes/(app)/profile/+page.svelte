@@ -1,5 +1,6 @@
 <script>
   import SearchableSelect from '$lib/components/SearchableSelect.svelte';
+  import AppearanceSettings from '$lib/components/AppearanceSettings.svelte';
   import imgGmail from '$lib/assets/images/gmail.png';
   import imgCalendar from '$lib/assets/images/google-calendar.png';
   import CalendarConnectionSettings from '$lib/components/CalendarConnectionSettings.svelte';
@@ -276,6 +277,7 @@
                 >{/if}
             </div>{/if}
         </form>
+        <AppearanceSettings />
         {#if !data.onboarding}<form
             class="details-form password-form"
             method="POST"

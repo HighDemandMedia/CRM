@@ -121,6 +121,11 @@
   --crm-info-bg: #1b3044;
   --crm-calendar-external: #d4b9ef;
   --crm-calendar-external-bg: #32243e;
+  --crm-nav-bg: #1c1a17;
+  --crm-nav-text: #f6f4f1;
+  --crm-nav-muted: #c6beb2;
+  --crm-nav-hover: #302c26;
+  --crm-nav-border: #514a41;
 }
 
 :root,

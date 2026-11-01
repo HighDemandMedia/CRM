@@ -68,6 +68,8 @@
   "Any detail that would help": "Cualquier detalle que pueda ayudar",
   "Anything you want to add?": "¿Quieres añadir algo?",
   "Appearance": "Apariencia",
+  "Light": "Claro",
+  "Dark": "Oscuro",
   "Applied to new invoices and estimates. Existing ones keep theirs.": "Se aplica a las nuevas facturas y cotizaciones. Las existentes conservan su configuración.",
   "Apply": "Aplicar",
   "Approvals": "Aprobaciones",
