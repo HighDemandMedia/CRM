@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
+from django.template import Context, Template
 from django.template.loader import render_to_string
 
 from common.invitations import send_invitation
@@ -32,6 +33,15 @@ from common.models import User
         "user_status_activate.html",
         "user_status_deactivate.html",
         "user_status_in.html",
+        "notification_email.html",
+        "emails/password_reset.html",
+        "emails/password_changed.html",
+        "assigned_to/leads_assigned.html",
+        "opportunity/goal_milestone.html",
+        "invoices/emails/assigned_to_email.html",
+        "invoices/emails/invoice_to_client.html",
+        "invoices/emails/estimate_to_client.html",
+        "invoices/emails/payment_reminder.html",
     ],
 )
 def test_system_email_uses_shared_theme(template):
@@ -48,6 +58,62 @@ def test_system_email_uses_shared_theme(template):
     assert "background-color:#C82322" in html
     assert "linear-gradient(135deg,#AC0F0B,#CA4618)" in html
     assert "background-color:;" not in html
+
+
+def test_optional_email_sections_do_not_leave_empty_space():
+    html = render_to_string("emails/password_changed.html")
+    assert 'class="email-section"' not in html
+    html = render_to_string("welcome_email.html", {"url": "https://crm.example/"})
+    assert html.count('class="email-section"') == 1
+    assert 'href="https://crm.example/"' in html
+
+
+def test_email_section_keeps_template_escaping():
+    template = Template(
+        "{% load crm_email %}{% email_section %}"
+        "<p>{{ message }}</p>{% endemail_section %}"
+    )
+    html = template.render(Context({"message": '<img src=x onerror="alert(1)">'}))
+    assert "<p>&lt;img" in html
+    assert "<img" not in html
+
+
+@pytest.mark.parametrize(
+    "kind", ["invoice_to_client", "estimate_to_client", "payment_reminder"]
+)
+def test_financial_email_preserves_customer_details_and_optional_action(kind):
+    from datetime import date
+
+    record = SimpleNamespace(
+        client_name="Ana <Sales>",
+        invoice_number="INV-123",
+        estimate_number="EST-123",
+        invoice_title="Website project",
+        title="Website project",
+        currency="USD",
+        amount_due="1200.00",
+        total_amount="1800.00",
+        issue_date=date(2026, 11, 1),
+        due_date=date(2026, 11, 15),
+        expiry_date=date(2026, 11, 30),
+    )
+    context = {
+        "org": SimpleNamespace(name="Example Team"),
+        "invoice": record,
+        "estimate": record,
+        "days_overdue": 3,
+    }
+    path = f"invoices/emails/{kind}.html"
+    html = render_to_string(path, context)
+    assert "Ana &lt;Sales&gt;" in html
+    assert "Example Team" in html and "USD" in html
+    assert "Website project" in html
+    assert ('class="btn-link"' in html) is False
+    url = "https://crm.example/public/document?token=safe&view=1"
+    html = render_to_string(path, {**context, "public_url": url})
+    assert 'href="https://crm.example/public/document?token=safe&amp;view=1"' in html
+    if kind == "payment_reminder":
+        assert "3 days overdue" in html
 
 
 def test_invitation_preserves_link_and_escapes_customer_name():

@@ -411,12 +411,16 @@
   .row-heading strong {
     flex: 1;
     min-width: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
   }
   .row-heading small {
     flex: none;
     white-space: nowrap;
   }
-  .row-heading strong,
   .entity-name {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -453,9 +457,17 @@
     font-weight: 500;
   }
   .error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--crm-space-3);
     padding: var(--crm-space-3) var(--crm-space-4);
     color: var(--v2-rust);
     font-size: var(--crm-text-xs);
+  }
+  .error button {
+    flex: none;
+    padding: var(--crm-space-2);
   }
   footer {
     padding: var(--crm-space-2) var(--crm-space-3);

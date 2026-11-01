@@ -35,7 +35,7 @@
         <h1 id="reset-title">{ui(form?.success ? 'Password updated' : 'Reset password')}</h1>
       </div>
       {#if form?.success}
-        <p role="status">
+        <p role="status" class="reset-success">
           {ui('Sign in with your new password. Your previous sessions have been signed out.')}
         </p>
         <a class="v2-btn v2-btn-primary v2-btn-block" href={resolve('/login')}>{ui('Sign in')}</a>
@@ -99,6 +99,11 @@
 <style>
   .v2-auth-box {
     max-width: 30rem;
+  }
+  .reset-success {
+    margin: 0 0 var(--crm-space-4);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
   }
   fieldset {
     border: 0;

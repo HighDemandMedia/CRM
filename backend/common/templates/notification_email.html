@@ -2,5 +2,5 @@
 {% block preheader %}{{ message }}{% endblock %}
 {% block heading %}{{ heading }}{% endblock %}
 {% block content_body %}<p style="margin:0 0 8px;">{{ message }}</p><p style="margin:0;">{{ organization }}</p>{% endblock %}
-{% block button_link %}<a class="btn-link" style="border-radius:999px;padding:10px 18px;font-size:14px;" href="{{ url }}">{{ action }}</a>{% endblock %}
+{% block button_link %}{% include "emails/button.html" with url=url label=action %}{% endblock %}
 {% block extra_content %}<a style="color:{{ email_theme.muted }};font-size:12px;text-underline-offset:3px;" href="{{ preferences_url }}">{% if email_language == 'es' %}Preferencias de notificaciones{% else %}Notification preferences{% endif %}</a>{% endblock %}
