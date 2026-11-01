@@ -21,3 +21,12 @@ describe('reminder notifications', () => {
     expect(reminderDetail({ verb: 'calendar.reminder', data: { starts_at: 'invalid' } })).toBe('');
   });
 });
+
+it('uses consistent titles and clear destinations without exposing raw verbs', async () => {
+  const { notificationTitle, notificationAction } = await import('./notification-content.js');
+  expect(notificationTitle({ verb: 'case.mentioned' })).toBe('You were mentioned in a ticket');
+  expect(notificationTitle({ verb: 'unknown.internal_action' })).toBe('New notification');
+  expect(notificationAction({ verb: 'task.reminder' })).toBe('View task');
+  expect(notificationAction({ verb: 'calendar.reminder' })).toBe('View event');
+  expect(notificationAction({ verb: 'case.commented' })).toBe('View ticket');
+});

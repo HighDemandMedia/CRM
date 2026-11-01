@@ -15,10 +15,47 @@ from django.utils import timezone
 
 from common.links import frontend_url
 from common.models import Notification
-from common.notification_preferences import TOPICS, channels_for
+from common.notification_preferences import channels_for
 from common.organization_lifecycle import organization_job
 
 logger = logging.getLogger(__name__)
+
+
+# Each topic has English and Spanish (title, message, action) variants.
+_DEFAULT_COPY = (
+    ("New notification", "You have a new notification in the CRM.", "Open CRM"),
+    ("Nueva notificación", "Tienes una nueva notificación en el CRM.", "Abrir CRM"),
+)
+_EMAIL_COPY = {
+    "task.reminder": (
+        ("Task reminder", "Review your task.", "View task"),
+        ("Recordatorio de tarea", "Revisa tu tarea.", "Ver tarea"),
+    ),
+    "calendar.reminder": (
+        ("Upcoming event", "Check your event details.", "View event"),
+        ("Próximo evento", "Consulta los detalles de tu evento.", "Ver evento"),
+    ),
+    "case.mentioned": (
+        (
+            "You were mentioned in a ticket",
+            "Open the ticket to see the mention.",
+            "View ticket",
+        ),
+        (
+            "Te mencionaron en un ticket",
+            "Abre el ticket para ver la mención.",
+            "Ver ticket",
+        ),
+    ),
+    "case.commented": (
+        ("New ticket comment", "Open the ticket to read the comment.", "View ticket"),
+        (
+            "Nuevo comentario en un ticket",
+            "Abre el ticket para leer el comentario.",
+            "Ver ticket",
+        ),
+    ),
+}
 
 
 @organization_job
@@ -74,24 +111,9 @@ def deliver_notification_emails(org):
             notification.email_attempted_at = now
             notification.save(update_fields=["email_attempts", "email_attempted_at"])
         spanish = profile.user.ui_language == "es"
-        labels = {
-            "task.reminder": "Recordatorio de tarea",
-            "calendar.reminder": "Próximo evento",
-            "case.mentioned": "Te mencionaron en un ticket",
-            "case.commented": "Nuevo comentario en un ticket",
-        }
-        label = (
-            labels.get(notification.verb, "Nueva notificación")
-            if spanish
-            else next(
-                (
-                    topic["label"]
-                    for topic in TOPICS
-                    if topic["key"] == notification.verb
-                ),
-                "New notification",
-            )
-        )
+        label, message, action = _EMAIL_COPY.get(notification.verb, _DEFAULT_COPY)[
+            1 if spanish else 0
+        ]
         # Email previews deliberately omit record names and private comments.
         # Opening the CRM rechecks session and record permissions.
         destination = (
@@ -109,9 +131,9 @@ def deliver_notification_emails(org):
         context = {
             "email_language": "es" if spanish else "en",
             "heading": label,
-            "message": "Tienes una nueva notificación en el CRM."
-            if spanish
-            else "You have a new notification in the CRM.",
+            "message": message,
+            "action": action,
+            "compact_notification": True,
             "organization": org.name,
             "url": frontend_url(destination),
             "preferences_url": frontend_url("/notifications?tab=preferences"),

@@ -51,17 +51,15 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 const announce = (rows) => announceNotifications(rows, profile, ui, 'en-US', now);
 
-describe('independent notification channels', () => {
-  it('delivers popup and desktop once without Bell and never asks permission automatically', async () => {
+describe('notification attention routing', () => {
+  it('delivers only popup in the visible CRM and never asks permission automatically', async () => {
     await announce([row()]);
     await announce([row()]);
     expect(toast).toHaveBeenCalledTimes(1);
-    expect(desktop).toHaveLength(1);
-    expect(desktop[0].options.body).toBe('Task reminder');
+    expect(desktop).toHaveLength(0);
     expect(Notification.requestPermission).not.toHaveBeenCalled();
     expect(JSON.stringify([...storage.values()])).not.toContain('Private task');
-    desktop[0].onclick();
-    expect(window.location.assign).toHaveBeenCalledWith('/tasks/TSK-abc');
+    expect(vi.mocked(toast).mock.calls[0][1].action).toMatchObject({ label: 'View task' });
   });
   it('honors disabled channels', async () => {
     await announce([row({ channels: { popup: false, browser: false, bell: true } })]);
@@ -74,25 +72,28 @@ describe('independent notification channels', () => {
     expect(toast).toHaveBeenCalledTimes(1);
     expect(desktop).toHaveLength(0);
   });
-  it('holds popup for visible tab but can deliver desktop in background', async () => {
+  it('delivers Browser in background without repeating a popup on return', async () => {
     vi.stubGlobal('document', { visibilityState: 'hidden' });
     await announce([row()]);
     expect(toast).not.toHaveBeenCalled();
     expect(desktop).toHaveLength(1);
     vi.stubGlobal('document', { visibilityState: 'visible' });
     await announce([]);
-    expect(toast).toHaveBeenCalledTimes(1);
+    await announce([row()]);
+    expect(toast).not.toHaveBeenCalled();
     expect(desktop).toHaveLength(1);
+    expect(desktop[0].options.body).toBe('Task reminder');
+    expect(JSON.stringify(desktop[0].options)).not.toContain('Private task');
   });
   it('drops queued alerts on profile change or preferences update', async () => {
     vi.stubGlobal('document', { visibilityState: 'hidden' });
-    await announce([row()]);
+    await announce([row({ channels: { popup: true } })]);
     resetPendingAlerts();
     vi.stubGlobal('document', { visibilityState: 'visible' });
     await announce([]);
     expect(toast).not.toHaveBeenCalled();
     vi.stubGlobal('document', { visibilityState: 'hidden' });
-    await announce([row({ id: 'second' })]);
+    await announce([row({ id: 'second', channels: { popup: true } })]);
     profile = 'another-profile';
     vi.stubGlobal('document', { visibilityState: 'visible' });
     await announce([]);
@@ -113,16 +114,16 @@ describe('independent notification channels', () => {
   });
   it('honors preferences changed elsewhere before delivering a queued popup', async () => {
     vi.stubGlobal('document', { visibilityState: 'hidden' });
-    await announce([row()]);
+    await announce([row({ channels: { popup: true } })]);
     vi.stubGlobal('document', { visibilityState: 'visible' });
     await announceNotifications([], profile, ui, 'en-US', now, {
       'task.reminder': { popup: false, browser: false }
     });
     expect(toast).not.toHaveBeenCalled();
-    expect(desktop).toHaveLength(1);
+    expect(desktop).toHaveLength(0);
   });
   it('never opens an external notification link', async () => {
-    await announce([row({ link: 'https://evil.test' })]);
+    await announce([row({ link: 'https://evil.test', channels: { browser: true } })]);
     desktop[0].onclick();
     expect(window.location.assign).toHaveBeenCalledWith('/notifications');
   });
@@ -135,4 +136,42 @@ describe('independent notification channels', () => {
     await announce([row()]);
     expect(toast).toHaveBeenCalledTimes(1);
   });
+});
+
+it('delivers Browser alone even when the CRM is visible', async () => {
+  await announce([row({ channels: { popup: false, browser: true } })]);
+  expect(toast).not.toHaveBeenCalled();
+  expect(desktop).toHaveLength(1);
+  desktop[0].onclick();
+  expect(window.location.assign).toHaveBeenCalledWith('/tasks/TSK-abc');
+});
+it('retains a background popup when Browser permission is denied', async () => {
+  Object.defineProperty(Notification, 'permission', { value: 'denied', configurable: true });
+  vi.stubGlobal('document', { visibilityState: 'hidden' });
+  await announce([row()]);
+  expect(desktop).toHaveLength(0);
+  vi.stubGlobal('document', { visibilityState: 'visible' });
+  await announce([]);
+  expect(toast).toHaveBeenCalledTimes(1);
+});
+it('does not repeat a popup as Browser after leaving the CRM', async () => {
+  await announce([row()]);
+  vi.stubGlobal('document', { visibilityState: 'hidden' });
+  await announce([row()]);
+  expect(toast).toHaveBeenCalledTimes(1);
+  expect(desktop).toHaveLength(0);
+});
+it('retries a refused desktop delivery without losing the popup fallback', async () => {
+  vi.stubGlobal('document', { visibilityState: 'hidden' });
+  class RefusedNotification {
+    static permission = 'granted';
+    constructor() {
+      throw new Error('OS refused');
+    }
+  }
+  vi.stubGlobal('Notification', RefusedNotification);
+  await announce([row()]);
+  vi.stubGlobal('document', { visibilityState: 'visible' });
+  await announce([]);
+  expect(toast).toHaveBeenCalledTimes(1);
 });

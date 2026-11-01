@@ -2107,5 +2107,11 @@
   "Current value of open deals in this selection, separated by currency.": "Valor actual de los negocios abiertos seleccionados, separado por moneda.",
   "Current value of won deals in this selection. This is not collected revenue.": "Valor actual de los negocios ganados seleccionados. No representa ingresos cobrados.",
   "Custom date range": "Rango de fechas personalizado",
-  "Select a start and end date.": "Selecciona una fecha de inicio y otra de fin."
+  "Select a start and end date.": "Selecciona una fecha de inicio y otra de fin.",
+  "Notifications, {count} unread": "Notificaciones, {count} sin leer",
+  "New support reply": "Nueva respuesta de soporte",
+  "Support ticket updated": "Ticket de soporte actualizado",
+  "View task": "Ver tarea",
+  "View event": "Ver evento",
+  "View ticket": "Ver ticket"
 }

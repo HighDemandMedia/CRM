@@ -30,3 +30,25 @@ export function reminderDetail(row, locale = 'en-US') {
   }
   return '';
 }
+
+/** Consistent, privacy-safe titles for all notification surfaces. */
+export function notificationTitle(row) {
+  return (
+    {
+      'task.reminder': 'Task reminder',
+      'calendar.reminder': 'Upcoming event',
+      'case.mentioned': 'You were mentioned in a ticket',
+      'case.commented': 'New ticket comment',
+      'webform.submitted': 'New website submission',
+      'support.replied': 'New support reply',
+      'support.status_changed': 'Support ticket updated'
+    }[row.verb] || 'New notification'
+  );
+}
+
+export function notificationAction(row) {
+  if (row.verb === 'task.reminder') return 'View task';
+  if (row.verb === 'calendar.reminder') return 'View event';
+  if (row.verb?.startsWith('case.')) return 'View ticket';
+  return 'Open';
+}

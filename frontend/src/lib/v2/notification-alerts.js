@@ -1,13 +1,11 @@
 import { toast } from 'svelte-sonner';
-import { reminderDetail, resolvedLink } from './notification-content.js';
+import {
+  reminderDetail,
+  resolvedLink,
+  notificationTitle,
+  notificationAction
+} from './notification-content.js';
 
-const titles = {
-  'task.reminder': 'Task reminder',
-  'calendar.reminder': 'Upcoming event',
-  'case.mentioned': 'You were mentioned in a ticket',
-  'case.commented': 'New ticket comment',
-  'webform.submitted': 'New website submission'
-};
 const pending = new Map();
 const receipts = new Map();
 let currentProfile = '';
@@ -80,23 +78,31 @@ export async function announceNotifications(
         pending.delete(id);
         continue;
       }
-      const title = ui(titles[row.verb] || 'New notification');
+      const title = ui(notificationTitle(row));
       const link = resolvedLink(row.link) || '/notifications';
       const visible = document.visibilityState === 'visible';
       // Recheck queued background alerts against the latest server preferences,
       // including changes saved from another tab or device.
       const popup = row.channels?.popup && preferences?.[row.verb]?.popup !== false;
       const browser = row.channels?.browser && preferences?.[row.verb]?.browser !== false;
-      if (popup && visible && !store.has(`${id}:popup`)) {
+      // A single attention receipt also respects alerts delivered by older tabs.
+      if (store.has(`${id}:popup`) || store.has(`${id}:browser`)) {
+        pending.delete(id);
+        continue;
+      }
+      if (popup && visible) {
         toast(title, {
           id: `notification-${id}`,
           description: [row.entity_name, reminderDetail(row, locale)].filter(Boolean).join(' · '),
           duration: 10000,
-          action: { label: ui('Open'), onClick: () => window.location.assign(link) }
+          class: 'crm-notification-toast',
+          action: {
+            label: ui(notificationAction(row)),
+            onClick: () => window.location.assign(link)
+          }
         });
         store.add(`${id}:popup`);
-      }
-      if (browser && browserAlertsAllowed() && !store.has(`${id}:browser`)) {
+      } else if (browser && browserAlertsAllowed()) {
         try {
           // Desktop previews deliberately omit private record names and comments.
           const alert = new Notification('High Demand Media CRM', {
@@ -115,7 +121,7 @@ export async function announceNotifications(
           continue;
         }
       }
-      if (!popup || visible || store.has(`${id}:popup`)) pending.delete(id);
+      if (!popup || visible || store.has(`${id}:browser`)) pending.delete(id);
     }
   };
   // Coordinate receipts across tabs where available; notification tags also

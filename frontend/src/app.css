@@ -1060,9 +1060,11 @@ html {
   outline: 2px solid var(--crm-focus);
   outline-offset: 3px;
 }
-[data-sonner-toaster] {
+:root [data-sonner-toaster][data-sonner-theme] {
   font-family: var(--crm-font-ui);
   --normal-bg: var(--crm-surface);
+  --normal-bg-hover: var(--crm-surface-secondary);
+  --normal-border-hover: var(--crm-control-border);
   --normal-text: var(--crm-text);
   --normal-border: var(--crm-control-border);
   --success-bg: var(--crm-success-bg);
@@ -1117,4 +1119,34 @@ html {
   color: var(--crm-text-muted);
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+
+/* Compact notification previews; validation and error toasts keep their full text. */
+[data-sonner-toaster] [data-sonner-toast].crm-notification-toast {
+  border-radius: var(--crm-radius-lg);
+  box-shadow: var(--crm-shadow-md);
+  padding: 12px;
+  gap: 10px;
+}
+[data-sonner-toaster] [data-sonner-toast].crm-notification-toast [data-title],
+[data-sonner-toaster] [data-sonner-toast].crm-notification-toast [data-description] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+[data-sonner-toaster] [data-sonner-toast].crm-notification-toast [data-title] {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+[data-sonner-toaster] [data-sonner-toast].crm-notification-toast [data-description] {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+[data-sonner-toaster] [data-sonner-toast].crm-notification-toast [data-button] {
+  border-radius: var(--crm-radius-full);
+  background: var(--crm-surface-secondary);
+  color: var(--crm-text);
+  border: 1px solid var(--crm-border);
+  flex-shrink: 0;
+  min-height: 28px;
 }

@@ -97,8 +97,9 @@
   function positionAccount(event) {
     if (!accountOpen) void loadOrganizations();
     const rect = event.currentTarget.getBoundingClientRect();
-    panelLeft = Math.max(8, Math.min(rect.left, window.innerWidth - 296));
-    panelBottom = window.innerHeight - rect.top + 8;
+    const navigation = event.currentTarget.closest('nav').getBoundingClientRect();
+    panelLeft = navigation.right + 8;
+    panelBottom = Math.max(8, window.innerHeight - rect.bottom);
   }
 
   let mounted = $state(false);
@@ -161,6 +162,8 @@
   const isActive = (href, exact) =>
     exact ? page.url.pathname === href : page.url.pathname.startsWith(href);
 </script>
+
+<svelte:window onresize={() => accountPanel?.hidePopover()} />
 
 <nav class="v2-nav" class:collapsed aria-label={ui('Main')}>
   <div class="nav-scroll">

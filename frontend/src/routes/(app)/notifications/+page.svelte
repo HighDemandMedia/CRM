@@ -7,7 +7,7 @@
   import { goto } from '$app/navigation';
   import { enhance, deserialize } from '$app/forms';
   import { page } from '$app/state';
-  import { reminderLabel, reminderDetail } from '$lib/v2/notification-content.js';
+  import { notificationTitle, reminderDetail } from '$lib/v2/notification-content.js';
   import PageHeader from '$lib/v2/components/PageHeader.svelte';
   import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import NotificationPreferences from '$lib/v2/components/NotificationPreferences.svelte';
@@ -52,17 +52,6 @@
     } finally {
       busy = false;
     }
-  }
-  function phrase(verb) {
-    return (
-      {
-        'webform.submitted': 'received a website submission through',
-        'case.mentioned': 'mentioned you on',
-        'case.commented': 'commented on',
-        'support.replied': 'replied to',
-        'support.status_changed': 'updated'
-      }[verb] || 'updated'
-    );
   }
 </script>
 
@@ -131,16 +120,14 @@
                 <tr class:unread={!n.read_at}>
                   <td class="message">
                     <p>
-                      {#if reminderLabel(n)}<strong>{ui(reminderLabel(n))}:</strong>{:else}<strong
-                          >{n.actor_name || ui('The system')}</strong
-                        >
-                        {ui(phrase(n.verb))}{/if}
+                      <strong>{ui(notificationTitle(n))}:</strong>
                       {#if n.resolved_link}<a
                           href={resolve(n.resolved_link)}
                           onclick={(event) => openNotification(event, n)}
                           >{n.entity_name || ui('Record')}</a
                         >
                       {:else}{n.entity_name || ui('Record')}{/if}
+                      {#if n.actor_name}<span class="actor"> · {n.actor_name}</span>{/if}
                     </p>
                     {#if reminderDetail(n, locale())}<p class="excerpt">
                         {reminderDetail(n, locale())}
@@ -289,6 +276,9 @@
   .message a {
     color: var(--crm-link);
     text-underline-offset: 3px;
+  }
+  .message .actor {
+    color: var(--v2-slate);
   }
   .message .excerpt {
     color: var(--v2-slate);

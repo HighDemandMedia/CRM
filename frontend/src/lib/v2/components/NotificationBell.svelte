@@ -8,7 +8,7 @@
   import { resolve } from '$app/paths';
   import { asInternalPath } from '$lib/utils/paths.js';
   import { Bell, X, Check } from '@lucide/svelte';
-  import { resolvedLink, reminderLabel, reminderDetail } from '$lib/v2/notification-content.js';
+  import { resolvedLink, notificationTitle, reminderDetail } from '$lib/v2/notification-content.js';
   import { notificationRefreshDue } from '$lib/v2/notification-refresh.js';
   import {
     announceNotifications,
@@ -112,28 +112,15 @@
   });
   function show(event) {
     const rect = event.currentTarget.getBoundingClientRect();
-    left = Math.max(8, Math.min(rect.left, window.innerWidth - 344));
-    top = Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 160));
+    const navigation = event.currentTarget.closest('nav').getBoundingClientRect();
+    left = navigation.right + 8;
+    top = Math.max(8, Math.min(rect.top, window.innerHeight - 160));
     void refresh(true);
   }
   function destination(row) {
     return resolvedLink(row.link);
   }
 
-  function description(row) {
-    if (reminderLabel(row)) return ui(reminderLabel(row));
-    const actor = row.actor?.user_details?.name || row.actor?.user_details?.email || ui('Someone');
-    if (row.verb === 'webform.submitted') return ui('New website submission');
-    if (row.verb === 'case.mentioned') return ui('{actor} mentioned you', { actor });
-    if (row.verb === 'case.commented') return ui('{actor} added a comment', { actor });
-    return (
-      actor +
-      ' · ' +
-      String(row.verb || 'Update')
-        .replace(/^[^.]+\./, '')
-        .replaceAll('_', ' ')
-    );
-  }
   async function mark(row = null) {
     if (writing) return false;
     writing = true;
@@ -176,7 +163,7 @@
   class:collapsed
   type="button"
   popovertarget={id}
-  aria-label={unread ? `Notifications, ${unread} unread` : ui('Notifications')}
+  aria-label={unread ? ui('Notifications, {count} unread', { count: unread }) : ui('Notifications')}
   aria-expanded={open}
   title={ui('Notifications')}
   onclick={show}
@@ -204,17 +191,21 @@
       {ui('Notifications')}
       {#if unread}<span>{unread}</span>{/if}
     </h2>
-    <button
-      type="button"
-      aria-label={ui('Close notifications')}
-      onclick={() => panel?.hidePopover()}><X size={17} /></button
-    >
-  </header>
-  {#if unread}<div class="read-actions">
-      <button type="button" disabled={writing} onclick={() => mark()}
-        ><Check size={13} />{ui('Mark all read')}</button
+    <div class="header-actions">
+      {#if unread}<button
+          type="button"
+          disabled={writing}
+          onclick={() => mark()}
+          aria-label={ui('Mark all read')}
+          title={ui('Mark all read')}><Check size={17} /></button
+        >{/if}
+      <button
+        type="button"
+        aria-label={ui('Close notifications')}
+        onclick={() => panel?.hidePopover()}><X size={17} /></button
       >
-    </div>{/if}
+    </div>
+  </header>
   <div class="feed" aria-busy={loading}>
     {#if failure}<p role="alert" class="error">
         {ui(failure)}<button type="button" onclick={() => refresh()}>{ui('Retry')}</button>
@@ -234,14 +225,19 @@
           onclick={() => openRow(row)}
         >
           <span class="read-dot" aria-label={row.read_at ? ui('Read') : ui('Unread')}></span>
-          <span class="row-body"
-            ><strong>{description(row)}</strong>{#if row.entity_name}<span>{row.entity_name}</span
-              >{/if}{#if reminderDetail(row, locale())}<p>
-                {reminderDetail(row, locale())}
-              </p>{/if}{#if row.data?.comment_excerpt}<p>{row.data.comment_excerpt}</p>{/if}<small
-              >{relativeTime(row.created_at)}</small
-            ></span
-          >
+          <span class="row-body">
+            <span class="row-heading"
+              ><strong title={ui(notificationTitle(row))}>{ui(notificationTitle(row))}</strong>
+              <small title={new Date(row.created_at).toLocaleString(locale())}
+                >{relativeTime(row.created_at)}</small
+              >
+            </span>
+            {#if row.entity_name}<span class="entity-name" title={row.entity_name}
+                >{row.entity_name}</span
+              >{/if}
+            {#if reminderDetail(row, locale())}<p>{reminderDetail(row, locale())}</p>
+            {:else if row.data?.comment_excerpt}<p>{row.data.comment_excerpt}</p>{/if}
+          </span>
         </button>
       {/each}
     {/if}
@@ -336,7 +332,6 @@
     color: var(--v2-slate);
   }
   header button,
-  .read-actions button,
   .error button {
     display: inline-flex;
     align-items: center;
@@ -348,10 +343,9 @@
     font: inherit;
     font-size: var(--crm-text-xs);
   }
-  .read-actions {
-    padding: 4px var(--crm-space-3);
-    flex-shrink: 0;
-    text-align: right;
+  .header-actions {
+    display: flex;
+    gap: 2px;
   }
   header button {
     width: 32px;
@@ -403,10 +397,30 @@
   }
   .row-body {
     display: grid;
-    gap: 3px;
+    gap: 2px;
+    flex: 1;
     min-width: 0;
     font-size: var(--crm-text-xs);
     overflow-wrap: anywhere;
+  }
+  .row-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .row-heading strong {
+    flex: 1;
+    min-width: 0;
+  }
+  .row-heading small {
+    flex: none;
+    white-space: nowrap;
+  }
+  .row-heading strong,
+  .entity-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .row-body strong {
     font-weight: 550;
@@ -416,8 +430,8 @@
     margin: 0;
     color: var(--v2-slate);
     display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -459,7 +473,6 @@
   }
   @media (pointer: coarse) {
     header button,
-    .read-actions button,
     footer a {
       min-height: var(--crm-target-size);
     }

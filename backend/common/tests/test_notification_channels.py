@@ -129,6 +129,10 @@ def test_email_is_branded_private_idempotent_and_preference_aware(user_profile, 
     assert mail.outbox[0].to == [user_profile.user.email]
     message = mail.outbox[0].body + mail.outbox[0].alternatives[0].content
     assert "High Demand Media" in message
+    assert mail.outbox[0].subject == "Task reminder · HDM CRM"
+    assert "Review your task." in message
+    assert "View task" in message
+    assert "padding:20px 24px" in message
     assert (
         "PRIVATE NAME" not in message
         and "SECRET COMMENT" not in message
@@ -197,3 +201,45 @@ def test_delivery_receipts_expire_without_purging_unread_bell(user_profile, org_
     with rls_org(org_a):
         assert not Notification.objects.filter(pk=hidden.pk).exists()
         assert Notification.objects.filter(pk=visible.pk).exists()
+
+
+@pytest.mark.parametrize(
+    "verb, english, spanish, action",
+    [
+        ("task.reminder", "Task reminder", "Recordatorio de tarea", "View task"),
+        ("calendar.reminder", "Upcoming event", "Próximo evento", "View event"),
+        (
+            "case.mentioned",
+            "You were mentioned in a ticket",
+            "Te mencionaron en un ticket",
+            "View ticket",
+        ),
+        (
+            "case.commented",
+            "New ticket comment",
+            "Nuevo comentario en un ticket",
+            "View ticket",
+        ),
+    ],
+)
+@pytest.mark.parametrize("language", ["en", "es"])
+def test_notification_email_topic_copy(
+    user_profile, org_a, verb, english, spanish, action, language
+):
+    user_profile.user.ui_language = language
+    user_profile.user.save(update_fields=["ui_language"])
+    user_profile.notification_preferences = {verb: {"email": True}}
+    user_profile.save(update_fields=["notification_preferences"])
+    create(user_profile, verb)
+    deliver_notification_emails(org_a)
+    assert len(mail.outbox) == 1
+    assert (
+        mail.outbox[0].subject
+        == f"{spanish if language == 'es' else english} · HDM CRM"
+    )
+    html = mail.outbox[0].alternatives[0].content
+    assert 'lang="' + language + '"' in html
+    if language == "en":
+        assert action in html
+    else:
+        assert "Preferencias de notificaciones" in html
