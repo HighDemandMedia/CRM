@@ -1,19 +1,20 @@
 # Gmail and Google Calendar connected accounts
 
-Current verification preparation: [October 27 readiness and release notes](../operations/google-oauth-readiness-2026-10-27.md). Historical Console notes below are not the current approval status.
-
-Independent-project migration: [October 28 configuration and rollout guide](../operations/google-independent-connections-2026-10-28.md).
-The setup below remains the supported legacy/shared configuration. Dedicated
-Gmail and Calendar clients are optional until their Cloud projects are ready;
-retain shared credentials for existing tokens throughout migration.
+Current architecture: separate Google projects for sign-in, Gmail and Calendar;
+system messages use the configured system-mail backend (SES in the current rollout).
+Use [independent connection configuration](../operations/google-independent-connections-2026-10-28.md)
+for new installations and [SES system sender](ses-system-sender.md) for system mail.
+The shared-client setup below is a legacy compatibility reference, not the preferred setup.
+Dated Console observations and superseded scope text at the end are historical and must
+not be copied into a new verification submission or treated as current Google approval.
 
 Each CRM profile authorizes its own Google account in Profile → Integrations.
 Connections and cached data belong to that profile in that organization, including
 when the same person belongs to multiple organizations. Organization administrators
 cannot read another profile's mailbox or personal calendar through these endpoints.
-The Gmail system sender is separate and its existing credentials remain unchanged.
+System mail is separate from users' Gmail and Calendar grants.
 
-## Google setup
+## Legacy shared-client setup
 
 1. In Google Cloud, enable **Gmail API** and **Google Calendar API**.
 2. Configure the OAuth consent screen. For staging, add the email addresses of
@@ -40,9 +41,9 @@ The Gmail system sender is separate and its existing credentials remain unchange
 6. Deploy API with the normal migration release step, followed by worker,
    scheduler and web. Keep exactly one scheduler.
 7. In the CRM, Profile → Integrations → Connect Gmail / Connect Google Calendar.
-   Select the desired calendar before creating CRM appointments. The primary
-   Google calendar is used by default. A read-only calendar can be displayed but
-   cannot receive changes from the CRM.
+   The connected primary calendar receives appointments. Additional calendars for
+   availability load automatically in a searchable multiple-selection dropdown,
+   with removable selected labels; read-only availability does not authorize writes.
 
 The OAuth flow requests identity and email plus `gmail.readonly` for mailbox
 activity and `gmail.send` for explicitly requested outgoing messages, and `calendar.events` / `calendar.calendarlist.readonly` for Calendar.
@@ -57,8 +58,10 @@ expire and require reconnecting. See [Google's scope documentation](https://deve
 
 ## Gmail behavior
 
-- Imports the last 90 days in short resumable jobs, then polls Gmail history every
-  five minutes. Expired history is rebuilt from the last 90 days.
+- Imports the last 90 days in short resumable jobs. Authenticated Gmail Pub/Sub
+  notices trigger incremental history sync; five-minute scheduled synchronization is
+  recovery fallback. Visible record views check revisions about every ten seconds.
+  Expired history is rebuilt from the last 90 days. See [Gmail push](../operations/gmail-push-sync.md).
 - Skips mailbox enumeration when there are no accessible CRM contact email addresses.
 - Records incoming and sent messages when the external address matches an active,
   visible CRM contact. No contacts are automatically created.
@@ -78,8 +81,8 @@ expire and require reconnecting. See [Google's scope documentation](https://deve
   changes. Shared record Last Activity remains its property-change date.
 - Only the connected mailbox owner can read these views, including administrators.
   Contact access is checked again when opening message text. Connected record views
-  have no connect or refresh controls. Connection management and manual synchronization
-  remain in Profile → Integrations.
+  have no connect or refresh controls. Connection management remains in Profile → Integrations;
+  synchronization runs automatically.
 - Adding a contact, changing its email or changing visible contacts restarts the
   bounded 90-day import on the next sync without clearing retained message history.
   Large mailboxes may require several jobs before older messages appear.
@@ -89,7 +92,7 @@ expire and require reconnecting. See [Google's scope documentation](https://deve
 
 ## Sending and internal comments
 
-- **New email**, **Reply** and **Forward** use the current profile's connected Gmail,
+- The record-card **Email** action or email-address link, **Reply** and **Forward** use the current profile's connected Gmail,
   with the record's Edit permission enforced by the API. The compact composer supports
   sanitized rich text, To, CC and BCC, up to 25 recipients in total. Users can attach
   up to ten local files, totaling at most 10 MiB. Uploads are transient and are not

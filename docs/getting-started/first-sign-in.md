@@ -7,8 +7,8 @@ button or command that generates a session for another user.
 ## Accounts and invitations
 
 Access is invitation-only. The platform owner creates an organization and invites its
-administrator. That administrator can invite their team. New users accept the invitation,
-choose a password, and complete their profile. The first administrator also completes the
+administrator. That administrator can invite their team. New users accept the invitation using the available password or Google flow and complete
+their profile, with optional appearance and notification preferences. The first administrator also completes the
 organization setup. Existing users sign in before accepting an invitation.
 
 For the first platform owner on a new installation, use the interactive
@@ -29,8 +29,9 @@ same verification and expiration checks as online recovery.
 
 ## Google OAuth
 
-Available when Google sign-in is configured. It authenticates existing active users with
-verified Google email addresses; it does not provision a new account.
+Available when Google sign-in is configured. It authenticates active users with verified Google email addresses. A valid invitation
+can also enroll its intended recipient; Google sign-in is not open self-registration.
+Signing in does not connect Gmail or Calendar.
 
 ## Magic links
 
@@ -47,7 +48,9 @@ choose one at `/org`. The server verifies membership when switching organization
 organization ID never grants access. Pending profile and organization setup is completed before
 entering the workspace.
 
-The frontend stores authentication in HttpOnly cookies. Access tokens last one hour; refresh
-tokens last 14 days and rotate when used. Closing a tab or browser does not end a valid persistent
-session. Use **Sign out** to end it; private browsing and cleared cookies remove local access.
+The frontend stores authentication in HttpOnly cookies. Access tokens last up to one hour.
+Remember me keeps the session for at most 14 days from sign-in. Without it, the session
+has an eight-hour maximum and session cookies. Token renewal does not extend that absolute
+deadline. Browser session restoration can preserve session cookies, so use **Sign out** on
+shared devices instead of relying on closing the window.
 See [Personal preferences and sessions](../settings/personal-preferences-and-uploads.md).

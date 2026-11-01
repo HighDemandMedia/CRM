@@ -3,6 +3,87 @@ import { settingsSections } from '$lib/v2/settings-access.js';
 // Product guidance for the customized HDM CRM. No customer records or tenant articles.
 export const articles = [
   {
+    slug: 'notification-channels',
+    category: 'Getting started',
+    title: 'Choose how you receive notifications',
+    summary: 'Pop-up, Browser, Bell and Email, with automatic saving.',
+    sections: [
+      {
+        title: 'Choose topics and channels',
+        text: 'During onboarding, use the Notifications step, or open Profile & Preferences → Notifications → Preferences later. Select channels for Tasks, Calendar, Tickets and Web forms. Expand a group to change individual topics; group and column checkboxes apply to their whole group or channel, including topics hidden by search. A dash means some are selected. Changes save automatically; wait for Saved. A failed save shows an error and restores the previous selection. These choices affect your membership in the selected organization, not your teammates.'
+      },
+      {
+        title: 'Pop-up',
+        text: 'A compact alert appears inside the open CRM with the topic, record name, relevant date and an action such as View task. It dismisses after about 10 seconds or when closed. Opening its action does not by itself mark the Bell entry as read.'
+      },
+      {
+        title: 'Browser',
+        text: 'Checking Browser asks for permission only when needed. Allow notifications in this browser; blocked permissions must be changed in the browser site settings. Keep a CRM tab open: these are desktop notifications from the running page, not delivery after every CRM tab is closed. Browser and operating-system settings can suppress them. Desktop previews show the alert topic without record names or comment text. When both Pop-up and Browser are enabled, the visible CRM uses Pop-up and a background tab uses Browser to avoid two attention alerts. With only Browser enabled, it can also alert while the CRM is visible.'
+      },
+      {
+        title: 'Bell and history',
+        text: 'Bell adds the notification to the navigation panel and History. Open a Bell entry or a history link to mark it read and visit the record, or choose Mark all read. Read status is separate from task completion. Turning Bell off does not remove existing history. Access permissions still apply when following a link.'
+      },
+      {
+        title: 'Email',
+        text: 'Email sends supported topic notifications to your CRM account email through the system sender; no personal Gmail connection is needed. Web-form messages also depend on the form configuration and recipient access. These preferences do not disable account recovery, invitations or guest meeting invitations, and they do not subscribe you to marketing.'
+      },
+      {
+        title: 'Timing and topics',
+        text: 'Task reminders follow the chosen due date and reminder interval in the organization timezone. Calendar reminders are scheduled 15 minutes before an event for the host and internal attendees; private connected Google events notify their owner and exclude all-day events. Tickets covers mentions and comments. Web forms covers submissions routed to you. Background jobs and the open page refresh periodically, so delivery is not guaranteed to the second. An old or already delivered alert may stay in history without another Pop-up.'
+      }
+    ]
+  },
+  {
+    slug: 'appearance',
+    category: 'Getting started',
+    title: 'Choose light or dark appearance',
+    summary: 'A consistent theme for navigation, records, settings and dialogs.',
+    sections: [
+      {
+        title: 'Change the theme',
+        text: 'Choose Light or Dark under Appearance during profile setup or in Profile → Profile info. The change applies immediately; no Save button is needed. The navigation bar, tables, forms, menus and popups use the same CRM theme.'
+      },
+      {
+        title: 'Where it is remembered',
+        text: 'Appearance is stored in this browser for the CRM site. It is not an organization-wide setting and does not synchronize to another browser or device. Clearing site data can reset it. A shared browser may retain the previous user’s selected appearance.'
+      },
+      {
+        title: 'Keyboard and readability',
+        text: 'Use Tab to reach controls and Enter or Space to activate the focused control where supported. Browser zoom can enlarge content. Light and Dark are visual preferences, not a certification of accessibility or a separate mobile interface. If contrast, focus or a control prevents you from working, report the page and the problem through Help.'
+      }
+    ]
+  },
+  {
+    slug: 'csv-import-export',
+    category: 'Records',
+    title: 'Import and export records with CSV',
+    summary: 'Templates, valid records, error reports and associations.',
+    sections: [
+      {
+        title: 'Download, upload and review',
+        steps: [
+          'As an administrator, choose Add [object] → Import in Contacts, Companies, Deals, Tasks or Tickets. Download the current template and check its Column guide.',
+          'Upload a UTF-8 CSV with up to 1,000 records and 2 MB. Keep the template headers; required properties reflect this organization’s creation rules.',
+          'Review valid and rejected counts. Error details are in Download errors. Import valid records skips rejected rows; correct the error file and upload it again for the remaining records.'
+        ]
+      },
+      {
+        title: 'Preserve associations',
+        text: 'Imports create new records and do not update existing ones. Let the CRM generate IDs. Use an existing company’s unique name for account, existing contact emails separated by semicolons for contacts, and an active organization user’s email for assigned_to. The Column guide lists supported associations for that object. Missing or ambiguous matches are rejected; do not substitute exported record IDs for these matching fields.'
+      },
+      {
+        title: 'Duplicates and interrupted imports',
+        text: 'Contacts match by email or normalized international phone, companies by domain. Preview checks existing records and valid rows in the same file. Permission, capacity and field validation are checked again on import. Batches already completed remain saved if a later batch fails; retry the same confirmed import to resume rather than importing a new copy blindly.'
+      },
+      {
+        title: 'Export',
+        text: 'Use Export CSV in the bottom bar with the filters you need and export permission. An export is a data copy, not automatically an import template: download the current template before creating new records. Reports exports its own summaries separately.'
+      }
+    ]
+  },
+
+  {
     slug: 'website-forms',
     category: 'Configuration',
     title: 'Connect your website forms',
@@ -40,7 +121,7 @@ export const articles = [
       },
       {
         title: 'Existing contacts and alerts',
-        text: 'Email addresses are matched within the organization. A returning visitor adds a submission to the existing contact without changing its details or owner. The responsible user, current contact owners and selected recipients receive alerts only when active and allowed to view the contact. Personal in-app preferences apply. CRM email alerts use the system sender and do not require a personal Gmail connection. Submission received confirms a CRM record, not delivery to an inbox; check email separately.'
+        text: 'Email addresses are matched within the organization. A returning visitor adds a submission to the existing contact without changing its details or owner. The responsible user, current contact owners and selected recipients receive alerts only when active and allowed to view the contact. Personal notification-channel preferences apply in addition to the form’s routing and CRM/email switches. CRM email alerts use the system sender and do not require a personal Gmail connection. Submission received confirms a CRM record, not delivery to an inbox; check email separately.'
       },
       {
         title: 'Spam protection and troubleshooting',
@@ -85,14 +166,14 @@ export const articles = [
       {
         title: 'Create a contact',
         steps: [
-          'Open Contacts and choose New contact. The form opens beside your current view.',
-          'Enter the name. Add phone, email, source, language, owner, address and preferred communication channel when available.',
+          'Open Contacts → Add contact → Create contact. The form opens beside your current view. Administrators can also choose Import contacts from that menu.',
+          'Enter the required name and contact details. Email and phone are required by default; an administrator can require either one or both in Creation forms. At least one stays required. Use the country selector for phone numbers and complete any additional required properties.',
           'Select existing tags, or create a tag if you are an administrator, then save. Pipeline rules may require additional information for the selected stage.'
         ]
       },
       {
         title: 'Edit without leaving your work',
-        text: 'In the list, use Actions → Edit to open the editing panel. Inside a contact, use the Properties actions to edit in the same view. Save applies your changes; Cancel closes the editor without saving.'
+        text: 'Inside a contact, use the identity pencil to edit name, email and phone at the top, then the check mark to save. Click other editable properties directly; text fields open for typing and list fields open their choices. Changes save when you finish the field. Check any validation or save error before leaving. The list also provides an editing panel with Save and Cancel.'
       },
       {
         title: 'Notes, files and activity',
@@ -112,7 +193,7 @@ export const articles = [
     sections: [
       {
         title: 'Record ID and duplicate clues',
-        text: 'Record ID is the stable internal identifier used by the CRM and integrations. The abbreviated display does not change the full ID. Email, normalized phone and similar names help detect possible existing contacts; shared names or phone numbers are not proof that two people are the same.'
+        text: 'Record ID is generated by the CRM and identifies a record, such as CON-0001 or COM-0001. Do not enter it when creating or importing a new record. Contacts match by email or normalized international phone; companies match by domain. Names alone are not duplicate keys. Matching is limited to the organization; suggestions show only records you may view.'
       },
       {
         title: 'Check existing contacts',
@@ -141,11 +222,11 @@ export const articles = [
     sections: [
       {
         title: 'Company properties',
-        text: 'Use Companies for businesses. Properties include name, domain, owner, industry, employee count, annual revenue, phone, email, language, source, address, preferred communication channel, tags and page links. Name is required; stage rules can require other properties.'
+        text: 'Use Companies → Add company → Create company for businesses. Name and domain are required; creation-form and stage rules can require other properties. Domain is the duplicate key: scheme, www, port, path and letter case do not distinguish the same domain. Other subdomains remain distinct.'
       },
       {
         title: 'Work from the company profile',
-        text: 'Use the Properties editing action to make changes in place. Linked contacts and deals are shown in their association sections. Add links using +; remove associations from the linked record’s menu without deleting the record.'
+        text: 'Use the identity pencil to edit the company name and contact details at the top. Click an editable property directly to change it. Associated objects have independently collapsible sections. Add links using +; remove associations from the linked record menu without deleting the record. Use the record action icons for available activities and the overflow menu for Merge or Delete when permitted.'
       },
       {
         title: 'Notes and attachments',
@@ -169,7 +250,7 @@ export const articles = [
     sections: [
       {
         title: 'Create and associate a deal',
-        text: 'Open Deals → New deal. Enter a name and add amount, stage, expected close date, owner, priority, source, phone, email, language, address and tags as needed. Associate the deal with the relevant contact or company. Stage entry rules can request additional fields.'
+        text: 'Open Deals → Add deal → Create deal. Enter a name and add amount, stage, expected close date, owner, priority, source, phone, email, language, address and tags as needed. Associate the deal with the relevant contact or company. Stage entry rules can request additional fields.'
       },
       {
         title: 'Work the pipeline',
@@ -195,7 +276,7 @@ export const articles = [
         title: 'Adjust the list',
         steps: [
           'Switch to the list icon in the module toolbar.',
-          'Use Edit columns to select system and custom properties. Notes and Record ID start hidden and can be selected manually.',
+          'Use the Edit columns icon at the table edge to select system and custom properties. Notes and Record ID start hidden. Collapse or expand the actions column with its navigation-style toggle; column controls are not shown in pipeline view.',
           'Drag a column header to reorder it; use its right edge to resize.',
           'Click a header to sort. Use the search field and filters to narrow the list.'
         ]
@@ -214,7 +295,7 @@ export const articles = [
       },
       {
         title: 'Export',
-        text: 'CSV export uses the module’s current filters and requires export permission. Reports has a separate Export report action for its totals and charts.'
+        text: 'Export CSV is in the bottom bar, uses the current filters and requires export permission. Import is a separate option under Add [object] for administrators. Reports has a separate Export report action for totals and charts.'
       }
     ]
   },
@@ -230,7 +311,7 @@ export const articles = [
           'Open Calendar → Schedule event, or schedule from a contact or company profile.',
           'Choose a title, host, date, start time and end time.',
           'Search for attendees. You can add several contacts, companies or CRM users, including users for an internal meeting.',
-          'Review the host’s weekly availability and the titles of existing events.',
+          'Review the host’s availability. Other users’ private Google event details are hidden; availability calendars contribute busy periods.',
           'Add internal notes if needed, review the automatic deal option and schedule.'
         ]
       },
@@ -252,7 +333,7 @@ export const articles = [
       },
       {
         title: 'Google Calendar',
-        text: 'Google Calendar connection and synchronization are not enabled yet. Events created here currently belong to the CRM calendar.'
+        text: 'Connect Google Calendar in Profile → Integrations. The connected calendar receives hosted CRM appointments; additional selected calendars only contribute availability. Invitations offer Accept, Maybe and Decline, and guest responses appear in the CRM. Rescheduling or cancellation updates the same invitation. Internal CRM notes are not sent to Google or guests.'
       }
     ]
   },
@@ -264,11 +345,11 @@ export const articles = [
     sections: [
       {
         title: 'Create and assign',
-        text: 'Open Tasks → New task. Enter a title, choose assignees by searching their names, and set the stage, priority and due date. Use the available association field to link the relevant record.'
+        text: 'Open Tasks → Add task → Create task. Enter a title, choose assignees by searching their names, and set the stage, priority and due date. Use the available association field to link the relevant record.'
       },
       {
         title: 'Set a reminder',
-        text: 'Choose how long before the due date to show a reminder, or select Custom time and enter the supported interval. Reminders appear in Today and Notifications, once per due date and reminder setting. They go to the task assignees, or its creator when unassigned, subject to record access. The reminder day follows your organization’s timezone. This does not schedule a task on the sales calendar.'
+        text: 'Choose No reminder, On due date, a number of days before, or Custom. Notifications follow your selected Pop-up, Browser, Bell and Email channels, once per due date and reminder setting. They go to the task assignees, or its creator when unassigned, subject to record access. The reminder day follows your organization’s timezone. This does not schedule a task on the sales calendar.'
       },
       {
         title: 'Work the task',
@@ -276,7 +357,7 @@ export const articles = [
       },
       {
         title: 'Where tasks appear',
-        text: 'Manage tasks from Tasks and Today. Task sections are not shown inside contact, company or deal profiles, and tasks are not sales-calendar events.'
+        text: 'Manage tasks from Tasks, its Task calendar link and Today. Record action icons can create an associated task where available. Tasks are separate from scheduled meetings and do not create guest calendar invitations.'
       }
     ]
   },
@@ -288,7 +369,7 @@ export const articles = [
     sections: [
       {
         title: 'Create a ticket',
-        text: 'Open Tickets → New ticket or use the ticket creation action in a supported record profile. Enter the title and details, then search for assignees by name. Due date uses a date selection.'
+        text: 'Open Tickets → Add ticket → Create ticket or use the ticket creation action in a supported record profile. Enter the title and details, then search for assignees by name. Due date uses a date selection.'
       },
       {
         title: 'Associate the customer',
@@ -315,7 +396,7 @@ export const articles = [
         steps: [
           'Open Reports and choose Contacts, Companies, Deals, Tasks, Tickets or Events.',
           'Choose Date to use, such as Created date, Last activity, Due date or Expected close date, depending on the object.',
-          'Set From and To dates, or choose a quick range. Filter by owner/host and stage if needed.',
+          'Choose a preset date range, or Custom to select the start and end dates in the calendar popup. Filter by owner/host and stage if needed.',
           'Choose day, week or month for the time chart, and a breakdown such as stage, source or priority.',
           'Review Included records and use Export report if your permissions allow it.'
         ]
@@ -350,7 +431,7 @@ export const articles = [
       },
       {
         title: 'Names and requirements',
-        text: 'The display label is for people; the internal property key is for the API and integrations. Record ID is generated automatically, and Name is required. Other general fields are optional, but pipeline entry rules can make particular properties necessary for a stage.'
+        text: 'The display label is for people; the internal property key is for the API and integrations. Record ID is generated automatically. Name stays required; companies also require domain. Contact email and phone are required by default; administrators can require either one or both, but cannot make both optional. They remain duplicate keys whenever supplied. Creation-form and pipeline rules can require other fields.'
       },
       {
         title: 'Pipelines',
@@ -378,7 +459,7 @@ export const articles = [
       },
       {
         title: 'Accept an invitation',
-        text: 'New users open the emailed invitation and enter their name, password and password confirmation. Their email and organization are already defined. Existing users sign in with that email to accept. Both complete Profile setup (name, CRM language and timezone) before opening modules. The initial organization administrator also completes Organization information. Closing the browser does not skip pending setup. Invitations expire after seven days; ask an administrator to resend an expired or cancelled invitation.'
+        text: 'New users open the emailed invitation and enter their name, password and password confirmation. Their email and organization are already defined. Existing users sign in with that email to accept. Both complete the guided steps: profile (name, CRM language and timezone), appearance and notification channels, followed by a final review. Use Back and Continue to move between steps before completing setup. The initial organization administrator also completes Organization information. Closing the browser does not skip pending setup. Invitations expire after seven days; ask an administrator to resend an expired or cancelled invitation.'
       },
       {
         title: 'Access levels',
@@ -414,11 +495,11 @@ export const articles = [
       },
       {
         title: 'Notifications',
-        text: 'Use the bell in the navigation bar for incoming notifications. Notifications has read and unread history loaded in portions. Preferences control in-app notifications; existing notifications remain in history. Task reminders follow their configured lead time. Calendar events notify the host and internal attendees 15 minutes before the start; connected Google events notify their owner, excluding all-day events. The bell refreshes automatically, and a brief alert appears while the CRM is open. These reminders do not send email or browser push notifications.'
+        text: 'Open Notifications → Preferences to choose Pop-up, Browser, Bell and Email by topic. Each checkbox saves automatically. Preferences belong to your user in the selected organization. The bell and account panels open beside the navigation bar. Read/unread history remains available; disabling a channel does not erase previous notifications. See the notification guide for browser permissions, timing and delivery limits.'
       },
       {
         title: 'Gmail and Google Calendar',
-        text: 'Profile → Integrations shows separate Gmail and Google Calendar cards. Connect each service using your own Google account and accept its permissions. Setup required means the CRM owner must configure the Google integration; Reconnect required means authorization needs to be renewed. Manage connections here; synchronization runs automatically. Saving an email access preference or using Google to sign in does not connect Gmail or synchronize calendars.'
+        text: 'Profile → Integrations shows separate Gmail and Google Calendar cards. Connect each service using your own Google account and accept its permissions. Setup required means the CRM owner must configure the Google integration; Reconnect required means authorization needs to be renewed. Manage connections here; synchronization runs automatically. Using Google to sign in does not connect Gmail or synchronize calendars.'
       }
     ]
   },
@@ -434,7 +515,7 @@ export const articles = [
       },
       {
         title: 'Delete a record',
-        text: 'Use Delete in the record profile. Review the consequences and confirm by typing the requested name or code. Where related-record deletion is offered, choose it explicitly; otherwise associated objects remain without that link. Your role must allow deletion of all records selected for removal.'
+        text: 'Use the record overflow/Actions menu → Delete. Review the consequences and confirm by typing the requested name or code. Where related-record deletion is offered, choose it explicitly; otherwise associated objects remain without that link. Your role must allow deletion of all records selected for removal.'
       },
       {
         title: 'Check first',
@@ -513,14 +594,14 @@ export const articles = [
         steps: [
           'Open Profile → Integrations → Connect Gmail and authorize your own Google account. If sending needs authorization, reconnect there.',
           'Open a contact or company → Emails. The contact email must match a message participant. Company history includes visible primary and linked contacts.',
-          'Search using any words from the subject, participants or message text. Use Filters for Sent or Received; company records also offer a contact filter.',
+          'Search using any words from the subject, participants or message text. Use the direction and date filters; company records also offer a contact filter.',
           'Conversations appear newest first. Expand a conversation to read messages in chronological order, and load more when available.'
         ]
       },
       {
         title: 'Send, reply or forward',
         steps: [
-          'Choose New email, or open a message and choose Reply or Forward.',
+          'Choose the Email action in the record card, or click its email address. Open an existing message to Reply or Forward.',
           'Review To, CC, subject and message. Your connected Gmail is the sender. Reply keeps the original subject; Forward starts a separate conversation.',
           'Choose Send only when the draft is ready. If the result is uncertain, check Gmail Sent before composing another message to avoid duplicates.'
         ]
@@ -531,7 +612,7 @@ export const articles = [
       },
       {
         title: 'What sync includes',
-        text: 'The initial import covers the last 90 days, followed by background sync about every five minutes. Large imports can take several jobs. Full message text is available, including expandable quoted history; remote images and attachments are not imported. Drafts, spam and trash are excluded. The CRM does not create contacts from Gmail, mark messages read in Gmail or track recipient opens. Compose, reply and forward support basic formatting and To/CC/BCC, with up to 25 recipients. Attach up to 10 files from your device, totaling 10 MB. Original Gmail attachments are not automatically forwarded. Drafts remain open only on this page; close confirmation prevents accidental discarding.'
+        text: 'The initial import covers the last 90 days. New mailbox changes trigger background synchronization; only messages matching accessible CRM contacts appear. Open Activity and Emails views check for changes about every 10 seconds. A scheduled sync about every five minutes is a recovery fallback, not the normal update trigger. Updates are best-effort, not instant or guaranteed; large imports and retries can take longer. Full message text is available, including expandable quoted history; remote images and attachments are not imported. Drafts, spam and trash are excluded. The CRM does not create contacts from Gmail, mark messages read in Gmail or track recipient opens. Compose, reply and forward support basic formatting and To/CC/BCC, with up to 25 recipients. Attach up to 10 files from your device, totaling 10 MB. Original Gmail attachments are not automatically forwarded. Drafts remain open only on this page; close confirmation prevents accidental discarding.'
       },
       {
         title: 'Disconnect or remove Google access',
@@ -553,7 +634,7 @@ export const articles = [
         title: 'Connect your calendar',
         steps: [
           'Open Profile → Integrations → Connect Google Calendar and authorize your own account.',
-          'CRM appointments use your connected calendar. Select additional calendars for availability in Profile → Integrations; their private event details are not shown.',
+          'CRM appointments use your connected calendar. In Availability calendars, open the searchable dropdown and select additional calendars; each selected calendar appears as a removable label. The list loads automatically. These calendars contribute busy time only, not extra copies of appointments or their private event details.',
           'Create appointments from Calendar or Schedule event on a record. The host must be the user with the connected calendar.',
           'Google notifications trigger background updates automatically. Scheduled sync remains a fallback; check the connection status if an appointment does not appear.'
         ]
@@ -580,7 +661,7 @@ export const articles = [
     sections: [
       {
         title: 'Closing and reopening the CRM',
-        text: 'Closing a normal browser tab does not sign you out. The session can renew for up to 14 days after its last successful renewal; active use can extend it again. There is no separate inactivity timeout. Expired or revoked access requires sign-in. Private browsing or clearing cookies may remove your session earlier. Use Sign out on shared computers.'
+        text: 'Remember me for 14 days keeps the sign-in for up to 14 days from authentication. Without it, the CRM uses session cookies and an eight-hour maximum session. Token renewal and organization switching do not extend that deadline. Browser session restoration may restore session cookies, so closing a tab is not a reliable logout. Use Sign out on shared computers. Revocation, private browsing or clearing cookies may end access earlier.'
       },
       {
         title: 'Upload and delete record attachments',

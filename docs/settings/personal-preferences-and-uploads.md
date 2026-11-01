@@ -67,6 +67,8 @@ References: [Amazon S3 FAQ](https://aws.amazon.com/s3/faqs/),
 Accepting a new invitation starts persistent setup on that organization membership.
 Both new accounts and existing users joining another organization confirm their full
 name, CRM language and personal time zone in Profile before opening CRM modules.
+They can also choose Light/Dark appearance and notification channels during this step.
+These optional choices reuse the regular settings controls and do not change setup permissions.
 Phone and communication language remain optional; a blank personal time zone inherits
 the organization default. Existing memberships are not retroactively enrolled.
 
@@ -80,18 +82,22 @@ memberships. Completion is validated by the existing self-profile and organizati
 settings APIs; the frontend shell reads it from its existing UI-context request.
 Deploy the API and apply migrations before the matching Web release.
 
-## Session review (2026-10-07)
+## Appearance and notification storage
 
-The API currently issues one-hour access tokens and fourteen-day refresh tokens.
-Refreshing rotates the refresh token and starts a new fourteen-day validity window;
-there is no separate absolute session deadline or inactivity timer. Auth cookies
-are persistent, so closing a normal browser tab/window is not an explicit logout.
-Sign out clears the cookies and attempts to revoke the refresh token at the API.
+Light/Dark appearance is a browser-local choice, applied immediately. Notification channel
+preferences are saved immediately to the current user's organization membership. They cover
+Pop-up, Browser, Bell and Email by topic; they are not a global switch for all transactional
+email. See [Profile preferences](../getting-started/profile-preferences.md).
 
-The web session now refreshes whether the access cookie is expired or already absent.
-Password, Google, magic-link sign-in, and organization switching share the same cookie
-writer (one hour for access; fourteen days for refresh and organization). Successful
-renewal replaces the rotated token and renews the selected organization's cookie.
-If the organization cookie is missing, it is restored from the API-issued access token.
-Invalid or revoked renewal clears authentication cookies and requires sign-in. Closing
-an incognito session or clearing site cookies still removes the browser session.
+## Sessions (reviewed 2026-11-01)
+
+Access tokens last up to one hour. A remembered session has a fixed deadline of 14 days
+from authentication; an unremembered session has a fixed eight-hour deadline and session
+cookies. Rotation and organization switching preserve the deadline instead of extending it.
+The cookie writer caps persistence to that deadline. Browser session restoration may retain
+session cookies; closing a tab is not an explicit logout. Sign out clears cookies and
+attempts to revoke the refresh token. Invalid or revoked renewal requires sign-in.
+
+These are application defaults. Deployment overrides must be reviewed before changing
+user-facing session promises. See `CRM_REMEMBER_SESSION_SECONDS` and
+`CRM_BROWSER_SESSION_SECONDS` in backend settings.

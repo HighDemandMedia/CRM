@@ -1,6 +1,6 @@
 # High Demand Media Help
 
-Help is pinned in the navigation footer and available to demo users. It contains Contact support and Knowledge base. The standalone navigation link to the legacy tenant Knowledge base (`/solutions`) is removed; existing organization articles are not deleted. `/help/new` redirects to the new form. Older enterprise ticket detail routes remain for compatibility but are not linked from this product help center.
+Help is pinned in the navigation footer and available to demo users. It contains Contact support, Knowledge base and Legal. The standalone navigation link to the legacy tenant Knowledge base (`/solutions`) is removed; existing organization articles are not deleted. `/help/new` redirects to the new form. Older enterprise ticket detail routes remain for compatibility but are not linked from this product help center.
 
 ## Requests
 
@@ -18,7 +18,10 @@ Local Mailpit/console/file/locmem delivery in DEBUG is explicitly shown as local
 
 ## Knowledge base
 
-`/help/knowledge` searches product guides in `frontend/src/lib/help/articles.js`. Guides cover navigation, contacts, duplicates/merge, companies, deals, list/pipeline views, calendar, tasks/reminders, tickets, reports, properties/pipelines/tags, roles/teams, profile/notifications/integrations and deletion/associations. Content explicitly distinguishes planned vs actual deal closes, current-state reports vs historical snapshots, and setup-required Google integrations vs active connections. Update the relevant guide whenever a workflow changes. These guides contain product information, not organization/customer data.
+`/help/knowledge` searches product guides in `frontend/src/lib/help/articles.js`. Guides cover navigation, contacts, duplicates/merge, companies, deals, list/pipeline views, calendar, tasks/reminders, tickets, reports, properties/pipelines/tags, roles/teams, profile/notifications/integrations and deletion/associations. Content explicitly distinguishes planned vs actual deal closes, current-state reports vs historical snapshots, and configured Google connections vs unavailable deployment configuration. Dedicated guides
+cover notification channels, Light/Dark appearance, CSV import/export, Google synchronization,
+invitation setup and session duration. The 2026-11-01 review removed obsolete claims that
+Google connections were unimplemented and documented best-effort push synchronization. Update the relevant guide whenever a workflow changes. These guides contain product information, not organization/customer data.
 
 ## Form design references
 

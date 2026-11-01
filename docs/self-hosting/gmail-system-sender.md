@@ -1,6 +1,11 @@
-# Gmail system sender
+# Gmail system sender (legacy alternative)
 
-The system sender delivers Django authentication, invitation and support mail.
+For the current system-mail setup, use [SES system sender](ses-system-sender.md).
+This document describes the optional legacy Gmail backend, not a reason to add
+Gmail permissions to the Google sign-in project. Do not switch a live provider
+without explicit deployment authorization.
+
+This legacy backend delivers Django authentication, invitation and support mail.
 It is separate from individual users' Gmail and Calendar integrations. Attachments
 can remain in S3 without configuring SES. Local development keeps its existing
 mail backend until explicitly changed.

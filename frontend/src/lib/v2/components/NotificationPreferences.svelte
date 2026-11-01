@@ -6,7 +6,13 @@
   import SearchableSelect from '$lib/components/SearchableSelect.svelte';
   import { Bell, Mail, PanelsTopLeft, PanelTop, Search, ChevronRight } from '@lucide/svelte';
 
-  let { settings } = $props();
+  let {
+    settings,
+    action = '?/preferences',
+    compact = false,
+    disabled = false,
+    busy = $bindable(false)
+  } = $props();
   const { ui } = useI18n();
   const channels = [
     { key: 'popup', label: 'Pop-up', icon: PanelTop, hint: 'Alerts inside the CRM.' },
@@ -23,7 +29,6 @@
   let query = $state('');
   let status = $state('all');
   let expanded = $state([]);
-  let busy = $state(false);
   let message = $state('');
   let error = $state('');
   let browserAttempted = $state(false);
@@ -50,7 +55,7 @@
     };
   }
   async function change(items, channel, checked) {
-    if (busy) return;
+    if (busy || disabled) return;
     const previous = values;
     values = {
       ...values,
@@ -75,7 +80,7 @@
       }
       const body = new FormData();
       body.set('notification_preferences', JSON.stringify(values));
-      const response = await fetch('?/preferences', {
+      const response = await fetch(action, {
         method: 'POST',
         body,
         headers: { 'x-sveltekit-action': 'true' },
@@ -110,36 +115,36 @@
   });
 </script>
 
-<div class="notification-settings" aria-busy={busy}>
+<div class="notification-settings" class:compact aria-busy={busy}>
   <div class="crm-settings-surface matrix">
-    <div class="toolbar crm-control-toolbar">
-      <label class="crm-search"
-        ><Search size={17} /><input
-          type="search"
-          bind:value={query}
-          aria-label={ui('Search notification topics')}
-          placeholder={ui('Search topics…')}
-        /></label
-      >
-      <div class="status-filter">
-        <SearchableSelect
-          label={ui('Notification status')}
-          bind:value={status}
-          options={[
-            { value: 'all', label: ui('All topics') },
-            { value: 'enabled', label: ui('Enabled topics') },
-            { value: 'disabled', label: ui('Disabled topics') }
-          ]}
-        />
-      </div>
-      <button
-        class="v2-btn"
-        type="button"
-        onclick={() =>
-          (expanded = expanded.length ? [] : [...new Set(topics.map((topic) => topic.group))])}
-        >{expanded.length ? ui('Collapse all') : ui('Expand all')}</button
-      >
-    </div>
+    {#if !compact}<div class="toolbar crm-control-toolbar">
+        <label class="crm-search"
+          ><Search size={17} /><input
+            type="search"
+            bind:value={query}
+            aria-label={ui('Search notification topics')}
+            placeholder={ui('Search topics…')}
+          /></label
+        >
+        <div class="status-filter">
+          <SearchableSelect
+            label={ui('Notification status')}
+            bind:value={status}
+            options={[
+              { value: 'all', label: ui('All topics') },
+              { value: 'enabled', label: ui('Enabled topics') },
+              { value: 'disabled', label: ui('Disabled topics') }
+            ]}
+          />
+        </div>
+        <button
+          class="v2-btn"
+          type="button"
+          onclick={() =>
+            (expanded = expanded.length ? [] : [...new Set(topics.map((topic) => topic.group))])}
+          >{expanded.length ? ui('Collapse all') : ui('Expand all')}</button
+        >
+      </div>{/if}
     <table>
       <caption class="sr-only">{ui('Notification channels by topic')}</caption>
       <thead
@@ -154,7 +159,7 @@
                 aria-label={ui('Toggle {channel} for all topics', { channel: ui(channel.label) })}
                 checked={selection(topics, channel.key).checked}
                 indeterminate={selection(topics, channel.key).mixed}
-                disabled={busy}
+                disabled={busy || disabled}
                 onchange={(event) => change(topics, channel.key, event.currentTarget.checked)}
               />
             </th>{/each}
@@ -180,7 +185,7 @@
                   aria-label={`${ui(group)} · ${ui(channel.label)}`}
                   checked={selection(items, channel.key).checked}
                   indeterminate={selection(items, channel.key).mixed}
-                  disabled={busy}
+                  disabled={busy || disabled}
                   onchange={(event) => change(items, channel.key, event.currentTarget.checked)}
                 /></td
               >{/each}
@@ -196,7 +201,7 @@
                       type="checkbox"
                       aria-label={`${ui(topic.label)} · ${ui(channel.label)}`}
                       checked={!!values[topic.key]?.[channel.key]}
-                      disabled={busy}
+                      disabled={busy || disabled}
                       onchange={(event) =>
                         change([topic], channel.key, event.currentTarget.checked)}
                     /></td
@@ -237,6 +242,17 @@
   }
   .matrix {
     overflow: hidden;
+  }
+  .compact th:not(:first-child),
+  .compact td:not(:first-child) {
+    width: 64px;
+    padding-inline: 6px;
+  }
+  .compact th:first-child {
+    padding-left: 12px;
+  }
+  .compact .topic-detail th:first-child {
+    padding-left: 24px;
   }
   .toolbar {
     display: flex;

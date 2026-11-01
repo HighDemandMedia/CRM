@@ -2113,5 +2113,10 @@
   "Support ticket updated": "Ticket de soporte actualizado",
   "View task": "Ver tarea",
   "View event": "Ver evento",
-  "View ticket": "Ver ticket"
+  "View ticket": "Ver ticket",
+  "Ready to finish": "Listo para finalizar",
+  "Choose your appearance": "Elige la apariencia",
+  "Choose your notifications": "Elige tus notificaciones",
+  "Your preferences are ready. Complete setup to open your workspace.": "Tus preferencias están listas. Completa la configuración para abrir tu espacio de trabajo.",
+  "Complete setup": "Completar configuración"
 }

@@ -1,16 +1,39 @@
 # Sales Calendar
 
-Calendar in Sell shows the appointment_at field of active contacts and companies accessible to the signed-in user. The list APIs enforce organization and record permissions before pagination. Only the visible date range is requested, with exclusive end timestamps and local browser timezone. All result pages are loaded. An appointment opens the source profile for editing. Company cards show the first associated contact when available and use that contact as a fallback for missing language, phone and email.
+Reviewed against the implementation on 2026-11-01.
 
-Legacy contact/company fields still support one appointment per record. The Create appointment button now creates independent SalesAppointment records with a stable UUID, organization, title, host Profile, UTC start/end, internal notes and creator metadata. Multiple independent appointments are supported. Users see appointments they host or created; org admins see all in their organization. Host selection is validated against active users in that organization. PostgreSQL RLS adds organization isolation. Day and week use a 24-hour grid with half-hour guides, scroll initially to 8 AM and place appointments at their local start minute. Overlapping cards use separate lanes. Cards reserve one hour of visual space for readability; this is not an appointment duration. Month remains unchanged; month shows six weeks. It does not invent duration or end time.
+Calendar combines permitted CRM appointments, legacy contact/company appointment fields,
+and the signed-in user's connected calendar data. Organization and record permissions apply;
+connection ownership does not grant access to another user's private calendar or mailbox.
 
-## Google Calendar integration
+Schedule event creates a SalesAppointment with a generated record ID, host, start/end,
+attendees, associations and private internal notes. Multiple events per record are supported.
+The host must be an active user in the organization. Day/week cards use the event duration
+with a minimum display height; overlapping appointments occupy separate lanes. The display
+height is not a second appointment duration. Dates and times use the applicable calendar zone.
 
-Personal Google Calendar and Gmail connections are now implemented. See [connected account setup and behavior](self-hosting/google-connected-accounts.md). Activation requires OAuth credentials and user consent.
+## Google Calendar
 
-The frontend consumes a normalized event shape: id, recordId, type, title, start, href and contact information. Source keys contact:<uuid> and company:<uuid> remain stable when the appointment time changes. The dedicated SalesAppointment model now exists with UUID and start/end. Future work should add associations and explicit source timezone and migrate the legacy single appointment fields without duplication.
+The connected calendar receives CRM appointments. Profile → Integrations loads availability
+calendars automatically in a searchable multiple-selection dropdown. Selected calendars appear
+as removable labels. Additional calendars contribute busy intervals, not duplicate CRM events.
+Only authorized calendars can be selected; a read-only calendar is not a writable destination.
 
+Guest invitations support acceptance, tentative responses and declines. The CRM shows response
+status and updates the linked invitation when rescheduling or cancelling. Internal CRM notes
+are excluded from Google's event description and from guest invitations. Google-originated
+descriptions are separate from CRM private notes. Push notifications trigger background
+synchronization; foreground refresh and periodic recovery handle delayed or missed notices.
+This is near-real-time synchronization, not an instantaneous-delivery guarantee.
 
-New appointment cards open a details dialog with Host, start/end and internal notes. Day/week cards use their actual duration, with a minimum visual height for readability. The current creation form uses one local calendar date and requires end time after start time. Google sync runs in the background and exposes its status in Profile → Integrations.
+See [connected accounts](self-hosting/google-connected-accounts.md) and
+[Calendar push](operations/calendar-push-sync.md) for configuration and operational details.
 
-Scheduling an event with an attendee updates that record's Appointment field in the same transaction and creates a Contact/Account Activity entry with the event title, server timestamp and acting user. Rescheduling updates the field if it still points to that event's previous start. Cancelling similarly clears it or chooses the earliest remaining future event. A newer or manually changed Appointment value is preserved. The calendar omits a legacy field card when a visible linked event represents the same attendee and timestamp, avoiding duplicate cards. Existing historical events are not backfilled by this change.
+## Legacy appointment fields
+
+Scheduling with an attendee updates that record's Appointment field in the same transaction
+and creates an activity with the event title, timestamp and acting user. Rescheduling updates
+that field only if it still points to the previous event start. Cancellation clears it or
+chooses a remaining future event. A newer or manually changed Appointment value is preserved.
+The calendar omits a legacy field card when a visible linked event represents the same attendee
+and timestamp. Historical legacy data is not automatically backfilled into new appointments.

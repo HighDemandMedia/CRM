@@ -1,26 +1,61 @@
 # Profile preferences
 
-Implemented locally:
-- Name, sign-in email (read-only), phone, language and preferred time zone.
-- Photo upload controls are not offered in Profile. Existing photos can still be displayed.
-- In-app notification preferences per organization: master switch, mentions and ticket comments. The dispatcher checks these preferences before creating new notifications. Existing notifications remain.
-- Preferred Gmail access scope: send only, or read/send/sync. This is a saved preference, not an OAuth grant.
-- Separate Gmail and Google Calendar cards, explicitly marked Setup required.
+Reviewed against the implementation on 2026-11-01.
 
-Timezone is stored as a personal preference; it does not change organization reporting/day boundaries. Calendar timezone rendering still uses the existing calendar implementation.
+## First-time setup
 
-Organization name, currency, timezone and business hours stay under organization settings, not Profile.
+An invited member confirms their name, CRM language and personal time zone before
+opening the workspace. The initial administrator also confirms organization details.
+The guided sequence is **Your profile → Appearance → Notifications → Review**, with
+**Your organization** before Review for an initial administrator. Each step has its own
+screen and progress indicator, with Back/Continue controls and a final Complete setup action.
+These choices are optional; keeping the current defaults does not block completion.
+Changing notification choices does not complete setup or change membership permissions.
+Back/Continue preserves the current form draft; appearance and notification choices save
+immediately. Reloading resumes the server-owned profile or organization phase, not an
+unsubmitted draft.
 
-## Google integration work still required
+## Profile and appearance
 
-Google sign-in does not constitute a Gmail/Calendar connection. No integration tokens or connected accounts exist yet; connecting, selecting calendars, synchronization and disconnection are not implemented. The current UI deliberately disables connection buttons.
+Profile contains name, read-only sign-in email, phone, language and time zone.
+Profile information uses its Save changes button. Photo upload controls are not offered.
+Organization name, currency, time zone and business hours stay in Organization settings.
 
-Before enabling these cards:
-1. Confirm the email access scope with the owner.
-2. Configure a Google Cloud OAuth application for the deployment and local callback URLs. The current local Google client ID and client secret are unset.
-3. Implement user/organization-scoped OAuth with state/PKCE, secure token storage, refresh and revocation.
-4. Add calendar discovery/selection, event mapping and synchronization with explicit conflict, cancellation and disconnect behavior.
-5. Implement the chosen email workflow, then replace setup-required status with persisted connection state and real management actions.
-6. Verify access isolation, expired/revoked consent, synchronization retries and disconnect behavior before enabling the buttons.
+Appearance offers Light and Dark using the same control during setup and in Profile.
+The choice takes effect immediately and is saved in this browser. It is not synchronized
+between devices or saved as an organization-wide choice. Clearing site storage resets it.
+Appearance is not a claim of comprehensive accessibility conformance.
 
-No account was connected and no Google consent was granted by this profile UI update.
+## Notification preferences
+
+Notifications → Preferences manages Pop-up, Browser, Bell and Email by topic, with
+immediate saving. The same component is used during setup. Preferences belong to the
+current user in the current organization. Existing history is retained when a channel is
+disabled. Failed saves restore the last saved choice and show an error.
+
+Available topics are task reminders, upcoming events, ticket mentions, ticket comments,
+and website form submissions. Channel and group checkboxes support bulk changes.
+Browser alerts require permission, requested when the user enables that channel, and an
+open CRM tab. With both Pop-up and Browser enabled, the visible CRM uses Pop-up and a
+background tab uses Browser; delivery receipts suppress duplicate presentations across tabs.
+Browser previews are generic. Bell/history can show record context within the user's access.
+
+Email alerts use the configured system sender, not the user's Gmail connection.
+Account recovery, invitations and guest meeting invitations are separate transactional flows.
+Reminder scheduling and polling mean delivery is not guaranteed to be instantaneous.
+
+## Connected accounts
+
+Google sign-in, Gmail and Google Calendar are separate connections. Connecting either
+integration requires the user's own Google consent. Mailbox access is personal and scoped
+to the organization. Gmail supports sending and related-email synchronization; new mailbox
+changes trigger background sync, with periodic recovery if push delivery is delayed.
+
+Google Calendar creates appointments in the connected calendar. The availability dropdown
+loads automatically and supports multiple calendars with removable selected labels.
+Those additional calendars contribute busy time, not duplicate CRM appointments. Internal
+CRM notes are not included in guest invitations. Calendar updates and attendee responses
+sync in the background; instant delivery is not guaranteed.
+
+See [connected accounts](../self-hosting/google-connected-accounts.md),
+[Gmail push](../operations/gmail-push-sync.md) and the in-app knowledge base for current flows.

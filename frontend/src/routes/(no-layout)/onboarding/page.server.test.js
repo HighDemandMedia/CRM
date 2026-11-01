@@ -23,8 +23,20 @@ const admin = { setup_step: 'organization', permissions: { is_admin: true } };
 it('loads only personal setup for a team member without accessing organization settings', async () => {
   vi.mocked(apiRequest)
     .mockResolvedValueOnce({ setup_step: 'profile' })
-    .mockResolvedValueOnce({ user_obj: { name: 'Member' } });
-  expect(await load(event())).toMatchObject({ step: 'profile', includesOrganization: false });
+    .mockResolvedValueOnce({
+      user_obj: {
+        name: 'Member',
+        notification_settings: {
+          topics: [{ key: 'task.reminder' }],
+          values: { 'task.reminder': { bell: false } }
+        }
+      }
+    });
+  expect(await load(event())).toMatchObject({
+    step: 'profile',
+    includesOrganization: false,
+    profile: { notification_settings: { values: { 'task.reminder': { bell: false } } } }
+  });
   expect(apiRequest).toHaveBeenCalledTimes(2);
 });
 it('resumes the saved organization step and permits returning to the profile', async () => {

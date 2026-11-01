@@ -33,7 +33,7 @@ En desarrollo los correos llegan a Mailpit (`http://localhost:8025`); registro e
 ## Limpieza de servicios heredados
 
 - Eliminados Google Analytics, Sentry y grabación de sesiones. Retiradas las dependencias Sentry y su CLI del frontend/backend.
-- La fuente Manrope se sirve desde el propio CRM; ya no se solicita a Google Fonts.
+- La fuente Inter se sirve desde el propio CRM; ya no se solicita a Google Fonts.
 - Retirados el enlace a la app de BottleCRM y los datos de financiación del proyecto original.
 - Eliminados los workflows de publicación del paquete original. La CI permanece y contempla `main`.
 - Cookies Django sin dominio fijo de BottleCRM; pueden usar `SESSION_COOKIE_DOMAIN` si el despliegue lo necesita.

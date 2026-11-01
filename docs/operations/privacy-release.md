@@ -1,6 +1,7 @@
 # Privacy and legal release — draft, 2026-10-12
 
-> Historical implementation/review record. The 2026-10-14 release supersedes
+> Historical implementation/review record, not the current product status. See the
+> [2026-11-01 content audit](../audits/2026-11-01-onboarding-and-content.md) for the latest documentation review. The 2026-10-14 release supersedes
 > the disabled-purge gates below: closure and automatic purge now default to
 > enabled by the owner's decision. Read-only/export access lasts 30 days, then
 > access is denied and the next daily scheduler cycle deletes active tenant
@@ -8,7 +9,7 @@
 > [current release instructions](release-2026-10-14.md). Cloud backup/version
 > retention and legal acceptance activation remain separate concerns.
 
-## Status
+## Historical status (2026-10-12)
 
 Not effective or deployed. `CRM_LEGAL_VERSION` defaults to empty: invitation
 acceptance is not yet enforced and no historical acceptance is invented.
