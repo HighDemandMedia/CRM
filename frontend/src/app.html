@@ -19,11 +19,13 @@
       // Apply the saved appearance before paint; mode-watcher manages subsequent changes.
       try {
         const preference = localStorage.getItem('mode-watcher-mode');
-        const dark =
-          preference === 'dark' ||
-          (preference === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        const dark = preference === 'dark';
         document.documentElement.classList.toggle('dark', dark);
         document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        // Older system-following choices must not turn the CRM dark automatically.
+        if (preference !== 'dark' && preference !== 'light') {
+          localStorage.setItem('mode-watcher-mode', 'light');
+        }
       } catch {
         // Keep the default light appearance when browser storage is unavailable.
       }

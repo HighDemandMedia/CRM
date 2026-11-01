@@ -8,6 +8,7 @@ const initialAppearance = template.match(
 )[1];
 
 function renderAppearance(preference, systemDark = false, storageBlocked = false) {
+  let storedPreference = preference;
   const classes = new Set();
   const root = {
     style: {},
@@ -25,23 +26,43 @@ function renderAppearance(preference, systemDark = false, storageBlocked = false
       getItem() {
         if (storageBlocked) throw new Error('Storage unavailable');
         return preference;
+      },
+      setItem(key, value) {
+        storedPreference = value;
       }
     }
   });
-  return { dark: classes.has('dark'), scheme: root.style.colorScheme };
+  return { dark: classes.has('dark'), scheme: root.style.colorScheme, storedPreference };
 }
 
 describe('appearance before hydration', () => {
   it('keeps new visits light even when the device uses dark mode', () => {
-    expect(renderAppearance(null, true)).toEqual({ dark: false, scheme: 'light' });
+    expect(renderAppearance(null, true)).toMatchObject({
+      dark: false,
+      scheme: 'light',
+      storedPreference: 'light'
+    });
   });
   it('restores explicit dark and light choices independently of the device', () => {
-    expect(renderAppearance('dark', false)).toEqual({ dark: true, scheme: 'dark' });
-    expect(renderAppearance('light', true)).toEqual({ dark: false, scheme: 'light' });
+    expect(renderAppearance('dark', false)).toMatchObject({
+      dark: true,
+      scheme: 'dark',
+      storedPreference: 'dark'
+    });
+    expect(renderAppearance('light', true)).toMatchObject({
+      dark: false,
+      scheme: 'light',
+      storedPreference: 'light'
+    });
   });
-  it('honors an existing system preference', () => {
-    expect(renderAppearance('system', true).dark).toBe(true);
-    expect(renderAppearance('system', false).dark).toBe(false);
+  it('migrates system preferences to explicit light before hydration', () => {
+    for (const systemDark of [true, false]) {
+      expect(renderAppearance('system', systemDark)).toMatchObject({
+        dark: false,
+        scheme: 'light',
+        storedPreference: 'light'
+      });
+    }
   });
   it('falls back to light for an invalid preference', () => {
     expect(renderAppearance('invalid', true).dark).toBe(false);

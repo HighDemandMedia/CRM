@@ -9,5 +9,5 @@
   });
 </script>
 
-<ModeWatcher defaultMode="light" disableHeadScriptInjection />
+<ModeWatcher defaultMode="light" track={false} disableHeadScriptInjection />
 {@render children()}

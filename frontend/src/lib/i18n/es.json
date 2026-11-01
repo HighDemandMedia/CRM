@@ -2118,5 +2118,7 @@
   "Choose your appearance": "Elige la apariencia",
   "Choose your notifications": "Elige tus notificaciones",
   "Your preferences are ready. Complete setup to open your workspace.": "Tus preferencias están listas. Completa la configuración para abrir tu espacio de trabajo.",
-  "Complete setup": "Completar configuración"
+  "Complete setup": "Completar configuración",
+  "Sign out of the current account to continue with this invitation.": "Cierra la sesión actual para continuar con esta invitación.",
+  "Continue with invited email": "Continuar con el email invitado"
 }
