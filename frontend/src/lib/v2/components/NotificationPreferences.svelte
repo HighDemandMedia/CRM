@@ -288,7 +288,7 @@
   input[type='checkbox'] {
     width: 17px;
     height: 17px;
-    accent-color: var(--crm-primary);
+    accent-color: var(--crm-link);
     cursor: pointer;
     vertical-align: middle;
   }

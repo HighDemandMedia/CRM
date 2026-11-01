@@ -204,14 +204,14 @@
     align-items: center;
     justify-content: center;
     border: 1px solid transparent;
-    color: var(--crm-primary, #c82322);
+    color: var(--crm-link);
   }
   .mark.multiple {
     border-color: var(--crm-control-border);
     border-radius: 3px;
   }
   .selected .mark.multiple {
-    border-color: var(--crm-primary, #c82322);
+    border-color: var(--crm-link);
   }
   .option-label {
     min-width: 0;

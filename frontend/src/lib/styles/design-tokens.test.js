@@ -66,7 +66,7 @@ for (const [theme, tokens] of Object.entries({ light, dark })) {
       });
     }
     for (const boundary of ['control-border', 'focus']) {
-      for (const surface of ['surface', 'canvas', 'surface-secondary']) {
+      for (const surface of ['surface', 'canvas', 'surface-secondary', 'surface-selected']) {
         it(`${boundary} against ${surface} meets non-text AA`, () => {
           expect(contrast(color(tokens, boundary), color(tokens, surface))).toBeGreaterThanOrEqual(
             3

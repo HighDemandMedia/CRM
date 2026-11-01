@@ -152,8 +152,8 @@
     cursor: pointer;
   }
   label:has(input:checked) {
-    border-color: var(--crm-primary);
-    background: color-mix(in srgb, var(--crm-primary) 5%, var(--crm-surface));
+    border-color: var(--crm-focus);
+    background: var(--crm-surface-selected);
   }
   input {
     margin-top: 0.25rem;

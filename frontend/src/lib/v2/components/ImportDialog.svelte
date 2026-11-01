@@ -602,15 +602,15 @@
     font-size: var(--crm-text-sm);
   }
   .dropzone.dragging {
-    border-color: var(--crm-primary);
-    background: color-mix(in srgb, var(--crm-primary) 6%, var(--crm-surface));
+    border-color: var(--crm-focus);
+    background: var(--crm-surface-selected);
   }
   .dropzone > span:not(.upload-icon),
   small {
     color: var(--crm-text-muted);
   }
   .upload-icon {
-    color: var(--crm-primary);
+    color: var(--crm-link);
     margin-bottom: 0.25rem;
   }
   .dropzone button {
@@ -635,7 +635,7 @@
     color: var(--crm-text);
   }
   .close-button:focus-visible {
-    outline: 2px solid var(--crm-primary);
+    outline: 2px solid var(--crm-focus);
     outline-offset: 2px;
   }
   .close-button:disabled {
@@ -685,7 +685,7 @@
     display: block;
     width: 100%;
     margin-top: 0.5rem;
-    accent-color: var(--crm-primary);
+    accent-color: var(--crm-link);
   }
   .ready,
   .processing,

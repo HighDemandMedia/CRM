@@ -184,7 +184,7 @@
     margin: 0;
   }
   .disclosure a {
-    color: var(--crm-accent, #b91c1c);
+    color: var(--crm-link);
     text-decoration: underline;
     width: fit-content;
   }
