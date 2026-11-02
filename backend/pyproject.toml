@@ -72,7 +72,7 @@ dependencies = [
     # requires psycopg >= 3"), and DATABASES["default"]["OPTIONS"]["pool"] in
     # crm/settings.py depends on it. No application code imports the driver
     # directly, so the swap is confined to this line.
-    "psycopg[binary,pool]>=3.3.5",
+    "psycopg[binary,pool]>=3.3.6",
     "whitenoise>=6.12.0",
     "django-storages>=1.14.6",
     "django-crum>=0.7.9",
