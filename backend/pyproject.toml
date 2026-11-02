@@ -88,7 +88,7 @@ dependencies = [
     # accessors landed; this pin sits higher only because floors here track the
     # versions in uv.lock.
     "pillow>=13.0.0",
-    "cryptography>=50.0.1",
+    "cryptography>=50.0.2",
     # PDF generation (also needs system libs: cairo, pango, gdk-pixbuf, libffi, shared-mime-info)
     # Production WSGI server
     "gunicorn>=26.2.0",
