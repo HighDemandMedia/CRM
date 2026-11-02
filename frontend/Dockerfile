@@ -22,7 +22,7 @@
 # work, so the app looks healthy while all 64 form actions reject. Set it to the
 # public URL users type, e.g. ORIGIN=https://crm.example.com.
 
-FROM node:24-slim AS base
+FROM node:26-slim AS base
 # Pinned so image builds are reproducible.
 RUN corepack enable && corepack prepare pnpm@11.17.0 --activate
 WORKDIR /app
@@ -52,7 +52,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 
-FROM node:24-slim AS runtime
+FROM node:26-slim AS runtime
 WORKDIR /app
 # Allow one 25 MiB CRM file plus multipart framing; keep the request bounded.
 ENV NODE_ENV=production BODY_SIZE_LIMIT=27262976
