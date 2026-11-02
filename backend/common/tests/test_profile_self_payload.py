@@ -100,10 +100,15 @@ def test_profile_language_saved_and_validated(user_client, user_profile, admin_p
 
 @pytest.mark.django_db
 def test_personal_preferences_validate_and_do_not_change_org(
-    user_client, user_profile, admin_profile, org_a
+    user_client, user_profile, admin_profile, org_a, settings
 ):
     from common import notifications
 
+    # This assertion covers an unconfigured provider, regardless of local OAuth env vars.
+    settings.GOOGLE_GMAIL_CLIENT_ID = ""
+    settings.GOOGLE_GMAIL_CLIENT_SECRET = ""
+    settings.GOOGLE_INTEGRATION_CLIENT_ID = ""
+    settings.GOOGLE_INTEGRATION_CLIENT_SECRET = ""
     previous_zone = org_a.timezone
     response = user_client.patch(
         "/api/profile/",

@@ -1,0 +1,8 @@
+# Exact historical fixtures, never blanket paths or rules.
+# Invalid API token used by a negative authentication test.
+266eb87dd0f19e7511a1def5846dc74b69a8fe1d:backend/common/tests/test_external_auth.py:generic-api-key:45
+# Truncated bearer-token placeholder in documentation.
+266eb87dd0f19e7511a1def5846dc74b69a8fe1d:docs/integrations/ai-agents.md:curl-auth-header:22
+# Removed upstream bottlecrm-io Firebase client identifier, not an HDM credential.
+# Public Firebase client configuration is not a private service-account key.
+266eb87dd0f19e7511a1def5846dc74b69a8fe1d:mobile/lib/firebase_options.dart:gcp-api-key:26

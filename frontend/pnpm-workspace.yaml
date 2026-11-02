@@ -1,4 +1,6 @@
 overrides:
+  # Preserve credential stripping across redirects for every Axios consumer.
+  'follow-redirects@<1.16.2': '^1.16.2'
   # Security fixes for SSR serialization; keep all consumers on the patched v5 line.
   'devalue@>=5.0.0 <5.9.3': '^5.9.3'
   # GHSA-rgw5-rvv9-x895 (high): DoS via unbounded intermediate arrays.

@@ -221,6 +221,11 @@ export const handle = async (input) => {
 
 /** @type {import('@sveltejs/kit').Handle} */
 const handleSession = async ({ event, resolve }) => {
+  // SvelteKit 2 enhanced forms must not turn a path into a network-path redirect.
+  // Reject before reading cookies or making authentication requests (GHSA-pfhg-q3qv-9q6r).
+  if (event.url.pathname.startsWith('//')) {
+    return new Response('Invalid request path', { status: 400 });
+  }
   // Get tokens from cookies
   /** @type {string | undefined} */
   let accessToken = event.cookies.get('jwt_access');

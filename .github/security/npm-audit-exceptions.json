@@ -1,0 +1,30 @@
+[
+  {
+    "id": "GHSA-pfhg-q3qv-9q6r",
+    "package": "@sveltejs/kit",
+    "version": "2.70.3",
+    "expires": "2026-12-02",
+    "reason": "Upstream workaround rejects leading double-slash paths in hooks.server.js before authentication and route resolution; regression tests cover normalized backslashes. Kit 3 needs a separate compatibility migration."
+  },
+  {
+    "id": "GHSA-27mw-82g8-phjj",
+    "package": "@sveltejs/kit",
+    "version": "2.70.3",
+    "expires": "2026-12-02",
+    "reason": "No prerendered routes or attacker-controlled cache headers. Reassess before adding prerendering or dynamic cache policies; Kit 3 migration remains pending."
+  },
+  {
+    "id": "GHSA-gcqx-w48m-w2h4",
+    "package": "deepmerge",
+    "version": "4.3.1",
+    "expires": "2026-12-02",
+    "reason": "No upstream fix. Build-only Svelte/Rollup callers merge trusted repository configuration, not CRM request data. Reassess any new caller."
+  },
+  {
+    "id": "GHSA-g3hv-75wg-m249",
+    "package": "minimatch",
+    "version": "10.2.6",
+    "expires": "2026-12-02",
+    "reason": "ESLint-only callers use default optimizationLevel 1; advisory requires level 2 or higher. Do not force incompatible major 11 into lint tooling; reassess callers on update."
+  }
+]

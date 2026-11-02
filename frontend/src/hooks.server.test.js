@@ -39,6 +39,33 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
+describe('network-path redirect protection', () => {
+  it.each(['//outside.example/path', '///outside.example', '/\\outside.example/path'])(
+    'rejects the normalized unsafe path %s before authentication or resolution',
+    async (path) => {
+      const request = input({ jwt_refresh: 'valid-refresh', org: orgId }, path);
+      const response = await handle(request);
+      expect(response.status).toBe(400);
+      expect(response.headers.has('location')).toBe(false);
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(request.resolve).not.toHaveBeenCalled();
+      expect(request.event.cookies.get).not.toHaveBeenCalled();
+      expect(axios.post).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['/contacts', '/contacts?search=//example', '/login', '/legal/terms?lang=es'])(
+    'preserves ordinary routes and query data: %s',
+    async (path) => {
+      const request = input({ jwt_access: access(), org: orgId }, path);
+      const response = await handle(request);
+      // Authenticated login redirects remain part of the existing session behavior.
+      expect(response.status).not.toBe(400);
+      if (path !== '/login') expect(request.resolve).toHaveBeenCalledOnce();
+    }
+  );
+});
+
 describe('persistent session refresh', () => {
   it.each([undefined, 'expired'])('restores access when the access cookie is %s', async (value) => {
     const next = access();

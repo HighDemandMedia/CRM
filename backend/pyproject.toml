@@ -63,7 +63,7 @@ dependencies = [
     "celery>=5.6.3",
     "python-dotenv>=1.2.3",
     "django-cors-headers>=4.9.0",
-    "djangorestframework>=3.18.0",
+    "djangorestframework>=3.18.2",
     "djangorestframework-simplejwt>=5.5.1",
     "drf-spectacular>=0.30.0",
     "django-ses>=4.8.0",
@@ -87,7 +87,7 @@ dependencies = [
     # (cases/inbound/sns.py). The API floor is 42, where the not_valid_*_utc
     # accessors landed; this pin sits higher only because floors here track the
     # versions in uv.lock.
-    "pillow>=12.3.0",
+    "pillow>=13.0.0",
     "cryptography>=50.0.1",
     # PDF generation (also needs system libs: cairo, pango, gdk-pixbuf, libffi, shared-mime-info)
     # Production WSGI server
@@ -119,6 +119,11 @@ dev = [
 docs = [
     "mkdocs-material>=9.7.7",
 ]
+
+[tool.uv]
+# Security floors for the TLS trust store and Google Auth's ASN.1 parser.
+# Constraints preserve their transitive ownership rather than adding app APIs.
+constraint-dependencies = ["certifi>=2026.10.19", "pyasn1>=0.6.5"]
 
 [tool.hatch.build.targets.wheel]
 # Must stay in sync with the first-party entries of INSTALLED_APPS in
