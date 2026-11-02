@@ -130,12 +130,30 @@ class OrgProfileCreateView(APIView):
         """
         here we are passing profile list of the user, where org details also included
         """
+        # API credentials represent a single membership, not the global user.
+        from common.external_auth import APIKeyAuthentication
+        from common.pat_auth import PATAuthentication
         from common.platform_access import (
             accessible_profiles,
             available_organizations,
             is_platform_owner,
         )
 
+        if isinstance(
+            request.successful_authenticator, (APIKeyAuthentication, PATAuthentication)
+        ):
+            profile_list = accessible_profiles(request.user).filter(
+                org_id=request.profile.org_id
+            )
+            return Response(
+                {
+                    "error": False,
+                    "status": 200,
+                    "profile_org_list": ShowOrganizationListSerializer(
+                        profile_list, many=True
+                    ).data,
+                }
+            )
         if is_platform_owner(request.user):
             return Response(
                 {

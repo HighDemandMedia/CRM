@@ -13,7 +13,7 @@ from cases.models import Case
 from common import serializer, swagger_params
 from common.models import Activity
 from common.permissions import HasOrgContext, is_org_admin
-from common.rbac import activity_scoped
+from common.rbac import activity_scoped, can_view_related
 from common.utils import STAGES
 from opportunity.models import Opportunity, StageAgingConfig
 from opportunity.workflow import DEFAULT_STAGE_EXPECTED_DAYS, ROTTEN_MULTIPLIER
@@ -209,7 +209,7 @@ class ApiTodayView(APIView):
                     "tone": "rust" if (hot or breached) else "clay",
                     "due": "Overdue" if breached else "Today",
                     "title": c.name,
-                    "detail": f"{c.priority} · {c.account.name if c.account_id else 'No account'} · awaiting first reply",
+                    "detail": f"{c.priority} · {c.account.name if can_view_related(c.account, request.profile) else 'No account'} · awaiting first reply",
                     "action": "Reply",
                     "href": f"/tickets/{c.id}",
                 }

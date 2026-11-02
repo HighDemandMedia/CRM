@@ -46,13 +46,13 @@ def visible_cases_qs(profile):
     from common.rbac import configured, scoped
 
     if configured(profile):
-        return scoped(Case.objects.all(), profile)
+        return scoped(Case._base_manager.all(), profile)
     """Cases ``profile`` is allowed to open. The queryset form of `read`.
 
     The watcher clause is what lets somebody keep following a ticket after
     they are unassigned, and it is the clause the detail view was missing.
     """
-    qs = Case.objects.filter(org=profile.org)
+    qs = Case._base_manager.filter(org=profile.org)
     if is_org_admin(profile):
         return qs
     return qs.filter(

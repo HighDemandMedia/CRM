@@ -644,17 +644,11 @@ class CreateUserSerializer(serializers.ModelSerializer):
         if self.instance:
             if self.instance.email.lower() == email.lower():
                 return email
-            # Renaming an account: the address must be free globally, since
-            # there is no way to fold two existing accounts together.
-            if (
-                User.objects.filter(email__iexact=email)
-                .exclude(pk=self.instance.pk)
-                .exists()
-            ):
-                raise serializers.ValidationError("Email already exists")
-            if Profile.objects.filter(user__email__iexact=email, org=self.org).exists():
-                raise serializers.ValidationError("Email already exists")
-            return email
+            # Membership administrators do not own the user's global identity.
+            # This endpoint has no verified email-change flow, including for self.
+            raise serializers.ValidationError(
+                "The sign-in email cannot be changed through member settings."
+            )
         # Creating a membership: an account owned elsewhere is reused by the
         # view, so only same-org duplicates are rejected here.
         if not Profile.objects.filter(user__email__iexact=email, org=self.org).exists():

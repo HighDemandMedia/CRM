@@ -571,14 +571,15 @@ class TaskDetailView(APIView):
                     {"error": True, "errors": _model_errors(exc)},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            task_obj.contacts.clear()
-            if params.get("contacts"):
-                contacts_list = params.get("contacts")
-                contact_ids = payload_id_list(contacts_list, "contacts")
-                contacts = Contact.objects.filter(
-                    id__in=contact_ids, org=request.profile.org
-                )
-                task_obj.contacts.add(*contacts)
+            if "contacts" in params:
+                task_obj.contacts.clear()
+                if params.get("contacts"):
+                    contacts_list = params.get("contacts")
+                    contact_ids = payload_id_list(contacts_list, "contacts")
+                    contacts = Contact.objects.filter(
+                        id__in=contact_ids, org=request.profile.org
+                    )
+                    task_obj.contacts.add(*contacts)
 
             task_obj.teams.clear()
             if params.get("teams"):

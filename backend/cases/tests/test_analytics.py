@@ -59,7 +59,10 @@ class TestBucketDates:
 
     def test_zero_window(self):
         from_dt = to_dt = _utc(2026, 5, 1, 0)
-        assert analytics._bucket_dates(from_dt, to_dt) == []
+        from rest_framework.exceptions import ValidationError
+
+        with pytest.raises(ValidationError):
+            analytics._bucket_dates(from_dt, to_dt)
 
 
 # --------------------------------------------------------------------------

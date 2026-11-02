@@ -24,6 +24,17 @@ from common.models import Notification, Profile
 logger = logging.getLogger(__name__)
 
 
+def visible_notifications(qs, profile):
+    """Reauthorize denormalized ticket content at read/delivery time."""
+    from django.db.models import Q
+
+    from cases.access import visible_cases_qs
+
+    return qs.filter(
+        ~Q(entity_type="Case") | Q(entity_id__in=visible_cases_qs(profile).values("pk"))
+    )
+
+
 def create(
     recipient: Profile,
     verb: str,
@@ -55,6 +66,14 @@ def create(
         and getattr(entity, "org_id", recipient.org_id) != recipient.org_id
     ):
         return None
+    if (
+        entity is not None
+        and getattr(getattr(entity, "_meta", None), "label_lower", None) == "cases.case"
+    ):
+        from cases.access import has_case_read_access
+
+        if not has_case_read_access(recipient, entity):
+            return None
     channels = channels_for(recipient, verb)
     # Web-form email uses its existing outbox, independent of in-app delivery.
     email_pending = channels["email"] and verb != "webform.submitted"

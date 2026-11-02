@@ -13,11 +13,18 @@ import '../../providers/lookup_provider.dart';
 import '../../providers/tickets_provider.dart';
 import '../../routes/app_router.dart';
 import '../../services/api_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/cards/ticket_card.dart';
 import '../../widgets/common/common.dart';
 import '../../widgets/forms/multi_select_sheet.dart';
 
-const String _filtersPrefsKey = 'tickets_filters_v1';
+String? _filtersPrefsKey() {
+  final auth = AuthService();
+  final user = auth.currentUser?.id;
+  final org = auth.selectedOrganization?.id;
+  if (user == null || org == null) return null;
+  return 'tickets_filters_v2:${Uri.encodeComponent(user)}:${Uri.encodeComponent(org)}';
+}
 
 /// Tickets List Screen, paginated list with server- and client-side filters.
 class TicketsListScreen extends ConsumerStatefulWidget {
@@ -65,9 +72,17 @@ class _TicketsListScreenState extends ConsumerState<TicketsListScreen> {
   }
 
   Future<void> _restoreFilters() async {
+    final key = _filtersPrefsKey();
+    final generation = AuthService().sessionGeneration;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_filtersPrefsKey);
+      await prefs.remove('tickets_filters_v1');
+      if (key == null ||
+          !mounted ||
+          generation != AuthService().sessionGeneration) {
+        return;
+      }
+      final raw = prefs.getString(key);
       if (raw == null || raw.isEmpty) return;
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) return;
@@ -86,13 +101,17 @@ class _TicketsListScreenState extends ConsumerState<TicketsListScreen> {
   }
 
   Future<void> _persistFilters(TicketListFilters filters) async {
+    final key = _filtersPrefsKey();
+    final generation = AuthService().sessionGeneration;
+    if (key == null) return;
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (!mounted || generation != AuthService().sessionGeneration) return;
       if (!filters.hasAny) {
-        await prefs.remove(_filtersPrefsKey);
+        await prefs.remove(key);
         return;
       }
-      await prefs.setString(_filtersPrefsKey, jsonEncode(filters.toJson()));
+      await prefs.setString(key, jsonEncode(filters.toJson()));
     } catch (_) {
       // Persistence is best-effort; failing to save shouldn't block the UI.
     }
@@ -972,8 +991,9 @@ class _TicketsListScreenState extends ConsumerState<TicketsListScreen> {
     if (after == null && before == null) return 'Date';
     String fmt(DateTime d) =>
         '${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
-    if (after != null && before != null)
+    if (after != null && before != null) {
       return '${fmt(after)} → ${fmt(before)}';
+    }
     if (after != null) return 'After ${fmt(after)}';
     return 'Before ${fmt(before!)}';
   }

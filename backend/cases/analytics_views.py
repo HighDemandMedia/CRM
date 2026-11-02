@@ -64,7 +64,7 @@ def _parse_dt(
             d = datetime.fromisoformat(value)
             return timezone.make_aware(d + timedelta(days=1) if end_of_day else d)
         return datetime.fromisoformat(value)
-    except ValueError:
+    except (ValueError, OverflowError):
         raise ValidationError(
             {
                 field: [

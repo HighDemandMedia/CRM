@@ -514,10 +514,10 @@ class TestTaskDetailView:
         assert tag1.id not in tag_ids
         assert task.assigned_to.count() == 1
 
-    def test_update_task_clears_m2m_when_empty(
+    def test_update_task_preserves_omitted_contacts(
         self, admin_client, admin_profile, admin_user, org_a
     ):
-        """PUT without contacts/teams/assigned_to/tags should clear them."""
+        """PUT must preserve omitted contact associations."""
         contact = Contact.objects.create(
             first_name="Jane",
             last_name="Doe",
@@ -544,7 +544,7 @@ class TestTaskDetailView:
         )
         assert response.status_code == 200
         task.refresh_from_db()
-        assert task.contacts.count() == 0
+        assert task.contacts.count() == 1
         assert task.assigned_to.count() == 0
         assert task.tags.count() == 0
         assert task.teams.count() == 0

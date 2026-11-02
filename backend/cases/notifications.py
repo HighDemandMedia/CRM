@@ -130,6 +130,8 @@ def dispatch_for_comment(comment, case, actor: Profile | None = None) -> dict:
     if case is None:
         return {"mentioned": [], "watchers_notified": []}
 
+    from cases.access import has_case_read_access
+
     actor_id = actor.id if actor is not None else None
     body = getattr(comment, "comment", "") or ""
 
@@ -138,7 +140,11 @@ def dispatch_for_comment(comment, case, actor: Profile | None = None) -> dict:
     for p in mentioned_profiles:
         if actor_id is not None and p.id == actor_id:
             continue
-        if not p.is_active:
+        if (
+            not p.is_active
+            or p.org_id != case.org_id
+            or not has_case_read_access(p, case)
+        ):
             continue
         # Auto-watch first so they receive future fan-outs even if the
         # mention itself was rate-limited.
@@ -169,6 +175,8 @@ def dispatch_for_comment(comment, case, actor: Profile | None = None) -> dict:
     )
     watchers_notified: list[Profile] = []
     for p in watcher_profiles:
+        if p.org_id != case.org_id or not has_case_read_access(p, case):
+            continue
         notif_mod.create(
             p,
             "case.commented",

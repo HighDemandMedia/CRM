@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from common.last_activity import ActivityListSerializer, LastActivitySerializerMixin
 from common.pipeline_settings import PipelineRulesMixin, stages_for
-from common.rbac import VisibleCRMSerializerMixin
+from common.rbac import VisibleCRMSerializerMixin, can_view_related
 from common.serializer import (
     AttachmentsSerializer,
     OrganizationSerializer,
@@ -62,7 +62,7 @@ class ContactSerializer(
         or fall back to `organization` -- which is free text and is frequently
         a *different* company from the linked one.
         """
-        if not obj.account_id:
+        if not obj.account_id or not can_view_related(obj.account):
             return None
         return {"id": str(obj.account.id), "name": obj.account.name}
 
@@ -84,6 +84,7 @@ class ContactSerializer(
                 obj.account_contacts.all(),
                 key=lambda item: (item.name.lower(), str(item.pk)),
             )
+            if can_view_related(account)
         ]
 
     class Meta:

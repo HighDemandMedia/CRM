@@ -9,22 +9,37 @@ import 'package:flutter_test/flutter_test.dart';
 /// path is unreachable through `ApiConfig.baseUrl` itself. `resolveBaseUrl`
 /// takes the two inputs as arguments for exactly that reason.
 void main() {
-  group('with no override, which is every build today', () {
-    test('debug and release resolve to different hosts', () {
-      final debug = ApiConfig.resolveBaseUrl(override: '', isDebug: true);
-      final release = ApiConfig.resolveBaseUrl(override: '', isDebug: false);
-
-      expect(debug, isNot(release));
-      expect(release, 'https://api.bottlecrm.io');
+  group('with no API override', () {
+    test('debug uses the local emulator server', () {
+      expect(
+        ApiConfig.resolveBaseUrl(override: '', isDebug: true),
+        'http://10.0.2.2:8000',
+      );
     });
 
-    test('the shipped default is what the app actually uses', () {
+    test('release requires an explicitly configured HTTPS server', () {
+      expect(
+        () => ApiConfig.resolveBaseUrl(override: '', isDebug: false),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('Set API_BASE_URL'),
+          ),
+        ),
+      );
+    });
+
+    test('the app uses the build-time API configuration', () {
       // Pins the wiring, not just the helper: a `baseUrl` that stopped calling
       // `resolveBaseUrl` would leave every test above green and every request
       // pointed somewhere else.
       expect(
         ApiConfig.baseUrl,
-        ApiConfig.resolveBaseUrl(override: '', isDebug: true),
+        ApiConfig.resolveBaseUrl(
+          override: const String.fromEnvironment('API_BASE_URL'),
+          isDebug: true,
+        ),
       );
     });
   });
@@ -92,10 +107,10 @@ void main() {
   });
 
   group('the Google client id', () {
-    test('has a default, so an unconfigured build still signs in', () {
+    test('uses only the explicitly configured Google client', () {
       expect(
         ApiConfig.googleServerClientId,
-        endsWith('.apps.googleusercontent.com'),
+        const String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID'),
       );
     });
   });

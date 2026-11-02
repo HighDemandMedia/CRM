@@ -509,7 +509,9 @@ class OrgAwareTokenRefreshView(APIView):
             # `profile` is None when there is no org context, which is exactly
             # what for_user_and_org expects.
             with transaction.atomic():
-                token.blacklist()
+                _, consumed = token.blacklist()
+                if not consumed:
+                    raise TokenError("Refresh token already consumed")
                 new_token = OrgAwareRefreshToken.for_user_and_org(
                     user, org, profile, session=token
                 )

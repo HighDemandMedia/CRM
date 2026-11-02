@@ -25,7 +25,12 @@ class AuthService {
   /// The two JWTs are the only things that do not live in shared preferences.
   /// See `token_storage.dart` for why, and for the migration that empties the
   /// old location on upgrade.
-  final TokenStorage _tokenStorage = TokenStorage();
+  TokenStorage _tokenStorage = TokenStorage();
+
+  @visibleForTesting
+  void setTokenStorageForTesting(TokenStorage storage) {
+    _tokenStorage = storage;
+  }
 
   // Storage keys
   static const String _userKey = 'user_data';
@@ -33,6 +38,27 @@ class AuthService {
   static const String _selectedOrgKey = 'selected_organization';
 
   // State
+  int _sessionGeneration = 0;
+  final ValueNotifier<int> _sessionChanges = ValueNotifier(0);
+  ValueListenable<int> get sessionChanges => _sessionChanges;
+  Future<void> _storageTail = Future<void>.value();
+
+  int get sessionGeneration => _sessionGeneration;
+
+  int _beginSessionChange() {
+    _apiService.invalidateSession();
+    return ++_sessionGeneration;
+  }
+
+  // Serialize persistence so a late write cannot overtake logout/new login.
+  Future<void> _persist(Future<void> Function() operation) {
+    final result = _storageTail.then((_) => operation());
+    _storageTail = result.catchError((Object error) {
+      debugPrint('Auth persistence failed: ${error.runtimeType}');
+    });
+    return result;
+  }
+
   String? _accessToken;
   String? _refreshToken;
   AuthUser? _currentUser;
@@ -111,6 +137,7 @@ class AuthService {
 
   /// Sign in with Google using ID token flow (same as old app)
   Future<bool> signInWithGoogle() async {
+    final generation = _beginSessionChange();
     try {
       debugPrint('AuthService: Initiating Google Sign-In...');
 
@@ -124,6 +151,7 @@ class AuthService {
 
       // Authenticate with Google (v7.1.1 method)
       final googleUser = await _googleSignIn.authenticate();
+      if (generation != _sessionGeneration) return false;
 
       debugPrint('AuthService: Authentication successful');
       debugPrint('AuthService: User email: ${googleUser.email}');
@@ -154,7 +182,9 @@ class AuthService {
       debugPrint('AuthService: Backend returned tokens, storing...');
 
       // Handle the response
+      if (generation != _sessionGeneration) return false;
       await _handleAuthResponse(response.data!);
+      if (generation != _sessionGeneration) return false;
 
       return true;
     } catch (e, stack) {
@@ -191,6 +221,7 @@ class AuthService {
     required String email,
     required String code,
   }) async {
+    final generation = _beginSessionChange();
     try {
       debugPrint('AuthService: Verifying magic code for $email...');
       final response = await _apiService.post(ApiConfig.magicLinkVerifyCode, {
@@ -205,6 +236,7 @@ class AuthService {
         return false;
       }
 
+      if (generation != _sessionGeneration) return false;
       final data = response.data!;
       _accessToken = data['access_token'] as String?;
       _refreshToken = data['refresh_token'] as String?;
@@ -249,12 +281,9 @@ class AuthService {
       _apiService.setOrganizationId(_selectedOrganization?.id);
 
       await _saveToStorage();
-      if (_selectedOrganization != null) {
-        await _saveSelectedOrganization();
-      } else {
-        await _clearSelectedOrganization();
-      }
 
+      if (generation != _sessionGeneration) return false;
+      _sessionChanges.value++;
       debugPrint('AuthService: Magic code sign-in successful');
       await CrashReporting.applyFromAuth(this);
       return true;
@@ -267,6 +296,7 @@ class AuthService {
 
   /// Handle authentication response from backend
   Future<void> _handleAuthResponse(Map<String, dynamic> data) async {
+    final generation = _sessionGeneration;
     // Backend returns JWTtoken (matching old app response format) and a
     // refresh_token alongside it, without the refresh token, the access
     // token would die in 1 hour with no way to refresh until the user picks
@@ -299,8 +329,9 @@ class AuthService {
 
     // Persist to storage (including clearing selected org)
     await _saveToStorage();
-    await _clearSelectedOrganization();
+    if (generation != _sessionGeneration) return;
 
+    _sessionChanges.value++;
     debugPrint(
       'AuthService: Auth response handled, user: ${_currentUser?.email}',
     );
@@ -311,6 +342,8 @@ class AuthService {
 
   /// Refresh the access token
   Future<bool> refreshAccessToken() async {
+    final generation = _sessionGeneration;
+    final refresh = _refreshToken;
     if (_refreshToken == null) {
       debugPrint('AuthService: No refresh token available');
       return false;
@@ -320,7 +353,7 @@ class AuthService {
       debugPrint('AuthService: Refreshing access token...');
 
       final response = await _apiService.post(ApiConfig.refreshToken, {
-        'refresh': _refreshToken,
+        'refresh': refresh,
       }, requiresAuth: false);
 
       if (!response.success || response.data == null) {
@@ -328,6 +361,9 @@ class AuthService {
         return false;
       }
 
+      if (generation != _sessionGeneration || refresh != _refreshToken) {
+        return false;
+      }
       final newAccess = response.data!['access'] as String?;
       final newRefresh = response.data!['refresh'] as String?;
       if (newAccess == null) {
@@ -346,7 +382,7 @@ class AuthService {
       await _saveToStorage();
 
       debugPrint('AuthService: Token refreshed successfully');
-      return true;
+      return generation == _sessionGeneration;
     } catch (e) {
       debugPrint('AuthService: Token refresh error: $e');
       return false;
@@ -355,6 +391,7 @@ class AuthService {
 
   /// Select an organization and get new tokens with org context
   Future<bool> selectOrganization(Organization org) async {
+    final generation = _beginSessionChange();
     try {
       debugPrint('AuthService: Switching to organization: ${org.name}...');
 
@@ -371,6 +408,8 @@ class AuthService {
         debugPrint('AuthService: Switch org failed: ${response.message}');
         return false;
       }
+
+      if (generation != _sessionGeneration) return false;
 
       // Update tokens from response. The backend has now blacklisted the token
       // we sent, so a malformed reply must not clear the field, mirror the
@@ -390,8 +429,9 @@ class AuthService {
 
       // Persist to storage
       await _saveToStorage();
-      await _saveSelectedOrganization();
 
+      if (generation != _sessionGeneration) return false;
+      _sessionChanges.value++;
       debugPrint('AuthService: Switched to organization: ${org.name}');
       await CrashReporting.applyFromAuth(this);
       return true;
@@ -413,6 +453,7 @@ class AuthService {
   ///
   /// Returns null on success, or a message to show the user.
   Future<String?> createOrganization(String name, {String? timezone}) async {
+    final generation = _sessionGeneration;
     try {
       final response = await _apiService.post(ApiConfig.orgCreate, {
         'name': name,
@@ -423,6 +464,9 @@ class AuthService {
         return response.message ?? 'Could not create the organization.';
       }
 
+      if (generation != _sessionGeneration) {
+        return 'Your session changed. Please try again.';
+      }
       final orgJson = response.data!['org'] as Map<String, dynamic>?;
       if (orgJson == null || orgJson['id'] == null) {
         return 'The organization was created but the server did not say which.';
@@ -434,6 +478,9 @@ class AuthService {
 
       // Without this the session still carries the previous org claim (or
       // none), so the app would land on a dashboard for the wrong org.
+      if (generation != _sessionGeneration) {
+        return 'Your session changed. Please try again.';
+      }
       final switched = await selectOrganization(org);
       if (!switched) {
         return 'The organization was created, but signing into it failed. '
@@ -465,25 +512,8 @@ class AuthService {
   Future<void> signOut() async {
     debugPrint('AuthService: Signing out...');
 
-    // Tell the server first, while the token is still in hand. Clearing local
-    // state was the whole of sign-out until now, which left the refresh token
-    // valid for its full fourteen days: a phone handed on, sold, or restored
-    // from a backup still carried a working session.
-    //
-    // Deliberately not awaited into a failure path. If the request cannot be
-    // made, the user still expects to be signed out of this device, and
-    // stranding them on a logged-in screen because the network dropped is the
-    // worse outcome. `ApiService` already swallows transport errors into an
-    // unsuccessful response.
-    if (_refreshToken != null) {
-      final response = await _apiService.post(ApiConfig.logout, {
-        'refresh': _refreshToken,
-      }, requiresAuth: false);
-      if (!response.success) {
-        debugPrint('AuthService: Server sign-out failed, clearing anyway');
-      }
-    }
-
+    final refresh = _refreshToken;
+    _beginSessionChange();
     _accessToken = null;
     _refreshToken = null;
     _currentUser = null;
@@ -491,6 +521,7 @@ class AuthService {
     _selectedOrganization = null;
 
     _apiService.clearAuth();
+    _sessionChanges.value++;
     // Leave the refresh callback wired, `refreshAccessToken` already bails
     // when `_refreshToken == null`, so it's safe to keep registered. Nulling
     // it here used to break refresh for any signOut → signIn cycle inside
@@ -498,15 +529,22 @@ class AuthService {
     await _clearStorage();
     await CrashReporting.clear();
 
+    if (refresh != null) {
+      await _apiService.post(ApiConfig.logout, {
+        'refresh': refresh,
+      }, requiresAuth: false);
+    }
     debugPrint('AuthService: Signed out');
   }
 
   /// Load authentication state from storage
   Future<void> _loadFromStorage() async {
+    final generation = _sessionGeneration;
     try {
       final prefs = await SharedPreferences.getInstance();
 
       final tokens = await _tokenStorage.read();
+      if (generation != _sessionGeneration) return;
       _accessToken = tokens.access;
       _refreshToken = tokens.refresh;
 
@@ -543,67 +581,53 @@ class AuthService {
     }
   }
 
-  /// Save authentication state to storage
-  Future<void> _saveToStorage() async {
-    try {
+  /// Persist a snapshot, never values belonging to a later session.
+  Future<void> _saveToStorage() {
+    final generation = _sessionGeneration;
+    final access = _accessToken;
+    final refresh = _refreshToken;
+    final user = _currentUser;
+    final organizations = _organizations;
+    final selected = _selectedOrganization;
+    return _persist(() async {
+      if (generation != _sessionGeneration) return;
       final prefs = await SharedPreferences.getInstance();
-
-      await _tokenStorage.write(access: _accessToken, refresh: _refreshToken);
-
-      if (_currentUser != null) {
+      if (generation != _sessionGeneration) return;
+      await _tokenStorage.write(access: access, refresh: refresh);
+      if (user != null) {
         await prefs.setString(
           _userKey,
           jsonEncode({
-            'id': _currentUser!.id,
-            'email': _currentUser!.email,
-            'name': _currentUser!.name,
-            'profileImage': _currentUser!.profilePic,
+            'id': user.id,
+            'email': user.email,
+            'name': user.name,
+            'profileImage': user.profilePic,
           }),
         );
+      } else {
+        await prefs.remove(_userKey);
       }
-      if (_organizations != null) {
+      if (organizations != null) {
         await prefs.setString(
           _organizationsKey,
-          jsonEncode(_organizations!.map((o) => o.toJson()).toList()),
+          jsonEncode(organizations.map((o) => o.toJson()).toList()),
         );
+      } else {
+        await prefs.remove(_organizationsKey);
       }
-
-      debugPrint('AuthService: Saved to storage');
-    } catch (e) {
-      debugPrint('AuthService: Save to storage error: $e');
-    }
+      if (selected != null) {
+        await prefs.setString(_selectedOrgKey, jsonEncode(selected.toJson()));
+      } else {
+        await prefs.remove(_selectedOrgKey);
+      }
+    });
   }
 
-  /// Save selected organization
-  Future<void> _saveSelectedOrganization() async {
-    if (_selectedOrganization != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _selectedOrgKey,
-        jsonEncode(_selectedOrganization!.toJson()),
-      );
-    }
-  }
-
-  /// Clear selected organization from storage
-  Future<void> _clearSelectedOrganization() async {
+  Future<void> _clearStorage() => _persist(() async {
+    await _tokenStorage.clear();
     final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_userKey);
+    await prefs.remove(_organizationsKey);
     await prefs.remove(_selectedOrgKey);
-  }
-
-  /// Clear all stored authentication data
-  Future<void> _clearStorage() async {
-    try {
-      await _tokenStorage.clear();
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_userKey);
-      await prefs.remove(_organizationsKey);
-      await prefs.remove(_selectedOrgKey);
-
-      debugPrint('AuthService: Storage cleared');
-    } catch (e) {
-      debugPrint('AuthService: Clear storage error: $e');
-    }
-  }
+  });
 }

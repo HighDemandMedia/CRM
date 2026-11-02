@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 
 from accounts.models import Account
 from common.permissions import HasOrgContext, is_org_admin
-from common.rbac import MODEL_MODULES, configured, permitted, scoped
+from common.rbac import MODEL_MODULES, can_view_related, configured, permitted, scoped
 from contacts.models import Contact
 from invoices.models import Estimate, Invoice, RecurringInvoice
 from opportunity.models import Opportunity
@@ -183,6 +183,7 @@ class RecordDeleteView(APIView):
                     "name": obj.name or str(obj.pk),
                 }
                 for obj in associated
+                if can_view_related(obj, self.request.profile)
             ],
         }
 

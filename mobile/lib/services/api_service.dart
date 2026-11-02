@@ -50,6 +50,13 @@ class ApiService {
   // Token and org getters - will be set by AuthService
   String? _accessToken;
   String? _organizationId;
+  int _sessionGeneration = 0;
+
+  /// Invalidates pending requests when an identity or organization changes.
+  void invalidateSession() {
+    _sessionGeneration++;
+    _refreshInFlight = null;
+  }
 
   // Refresh wiring. AuthService registers `refreshAccessToken` here during
   // initialize(); `_refreshInFlight` coalesces concurrent refresh attempts so
@@ -65,6 +72,7 @@ class ApiService {
 
   /// Set the organization ID (called by AuthService)
   void setOrganizationId(String? orgId) {
+    if (_organizationId != orgId) invalidateSession();
     _organizationId = orgId;
   }
 
@@ -76,6 +84,7 @@ class ApiService {
 
   /// Clear authentication state
   void clearAuth() {
+    invalidateSession();
     _accessToken = null;
     _organizationId = null;
   }
@@ -93,7 +102,7 @@ class ApiService {
     try {
       return await fut;
     } finally {
-      _refreshInFlight = null;
+      if (identical(_refreshInFlight, fut)) _refreshInFlight = null;
     }
   }
 
@@ -127,6 +136,13 @@ class ApiService {
     required Future<http.Response> Function(Map<String, String> headers) send,
     Duration? timeout,
   }) async {
+    final generation = _sessionGeneration;
+    void checkSession() {
+      if (requiresAuth && generation != _sessionGeneration) {
+        throw StateError('The session changed while this request was pending.');
+      }
+    }
+
     final deadline = timeout ?? ApiConfig.connectTimeout;
     // Refresh BEFORE sending, not after a rejection.
     //
@@ -143,9 +159,12 @@ class ApiService {
       await _refreshAccessToken();
     }
 
+    checkSession();
     var response = await send(
       _buildHeaders(requiresAuth: requiresAuth),
     ).timeout(deadline);
+
+    checkSession();
 
     // Kept as a fallback for a token revoked or rotated out from under us
     // before its `exp`, which the check above cannot see.
@@ -154,12 +173,14 @@ class ApiService {
         _accessToken != null &&
         _refreshCallback != null) {
       final refreshed = await _refreshAccessToken();
+      checkSession();
       if (refreshed) {
         response = await send(
           _buildHeaders(requiresAuth: requiresAuth),
         ).timeout(deadline);
       }
     }
+    checkSession();
     return response;
   }
 

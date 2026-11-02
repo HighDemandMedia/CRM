@@ -16,6 +16,8 @@ separate validation step to forget.
 
 from decimal import Decimal
 
+from rest_framework.exceptions import ValidationError
+
 #: Gap left between cards when appending or offsetting past the end.
 STRIDE = Decimal("1000")
 
@@ -64,7 +66,13 @@ def rebalance_column(column_qs):
 
 
 def place_in_column(
-    column_qs, *, above_id=None, below_id=None, explicit=None, exclude_pk=None
+    column_qs,
+    *,
+    above_id=None,
+    below_id=None,
+    explicit=None,
+    exclude_pk=None,
+    _rebalanced=False,
 ):
     """Return the ``kanban_order`` for a card landing in ``column_qs``.
 
@@ -93,9 +101,19 @@ def place_in_column(
         above = _neighbour(column_qs, below, below=False)
 
     if above is not None and below is not None:
+        if (above_id and below_id and str(above_id) == str(below_id)) or below < above:
+            raise ValidationError(
+                {"position": "Choose distinct neighbours in board order."}
+            )
         if below - above < MIN_GAP:
+            if _rebalanced:
+                raise ValidationError(
+                    {"position": "Board order changed. Refresh and try again."}
+                )
             rebalance_column(column_qs)
-            return place_in_column(column_qs, above_id=above_id, below_id=below_id)
+            return place_in_column(
+                column_qs, above_id=above_id, below_id=below_id, _rebalanced=True
+            )
         return (above + below) / 2
     if above is not None:
         return above + STRIDE

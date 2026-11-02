@@ -187,3 +187,33 @@ class Approval(BaseModel):
         if self.rule.approver_role and profile.role == self.rule.approver_role:
             return True
         return False
+
+
+def validate_close_approval(case):
+    """Enforce approvals for every persistence path that closes a ticket."""
+    from django.core.exceptions import ValidationError
+
+    if case.status != "Closed" or not case.org_id:
+        return
+    if getattr(case, "_approval_gate_skip", False):
+        return
+    previous = (
+        type(case)
+        ._base_manager.filter(pk=case.pk)
+        .values_list("status", flat=True)
+        .first()
+    )
+    if previous == "Closed":
+        return
+    rule = find_matching_rule(case, trigger_event="pre_close")
+    if (
+        rule is not None
+        and not Approval.objects.filter(
+            org_id=case.org_id, case_id=case.pk, rule=rule, state="approved"
+        ).exists()
+    ):
+        raise ValidationError(
+            {
+                "status": f"An approval is required before this case can be closed (rule: {rule.name})."
+            }
+        )

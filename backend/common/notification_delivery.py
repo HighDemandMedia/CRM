@@ -9,6 +9,7 @@ from django.utils.dateparse import parse_datetime
 
 from common.models import Notification
 from common.notification_preferences import delivery_channels, preferences_payload
+from common.notifications import visible_notifications
 from common.serializer import NotificationSerializer
 
 SALT = "crm.notification-delivery"
@@ -29,9 +30,12 @@ def delivery_batch(profile, cursor=None):
     if after_id:
         position |= Q(created_at=cutoff, id__gt=after_id)
     rows = list(
-        Notification.objects.filter(
-            recipient=profile,
-            org_id=profile.org_id,
+        visible_notifications(
+            Notification.objects.filter(
+                recipient=profile,
+                org_id=profile.org_id,
+            ),
+            profile,
         )
         .filter(position)
         .select_related("actor__user")

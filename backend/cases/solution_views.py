@@ -44,7 +44,7 @@ def _wants_release(data, instance=None):
         and data.get("status") == "approved"
         and (instance is None or instance.status != "approved")
     )
-    publishing = "is_published" in data and _as_bool(data.get("is_published")) != bool(
+    publishing = "is_published" in data and data.get("is_published") != bool(
         getattr(instance, "is_published", False)
     )
     return moving_to_approved or publishing
@@ -192,12 +192,11 @@ class SolutionListView(APIView, LimitOffsetPagination):
         # publishing. Without this an author could write an article and hand
         # it to customers in a single request, never touching the endpoints
         # that exist to gate exactly that.
-        if _wants_release(request.data):
-            assert_solution_release_access(request.profile)
-
         serializer = SolutionCreateUpdateSerializer(data=request.data)
 
         if serializer.is_valid():
+            if _wants_release(serializer.validated_data):
+                assert_solution_release_access(request.profile)
             solution = serializer.save(org=request.profile.org, created_by=request.user)
             _apply_tags(solution, request.data, request.profile.org)
 
@@ -252,13 +251,12 @@ class SolutionDetailView(APIView):
     def _update(self, request, pk, partial):
         solution = get_solution_or_404(request.profile, pk)
         assert_solution_write_access(request.profile, solution)
-        if _wants_release(request.data, solution):
-            assert_solution_release_access(request.profile)
-
         serializer = SolutionCreateUpdateSerializer(
             solution, data=request.data, partial=partial
         )
         if serializer.is_valid():
+            if _wants_release(serializer.validated_data, solution):
+                assert_solution_release_access(request.profile)
             solution = serializer.save(updated_by=request.user)
             _apply_tags(solution, request.data, request.profile.org)
             return Response(SolutionSerializer(solution).data)

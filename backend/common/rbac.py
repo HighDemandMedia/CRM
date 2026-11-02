@@ -228,7 +228,7 @@ def scoped(qs, profile, action="view", limit=None):
 
 
 def permitted(profile, obj, action="view"):
-    return scoped(type(obj).objects.filter(pk=obj.pk), profile, action).exists()
+    return scoped(type(obj)._base_manager.filter(pk=obj.pk), profile, action).exists()
 
 
 def require(profile, module, action):
@@ -502,6 +502,38 @@ def assert_model_write(obj, action):
         )
 
 
+def can_view_related(obj, profile=None):
+    """Apply the same record boundary to lightweight labels as nested serializers."""
+    if obj is None:
+        return False
+    if profile is None:
+        profile = getattr(get_current_request(), "profile", None)
+    if profile is None:
+        return True  # Trusted background callers have no request context.
+    if getattr(obj, "org_id", None) != profile.org_id:
+        return False
+    if configured(profile):
+        return permitted(profile, obj)
+    # Legacy memberships still have record-level access rules.
+    from accounts.access import has_account_access
+    from cases.access import has_case_read_access
+    from contacts.access import has_contact_access
+    from leads.access import has_lead_access
+    from opportunity.access import has_deal_access
+    from tasks.access import has_task_access
+
+    checks = {
+        "accounts.account": has_account_access,
+        "cases.case": has_case_read_access,
+        "contacts.contact": has_contact_access,
+        "tasks.task": has_task_access,
+        "leads.lead": lambda p, record: has_lead_access(p, p.user, record),
+        "opportunity.opportunity": lambda p, record: has_deal_access(p, p.user, record),
+    }
+    check = checks.get(obj._meta.label_lower)
+    return check(profile, obj) if check else False
+
+
 class VisibleCRMSerializerMixin:
     """Foreign-key nesting uses base managers; check visibility before rendering."""
 
@@ -510,11 +542,23 @@ class VisibleCRMSerializerMixin:
         label = getattr(getattr(instance, "_meta", None), "label_lower", None)
         if (
             label in MODEL_MODULES
-            and configured(profile)
-            and not permitted(profile, instance)
+            and profile is not None
+            and not can_view_related(instance, profile)
         ):
             return None
-        return super().to_representation(instance)
+        data = super().to_representation(instance)
+        if profile is not None:
+            for field in instance._meta.fields:
+                if (
+                    field.is_relation
+                    and field.many_to_one
+                    and field.name in data
+                    and field.related_model._meta.label_lower in MODEL_MODULES
+                    and getattr(instance, field.attname, None)
+                    and not can_view_related(getattr(instance, field.name), profile)
+                ):
+                    data[field.name] = None
+        return data
 
 
 def require_record(profile, obj, action="edit"):
@@ -543,6 +587,11 @@ def validate_record_fields(request, module, obj, creating=False):
         "contacts": "associations",
         "companies": "associations",
         "contact": "associations",
+        "opportunity": "associations",
+        "case": "associations",
+        "lead": "associations",
+        "parent": "associations",
+        "parent_id": "associations",
     }
     for field, action in fields.items():
         if field == "description" and module not in ("contacts", "companies", "deals"):
@@ -568,7 +617,7 @@ def validate_record_fields(request, module, obj, creating=False):
         gate(action)
     if "move" in request.path.strip("/").split("/"):
         gate("stage")
-    if "associations" in request.path.strip("/").split("/"):
+    if {"associations", "link"} & set(request.path.strip("/").split("/")):
         gate("associations")
     if request.data.get("comment"):
         gate("notes")

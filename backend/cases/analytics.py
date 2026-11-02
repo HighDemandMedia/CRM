@@ -20,12 +20,15 @@ from uuid import UUID
 
 from django.db.models import Q, QuerySet
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from cases.workflow import DEFAULT_FIRST_RESPONSE_SLA, TERMINAL_STATUSES
 from common.identifiers import normalize_identifier
 
 # ---------------------------------------------------------------------------
 # Helpers
+
+MAX_ANALYTICS_DAYS = 366 * 5
 
 
 def _percentile(sorted_values: list[float], pct: float) -> Optional[float]:
@@ -70,16 +73,34 @@ def _day_start(d: date) -> datetime:
 
 def _bucket_dates(from_dt: datetime, to_dt: datetime) -> list[date]:
     """Inclusive list of org-local dates from from_dt to to_dt-1 day."""
-    if to_dt <= from_dt:
-        return []
+    _validate_window(from_dt, to_dt)
     start = timezone.localdate(from_dt)
-    end = timezone.localdate(to_dt - timedelta(seconds=1))
+    end = timezone.localdate(to_dt - timedelta(microseconds=1))
     out: list[date] = []
     cur = start
     while cur <= end:
         out.append(cur)
+        if cur == end:
+            break
         cur += timedelta(days=1)
     return out
+
+
+def _validate_window(from_dt, to_dt):
+    try:
+        # Daily metrics need room for the following midnight as well.
+        if from_dt.year == 1 or to_dt.year == 9999:
+            raise ValidationError({"to": "Choose a valid date range."})
+        days = (
+            timezone.localdate(to_dt - timedelta(microseconds=1))
+            - timezone.localdate(from_dt)
+        ).days + 1
+        if to_dt <= from_dt or days < 1:
+            raise ValidationError({"to": "End must be after start."})
+        if days > MAX_ANALYTICS_DAYS:
+            raise ValidationError({"to": "Choose a date range of five years or less."})
+    except (OverflowError, ValueError):
+        raise ValidationError({"to": "Choose a valid date range."})
 
 
 def _coerce_window(
@@ -95,11 +116,15 @@ def _coerce_window(
     if to_dt is None:
         to_dt = now
     if from_dt is None:
-        from_dt = to_dt - timedelta(days=30)
+        try:
+            from_dt = to_dt - timedelta(days=30)
+        except OverflowError:
+            raise ValidationError({"from": "Choose a valid start date."})
     if timezone.is_naive(from_dt):
         from_dt = timezone.make_aware(from_dt)
     if timezone.is_naive(to_dt):
         to_dt = timezone.make_aware(to_dt)
+    _validate_window(from_dt, to_dt)
     return from_dt, to_dt
 
 

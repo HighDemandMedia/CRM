@@ -527,14 +527,15 @@ class OpportunityDetailView(APIView):
             previous_assigned_to_users = list(
                 opportunity_object.assigned_to.all().values_list("id", flat=True)
             )
-            opportunity_object.contacts.clear()
-            if params.get("contacts"):
-                contacts_list = params.get("contacts")
-                contact_ids = payload_id_list(contacts_list, "contacts")
-                contacts = Contact.objects.filter(
-                    id__in=contact_ids, org=request.profile.org
-                )
-                opportunity_object.contacts.add(*contacts)
+            if "contacts" in params:
+                opportunity_object.contacts.clear()
+                if params.get("contacts"):
+                    contacts_list = params.get("contacts")
+                    contact_ids = payload_id_list(contacts_list, "contacts")
+                    contacts = Contact.objects.filter(
+                        id__in=contact_ids, org=request.profile.org
+                    )
+                    opportunity_object.contacts.add(*contacts)
 
             opportunity_object.tags.clear()
             if params.get("tags"):

@@ -483,10 +483,10 @@ class TestCaseDetailView:
         assert case_a.teams.count() == 1
 
     @patch("cases.views.send_email_to_assigned_user")
-    def test_update_case_clears_m2m(
+    def test_update_case_preserves_omitted_contacts(
         self, mock_email, admin_client, admin_profile, admin_user, case_a, org_a
     ):
-        """PUT without M2M fields should clear them."""
+        """Omitted associations must not silently unlink contacts."""
         contact = Contact.objects.create(
             first_name="C", last_name="D", org=org_a, created_by=admin_user
         )
@@ -503,7 +503,7 @@ class TestCaseDetailView:
         )
         assert response.status_code == status.HTTP_200_OK
         case_a.refresh_from_db()
-        assert case_a.contacts.count() == 0
+        assert case_a.contacts.count() == 1
         assert case_a.assigned_to.count() == 0
         assert case_a.tags.count() == 0
 

@@ -51,7 +51,7 @@ class TestPutIsAFullReplace:
     """The verb the phone uses. Documented here so the shape is not a surprise."""
 
     @patch("cases.views.send_email_to_assigned_user")
-    def test_put_without_contacts_clears_them(
+    def test_put_without_contacts_preserves_them(
         self, _email, admin_client, admin_user, org_a
     ):
         case = _case(org_a, admin_user)
@@ -62,7 +62,7 @@ class TestPutIsAFullReplace:
             format="json",
         )
         assert response.status_code == 200
-        assert case.contacts.count() == 0
+        assert case.contacts.count() == 1
 
     @patch("cases.views.send_email_to_assigned_user")
     def test_put_keeps_the_contacts_it_is_sent(

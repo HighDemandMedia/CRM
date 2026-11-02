@@ -434,6 +434,10 @@ class _MinimalAccountField(serializers.RelatedField):
     contacts, etc., wasted bytes on a kanban card)."""
 
     def to_representation(self, value):
+        from common.rbac import can_view_related
+
+        if not can_view_related(value):
+            return None
         return {"id": str(value.pk), "name": getattr(value, "name", "") or ""}
 
 

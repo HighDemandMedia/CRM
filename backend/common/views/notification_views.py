@@ -36,6 +36,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.models import Notification
+from common.notifications import visible_notifications
 from common.serializer import NotificationSerializer
 
 DEFAULT_LIMIT = 20
@@ -43,9 +44,12 @@ MAX_LIMIT = 100
 
 
 def _user_qs(request):
-    return Notification.objects.filter(
-        recipient=request.profile, org_id=request.profile.org_id
-    ).filter(Q(channels={}) | Q(channels__bell=True))
+    return visible_notifications(
+        Notification.objects.filter(
+            recipient=request.profile, org_id=request.profile.org_id
+        ).filter(Q(channels={}) | Q(channels__bell=True)),
+        request.profile,
+    )
 
 
 def _parse_int(raw, default, *, lo=1, hi=MAX_LIMIT):

@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from accounts.models import Account
 from cases.access import is_org_admin, visible_cases_qs
 from common.permissions import HasOrgContext
-from common.rbac import configured, scoped
+from common.rbac import can_view_related, configured, scoped
 from contacts.models import Contact
 from opportunity.models import Opportunity
 
@@ -61,6 +61,9 @@ class GlobalSearchView(APIView):
         org = profile.org
         user = request.user
         results = []
+        visible_accounts = _scope_orgadmin(
+            Account.objects.filter(org=org), profile
+        ).values("pk")
 
         # Deals (Opportunity)
         deals = _scope_superuser(
@@ -70,7 +73,7 @@ class GlobalSearchView(APIView):
         ).filter(
             Q(name__icontains=q)
             | Q(description__icontains=q)
-            | Q(account__name__icontains=q)
+            | (Q(account_id__in=visible_accounts) & Q(account__name__icontains=q))
         )[:PER_TYPE]
         for deal in deals:
             results.append(
@@ -78,7 +81,11 @@ class GlobalSearchView(APIView):
                     "type": "deal",
                     "id": str(deal.id),
                     "title": deal.name,
-                    "subtitle": (deal.account.name if deal.account_id else "")
+                    "subtitle": (
+                        deal.account.name
+                        if can_view_related(deal.account, profile)
+                        else ""
+                    )
                     or deal.stage
                     or "",
                 }
@@ -126,7 +133,7 @@ class GlobalSearchView(APIView):
             .filter(
                 Q(name__icontains=q)
                 | Q(description__icontains=q)
-                | Q(account__name__icontains=q)
+                | (Q(account_id__in=visible_accounts) & Q(account__name__icontains=q))
             )[:PER_TYPE]
         )
         for case in cases:
@@ -135,7 +142,11 @@ class GlobalSearchView(APIView):
                     "type": "ticket",
                     "id": str(case.id),
                     "title": case.name,
-                    "subtitle": (case.account.name if case.account_id else "")
+                    "subtitle": (
+                        case.account.name
+                        if can_view_related(case.account, profile)
+                        else ""
+                    )
                     or case.status
                     or "",
                 }

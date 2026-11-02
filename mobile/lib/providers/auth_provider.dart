@@ -2,16 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/auth_response.dart';
 import '../services/auth_service.dart';
-import 'analytics_provider.dart';
-import 'approvals_provider.dart';
-import 'dashboard_provider.dart';
-import 'deals_provider.dart';
-import 'leads_provider.dart';
-import 'lookup_provider.dart';
-import 'profile_provider.dart';
-import 'solutions_provider.dart';
-import 'tasks_provider.dart';
-import 'tickets_provider.dart';
 
 /// Authentication state for the app
 class AuthState {
@@ -113,6 +103,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
     try {
       final success = await _authService.signInWithGoogle();
+      if (!ref.mounted) return success;
 
       if (success) {
         // Fresh Google sign-in clears selected org - user must select again
@@ -136,6 +127,7 @@ class AuthNotifier extends Notifier<AuthState> {
         return false;
       }
     } catch (e) {
+      if (!ref.mounted) return false;
       debugPrint('AuthNotifier: Google sign-in error: $e');
 
       state = state.copyWith(
@@ -151,6 +143,7 @@ class AuthNotifier extends Notifier<AuthState> {
   /// greeting/profile header updates without a re-login.
   Future<void> updateUserName(String name) async {
     await _authService.updateCachedUserName(name);
+    if (!ref.mounted) return;
     state = state.copyWith(user: _authService.currentUser);
   }
 
@@ -158,6 +151,7 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<bool> requestMagicCode(String email) async {
     state = state.copyWith(isLoading: true, clearError: true);
     final ok = await _authService.requestMagicCode(email);
+    if (!ref.mounted) return ok;
     state = state.copyWith(
       isLoading: false,
       error: ok
@@ -178,6 +172,7 @@ class AuthNotifier extends Notifier<AuthState> {
         email: email,
         code: code,
       );
+      if (!ref.mounted) return ok;
       if (!ok) {
         state = state.copyWith(
           isLoading: false,
@@ -194,6 +189,7 @@ class AuthNotifier extends Notifier<AuthState> {
       );
       return true;
     } catch (e) {
+      if (!ref.mounted) return false;
       state = state.copyWith(
         isLoading: false,
         error: 'Sign-in failed: ${e.toString()}',
@@ -210,10 +206,10 @@ class AuthNotifier extends Notifier<AuthState> {
 
     try {
       final success = await _authService.selectOrganization(org);
+      if (!ref.mounted) return success;
 
       if (success) {
         state = state.copyWith(isLoading: false, selectedOrganization: org);
-        _dropSessionCaches();
 
         debugPrint('AuthNotifier: Organization switched to ${org.name}');
         return true;
@@ -226,6 +222,7 @@ class AuthNotifier extends Notifier<AuthState> {
         return false;
       }
     } catch (e) {
+      if (!ref.mounted) return false;
       debugPrint('AuthNotifier: Switch organization error: $e');
 
       state = state.copyWith(
@@ -249,6 +246,7 @@ class AuthNotifier extends Notifier<AuthState> {
       timezone: timezone,
     );
 
+    if (!ref.mounted) return failure;
     if (failure != null) {
       state = state.copyWith(isLoading: false, error: failure);
       return failure;
@@ -259,9 +257,6 @@ class AuthNotifier extends Notifier<AuthState> {
       organizations: _authService.organizations,
       selectedOrganization: _authService.selectedOrganization,
     );
-    // A fresh org has none of the previous one's records; the same caches the
-    // org switch drops have to go here too.
-    _dropSessionCaches();
     return null;
   }
 
@@ -269,40 +264,11 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> signOut() async {
     debugPrint('AuthNotifier: Signing out...');
 
-    state = state.copyWith(isLoading: true, clearError: true);
-
-    await _authService.signOut();
-
+    final pending = _authService.signOut();
     state = const AuthState.initial();
-    _dropSessionCaches();
+    await pending;
 
     debugPrint('AuthNotifier: Signed out');
-  }
-
-  /// Throw away every cache that belongs to the session that just ended.
-  ///
-  /// Nothing else did this, so signing out and back in as someone else left
-  /// the previous session's rows on screen under the new user's name until
-  /// they pulled to refresh. The same applies to an org switch: the rows are
-  /// another tenant's and must not survive it.
-  ///
-  /// Providers are listed explicitly rather than swept, because forgetting one
-  /// shows stale data and invalidating an unrelated one only costs a refetch.
-  void _dropSessionCaches() {
-    ref.invalidate(dashboardProvider);
-    ref.invalidate(leadsProvider);
-    ref.invalidate(dealsProvider);
-    ref.invalidate(tasksProvider);
-    ref.invalidate(ticketsProvider);
-    ref.invalidate(solutionsProvider);
-    ref.invalidate(approvalsProvider);
-    ref.invalidate(analyticsProvider);
-    ref.invalidate(profileProvider);
-    ref.invalidate(accountsLookupProvider);
-    ref.invalidate(contactsLookupProvider);
-    ref.invalidate(usersLookupProvider);
-    ref.invalidate(teamsLookupProvider);
-    ref.invalidate(tagsLookupProvider);
   }
 
   /// Clear any error message

@@ -522,15 +522,16 @@ class CaseDetailView(APIView):
             previous_assigned_to_users = list(
                 cases_object.assigned_to.all().values_list("id", flat=True)
             )
-            cases_object.contacts.clear()
-            if params.get("contacts"):
-                contacts_list = params.get("contacts")
-                contact_ids = payload_id_list(contacts_list, "contacts")
-                contacts = Contact.objects.filter(
-                    id__in=contact_ids, org=request.profile.org
-                )
-                if contacts:
-                    cases_object.contacts.add(*contacts)
+            if "contacts" in params:
+                cases_object.contacts.clear()
+                if params.get("contacts"):
+                    contacts_list = params.get("contacts")
+                    contact_ids = payload_id_list(contacts_list, "contacts")
+                    contacts = Contact.objects.filter(
+                        id__in=contact_ids, org=request.profile.org
+                    )
+                    if contacts:
+                        cases_object.contacts.add(*contacts)
 
             cases_object.teams.clear()
             if params.get("teams"):

@@ -94,6 +94,7 @@ class TestDispatchForComment:
         self, case_a, admin_profile, org_a
     ):
         bob = _make_profile(org_a, email="bob@org.com")
+        case_a.assigned_to.add(bob)
         _comment(case_a, "hey @bob please review", by=admin_profile)
 
         # Sanity: notifications were dispatched via the signal handler.
@@ -121,6 +122,7 @@ class TestDispatchForComment:
         self, case_a, admin_profile, org_a
     ):
         bob = _make_profile(org_a, email="bob@org.com")
+        case_a.assigned_to.add(bob)
         _comment(case_a, "Sent to bob@org.com about this", by=admin_profile)
         # @ preceded by alphanumeric, must NOT be parsed as a mention.
         assert not Notification.objects.filter(
@@ -131,6 +133,7 @@ class TestDispatchForComment:
         self, case_a, admin_profile, org_a
     ):
         bob = _make_profile(org_a, email="bob@org.com")
+        case_a.assigned_to.add(bob)
         _comment(case_a, "@bob first", by=admin_profile)
         # Second mention within the rate-limit window should be skipped.
         _comment(case_a, "@bob again immediately", by=admin_profile)
@@ -143,6 +146,7 @@ class TestDispatchForComment:
         self, case_a, admin_profile, org_a
     ):
         bob = _make_profile(org_a, email="bob@org.com")
+        case_a.assigned_to.add(bob)
         _comment(case_a, "@bob first", by=admin_profile)
         # Move the prior notification's created_at back 2 minutes.
         Notification.objects.filter(recipient=bob, verb="case.mentioned").update(
@@ -183,6 +187,7 @@ class TestDispatchForComment:
         self, case_a, admin_profile, org_a
     ):
         bob = _make_profile(org_a, email="bob@org.com")
+        case_a.assigned_to.add(bob)
         # Pre-existing watch shouldn't double up either.
         CaseWatcher.objects.create(case=case_a, profile=bob, org=org_a)
         _comment(case_a, "@bob look at this", by=admin_profile)
@@ -217,6 +222,7 @@ class TestNotificationLinkIsReachable:
         self, case_a, admin_profile, org_a
     ):
         bob = _make_profile(org_a, email="bob@org.com")
+        case_a.assigned_to.add(bob)
         _comment(case_a, "hey @bob please review", by=admin_profile)
         notif = Notification.objects.get(recipient=bob, verb="case.mentioned")
         assert notif.link == f"/tickets/{case_a.id}"
@@ -225,6 +231,7 @@ class TestNotificationLinkIsReachable:
         self, case_a, admin_profile, org_a
     ):
         bob = _make_profile(org_a, email="bob@org.com")
+        case_a.assigned_to.add(bob)
         CaseWatcher.objects.create(
             case=case_a, profile=bob, org=org_a, subscribed_via="manual"
         )

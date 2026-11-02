@@ -79,6 +79,10 @@ class Case(AssignableMixin, BaseModel):
         )
 
     def save(self, *args, **kwargs):
+        from cases.approvals import validate_close_approval
+
+        if kwargs.get("update_fields") is None or "status" in kwargs["update_fields"]:
+            validate_close_approval(self)
         if self._state.adding and self.ticket_number is None and self.org_id:
             with transaction.atomic():
                 Org.objects.select_for_update().get(pk=self.org_id)
@@ -267,36 +271,12 @@ class Case(AssignableMixin, BaseModel):
         if self.status == "Closed" and not self.closed_on:
             errors["closed_on"] = _("Closed date is required when closing a case")
 
-        # Tier 3 approvals: when transitioning *into* Closed and an active
-        # rule matches, require a recorded `approved` Approval. Skip the
-        # check when callers explicitly opt out (e.g. internal auto-flows
-        # that have already verified the gate or migration data fixtures).
-        if (
-            self.status == "Closed"
-            and self.org_id
-            and not getattr(self, "_approval_gate_skip", False)
-        ):
-            old_status = None
-            if self.pk:
-                try:
-                    old_status = (
-                        type(self).objects.only("status").get(pk=self.pk).status
-                    )
-                except type(self).DoesNotExist:
-                    old_status = None
-            if old_status != "Closed":
-                from cases.approvals import Approval, find_matching_rule
+        from cases.approvals import validate_close_approval
 
-                rule = find_matching_rule(self, trigger_event="pre_close")
-                if rule is not None:
-                    has_approved = Approval.objects.filter(
-                        case_id=self.pk, rule=rule, state="approved"
-                    ).exists()
-                    if not has_approved:
-                        errors["status"] = _(
-                            "An approval is required before this case can be "
-                            "closed (rule: %(rule)s)."
-                        ) % {"rule": rule.name}
+        try:
+            validate_close_approval(self)
+        except ValidationError as exc:
+            errors.update(exc.message_dict)
 
         # Parent/child guards.
         if self.parent_id is not None:

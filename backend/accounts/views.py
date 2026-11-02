@@ -721,15 +721,16 @@ class AccountDetailView(APIView):
                 account_object.assigned_to.all().values_list("id", flat=True)
             )
 
-            if data.get("contacts"):
-                contacts_list = data.get("contacts")
-                contact_ids = payload_id_list(contacts_list, "contacts")
-                contacts = Contact.objects.filter(
-                    id__in=contact_ids, org=request.profile.org
-                )
-                account_object.contacts.set(contacts)
-            else:
-                account_object.contacts.clear()
+            if "contacts" in data:
+                if data.get("contacts"):
+                    contacts_list = data.get("contacts")
+                    contact_ids = payload_id_list(contacts_list, "contacts")
+                    contacts = Contact.objects.filter(
+                        id__in=contact_ids, org=request.profile.org
+                    )
+                    account_object.contacts.set(contacts)
+                else:
+                    account_object.contacts.clear()
 
             if data.get("tags"):
                 tags = data.get("tags")

@@ -19,7 +19,7 @@ from common.last_activity import ActivityListSerializer, LastActivitySerializerM
 from common.models import Profile, Teams
 from common.permissions import is_org_admin
 from common.pipeline_settings import PipelineMoveChoicesMixin, PipelineRulesMixin
-from common.rbac import VisibleCRMSerializerMixin
+from common.rbac import VisibleCRMSerializerMixin, can_view_related
 from common.serializer import (
     OrganizationSerializer,
     ProfileSerializer,
@@ -60,7 +60,7 @@ class CaseSerializer(
     # Tier 3 time-tracking
 
     def get_parent_summary(self, obj):
-        if not obj.parent_id:
+        if not obj.parent_id or not can_view_related(obj.parent):
             return None
         p = obj.parent
         return {"id": str(p.id), "name": p.name, "status": p.status}
@@ -156,14 +156,8 @@ class CaseCreateSerializer(PipelineRulesMixin, serializers.ModelSerializer):
     def validate(self, attrs):
         """Guard the close transition.
 
-        `Case.clean()` states two rules about closing a case: it needs a
-        `closed_on` date, and where an active `pre_close` ApprovalRule matches
-        it needs a recorded approval. Neither was ever enforced through the
-        API, because DRF does not call `Model.clean()` and nothing on the save
-        path calls `full_clean()`. Proven live: with a matching rule armed,
-        `PATCH {"status": "Closed"}` returned 200, closed the case and
-        recorded zero approvals, the whole approval feature, its inbox and
-        its settings page were decoration.
+        Return field-level API errors before persistence. The model also
+        enforces approvals so non-serializer save paths cannot bypass them.
 
         Validating the *transition* rather than the target matters here: a
         case that is already Closed can be edited without re-approving, which
@@ -444,7 +438,7 @@ class CaseKanbanCardSerializer(serializers.ModelSerializer):
         ]
 
     def get_account_name(self, obj):
-        return obj.account.name if obj.account else None
+        return obj.account.name if can_view_related(obj.account) else None
 
     def get_is_sla_breached(self, obj):
         """Return True if any SLA is breached."""

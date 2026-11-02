@@ -5,7 +5,7 @@ from common.identifier_serializers import IdentifierField
 from common.last_activity import ActivityListSerializer, LastActivitySerializerMixin
 from common.list_serializers import ContactLabelSerializer
 from common.pipeline_settings import PipelineMoveChoicesMixin, PipelineRulesMixin
-from common.rbac import VisibleCRMSerializerMixin
+from common.rbac import VisibleCRMSerializerMixin, can_view_related
 from common.serializer import (
     AttachmentsSerializer,
     CommentSerializer,
@@ -566,19 +566,16 @@ class TaskKanbanCardSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(RelatedEntitySerializer(allow_null=True))
     def get_related_entity(self, obj):
-        """Return the related entity (account, lead, opportunity, or case) if any."""
-        if obj.account_id:
-            return {"id": obj.account_id, "name": obj.account.name, "type": "account"}
-        if obj.lead_id:
-            return {"id": obj.lead_id, "name": str(obj.lead), "type": "lead"}
-        if obj.opportunity_id:
-            return {
-                "id": obj.opportunity_id,
-                "name": obj.opportunity.name,
-                "type": "opportunity",
-            }
-        if obj.case_id:
-            return {"id": obj.case_id, "name": obj.case.name, "type": "case"}
+        for field in ("account", "lead", "opportunity", "case"):
+            related = getattr(obj, field)
+            if related is not None:
+                if not can_view_related(related):
+                    return None
+                return {
+                    "id": related.pk,
+                    "name": str(related) if field == "lead" else related.name,
+                    "type": field,
+                }
         return None
 
 

@@ -20,10 +20,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from cases.access import assert_case_read_access
 from cases.models import Case
 from cases.parent_guards import check_parent_link
 from common.models import Activity
 from common.permissions import HasOrgContext
+from common.rbac import can_view_related
 
 TREE_MAX_DEPTH = Case.PARENT_MAX_DEPTH
 
@@ -48,7 +50,11 @@ def _build_tree(case, depth=0):
         node["children"] = []
         node["truncated"] = True
         return node
-    children = list(case.children.all().prefetch_related("assigned_to"))
+    children = [
+        c
+        for c in case.children.all().prefetch_related("assigned_to")
+        if can_view_related(c)
+    ]
     node["children"] = [_build_tree(c, depth + 1) for c in children]
     return node
 
@@ -73,12 +79,15 @@ class CaseTreeView(APIView):
         case = get_object_or_404(
             Case.objects.prefetch_related("assigned_to"), id=pk, org=org
         )
+        assert_case_read_access(request.profile, case)
         # Return the root of the visible tree: walk up to the highest ancestor
         # in the same org so a child URL still shows the full incident.
         root = case
         seen = {root.id}
         while root.parent_id and root.parent and root.parent.org_id == org.id:
-            if root.parent_id in seen:
+            if root.parent_id in seen or not can_view_related(
+                root.parent, request.profile
+            ):
                 break
             seen.add(root.parent_id)
             root = root.parent

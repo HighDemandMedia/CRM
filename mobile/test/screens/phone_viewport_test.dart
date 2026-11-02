@@ -656,7 +656,7 @@ void main() {
       await pump(tester, helpApp(available: false));
 
       expect(find.text('Knowledge base'), findsOneWidget);
-      expect(find.text('Email support@bottlecrm.io'), findsOneWidget);
+      expect(find.text('Email info@highdemandmedia.com'), findsOneWidget);
       // No queue means no way to open a ticket, so the button must be gone.
       expect(find.text('New ticket'), findsNothing);
       expect(tester.takeException(), isNull);
@@ -668,7 +668,7 @@ void main() {
       await pump(tester, helpApp(available: true));
 
       expect(find.text('New ticket'), findsOneWidget);
-      expect(find.text('Email support@bottlecrm.io'), findsNothing);
+      expect(find.text('Email info@highdemandmedia.com'), findsNothing);
       expect(tester.takeException(), isNull);
     });
 
@@ -763,7 +763,16 @@ void main() {
 
       // INV-0003 is Paid with a due date in 2020. "d late" against it would be
       // wrong, and v1 printed exactly that.
+      final paidCard = find
+          .ancestor(of: find.text('INV-0003'), matching: find.byType(InkWell))
+          .first;
+      expect(
+        find.descendant(of: paidCard, matching: find.textContaining('d late')),
+        findsNothing,
+      );
+      // Keep controls for an outstanding overdue invoice and a future draft.
       expect(find.textContaining('d late'), findsOneWidget);
+      expect(find.textContaining('d left'), findsOneWidget);
     });
 
     testWidgets('one currency puts a symbol on the header figures', (
@@ -3641,7 +3650,11 @@ class _FakeInvoices extends InvoicesNotifier {
         account: 'Northwind Traders and Logistics Incorporated',
         total: '1250.00',
         amountDue: '1250.00',
-        due: '2024-01-15',
+        due: DateTime.now()
+            .subtract(const Duration(days: 30))
+            .toIso8601String()
+            .split('T')
+            .first,
       ),
       _row(
         id: '2',
@@ -3650,7 +3663,11 @@ class _FakeInvoices extends InvoicesNotifier {
         account: 'Initech',
         total: '400.00',
         amountDue: '400.00',
-        due: '2026-09-30',
+        due: DateTime.now()
+            .add(const Duration(days: 30))
+            .toIso8601String()
+            .split('T')
+            .first,
       ),
       _row(
         id: '3',
