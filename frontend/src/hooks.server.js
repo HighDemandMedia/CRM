@@ -205,6 +205,10 @@ export const handle = async (input) => {
   }
   headers.set('x-frame-options', 'DENY');
   headers.set('x-content-type-options', 'nosniff');
+  // Enforce HTTPS for this host without affecting other subdomains or local HTTP.
+  if (input.event.url.protocol === 'https:') {
+    headers.set('strict-transport-security', 'max-age=31536000');
+  }
   headers.set(
     'referrer-policy',
     input.event.url.pathname.startsWith('/login/reset')

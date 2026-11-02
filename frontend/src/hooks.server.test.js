@@ -157,6 +157,7 @@ it.each(['/login', '/contacts'])(
     expect(response.headers.get('x-frame-options')).toBe('DENY');
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
     expect(response.headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin');
+    expect(response.headers.get('strict-transport-security')).toBe('max-age=31536000');
     if (path === '/contacts') {
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe('/login');
@@ -165,6 +166,15 @@ it.each(['/login', '/contacts'])(
     }
   }
 );
+
+it('leaves local HTTP development without a transport security policy', async () => {
+  const request = input({}, '/login');
+  request.event.url = new URL('http://127.0.0.1:5181/login');
+  const response = await handle(request);
+  expect(response.status).toBe(200);
+  expect(response.headers.has('strict-transport-security')).toBe(false);
+  expect(await response.text()).toBe('page');
+});
 
 it('preserves status and headers on error responses', async () => {
   const request = input({}, '/login');
@@ -175,6 +185,7 @@ it('preserves status and headers on error responses', async () => {
   expect(response.status).toBe(503);
   expect(response.headers.get('retry-after')).toBe('60');
   expect(response.headers.get('x-frame-options')).toBe('DENY');
+  expect(response.headers.get('strict-transport-security')).toBe('max-age=31536000');
   expect(await response.text()).toBe('Unavailable');
 });
 
