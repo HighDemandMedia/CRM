@@ -28,7 +28,7 @@ dependencies:
   # then renders a missing-glyph box. Keep it.
   cupertino_icons: ^1.0.9
   # Navigation
-  go_router: ^17.2.3
+  go_router: ^18.1.2
 
   # State Management
   flutter_riverpod: ^3.3.1
