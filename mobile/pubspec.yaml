@@ -15,7 +15,7 @@ dependencies:
 
   http: ^1.1.0
   google_sign_in: ^7.1.1
-  shared_preferences: ^2.5.5
+  shared_preferences: ^2.5.6
   # Tokens live here, never in shared_preferences. Keystore-backed on Android,
   # Keychain on iOS. See lib/services/token_storage.dart.
   flutter_secure_storage: ^10.3.1
