@@ -26,7 +26,7 @@ dependencies:
   # deals_list_screen.dart pulls in Flutter's Cupertino library, whose retained
   # CupertinoIcons constants need this font present. Dropping it builds fine and
   # then renders a missing-glyph box. Keep it.
-  cupertino_icons: ^1.0.9
+  cupertino_icons: ^2.0.0
   # Navigation
   go_router: ^17.2.3
 
