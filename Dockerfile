@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm AS base
+FROM python:3.15-slim-bookworm AS base
 
 # Prevent Python from buffering stdout/stderr (useful for Docker logs)
 ENV PYTHONDONTWRITEBYTECODE=1 \
